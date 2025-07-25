@@ -49,6 +49,34 @@ ticketflow/
 
 ## Installation
 
+### Pre-built Binaries
+
+Download the latest release for your platform from the [releases page](https://github.com/yshrsmz/ticketflow/releases).
+
+**Linux (AMD64)**
+```bash
+curl -L https://github.com/yshrsmz/ticketflow/releases/latest/download/ticketflow-linux-amd64.tar.gz | tar xz
+sudo mv ticketflow /usr/local/bin/
+```
+
+**Linux (ARM64)**
+```bash
+curl -L https://github.com/yshrsmz/ticketflow/releases/latest/download/ticketflow-linux-arm64.tar.gz | tar xz
+sudo mv ticketflow /usr/local/bin/
+```
+
+**macOS (Intel)**
+```bash
+curl -L https://github.com/yshrsmz/ticketflow/releases/latest/download/ticketflow-darwin-amd64.tar.gz | tar xz
+sudo mv ticketflow /usr/local/bin/
+```
+
+**macOS (Apple Silicon)**
+```bash
+curl -L https://github.com/yshrsmz/ticketflow/releases/latest/download/ticketflow-darwin-arm64.tar.gz | tar xz
+sudo mv ticketflow /usr/local/bin/
+```
+
 ### From Source
 
 ```bash
@@ -61,6 +89,11 @@ make build
 
 # Install to GOPATH/bin
 make install
+
+# Or build for specific platforms
+make build-linux   # Build for Linux (amd64, arm64)
+make build-mac     # Build for macOS (amd64, arm64)
+make build-all     # Build for all platforms
 ```
 
 ### Using Go

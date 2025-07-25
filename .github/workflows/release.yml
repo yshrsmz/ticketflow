@@ -1,0 +1,67 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Run tests
+        run: make test
+
+      - name: Build release archives
+        run: make release-archives
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            dist/*.tar.gz
+            dist/*.zip
+            dist/checksums.txt
+          body: |
+            ## Installation
+
+            ### Linux
+            ```bash
+            # AMD64
+            curl -L https://github.com/yshrsmz/ticketflow/releases/download/${{ github.ref_name }}/ticketflow-${{ github.ref_name }}-linux-amd64.tar.gz | tar xz
+            sudo mv ticketflow /usr/local/bin/
+
+            # ARM64
+            curl -L https://github.com/yshrsmz/ticketflow/releases/download/${{ github.ref_name }}/ticketflow-${{ github.ref_name }}-linux-arm64.tar.gz | tar xz
+            sudo mv ticketflow /usr/local/bin/
+            ```
+
+            ### macOS
+            ```bash
+            # Intel
+            curl -L https://github.com/yshrsmz/ticketflow/releases/download/${{ github.ref_name }}/ticketflow-${{ github.ref_name }}-darwin-amd64.tar.gz | tar xz
+            sudo mv ticketflow /usr/local/bin/
+
+            # Apple Silicon
+            curl -L https://github.com/yshrsmz/ticketflow/releases/download/${{ github.ref_name }}/ticketflow-${{ github.ref_name }}-darwin-arm64.tar.gz | tar xz
+            sudo mv ticketflow /usr/local/bin/
+            ```
+
+            ### Windows
+            Download the Windows zip file and extract to a directory in your PATH.
+
+            ## Checksums
+            See `checksums.txt` for SHA256 checksums of all release files.
