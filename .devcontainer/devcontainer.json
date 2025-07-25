@@ -51,6 +51,6 @@
 
   "mounts": [
     "source=${localWorkspaceFolder}/.vscode,target=/workspaces/${localWorkspaceFolderBasename}/.vscode,type=bind",
-    "source=${localEnv:HOME}/.claude,target=/home/vscode/.claude,type=bind,readonly"
+    "source=${localEnv:HOME}/.claude,target=/home/vscode/.claude,type=bind"
   ]
 }

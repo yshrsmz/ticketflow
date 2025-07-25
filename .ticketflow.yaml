@@ -1,0 +1,34 @@
+git:
+    default_branch: main
+worktree:
+    enabled: true
+    base_dir: ./.worktrees
+    init_commands:
+        - git pull origin main --rebase
+    auto_operations:
+        create_on_start: true
+        remove_on_close: true
+        cleanup_orphaned: true
+tickets:
+    dir: tickets
+    archive_dir: tickets/done
+    template: |-
+        # 概要
+
+        [ここにチケットの概要を記述]
+
+        ## タスク
+        - [ ] タスク1
+        - [ ] タスク2
+        - [ ] タスク3
+
+        ## 技術仕様
+
+        [必要に応じて技術的な詳細を記述]
+
+        ## メモ
+
+        [追加の注意事項やメモ]
+output:
+    default_format: text
+    json_pretty: true

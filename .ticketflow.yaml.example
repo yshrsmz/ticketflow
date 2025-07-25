@@ -1,0 +1,68 @@
+# TicketFlow Configuration File
+# Copy this file to .ticketflow.yaml and customize as needed
+
+# Git settings
+git:
+  # Default branch to merge tickets into
+  default_branch: "main"
+  
+# Worktree settings
+worktree:
+  # Enable git worktree integration
+  enabled: true
+  
+  # Base directory for worktrees (relative or absolute path)
+  base_dir: "../.worktrees"
+  
+  # Commands to run after creating a new worktree
+  # These run in the worktree directory
+  init_commands:
+    - "git pull origin main --rebase"
+    # - "npm install"
+    # - "make deps"
+    
+  # Automatic operations
+  auto_operations:
+    # Create worktree when starting a ticket
+    create_on_start: true
+    
+    # Remove worktree when closing a ticket
+    remove_on_close: true
+    
+    # Clean up orphaned worktrees periodically
+    cleanup_orphaned: true
+    
+# Ticket settings  
+tickets:
+  # Directory for ticket files
+  dir: "tickets"
+  
+  # Directory for archived (done) tickets
+  archive_dir: "tickets/done"
+  
+  # Default content for new tickets
+  template: |
+    # 概要
+    
+    [ここにチケットの概要を記述]
+    
+    ## タスク
+    - [ ] タスク1
+    - [ ] タスク2
+    - [ ] タスク3
+    
+    ## 技術仕様
+    
+    [必要に応じて技術的な詳細を記述]
+    
+    ## メモ
+    
+    [追加の注意事項やメモ]
+
+# Output settings
+output:
+  # Default output format for list/show commands
+  default_format: "text"  # text or json
+  
+  # Pretty print JSON output
+  json_pretty: true
