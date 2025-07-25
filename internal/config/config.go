@@ -23,17 +23,9 @@ type GitConfig struct {
 
 // WorktreeConfig represents worktree-related configuration
 type WorktreeConfig struct {
-	Enabled        bool                `yaml:"enabled"`
-	BaseDir        string              `yaml:"base_dir"`
-	InitCommands   []string            `yaml:"init_commands"`
-	AutoOperations AutoOperationsConfig `yaml:"auto_operations"`
-}
-
-// AutoOperationsConfig represents automatic operations
-type AutoOperationsConfig struct {
-	CreateOnStart   bool `yaml:"create_on_start"`
-	RemoveOnClose   bool `yaml:"remove_on_close"`
-	CleanupOrphaned bool `yaml:"cleanup_orphaned"`
+	Enabled      bool     `yaml:"enabled"`
+	BaseDir      string   `yaml:"base_dir"`
+	InitCommands []string `yaml:"init_commands"`
 }
 
 // TicketsConfig represents ticket-related configuration
@@ -61,12 +53,7 @@ func Default() *Config {
 			Enabled: true,
 			BaseDir: "../.worktrees",
 			InitCommands: []string{
-				"git pull origin main --rebase",
-			},
-			AutoOperations: AutoOperationsConfig{
-				CreateOnStart:   true,
-				RemoveOnClose:   true,
-				CleanupOrphaned: true,
+				"git fetch origin",
 			},
 		},
 		Tickets: TicketsConfig{

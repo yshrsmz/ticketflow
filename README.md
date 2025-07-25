@@ -1,46 +1,35 @@
 # TicketFlow
 
-A git worktree-based ticket management system optimized for AI collaboration.
+A git worktree-based ticket management system optimized for AI-assisted development.
 
-## Phase 1, 2, 3 & 4 Implementation Status ✅
+## Overview
 
-This implementation includes Phase 1 (MVP), Phase 2 (Worktree Integration), Phase 3 (TUI), and Phase 4 (Advanced Features):
+TicketFlow is a modern ticket management system that integrates seamlessly with Git workflows. It uses git worktrees to enable parallel work on multiple tickets while maintaining a clean project structure. Designed with both human developers and AI assistants in mind, it provides both an intuitive TUI (Terminal User Interface) and a comprehensive CLI.
 
-### Core Features Implemented:
+### Core Features:
 
-**Phase 1 - Core Functionality:**
-- ✅ Configuration management with YAML files
-- ✅ Ticket model with YAML frontmatter and Markdown content
-- ✅ Basic CLI commands (init, new, list, show, start, close, restore, status)
-- ✅ Git branch management for tickets
+**Ticket Management:**
+- ✅ Directory-based status tracking (todo/doing/done)
+- ✅ Markdown files with YAML frontmatter
+- ✅ Sub-ticket support with parent relationships
 - ✅ Current ticket symlink tracking
 - ✅ JSON output support for AI integration
 
-**Phase 2 - Worktree Integration:**
-- ✅ Git worktree creation on ticket start
-- ✅ Automatic worktree removal on ticket close
-- ✅ Worktree subcommands (list, clean)
-- ✅ Init commands execution in new worktrees
-- ✅ Orphaned worktree cleanup
-- ✅ Parallel development support
+**Git Integration:**
+- ✅ Git worktree creation for isolated development
+- ✅ Branch management per ticket
+- ✅ Manual control over all Git operations (no auto-push/merge)
+- ✅ Worktree persistence after ticket closure
+- ✅ Post-PR merge cleanup commands
 
-**Phase 3 - Terminal UI (TUI):**
-- ✅ Interactive TUI with Bubble Tea framework
-- ✅ Ticket list view with filtering and navigation
-- ✅ Ticket detail view with content display
-- ✅ New ticket creation form
+**Terminal UI (TUI):**
+- ✅ Interactive interface with Bubble Tea framework
+- ✅ Tab-based navigation (ALL/TODO/DOING/DONE)
+- ✅ Real-time search functionality
+- ✅ Ticket creation, editing, and management
 - ✅ Worktree management view
-- ✅ Keyboard navigation and help overlay
-- ✅ Comprehensive styling with lipgloss
-
-**Phase 4 - Advanced Features:**
-- ✅ Progress tracking with tasks and percentage
-- ✅ Progress reporting for active tickets
-- ✅ Auto-cleanup functionality for old tickets
-- ✅ Automatic ticket archiving
-- ✅ Orphaned worktree cleanup
-- ✅ Stale branch removal
-- ✅ Progress visualization in TUI
+- ✅ Keyboard shortcuts with help overlay
+- ✅ Start/close tickets directly from TUI
 
 ### Project Structure:
 ```
@@ -60,126 +49,293 @@ ticketflow/
 
 ## Installation
 
+### From Source
+
 ```bash
-# Build from source
+# Clone the repository
+git clone https://github.com/yshrsmz/ticketflow
+cd ticketflow
+
+# Build the binary
 make build
 
 # Install to GOPATH/bin
 make install
 ```
 
+### Using Go
+
+```bash
+go install github.com/yshrsmz/ticketflow/cmd/ticketflow@latest
+```
+
 ## Quick Start
 
-### Interactive TUI Mode:
+### Interactive TUI Mode
 
-Simply run `ticketflow` without any arguments to launch the interactive terminal UI:
+Launch the interactive TUI by running `ticketflow` without arguments:
 
 ```bash
 ticketflow
 ```
 
-TUI Features:
-- Browse and filter tickets by status and priority
-- View ticket details with scrolling
-- Create new tickets with form input
-- Start/close tickets with visual feedback
-- Manage worktrees interactively
-- Keyboard shortcuts with help overlay (press `?`)
+**TUI Features:**
+- Tab navigation between TODO, DOING, DONE, and ALL tickets
+- Search tickets with `/` (real-time filtering)
+- Create new tickets with `n`
+- Start work on tickets with `s`
+- View ticket details with `Enter`
+- Edit tickets in external editor with `e`
+- Close tickets with `c` (in detail view)
+- View worktrees with `w`
+- Help overlay with `?`
 
-### Basic Workflow (without worktrees):
+### Basic Workflow
 
-1. Initialize in your git project:
+1. **Initialize TicketFlow in your project**:
 ```bash
+cd your-project
 ticketflow init
 ```
 
-2. Create a new ticket:
+2. **Create a new ticket**:
 ```bash
 ticketflow new implement-feature
+# Creates: tickets/todo/250124-150000-implement-feature.md
 ```
 
-3. Start working (creates branch):
+3. **Edit ticket details**:
+```bash
+$EDITOR tickets/todo/250124-150000-implement-feature.md
+```
+
+4. **Start working on the ticket**:
 ```bash
 ticketflow start 250124-150000-implement-feature
-# Now on branch: 250124-150000-implement-feature
+# Creates branch and moves ticket to doing/
 ```
 
-4. Close ticket when done:
+5. **Close ticket when done**:
 ```bash
 ticketflow close
-# Merges to main, ready to commit
+# Moves ticket to done/ and commits the change
 ```
 
-### Worktree Workflow (recommended):
+6. **Push and create PR**:
+```bash
+git push origin 250124-150000-implement-feature
+# Create PR on GitHub/GitLab/etc
+```
 
-1. Enable worktrees in `.ticketflow.yaml`:
+### Worktree Workflow (Recommended)
+
+1. **Enable worktrees in `.ticketflow.yaml`**:
 ```yaml
 worktree:
   enabled: true
-  base_dir: "./.worktrees"
+  base_dir: "../.worktrees"  # Relative to project root
   init_commands:
-    - "npm install"  # or your setup commands
+    - "git fetch origin"
+    # - "npm install"
+    # - "make deps"
 ```
 
-2. Start work (creates separate worktree):
+2. **Start work (creates worktree)**:
 ```bash
 ticketflow start 250124-150000-implement-feature
-# Created worktree: ./.worktrees/250124-150000-implement-feature
-cd ./.worktrees/250124-150000-implement-feature
+# Creates worktree at ../.worktrees/250124-150000-implement-feature
 ```
 
-3. Work in isolated environment, then close:
+3. **Navigate to worktree and develop**:
+```bash
+cd ../.worktrees/250124-150000-implement-feature
+# Make changes, commit as usual
+```
+
+4. **Close ticket when done**:
 ```bash
 ticketflow close
-# Merges changes and removes worktree
+# Ticket marked as done, worktree remains for PR
+```
+
+5. **After PR is merged, clean up**:
+```bash
+cd ../../your-project
+ticketflow cleanup 250124-150000-implement-feature
+# Removes worktree and deletes local branch
 ```
 
 ## CLI Commands
 
-- `ticketflow init` - Initialize ticket system
-- `ticketflow new <slug>` - Create new ticket
-- `ticketflow list [--status todo|doing|done] [--format json]` - List tickets
-- `ticketflow show <ticket-id> [--format json]` - Show ticket details
-- `ticketflow start <ticket-id> [--no-push]` - Start work on ticket
-- `ticketflow close [--no-push] [--force]` - Complete current ticket
-- `ticketflow restore` - Restore current-ticket symlink
-- `ticketflow status [--format json]` - Show current status
-- `ticketflow worktree list [--format json]` - List all worktrees
-- `ticketflow worktree clean` - Remove orphaned worktrees
-- `ticketflow progress update <ticket> <percentage>` - Update ticket progress
-- `ticketflow progress show <ticket>` - Show ticket progress
-- `ticketflow progress add-task <ticket> <description>` - Add task to ticket
-- `ticketflow progress complete-task <ticket> <index>` - Complete a task
-- `ticketflow progress report` - Generate progress report
-- `ticketflow cleanup [--dry-run]` - Clean up old tickets and branches
+### Core Commands
 
-## Implementation Complete
+| Command | Description |
+|---------|-------------|
+| `ticketflow` | Launch interactive TUI |
+| `ticketflow init` | Initialize ticket system in current repository |
+| `ticketflow new <slug>` | Create a new ticket |
+| `ticketflow list [options]` | List tickets |
+| `ticketflow show <id> [options]` | Show ticket details |
+| `ticketflow start <id>` | Start working on a ticket |
+| `ticketflow close [options]` | Close the current ticket |
+| `ticketflow restore` | Restore current-ticket symlink |
+| `ticketflow status [options]` | Show current status |
+| `ticketflow cleanup <id> [options]` | Clean up after PR merge |
 
-All four phases of TicketFlow have been successfully implemented. The system is fully functional with:
-- Core ticket management functionality
-- Git worktree integration for parallel development
-- Interactive terminal UI
-- Advanced features including progress tracking and auto-cleanup
+### Worktree Commands
 
-The system is ready for production use and AI agent integration.
+| Command | Description |
+|---------|-------------|
+| `ticketflow worktree list [options]` | List all worktrees |
+| `ticketflow worktree clean` | Remove orphaned worktrees |
+
+### Common Options
+
+- `--status STATUS` - Filter by status (todo/doing/done)
+- `--format FORMAT` - Output format (text/json)
+- `--force, -f` - Force operation without confirmation
+- `--count N` - Limit number of results
+- `--help, -h` - Show command help
+
+## Configuration
+
+TicketFlow uses `.ticketflow.yaml` for configuration:
+
+```yaml
+# Git settings
+git:
+  default_branch: "main"
+
+# Worktree settings  
+worktree:
+  enabled: true
+  base_dir: "../.worktrees"
+  init_commands:
+    - "git fetch origin"
+    # Add your project-specific setup commands
+
+# Ticket settings
+tickets:
+  dir: "tickets"
+  todo_dir: "todo"
+  doing_dir: "doing" 
+  done_dir: "done"
+  
+  # Template for new tickets
+  template: |
+    # Summary
+    
+    ## Tasks
+    - [ ] 
+    
+    ## Notes
+
+# Output settings
+output:
+  default_format: "text"
+  json_pretty: true
+```
+
+## Sub-ticket Workflow
+
+Create sub-tickets while working on a parent ticket:
+
+```bash
+# In parent worktree
+cd ../.worktrees/250124-150000-user-system
+
+# Create sub-tickets
+ticketflow new user-model
+ticketflow new user-auth
+
+# Start sub-ticket (branches from parent)
+ticketflow start 250124-151000-user-model
+
+# Work in sub-ticket worktree
+cd ../.worktrees/250124-151000-user-model
+# ... implement ...
+
+# Create PR targeting parent branch
+git push origin 250124-151000-user-model
+```
+
+## AI Integration
+
+TicketFlow is designed for seamless AI integration:
+
+```bash
+# Get structured data
+ticketflow list --format json
+ticketflow show 250124-150000 --format json
+ticketflow status --format json
+
+# AI-friendly error messages
+export TICKETFLOW_OUTPUT_FORMAT=json
+```
+
+## Troubleshooting
+
+### Restore Current Ticket
+
+If the current ticket link is broken:
+```bash
+ticketflow restore
+```
+
+### Clean Orphaned Worktrees
+
+Remove worktrees without active tickets:
+```bash
+ticketflow worktree clean
+```
+
+### Version Information
+
+Check version and build info:
+```bash
+ticketflow version
+```
 
 ## Development
 
 ```bash
-# Run tests
+# Run all tests
 make test
 
 # Run specific test suites
-make test-unit
-make test-integration
+make test-unit        # Unit tests only
+make test-integration # Integration tests only
 
 # Format code
 make fmt
 
+# Check code quality
+make vet
+make lint            # Requires golangci-lint
+
 # Build for all platforms
-make build-all
+make build-all       # Creates binaries in dist/
+
+# Show version info
+make version
+
+# Create a release
+make release TAG=v1.0.0
+make release-build   # Build release binaries
 ```
+
+## Key Design Principles
+
+1. **No Automatic Git Operations**: You control when to push, merge, or clean up
+2. **Flat Worktree Structure**: All worktrees at the same level for simplicity  
+3. **PR-based Workflow**: Designed for code review processes
+4. **Local-first**: Everything works offline, no external services required
+5. **AI-friendly**: Structured data formats and clear command outputs
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit issues and pull requests.
 
 ## License
 
-MIT
+MIT License - see LICENSE file for details

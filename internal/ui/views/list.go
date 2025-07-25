@@ -25,11 +25,15 @@ const (
 type TicketListModel struct {
 	manager      *ticket.Manager
 	tickets      []ticket.Ticket
+	filteredTickets []ticket.Ticket
 	cursor       int
 	selected     map[string]bool
 	err          error
 	action       Action
 	statusFilter string
+	activeTab    int // 0=ALL, 1=TODO, 2=DOING, 3=DONE
+	searchMode   bool
+	searchQuery  string
 	width        int
 	height       int
 }
@@ -40,6 +44,8 @@ func NewTicketListModel(manager *ticket.Manager) TicketListModel {
 		manager:  manager,
 		selected: make(map[string]bool),
 		action:   ActionNone,
+		activeTab: 0, // Start with ALL tab
+		filteredTickets: []ticket.Ticket{},
 	}
 }
 
@@ -54,14 +60,43 @@ func (m TicketListModel) Update(msg tea.Msg) (TicketListModel, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
+		// Handle search mode input
+		if m.searchMode {
+			switch msg.String() {
+			case "enter":
+				m.searchMode = false
+				m.applyFilter()
+			case "esc":
+				m.searchMode = false
+				m.searchQuery = ""
+				m.applyFilter()
+			case "backspace":
+				if len(m.searchQuery) > 0 {
+					m.searchQuery = m.searchQuery[:len(m.searchQuery)-1]
+					m.applyFilter()
+				}
+			default:
+				if len(msg.String()) == 1 {
+					m.searchQuery += msg.String()
+					m.applyFilter()
+				}
+			}
+			return m, nil
+		}
+
 		switch msg.String() {
+		case "/":
+			m.searchMode = true
+			m.searchQuery = ""
+			return m, nil
+
 		case "up", "k":
 			if m.cursor > 0 {
 				m.cursor--
 			}
 
 		case "down", "j":
-			if m.cursor < len(m.tickets)-1 {
+			if m.cursor < len(m.filteredTickets)-1 {
 				m.cursor++
 			}
 
@@ -69,8 +104,8 @@ func (m TicketListModel) Update(msg tea.Msg) (TicketListModel, tea.Cmd) {
 			m.cursor = 0
 
 		case "G", "end":
-			if len(m.tickets) > 0 {
-				m.cursor = len(m.tickets) - 1
+			if len(m.filteredTickets) > 0 {
+				m.cursor = len(m.filteredTickets) - 1
 			}
 
 		case "enter":
@@ -87,41 +122,68 @@ func (m TicketListModel) Update(msg tea.Msg) (TicketListModel, tea.Cmd) {
 			return m, m.loadTickets()
 
 		case " ":
-			if len(m.tickets) > 0 && m.cursor < len(m.tickets) {
-				id := m.tickets[m.cursor].ID
+			if len(m.filteredTickets) > 0 && m.cursor < len(m.filteredTickets) {
+				id := m.filteredTickets[m.cursor].ID
 				m.selected[id] = !m.selected[id]
 			}
 
-		case "1", "2", "3":
-			// Filter by priority
-			if msg.String() == m.statusFilter {
-				m.statusFilter = ""
+		case "tab", "shift+tab":
+			// Navigate tabs
+			if msg.String() == "tab" {
+				m.activeTab = (m.activeTab + 1) % 4
 			} else {
-				m.statusFilter = msg.String()
+				m.activeTab = (m.activeTab - 1 + 4) % 4
 			}
+			// Update status filter based on tab
+			switch m.activeTab {
+			case 0:
+				m.statusFilter = ""
+			case 1:
+				m.statusFilter = "todo"
+			case 2:
+				m.statusFilter = "doing"
+			case 3:
+				m.statusFilter = "done"
+			}
+			m.cursor = 0
 			return m, m.loadTickets()
 
-		case "t", "d", "x":
-			// Filter by status: t=todo, d=doing, x=done
-			statusMap := map[string]string{
-				"t": "todo",
-				"d": "doing",
-				"x": "done",
+		case "1", "2", "3":
+			// Jump to tab by number (1=TODO, 2=DOING, 3=DONE)
+			tabMap := map[string]int{
+				"1": 1,
+				"2": 2,
+				"3": 3,
 			}
-			status := statusMap[msg.String()]
-			if status == m.statusFilter {
-				m.statusFilter = ""
-			} else {
-				m.statusFilter = status
+			if tab, ok := tabMap[msg.String()]; ok {
+				m.activeTab = tab
+				// Update status filter
+				switch m.activeTab {
+				case 1:
+					m.statusFilter = "todo"
+				case 2:
+					m.statusFilter = "doing"
+				case 3:
+					m.statusFilter = "done"
+				}
+				m.cursor = 0
+				return m, m.loadTickets()
 			}
+
+		case "a":
+			// Show all tickets
+			m.activeTab = 0
+			m.statusFilter = ""
+			m.cursor = 0
 			return m, m.loadTickets()
 		}
 
 	case ticketsLoadedMsg:
 		m.tickets = msg.tickets
 		m.err = msg.err
-		if m.cursor >= len(m.tickets) {
-			m.cursor = len(m.tickets) - 1
+		m.applyFilter()
+		if m.cursor >= len(m.filteredTickets) {
+			m.cursor = len(m.filteredTickets) - 1
 		}
 		if m.cursor < 0 {
 			m.cursor = 0
@@ -140,9 +202,11 @@ func (m TicketListModel) View() string {
 		return fmt.Sprintf("\n  %s\n", styles.ErrorStyle.Render(fmt.Sprintf("Error: %v", m.err)))
 	}
 
-	if len(m.tickets) == 0 {
+	if len(m.filteredTickets) == 0 {
 		emptyMsg := "No tickets found."
-		if m.statusFilter != "" {
+		if m.searchQuery != "" {
+			emptyMsg = fmt.Sprintf("No tickets matching '%s'", m.searchQuery)
+		} else if m.statusFilter != "" {
 			emptyMsg = fmt.Sprintf("No %s tickets found.", m.statusFilter)
 		}
 		return fmt.Sprintf("\n  %s\n\n  Press 'n' to create a new ticket.\n", styles.InfoStyle.Render(emptyMsg))
@@ -150,27 +214,45 @@ func (m TicketListModel) View() string {
 
 	var s strings.Builder
 
-	// Title with filter info
-	title := "Tickets"
-	if m.statusFilter != "" {
-		title = fmt.Sprintf("Tickets (%s)", m.statusFilter)
+	// Tabs
+	tabs := []string{"ALL", "TODO", "DOING", "DONE"}
+	var tabBar strings.Builder
+	for i, tab := range tabs {
+		style := styles.ButtonStyle
+		if i == m.activeTab {
+			style = styles.ActiveButtonStyle
+		}
+		tabBar.WriteString(style.Render(tab))
+		if i < len(tabs)-1 {
+			tabBar.WriteString(" ")
+		}
 	}
-	s.WriteString(styles.TitleStyle.Render(title))
-	s.WriteString("\n\n")
+	s.WriteString(tabBar.String())
+	
+	// Search bar
+	if m.searchMode || m.searchQuery != "" {
+		s.WriteString("\n\n")
+		searchBar := fmt.Sprintf("🔍 Search: %s", m.searchQuery)
+		if m.searchMode {
+			searchBar += "_"
+		}
+		s.WriteString(styles.InputStyle.Render(searchBar))
+		s.WriteString("\n")
+	}
+	
+	s.WriteString("\n")
 
 	// Calculate column widths
 	idWidth := 20
 	statusWidth := 7
 	priorityWidth := 3
-	progressWidth := 8
-	descWidth := m.width - idWidth - statusWidth - priorityWidth - progressWidth - 12 // padding and borders
+	descWidth := m.width - idWidth - statusWidth - priorityWidth - 8 // padding and borders
 
 	// Header
-	header := fmt.Sprintf("%-*s %-*s %-*s %-*s %s",
+	header := fmt.Sprintf("%-*s %-*s %-*s %s",
 		idWidth, "ID",
 		statusWidth, "Status",
 		priorityWidth, "Pri",
-		progressWidth, "Progress",
 		"Description")
 	s.WriteString(styles.SubtitleStyle.Render(header))
 	s.WriteString("\n")
@@ -179,10 +261,13 @@ func (m TicketListModel) View() string {
 
 	// Ticket list
 	visibleStart := 0
-	visibleEnd := len(m.tickets)
+	visibleEnd := len(m.filteredTickets)
 	maxVisible := m.height - 10 // Leave room for header and help
+	if m.searchMode || m.searchQuery != "" {
+		maxVisible -= 3 // Account for search bar
+	}
 
-	if len(m.tickets) > maxVisible {
+	if len(m.filteredTickets) > maxVisible {
 		// Scroll to keep cursor visible
 		if m.cursor < visibleStart {
 			visibleStart = m.cursor
@@ -193,8 +278,8 @@ func (m TicketListModel) View() string {
 		}
 	}
 
-	for i := visibleStart; i < visibleEnd && i < len(m.tickets); i++ {
-		t := m.tickets[i]
+	for i := visibleStart; i < visibleEnd && i < len(m.filteredTickets); i++ {
+		t := m.filteredTickets[i]
 		
 		// Format row
 		statusStyle := styles.GetStatusStyle(string(t.Status()))
@@ -204,27 +289,12 @@ func (m TicketListModel) View() string {
 		status := statusStyle.Render(fmt.Sprintf("%-*s", statusWidth, t.Status()))
 		priority := priorityStyle.Render(fmt.Sprintf("%d", t.Priority))
 		
-		// Format progress
-		progressStr := fmt.Sprintf("%3d%%", t.Progress)
-		if t.Status() == ticket.StatusDoing && t.Progress > 0 {
-			if t.Progress >= 80 {
-				progressStr = styles.SuccessStyle.Render(progressStr)
-			} else if t.Progress >= 50 {
-				progressStr = styles.WarningStyle.Render(progressStr)
-			} else {
-				progressStr = styles.InfoStyle.Render(progressStr)
-			}
-		} else {
-			progressStr = styles.MutedStyle.Render(progressStr)
-		}
-		
 		desc := truncate(t.Description, descWidth)
 
-		row := fmt.Sprintf("%-*s %s %s %s %s",
+		row := fmt.Sprintf("%-*s %s %s %s",
 			idWidth, id,
 			status,
 			priority,
-			progressStr,
 			desc)
 
 		// Apply selection/cursor styling
@@ -241,9 +311,9 @@ func (m TicketListModel) View() string {
 	}
 
 	// Scroll indicator
-	if len(m.tickets) > maxVisible {
+	if len(m.filteredTickets) > maxVisible {
 		s.WriteString("\n")
-		scrollInfo := fmt.Sprintf("%d-%d of %d", visibleStart+1, visibleEnd, len(m.tickets))
+		scrollInfo := fmt.Sprintf("%d-%d of %d", visibleStart+1, visibleEnd, len(m.filteredTickets))
 		s.WriteString(styles.HelpStyle.Render(scrollInfo))
 	}
 
@@ -267,8 +337,8 @@ func (m TicketListModel) Action() Action {
 
 // SelectedTicket returns the currently selected ticket
 func (m TicketListModel) SelectedTicket() *ticket.Ticket {
-	if m.cursor >= 0 && m.cursor < len(m.tickets) {
-		return &m.tickets[m.cursor]
+	if m.cursor >= 0 && m.cursor < len(m.filteredTickets) {
+		return &m.filteredTickets[m.cursor]
 	}
 	return nil
 }
@@ -304,4 +374,25 @@ func truncate(s string, maxWidth int) string {
 		return "..."
 	}
 	return s[:maxWidth-3] + "..."
+}
+
+// applyFilter applies the search query filter to tickets
+func (m *TicketListModel) applyFilter() {
+	m.filteredTickets = nil
+	query := strings.ToLower(m.searchQuery)
+	
+	for _, t := range m.tickets {
+		// If no search query, include all tickets
+		if query == "" {
+			m.filteredTickets = append(m.filteredTickets, t)
+			continue
+		}
+		
+		// Search in ID, description, and content
+		if strings.Contains(strings.ToLower(t.ID), query) ||
+			strings.Contains(strings.ToLower(t.Description), query) ||
+			strings.Contains(strings.ToLower(t.Content), query) {
+			m.filteredTickets = append(m.filteredTickets, t)
+		}
+	}
 }

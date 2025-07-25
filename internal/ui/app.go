@@ -2,6 +2,10 @@ package ui
 
 import (
 	"fmt"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -22,6 +26,24 @@ const (
 	ViewNewTicket
 	ViewWorktreeList
 )
+
+// ticketStartedMsg is sent when a ticket is successfully started
+type ticketStartedMsg struct {
+	ticket       *ticket.Ticket
+	worktreePath string
+}
+
+// ticketClosedMsg is sent when a ticket is successfully closed
+type ticketClosedMsg struct {
+	ticket       *ticket.Ticket
+	isWorktree   bool
+	worktreePath string
+}
+
+// ticketEditedMsg is sent when a ticket has been edited
+type ticketEditedMsg struct {
+	ticket *ticket.Ticket
+}
 
 // Model represents the application state
 type Model struct {
@@ -132,6 +154,39 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case error:
 		m.err = msg
 		return m, nil
+
+	case ticketStartedMsg:
+		// Ticket was successfully started
+		if msg.worktreePath != "" {
+			m.err = fmt.Errorf("✅ Ticket started! Worktree created at: %s", msg.worktreePath)
+		} else {
+			m.err = fmt.Errorf("✅ Ticket started! Switched to branch: %s", msg.ticket.ID)
+		}
+		// Refresh the list
+		cmds = append(cmds, m.ticketList.Refresh())
+		return m, tea.Batch(cmds...)
+
+	case ticketClosedMsg:
+		// Ticket was successfully closed
+		if msg.isWorktree {
+			m.err = fmt.Errorf("✅ Ticket closed! Worktree remains at: %s", msg.worktreePath)
+		} else {
+			m.err = fmt.Errorf("✅ Ticket closed! Branch: %s", msg.ticket.ID)
+		}
+		// Go back to list and refresh
+		if m.view == ViewTicketDetail {
+			m.view = m.previousView
+		}
+		cmds = append(cmds, m.ticketList.Refresh())
+		return m, tea.Batch(cmds...)
+
+	case ticketEditedMsg:
+		// Ticket was edited, update detail view if showing
+		if m.view == ViewTicketDetail {
+			m.ticketDetail.SetTicket(msg.ticket)
+			cmds = append(cmds, m.ticketDetail.Init())
+		}
+		return m, tea.Batch(cmds...)
 	}
 
 	// Delegate to current view
@@ -170,6 +225,27 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.view = m.previousView
 			// Refresh list
 			cmds = append(cmds, m.ticketList.Refresh())
+		}
+
+		// Handle detail view actions
+		switch m.ticketDetail.Action() {
+		case views.DetailActionClose:
+			t := m.ticketDetail.SelectedTicket()
+			if t != nil {
+				cmds = append(cmds, m.closeTicket(t))
+			}
+
+		case views.DetailActionEdit:
+			t := m.ticketDetail.SelectedTicket()
+			if t != nil {
+				cmds = append(cmds, m.editTicket(t))
+			}
+
+		case views.DetailActionStart:
+			t := m.ticketDetail.SelectedTicket()
+			if t != nil {
+				cmds = append(cmds, m.startTicket(t))
+			}
 		}
 
 	case ViewNewTicket:
@@ -246,8 +322,268 @@ func (m Model) View() string {
 // startTicket starts work on a ticket
 func (m *Model) startTicket(t *ticket.Ticket) tea.Cmd {
 	return func() tea.Msg {
-		// Start ticket logic would go here
-		// For now, just return an error message
-		return fmt.Errorf("start ticket not implemented in TUI yet")
+		// Check if already started
+		if t.Status() == ticket.StatusDoing {
+			return fmt.Errorf("ticket %s is already in progress", t.ID)
+		}
+
+		// Check for uncommitted changes (only if not using worktrees)
+		if !m.config.Worktree.Enabled {
+			dirty, err := m.git.HasUncommittedChanges()
+			if err != nil {
+				return fmt.Errorf("failed to check git status: %w", err)
+			}
+			if dirty {
+				return fmt.Errorf("uncommitted changes detected - please commit or stash before starting a ticket")
+			}
+		}
+
+		// Get current branch
+		currentBranch, err := m.git.CurrentBranch()
+		if err != nil {
+			return fmt.Errorf("failed to get current branch: %w", err)
+		}
+
+		var worktreePath string
+
+		if m.config.Worktree.Enabled {
+			// Check if worktree already exists
+			if exists, err := m.git.HasWorktree(t.ID); err != nil {
+				return fmt.Errorf("failed to check worktree: %w", err)
+			} else if exists {
+				return fmt.Errorf("worktree for ticket %s already exists", t.ID)
+			}
+
+			// Create worktree
+			baseDir := m.config.GetWorktreePath(m.projectRoot)
+			worktreePath = filepath.Join(baseDir, t.ID)
+			
+			if err := m.git.AddWorktree(worktreePath, t.ID); err != nil {
+				return fmt.Errorf("failed to create worktree: %w", err)
+			}
+
+			// Run init commands if configured
+			if len(m.config.Worktree.InitCommands) > 0 {
+				for _, cmd := range m.config.Worktree.InitCommands {
+					parts := strings.Fields(cmd)
+					if len(parts) == 0 {
+						continue
+					}
+					
+					execCmd := exec.Command(parts[0], parts[1:]...)
+					execCmd.Dir = worktreePath
+					// Run in background, ignore errors for now
+					execCmd.Run()
+				}
+			}
+		} else {
+			// Original behavior: create and checkout branch
+			if err := m.git.CreateBranch(t.ID); err != nil {
+				return fmt.Errorf("failed to create branch: %w", err)
+			}
+		}
+
+		// Update ticket status
+		if err := t.Start(); err != nil {
+			// Rollback
+			if m.config.Worktree.Enabled && worktreePath != "" {
+				m.git.RemoveWorktree(worktreePath)
+			} else {
+				m.git.Checkout(currentBranch)
+			}
+			return fmt.Errorf("failed to start ticket: %w", err)
+		}
+
+		// Move ticket file from todo to doing
+		oldPath := t.Path
+		doingPath := m.config.GetDoingPath(m.projectRoot)
+		newPath := filepath.Join(doingPath, filepath.Base(t.Path))
+		
+		// Move the file
+		if err := os.Rename(oldPath, newPath); err != nil {
+			// Rollback
+			if m.config.Worktree.Enabled && worktreePath != "" {
+				m.git.RemoveWorktree(worktreePath)
+			} else {
+				m.git.Checkout(currentBranch)
+			}
+			return fmt.Errorf("failed to move ticket to doing: %w", err)
+		}
+		
+		// Update ticket data with new path
+		t.Path = newPath
+		if err := m.manager.Update(t); err != nil {
+			// Rollback file move
+			os.Rename(newPath, oldPath)
+			if m.config.Worktree.Enabled && worktreePath != "" {
+				m.git.RemoveWorktree(worktreePath)
+			} else {
+				m.git.Checkout(currentBranch)
+			}
+			return fmt.Errorf("failed to update ticket: %w", err)
+		}
+		
+		// Git add both old and new paths
+		if err := m.git.Add(oldPath, newPath); err != nil {
+			return fmt.Errorf("failed to stage ticket move: %w", err)
+		}
+		
+		// Commit the move
+		if err := m.git.Commit(fmt.Sprintf("Start ticket: %s", t.ID)); err != nil {
+			return fmt.Errorf("failed to commit ticket move: %w", err)
+		}
+
+		// Set current ticket
+		if err := m.manager.SetCurrentTicket(t); err != nil {
+			return fmt.Errorf("failed to set current ticket: %w", err)
+		}
+
+		// Return success message
+		if m.config.Worktree.Enabled {
+			return ticketStartedMsg{
+				ticket:       t,
+				worktreePath: worktreePath,
+			}
+		}
+		return ticketStartedMsg{
+			ticket: t,
+		}
+	}
+}
+
+// closeTicket closes a ticket
+func (m *Model) closeTicket(t *ticket.Ticket) tea.Cmd {
+	return func() tea.Msg {
+		// Get current ticket
+		current, err := m.manager.GetCurrentTicket()
+		if err != nil {
+			return fmt.Errorf("failed to get current ticket: %w", err)
+		}
+		if current == nil || current.ID != t.ID {
+			return fmt.Errorf("can only close the current active ticket")
+		}
+
+		var worktreePath string
+		var isWorktree bool
+
+		if m.config.Worktree.Enabled {
+			// Check if a worktree exists for this ticket
+			wt, err := m.git.FindWorktreeByBranch(t.ID)
+			if err != nil {
+				return fmt.Errorf("failed to find worktree: %w", err)
+			}
+			if wt != nil {
+				isWorktree = true
+				worktreePath = wt.Path
+
+				// Check for uncommitted changes in worktree
+				wtGit := git.New(worktreePath)
+				dirty, err := wtGit.HasUncommittedChanges()
+				if err != nil {
+					return fmt.Errorf("failed to check worktree status: %w", err)
+				}
+				if dirty {
+					return fmt.Errorf("uncommitted changes in worktree - please commit before closing")
+				}
+			}
+		}
+
+		if !isWorktree {
+			// Check for uncommitted changes
+			dirty, err := m.git.HasUncommittedChanges()
+			if err != nil {
+				return fmt.Errorf("failed to check git status: %w", err)
+			}
+			if dirty {
+				return fmt.Errorf("uncommitted changes - please commit before closing")
+			}
+
+			// Get current branch
+			currentBranch, err := m.git.CurrentBranch()
+			if err != nil {
+				return fmt.Errorf("failed to get current branch: %w", err)
+			}
+
+			// Ensure we're on the ticket branch
+			if currentBranch != t.ID {
+				return fmt.Errorf("not on ticket branch, expected %s but on %s", t.ID, currentBranch)
+			}
+		}
+
+		// Update ticket status
+		if err := t.Close(); err != nil {
+			return fmt.Errorf("failed to close ticket: %w", err)
+		}
+
+		// Move ticket file from doing to done
+		oldPath := t.Path
+		donePath := m.config.GetDonePath(m.projectRoot)
+		newPath := filepath.Join(donePath, filepath.Base(t.Path))
+		
+		// Move the file
+		if err := os.Rename(oldPath, newPath); err != nil {
+			return fmt.Errorf("failed to move ticket to done: %w", err)
+		}
+		
+		// Update ticket data with new path
+		t.Path = newPath
+		if err := m.manager.Update(t); err != nil {
+			// Rollback file move
+			os.Rename(newPath, oldPath)
+			return fmt.Errorf("failed to update ticket: %w", err)
+		}
+		
+		// Git add both old and new paths
+		if err := m.git.Add(oldPath, newPath); err != nil {
+			return fmt.Errorf("failed to stage ticket move: %w", err)
+		}
+		
+		// Commit the move
+		if err := m.git.Commit(fmt.Sprintf("Close ticket: %s", t.ID)); err != nil {
+			return fmt.Errorf("failed to commit ticket move: %w", err)
+		}
+
+		// Remove current ticket link
+		if err := m.manager.SetCurrentTicket(nil); err != nil {
+			return fmt.Errorf("failed to remove current ticket link: %w", err)
+		}
+
+		return ticketClosedMsg{
+			ticket: t,
+			isWorktree: isWorktree,
+			worktreePath: worktreePath,
+		}
+	}
+}
+
+// editTicket opens a ticket in the external editor
+func (m *Model) editTicket(t *ticket.Ticket) tea.Cmd {
+	return func() tea.Msg {
+		// Get editor from environment
+		editor := os.Getenv("EDITOR")
+		if editor == "" {
+			editor = "vi" // fallback
+		}
+
+		// Create command
+		cmd := exec.Command(editor, t.Path)
+		cmd.Stdin = os.Stdin
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+
+		// Run editor
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("failed to open editor: %w", err)
+		}
+
+		// Reload ticket to get updated content
+		updated, err := m.manager.Get(t.ID)
+		if err != nil {
+			return fmt.Errorf("failed to reload ticket: %w", err)
+		}
+
+		return ticketEditedMsg{
+			ticket: updated,
+		}
 	}
 }

@@ -115,23 +115,66 @@ func (app *App) NewTicket(slug string, format OutputFormat) error {
 			})
 	}
 
+	// Auto-detect parent ticket from current branch
+	var parentTicketID string
+	currentBranch, err := app.Git.CurrentBranch()
+	if err != nil {
+		return fmt.Errorf("failed to get current branch: %w", err)
+	}
+
+	// If we're not on the default branch, check if it's a ticket branch
+	if currentBranch != app.Config.Git.DefaultBranch {
+		// Verify this is a valid ticket
+		if _, err := app.Manager.Get(currentBranch); err == nil {
+			parentTicketID = currentBranch
+			fmt.Printf("Creating ticket in branch: %s\n", currentBranch)
+		}
+	}
+
 	// Create ticket
 	t, err := app.Manager.Create(slug)
 	if err != nil {
 		return err
 	}
 
+	// If this is a sub-ticket, update its metadata
+	if parentTicketID != "" {
+		// Add parent relationship
+		t.Related = append(t.Related, fmt.Sprintf("parent:%s", parentTicketID))
+		if err := app.Manager.Update(t); err != nil {
+			return fmt.Errorf("failed to update ticket metadata: %w", err)
+		}
+	}
+
 	if format == FormatJSON {
-		return outputJSON(map[string]interface{}{
+		output := map[string]interface{}{
 			"ticket": map[string]interface{}{
 				"id":   t.ID,
 				"path": t.Path,
 			},
-		})
+		}
+		if parentTicketID != "" {
+			output["parent_ticket"] = parentTicketID
+		}
+		return outputJSON(output)
 	}
 
-	fmt.Printf("Created ticket file: %s\n", t.Path)
-	fmt.Println("Please edit the file to add title, description and details.")
+	fmt.Printf("\n🎫 Created new ticket: %s\n", t.ID)
+	fmt.Printf("   File: %s\n", t.Path)
+	if parentTicketID != "" {
+		fmt.Printf("   Parent ticket: %s\n", parentTicketID)
+		fmt.Printf("   Type: Sub-ticket\n")
+	}
+	fmt.Printf("\n📋 Next steps:\n")
+	fmt.Printf("1. Edit the ticket file to add details:\n")
+	fmt.Printf("   $EDITOR %s\n", t.Path)
+	fmt.Printf("   \n")
+	fmt.Printf("2. Commit the ticket file:\n")
+	fmt.Printf("   git add %s\n", t.Path)
+	fmt.Printf("   git commit -m \"Add ticket: %s\"\n", slug)
+	fmt.Printf("   \n")
+	fmt.Printf("3. Start working on it:\n")
+	fmt.Printf("   ticketflow start %s\n", t.ID)
 
 	return nil
 }
@@ -162,7 +205,7 @@ func (app *App) ListTickets(status ticket.Status, count int, format OutputFormat
 }
 
 // StartTicket starts working on a ticket
-func (app *App) StartTicket(ticketID string, noPush bool) error {
+func (app *App) StartTicket(ticketID string) error {
 	// Get the ticket
 	t, err := app.Manager.Get(ticketID)
 	if err != nil {
@@ -197,6 +240,23 @@ func (app *App) StartTicket(ticketID string, noPush bool) error {
 		return fmt.Errorf("failed to get current branch: %w", err)
 	}
 
+	// Check if we're starting from a worktree (for sub-tickets)
+	var parentBranch string
+	if currentBranch != app.Config.Git.DefaultBranch {
+		// Verify this is a valid ticket branch
+		if _, err := app.Manager.Get(currentBranch); err == nil {
+			// This is a sub-ticket being created from a parent ticket
+			parentBranch = currentBranch
+		} else {
+			return NewError(ErrTicketInvalid, "Invalid branch for starting ticket",
+				fmt.Sprintf("Currently on branch '%s', which is not a ticket branch", currentBranch),
+				[]string{
+					fmt.Sprintf("Switch to default branch: git checkout %s", app.Config.Git.DefaultBranch),
+					"Or start from a valid ticket branch",
+				})
+		}
+	}
+
 	var worktreePath string
 
 	if app.Config.Worktree.Enabled {
@@ -208,7 +268,7 @@ func (app *App) StartTicket(ticketID string, noPush bool) error {
 				fmt.Sprintf("Worktree for ticket %s already exists", t.ID), nil)
 		}
 
-		// Create worktree
+		// Always use flat worktree structure
 		baseDir := app.Config.GetWorktreePath(app.ProjectRoot)
 		worktreePath = filepath.Join(baseDir, t.ID)
 		
@@ -217,7 +277,7 @@ func (app *App) StartTicket(ticketID string, noPush bool) error {
 		}
 
 		// Run init commands if configured
-		if app.Config.Worktree.AutoOperations.CreateOnStart && len(app.Config.Worktree.InitCommands) > 0 {
+		if len(app.Config.Worktree.InitCommands) > 0 {
 			fmt.Println("Running initialization commands...")
 			for _, cmd := range app.Config.Worktree.InitCommands {
 				fmt.Printf("  $ %s\n", cmd)
@@ -240,6 +300,18 @@ func (app *App) StartTicket(ticketID string, noPush bool) error {
 		// Original behavior: create and checkout branch
 		if err := app.Git.CreateBranch(t.ID); err != nil {
 			return fmt.Errorf("failed to create branch: %w", err)
+		}
+	}
+
+	// If this is a sub-ticket, update the related field
+	if parentBranch != "" {
+		t.Related = append(t.Related, fmt.Sprintf("parent:%s", parentBranch))
+		if err := app.Manager.Update(t); err != nil {
+			// Rollback
+			if app.Config.Worktree.Enabled {
+				app.Git.RemoveWorktree(worktreePath)
+			}
+			return fmt.Errorf("failed to update ticket parent relationship: %w", err)
 		}
 	}
 
@@ -298,35 +370,48 @@ func (app *App) StartTicket(ticketID string, noPush bool) error {
 		return fmt.Errorf("failed to set current ticket: %w", err)
 	}
 
-	// Push branch if requested
-	if !noPush {
-		if app.Config.Worktree.Enabled {
-			// Push from worktree
-			if _, err := app.Git.RunInWorktree(worktreePath, "push", "-u", "origin", t.ID); err != nil {
-				fmt.Printf("Warning: Failed to push branch: %v\n", err)
-			}
-		} else {
-			if err := app.Git.Push("origin", t.ID, true); err != nil {
-				fmt.Printf("Warning: Failed to push branch: %v\n", err)
-			}
-		}
-	}
-
-	fmt.Printf("Started work on ticket: %s\n", t.ID)
+	// Output success message
+	fmt.Printf("\n✅ Started work on ticket: %s\n", t.ID)
+	fmt.Printf("   Description: %s\n", t.Description)
+	
 	if app.Config.Worktree.Enabled {
-		fmt.Printf("Created worktree: %s\n", worktreePath)
-		fmt.Printf("\nTo work on this ticket:\n")
-		fmt.Printf("  cd %s\n", worktreePath)
+		fmt.Printf("\n📁 Worktree created: %s\n", worktreePath)
+		if parentBranch != "" {
+			fmt.Printf("   Parent ticket: %s\n", parentBranch)
+			fmt.Printf("   Branch from: %s\n", parentBranch)
+		}
+		fmt.Printf("   Status: todo → doing\n")
+		fmt.Printf("   Committed: \"Start ticket: %s\"\n", t.ID)
+		fmt.Printf("\n📋 Next steps:\n")
+		fmt.Printf("1. Navigate to worktree:\n")
+		fmt.Printf("   cd %s\n", worktreePath)
+		fmt.Printf("   \n")
+		fmt.Printf("2. Make your changes and commit regularly\n")
+		fmt.Printf("   \n")
+		fmt.Printf("3. Push branch to create PR:\n")
+		fmt.Printf("   git push -u origin %s\n", t.ID)
+		fmt.Printf("   \n")
+		fmt.Printf("4. When done, close the ticket:\n")
+		fmt.Printf("   ticketflow close\n")
 	} else {
-		fmt.Printf("Switched to branch: %s\n", t.ID)
+		fmt.Printf("\n🌿 Switched to branch: %s\n", t.ID)
+		fmt.Printf("   Status: todo → doing\n")
+		fmt.Printf("   Committed: \"Start ticket: %s\"\n", t.ID)
+		fmt.Printf("\n📋 Next steps:\n")
+		fmt.Printf("1. Make your changes and commit regularly\n")
+		fmt.Printf("   \n")
+		fmt.Printf("2. Push branch to create PR:\n")
+		fmt.Printf("   git push -u origin %s\n", t.ID)
+		fmt.Printf("   \n")
+		fmt.Printf("3. When done, close the ticket:\n")
+		fmt.Printf("   ticketflow close\n")
 	}
-	fmt.Printf("Created symlink: current-ticket.md -> %s\n", t.Path)
 
 	return nil
 }
 
 // CloseTicket closes the current ticket
-func (app *App) CloseTicket(noPush, force bool) error {
+func (app *App) CloseTicket(force bool) error {
 	// Get current ticket
 	current, err := app.Manager.GetCurrentTicket()
 	if err != nil {
@@ -371,12 +456,6 @@ func (app *App) CloseTicket(noPush, force bool) error {
 				}
 			}
 
-			// Push from worktree if requested
-			if !noPush {
-				if _, err := app.Git.RunInWorktree(worktreePath, "push", "origin", current.ID); err != nil {
-					fmt.Printf("Warning: Failed to push branch from worktree: %v\n", err)
-				}
-			}
 		}
 	}
 
@@ -409,29 +488,6 @@ func (app *App) CloseTicket(noPush, force bool) error {
 			return fmt.Errorf("not on ticket branch, expected %s but on %s", current.ID, currentBranch)
 		}
 
-		// Push if requested
-		if !noPush {
-			if err := app.Git.Push("origin", current.ID, false); err != nil {
-				fmt.Printf("Warning: Failed to push branch: %v\n", err)
-			}
-		}
-	}
-
-	// Ensure we're on the default branch for merging
-	currentBranch, _ := app.Git.CurrentBranch()
-	if currentBranch != app.Config.Git.DefaultBranch {
-		if err := app.Git.Checkout(app.Config.Git.DefaultBranch); err != nil {
-			return fmt.Errorf("failed to checkout default branch: %w", err)
-		}
-	}
-
-	// Squash merge
-	if err := app.Git.MergeSquash(current.ID); err != nil {
-		// Try to recover
-		if !isWorktree {
-			app.Git.Checkout(current.ID)
-		}
-		return fmt.Errorf("failed to merge ticket branch: %w", err)
 	}
 
 	// Update ticket status
@@ -472,20 +528,52 @@ func (app *App) CloseTicket(noPush, force bool) error {
 		return fmt.Errorf("failed to remove current ticket link: %w", err)
 	}
 
-	// Remove worktree if configured
-	if isWorktree && app.Config.Worktree.AutoOperations.RemoveOnClose {
-		fmt.Printf("Removing worktree: %s\n", worktreePath)
-		if err := app.Git.RemoveWorktree(worktreePath); err != nil {
-			fmt.Printf("Warning: Failed to remove worktree: %v\n", err)
+	// Calculate work duration
+	var duration string
+	if current.StartedAt != nil && current.ClosedAt != nil {
+		dur := current.ClosedAt.Sub(*current.StartedAt)
+		duration = formatDuration(dur)
+	}
+	
+	// Print success message with next steps
+	fmt.Printf("\n✅ Ticket closed: %s\n", current.ID)
+	fmt.Printf("   Description: %s\n", current.Description)
+	fmt.Printf("   Status: doing → done\n")
+	if duration != "" {
+		fmt.Printf("   Duration: %s\n", duration)
+	}
+	fmt.Printf("   Committed: \"Close ticket: %s\"\n", current.ID)
+	
+	// Check if this is a sub-ticket
+	var parentTicketID string
+	for _, rel := range current.Related {
+		if strings.HasPrefix(rel, "parent:") {
+			parentTicketID = strings.TrimPrefix(rel, "parent:")
+			break
 		}
 	}
-
-	fmt.Printf("Closed ticket: %s\n", current.ID)
-	fmt.Printf("Merged into: %s\n", app.Config.Git.DefaultBranch)
-	if isWorktree && app.Config.Worktree.AutoOperations.RemoveOnClose {
-		fmt.Printf("Removed worktree: %s\n", worktreePath)
+	if parentTicketID != "" {
+		fmt.Printf("   Parent ticket: %s\n", parentTicketID)
 	}
-	fmt.Println("Ready to commit the squashed changes")
+	
+	fmt.Printf("\n📋 Next steps:\n")
+	fmt.Printf("1. Push your branch to create/update PR:\n")
+	fmt.Printf("   git push origin %s\n", current.ID)
+	fmt.Printf("   \n")
+	fmt.Printf("2. Create Pull Request on your Git service\n")
+	fmt.Printf("   - Title: %s\n", current.Description)
+	fmt.Printf("   - Target: %s\n", app.Config.Git.DefaultBranch)
+	if parentTicketID != "" {
+		fmt.Printf("   - Mention parent ticket: %s\n", parentTicketID)
+	}
+	fmt.Printf("   \n")
+	fmt.Printf("3. After PR is merged, clean up:\n")
+	fmt.Printf("   ticketflow cleanup %s\n", current.ID)
+	
+	if isWorktree && worktreePath != "" {
+		fmt.Printf("\n🌳 Note: Worktree remains at %s\n", worktreePath)
+		fmt.Printf("   You can continue working there until cleanup\n")
+	}
 
 	return nil
 }
@@ -569,25 +657,35 @@ func (app *App) Status(format OutputFormat) error {
 	}
 
 	// Text format
-	fmt.Printf("Current branch: %s\n", branch)
+	fmt.Printf("\n🌿 Current branch: %s\n", branch)
 
 	if current != nil {
-		fmt.Printf("\nCurrent ticket: %s\n", current.ID)
-		fmt.Printf("  Description: %s\n", current.Description)
-		fmt.Printf("  Status: %s\n", current.Status())
+		fmt.Printf("\n🎯 Active ticket: %s\n", current.ID)
+		fmt.Printf("   Description: %s\n", current.Description)
+		fmt.Printf("   Status: %s\n", current.Status())
 		if current.StartedAt != nil {
 			duration := time.Since(*current.StartedAt)
-			fmt.Printf("  Duration: %s\n", formatDuration(duration))
+			fmt.Printf("   Duration: %s\n", formatDuration(duration))
+		}
+		
+		// Check if in worktree
+		if app.Config.Worktree.Enabled {
+			wt, _ := app.Git.FindWorktreeByBranch(current.ID)
+			if wt != nil {
+				fmt.Printf("   Worktree: %s\n", wt.Path)
+			}
 		}
 	} else {
-		fmt.Println("\nNo active ticket")
+		fmt.Println("\n⚠️  No active ticket")
+		fmt.Println("   Start a ticket with: ticketflow start <ticket-id>")
 	}
 
-	fmt.Printf("\nTicket summary:\n")
-	fmt.Printf("  Todo:  %d\n", todoCount)
-	fmt.Printf("  Doing: %d\n", doingCount)
-	fmt.Printf("  Done:  %d\n", doneCount)
-	fmt.Printf("  Total: %d\n", len(allTickets))
+	fmt.Printf("\n📊 Ticket summary:\n")
+	fmt.Printf("   📘 Todo:  %d\n", todoCount)
+	fmt.Printf("   🔨 Doing: %d\n", doingCount)
+	fmt.Printf("   ✅ Done:  %d\n", doneCount)
+	fmt.Printf("   \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n")
+	fmt.Printf("   🔢 Total: %d\n", len(allTickets))
 
 	return nil
 }
@@ -652,7 +750,15 @@ func (app *App) outputTicketListText(tickets []*ticket.Ticket) error {
 func (app *App) outputTicketListJSON(tickets []*ticket.Ticket) error {
 	ticketList := make([]map[string]interface{}, len(tickets))
 	for i, t := range tickets {
-		ticketList[i] = ticketToJSON(t, "")
+		// Get worktree path if exists
+		var worktreePath string
+		if app.Config.Worktree.Enabled && t.HasWorktree() {
+			wt, err := app.Git.FindWorktreeByBranch(t.ID)
+			if err == nil && wt != nil {
+				worktreePath = wt.Path
+			}
+		}
+		ticketList[i] = ticketToJSON(t, worktreePath)
 	}
 
 	// Calculate summary
@@ -768,5 +874,86 @@ func (app *App) CleanWorktrees() error {
 		fmt.Printf("Cleaned %d orphaned worktree(s)\n", cleaned)
 	}
 
+	return nil
+}
+
+// CleanupTicket cleans up a ticket after PR merge
+func (app *App) CleanupTicket(ticketID string, force bool) error {
+	// Get the ticket to verify it exists and is done
+	t, err := app.Manager.Get(ticketID)
+	if err != nil {
+		return err
+	}
+
+	// Check if ticket is done
+	if t.Status() != ticket.StatusDone {
+		return NewError(ErrTicketNotDone, "Ticket is not done",
+			fmt.Sprintf("Ticket %s is in '%s' status, not 'done'", t.ID, t.Status()),
+			[]string{
+				"Close the ticket first: ticketflow close",
+				"Or manually move the ticket to done directory",
+			})
+	}
+
+	// Get current branch to restore later
+	currentBranch, err := app.Git.CurrentBranch()
+	if err != nil {
+		return fmt.Errorf("failed to get current branch: %w", err)
+	}
+
+	// Make sure we're on the default branch
+	if currentBranch != app.Config.Git.DefaultBranch {
+		if err := app.Git.Checkout(app.Config.Git.DefaultBranch); err != nil {
+			return fmt.Errorf("failed to checkout default branch: %w", err)
+		}
+	}
+
+	// Check if worktree exists
+	wt, err := app.Git.FindWorktreeByBranch(t.ID)
+	if err != nil {
+		return fmt.Errorf("failed to find worktree: %w", err)
+	}
+
+	// Confirmation prompt if not forced
+	if !force {
+		fmt.Printf("\n🗑️  Cleanup for ticket: %s\n", t.ID)
+		fmt.Printf("   Description: %s\n", t.Description)
+		fmt.Printf("\nThis will:\n")
+		if wt != nil {
+			fmt.Printf("  • Remove worktree: %s\n", wt.Path)
+		}
+		fmt.Printf("  • Delete local branch: %s\n", t.ID)
+		fmt.Printf("\nAre you sure? (y/N): ")
+		
+		var response string
+		fmt.Scanln(&response)
+		if response != "y" && response != "Y" {
+			fmt.Println("\n❌ Cleanup cancelled")
+			return nil
+		}
+	}
+
+	fmt.Printf("\n🔧 Performing cleanup...\n")
+	
+	// Remove worktree if it exists
+	if wt != nil {
+		fmt.Printf("🌳 Removing worktree: %s\n", wt.Path)
+		if err := app.Git.RemoveWorktree(wt.Path); err != nil {
+			return fmt.Errorf("failed to remove worktree: %w", err)
+		}
+	}
+
+	// Delete local branch
+	fmt.Printf("🌿 Deleting local branch: %s\n", t.ID)
+	if _, err := app.Git.Exec("branch", "-D", t.ID); err != nil {
+		// Branch might not exist locally, which is fine
+		fmt.Printf("⚠️  Note: Local branch %s not found or already deleted\n", t.ID)
+	}
+
+	fmt.Printf("\n✅ Cleanup completed successfully!\n")
+	fmt.Printf("\n📋 What's next:\n")
+	fmt.Printf("• Start a new ticket: ticketflow new <slug>\n")
+	fmt.Printf("• View open tickets: ticketflow list --status todo\n")
+	fmt.Printf("• Check active work: ticketflow list --status doing\n")
 	return nil
 }

@@ -27,21 +27,12 @@ type Ticket struct {
 	StartedAt   *time.Time `yaml:"started_at"`
 	ClosedAt    *time.Time `yaml:"closed_at"`
 	Related     []string   `yaml:"related,omitempty"`
-	Progress    int        `yaml:"progress,omitempty"`    // Progress percentage (0-100)
-	Tasks       []Task     `yaml:"tasks,omitempty"`       // Task list for tracking
 
 	// Computed fields
 	ID      string `yaml:"-"`
 	Slug    string `yaml:"-"`
 	Path    string `yaml:"-"`
 	Content string `yaml:"-"`
-}
-
-// Task represents a subtask within a ticket
-type Task struct {
-	Description string     `yaml:"description"`
-	Completed   bool       `yaml:"completed"`
-	CompletedAt *time.Time `yaml:"completed_at,omitempty"`
 }
 
 // Status returns the current status of the ticket
@@ -188,65 +179,4 @@ func (t *Ticket) Close() error {
 	now := time.Now()
 	t.ClosedAt = &now
 	return nil
-}
-
-// CalculateProgress calculates progress based on completed tasks
-func (t *Ticket) CalculateProgress() int {
-	if len(t.Tasks) == 0 {
-		return t.Progress
-	}
-
-	completed := 0
-	for _, task := range t.Tasks {
-		if task.Completed {
-			completed++
-		}
-	}
-
-	return (completed * 100) / len(t.Tasks)
-}
-
-// UpdateProgress updates the progress percentage
-func (t *Ticket) UpdateProgress(progress int) error {
-	if progress < 0 || progress > 100 {
-		return fmt.Errorf("progress must be between 0 and 100")
-	}
-	t.Progress = progress
-	return nil
-}
-
-// AddTask adds a new task to the ticket
-func (t *Ticket) AddTask(description string) {
-	t.Tasks = append(t.Tasks, Task{
-		Description: description,
-		Completed:   false,
-	})
-}
-
-// CompleteTask marks a task as completed
-func (t *Ticket) CompleteTask(index int) error {
-	if index < 0 || index >= len(t.Tasks) {
-		return fmt.Errorf("task index out of range")
-	}
-	
-	if !t.Tasks[index].Completed {
-		now := time.Now()
-		t.Tasks[index].Completed = true
-		t.Tasks[index].CompletedAt = &now
-	}
-	
-	// Update overall progress
-	t.Progress = t.CalculateProgress()
-	return nil
-}
-
-// GetCompletedTasksCount returns the number of completed tasks
-func (t *Ticket) GetCompletedTasksCount() int {
-	count := 0
-	for _, task := range t.Tasks {
-		if task.Completed {
-			count++
-		}
-	}
-	return count
 }

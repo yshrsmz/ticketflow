@@ -29,8 +29,6 @@ func TestWorktreeWorkflow(t *testing.T) {
 	require.NoError(t, err)
 	cfg.Worktree.Enabled = true
 	cfg.Worktree.BaseDir = "./.worktrees"
-	cfg.Worktree.AutoOperations.CreateOnStart = true
-	cfg.Worktree.AutoOperations.RemoveOnClose = true
 	cfg.Worktree.InitCommands = []string{} // No init commands for test
 	err = cfg.Save(filepath.Join(repoPath, ".ticketflow.yaml"))
 	require.NoError(t, err)
@@ -62,7 +60,7 @@ func TestWorktreeWorkflow(t *testing.T) {
 	require.Len(t, tickets, 1)
 
 	ticketID := tickets[0].ID
-	err = app.StartTicket(ticketID, true) // no-push
+	err = app.StartTicket(ticketID)
 	require.NoError(t, err)
 
 	// Verify worktree was created
@@ -98,20 +96,20 @@ func TestWorktreeWorkflow(t *testing.T) {
 	_, err = wtGit.Exec("commit", "-m", "Add test file in worktree")
 	require.NoError(t, err)
 
-	// 4. Close ticket (should remove worktree)
-	err = app.CloseTicket(true, false) // no-push
+	// 4. Close ticket (worktree should NOT be removed automatically)
+	err = app.CloseTicket(false)
 	require.NoError(t, err)
 
-	// Verify worktree was removed
+	// Verify worktree still exists
 	worktrees, err = app.Git.ListWorktrees()
 	require.NoError(t, err)
-	assert.Len(t, worktrees, 1) // only main
+	assert.Len(t, worktrees, 2) // main + ticket worktree
 
-	// Verify worktree directory was removed
+	// Verify worktree directory still exists
 	_, err = os.Stat(ticketWorktree.Path)
-	assert.True(t, os.IsNotExist(err))
+	require.NoError(t, err)
 
-	// Verify we're back on main branch
+	// We should still be on main branch (test was run from main repo)
 	currentBranch, err := app.Git.CurrentBranch()
 	require.NoError(t, err)
 	assert.Equal(t, "main", currentBranch)
@@ -161,9 +159,9 @@ func TestWorktreeCleanCommand(t *testing.T) {
 	require.Len(t, tickets, 3)
 
 	// Start work on first two tickets
-	err = app.StartTicket(tickets[0].ID, true)
+	err = app.StartTicket(tickets[0].ID)
 	require.NoError(t, err)
-	err = app.StartTicket(tickets[1].ID, true)
+	err = app.StartTicket(tickets[1].ID)
 	require.NoError(t, err)
 
 	// Manually close the first ticket without removing worktree
@@ -245,7 +243,7 @@ func TestWorktreeListCommand(t *testing.T) {
 
 	tickets, err := app.Manager.List("")
 	require.NoError(t, err)
-	err = app.StartTicket(tickets[0].ID, true)
+	err = app.StartTicket(tickets[0].ID)
 	require.NoError(t, err)
 
 	// Test listing worktrees

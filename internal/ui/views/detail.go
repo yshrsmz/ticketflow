@@ -11,6 +11,16 @@ import (
 	"github.com/yshrsmz/ticketflow/internal/ui/styles"
 )
 
+// DetailAction represents an action from the detail view
+type DetailAction int
+
+const (
+	DetailActionNone DetailAction = iota
+	DetailActionClose
+	DetailActionEdit
+	DetailActionStart
+)
+
 // TicketDetailModel represents the ticket detail view
 type TicketDetailModel struct {
 	manager    *ticket.Manager
@@ -20,6 +30,7 @@ type TicketDetailModel struct {
 	width      int
 	height     int
 	shouldBack bool
+	action     DetailAction
 	err        error
 }
 
@@ -41,12 +52,28 @@ func (m TicketDetailModel) Init() tea.Cmd {
 // Update handles messages
 func (m TicketDetailModel) Update(msg tea.Msg) (TicketDetailModel, tea.Cmd) {
 	m.shouldBack = false
+	m.action = DetailActionNone
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "q", "esc":
 			m.shouldBack = true
+
+		case "c":
+			if m.ticket != nil && m.ticket.Status() == ticket.StatusDoing {
+				m.action = DetailActionClose
+			}
+
+		case "e":
+			if m.ticket != nil {
+				m.action = DetailActionEdit
+			}
+
+		case "s":
+			if m.ticket != nil && m.ticket.Status() == ticket.StatusTodo {
+				m.action = DetailActionStart
+			}
 
 		case "up", "k":
 			if m.scrollY > 0 {
@@ -122,25 +149,6 @@ func (m TicketDetailModel) View() string {
 		styles.SubtitleStyle.Render("Priority:"),
 		styles.GetPriorityStyle(m.ticket.Priority).Render(fmt.Sprintf("%d", m.ticket.Priority))))
 	
-	if m.ticket.Progress > 0 || len(m.ticket.Tasks) > 0 {
-		progressStr := fmt.Sprintf("%d%%", m.ticket.Progress)
-		if m.ticket.Progress >= 80 {
-			progressStr = styles.SuccessStyle.Render(progressStr)
-		} else if m.ticket.Progress >= 50 {
-			progressStr = styles.WarningStyle.Render(progressStr)
-		} else {
-			progressStr = styles.InfoStyle.Render(progressStr)
-		}
-		meta.WriteString(fmt.Sprintf("%s %s",
-			styles.SubtitleStyle.Render("Progress:"),
-			progressStr))
-		
-		if len(m.ticket.Tasks) > 0 {
-			completed := m.ticket.GetCompletedTasksCount()
-			meta.WriteString(fmt.Sprintf(" (%d/%d tasks)", completed, len(m.ticket.Tasks)))
-		}
-		meta.WriteString("\n")
-	}
 	
 	meta.WriteString(fmt.Sprintf("%s %s\n",
 		styles.SubtitleStyle.Render("Created:"),
@@ -211,26 +219,18 @@ func (m TicketDetailModel) View() string {
 		}
 	}
 
-	// Tasks section
-	if len(m.ticket.Tasks) > 0 {
-		s.WriteString("\n\n")
-		s.WriteString(styles.SubtitleStyle.Render("Tasks:"))
-		s.WriteString("\n")
-		
-		for i, task := range m.ticket.Tasks {
-			status := "[ ]"
-			taskStyle := styles.BaseStyle
-			if task.Completed {
-				status = "[✓]"
-				taskStyle = styles.SuccessStyle
-			}
-			s.WriteString(fmt.Sprintf("  %d. %s %s\n", i+1, status, taskStyle.Render(task.Description)))
-		}
-	}
-
 	// Help
 	s.WriteString("\n\n")
-	s.WriteString(styles.HelpStyle.Render("Press q or esc to go back"))
+	helpItems := []string{"q/esc: back"}
+	if m.ticket != nil {
+		if m.ticket.Status() == ticket.StatusTodo {
+			helpItems = append(helpItems, "s: start")
+		} else if m.ticket.Status() == ticket.StatusDoing {
+			helpItems = append(helpItems, "c: close")
+		}
+		helpItems = append(helpItems, "e: edit")
+	}
+	s.WriteString(styles.HelpStyle.Render(strings.Join(helpItems, " • ")))
 
 	return s.String()
 }
@@ -252,6 +252,16 @@ func (m *TicketDetailModel) SetTicket(t *ticket.Ticket) {
 // ShouldGoBack returns whether the view should go back
 func (m TicketDetailModel) ShouldGoBack() bool {
 	return m.shouldBack
+}
+
+// Action returns the current action
+func (m TicketDetailModel) Action() DetailAction {
+	return m.action
+}
+
+// SelectedTicket returns the current ticket
+func (m TicketDetailModel) SelectedTicket() *ticket.Ticket {
+	return m.ticket
 }
 
 // getMaxScroll calculates the maximum scroll position

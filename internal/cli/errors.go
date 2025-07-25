@@ -6,6 +6,9 @@ import (
 	"os"
 )
 
+// GlobalOutputFormat is set by command parsing to control error output format
+var GlobalOutputFormat OutputFormat = FormatText
+
 // Error codes
 const (
 	// System errors
@@ -21,6 +24,7 @@ const (
 	ErrTicketNotStarted     = "TICKET_NOT_STARTED"
 	ErrTicketAlreadyStarted = "TICKET_ALREADY_STARTED"
 	ErrTicketAlreadyClosed  = "TICKET_ALREADY_CLOSED"
+	ErrTicketNotDone        = "TICKET_NOT_DONE"
 
 	// Git errors
 	ErrGitDirtyWorkspace = "GIT_DIRTY_WORKSPACE"
@@ -33,6 +37,7 @@ const (
 	ErrWorktreeNotFound     = "WORKTREE_NOT_FOUND"
 	ErrWorktreeCreateFailed = "WORKTREE_CREATE_FAILED"
 	ErrWorktreeRemoveFailed = "WORKTREE_REMOVE_FAILED"
+	ErrInvalidContext       = "INVALID_CONTEXT"
 )
 
 // CLIError represents a structured error for CLI output
@@ -75,8 +80,20 @@ func HandleError(err error) {
 }
 
 func handleCLIError(err *CLIError) {
-	// For now, always use text format
-	// TODO: Check output format from config or flag
+	// Check global format first (set by command line parsing)
+	if GlobalOutputFormat == FormatJSON {
+		OutputJSONError(err)
+		return
+	}
+	
+	// Check if JSON output is requested via environment variable
+	// This allows error formatting even before app initialization
+	if os.Getenv("TICKETFLOW_OUTPUT_FORMAT") == "json" {
+		OutputJSONError(err)
+		return
+	}
+	
+	// Default text format
 	fmt.Fprintf(os.Stderr, "Error: %s\n", err.Message)
 	
 	if err.Details != "" {

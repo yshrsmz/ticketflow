@@ -93,7 +93,7 @@ func TestCompleteWorkflow(t *testing.T) {
 
 	// 4. Start work on ticket
 	ticketID := tickets[0].ID
-	err = app.StartTicket(ticketID, true) // no-push for test
+	err = app.StartTicket(ticketID)
 	require.NoError(t, err)
 
 	// Verify ticket status changed
@@ -125,13 +125,13 @@ func TestCompleteWorkflow(t *testing.T) {
 	require.NoError(t, err)
 
 	// 6. Close ticket
-	err = app.CloseTicket(true, false) // no-push for test
+	err = app.CloseTicket(false)
 	require.NoError(t, err)
 
-	// Verify back on main branch
+	// Branch should still be on ticket branch (no automatic switch)
 	currentBranch, err = app.Git.CurrentBranch()
 	require.NoError(t, err)
-	assert.Equal(t, "main", currentBranch)
+	assert.Equal(t, ticketID, currentBranch)
 
 	// Verify ticket status changed
 	closedTicket, err := app.Manager.Get(ticketID)
@@ -181,7 +181,7 @@ func TestRestoreWorkflow(t *testing.T) {
 	require.NoError(t, err)
 
 	// Start work on ticket
-	err = app.StartTicket(ticketID, true)
+	err = app.StartTicket(ticketID)
 	require.NoError(t, err)
 
 	// Remove current-ticket link

@@ -42,8 +42,10 @@ func NewHelpModel() HelpModel {
 			},
 			// View controls
 			{
-				{Key: "tab", Desc: "Next view"},
-				{Key: "shift+tab", Desc: "Previous view"},
+				{Key: "tab", Desc: "Next tab"},
+				{Key: "shift+tab", Desc: "Previous tab"},
+				{Key: "1/2/3", Desc: "Jump to TODO/DOING/DONE"},
+				{Key: "a", Desc: "Show all tickets"},
 				{Key: "esc", Desc: "Back/Cancel"},
 				{Key: "r", Desc: "Refresh"},
 			},

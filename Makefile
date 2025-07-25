@@ -13,8 +13,11 @@ GOFMT=$(GOCMD) fmt
 GOVET=$(GOCMD) vet
 
 # Build variables
-VERSION?=dev
-LDFLAGS=-ldflags "-X main.Version=$(VERSION)"
+# Get version from git tags or use dev
+VERSION := $(shell git describe --tags --always --dirty=-dev 2>/dev/null || echo "dev")
+BUILD_TIME := $(shell date -u '+%Y-%m-%d %H:%M:%S')
+GIT_COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+LDFLAGS=-ldflags "-X main.Version=$(VERSION) -X 'main.BuildTime=$(BUILD_TIME)' -X main.GitCommit=$(GIT_COMMIT)"
 
 .PHONY: all build test clean install run run-tui
 
@@ -68,6 +71,7 @@ lint:
 clean:
 	rm -f $(BINARY_NAME)
 	rm -f coverage.out coverage.html
+	rm -rf dist/
 
 # Download dependencies
 deps:
@@ -97,6 +101,28 @@ build-all:
 	GOOS=linux GOARCH=amd64 $(GOBUILD) $(LDFLAGS) -o dist/$(BINARY_NAME)-linux-amd64 $(MAIN_PACKAGE)
 	GOOS=windows GOARCH=amd64 $(GOBUILD) $(LDFLAGS) -o dist/$(BINARY_NAME)-windows-amd64.exe $(MAIN_PACKAGE)
 
+# Show version
+version:
+	@echo "Version: $(VERSION)"
+	@echo "Git Commit: $(GIT_COMMIT)"
+	@echo "Build Time: $(BUILD_TIME)"
+
+# Create a new release tag
+release:
+	@if [ -z "$(TAG)" ]; then echo "Usage: make release TAG=v0.1.0"; exit 1; fi
+	@echo "Creating release $(TAG)..."
+	@git tag -a $(TAG) -m "Release $(TAG)"
+	@echo "Release $(TAG) created. Push with: git push origin $(TAG)"
+
+# Build release binaries
+release-build: clean
+	@mkdir -p dist
+	GOOS=darwin GOARCH=amd64 $(GOBUILD) $(LDFLAGS) -o dist/$(BINARY_NAME)-$(VERSION)-darwin-amd64 $(MAIN_PACKAGE)
+	GOOS=darwin GOARCH=arm64 $(GOBUILD) $(LDFLAGS) -o dist/$(BINARY_NAME)-$(VERSION)-darwin-arm64 $(MAIN_PACKAGE)
+	GOOS=linux GOARCH=amd64 $(GOBUILD) $(LDFLAGS) -o dist/$(BINARY_NAME)-$(VERSION)-linux-amd64 $(MAIN_PACKAGE)
+	GOOS=windows GOARCH=amd64 $(GOBUILD) $(LDFLAGS) -o dist/$(BINARY_NAME)-$(VERSION)-windows-amd64.exe $(MAIN_PACKAGE)
+	@echo "Release binaries built in dist/"
+
 # Show help
 help:
 	@echo "Available targets:"
@@ -109,3 +135,6 @@ help:
 	@echo "  make deps      - Download dependencies"
 	@echo "  make fmt       - Format Go code"
 	@echo "  make lint      - Run linter"
+	@echo "  make version   - Show version information"
+	@echo "  make release   - Create a new release tag (TAG=v0.1.0)"
+	@echo "  make release-build - Build release binaries for all platforms"
