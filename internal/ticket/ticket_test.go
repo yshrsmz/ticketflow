@@ -11,7 +11,7 @@ import (
 
 func TestTicketStatus(t *testing.T) {
 	now := time.Now()
-	
+
 	tests := []struct {
 		name     string
 		ticket   Ticket
@@ -42,7 +42,7 @@ func TestTicketStatus(t *testing.T) {
 			expected: StatusDone,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			assert.Equal(t, tt.expected, tt.ticket.Status())
@@ -52,7 +52,7 @@ func TestTicketStatus(t *testing.T) {
 
 func TestTicketHasWorktree(t *testing.T) {
 	now := time.Now()
-	
+
 	tests := []struct {
 		name     string
 		ticket   Ticket
@@ -83,7 +83,7 @@ func TestTicketHasWorktree(t *testing.T) {
 			expected: false,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			assert.Equal(t, tt.expected, tt.ticket.HasWorktree())
@@ -108,10 +108,10 @@ This is the ticket content.
 ## Task List
 - [ ] Task 1
 - [ ] Task 2`
-	
+
 	ticket, err := Parse([]byte(content))
 	require.NoError(t, err)
-	
+
 	assert.Equal(t, 1, ticket.Priority)
 	assert.Equal(t, "Test ticket", ticket.Description)
 	assert.Equal(t, []string{"123456-789012-related"}, ticket.Related)
@@ -140,7 +140,7 @@ Content`,
 			errMsg: "failed to parse frontmatter",
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			_, err := Parse([]byte(tt.content))
@@ -161,16 +161,16 @@ func TestToBytes(t *testing.T) {
 		Related:     []string{"related-1", "related-2"},
 		Content:     "# Test Content\n\nThis is the content.",
 	}
-	
+
 	data, err := ticket.ToBytes()
 	require.NoError(t, err)
-	
+
 	content := string(data)
 	assert.True(t, strings.HasPrefix(content, "---\n"))
 	assert.Contains(t, content, "priority: 1")
 	assert.Contains(t, content, `description: Test ticket`)
 	assert.Contains(t, content, "# Test Content")
-	
+
 	// Test round trip
 	parsed, err := Parse(data)
 	require.NoError(t, err)
@@ -182,11 +182,11 @@ func TestToBytes(t *testing.T) {
 
 func TestGenerateID(t *testing.T) {
 	id := GenerateID("test-slug")
-	
+
 	// ID should have format YYMMDD-HHMMSS-test-slug
 	parts := strings.SplitN(id, "-", 3)
 	require.Len(t, parts, 3)
-	
+
 	// Verify date format
 	assert.Len(t, parts[0], 6) // YYMMDD
 	assert.Len(t, parts[1], 6) // HHMMSS
@@ -196,10 +196,10 @@ func TestGenerateID(t *testing.T) {
 func TestParseID(t *testing.T) {
 	// Generate a known ID
 	id := "250124-150000-test-slug"
-	
+
 	timestamp, slug, err := ParseID(id)
 	require.NoError(t, err)
-	
+
 	assert.Equal(t, "test-slug", slug)
 	assert.Equal(t, 2025, timestamp.Year())
 	assert.Equal(t, time.January, timestamp.Month())
@@ -223,7 +223,7 @@ func TestParseIDInvalid(t *testing.T) {
 			id:   "invalid-123456-test",
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			_, _, err := ParseID(tt.id)
@@ -247,7 +247,7 @@ func TestIsValidSlug(t *testing.T) {
 		{"test slug", false}, // space
 		{"test.slug", false}, // dot
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.slug, func(t *testing.T) {
 			assert.Equal(t, tt.valid, IsValidSlug(tt.slug))
@@ -265,7 +265,7 @@ func TestExtractIDFromFilename(t *testing.T) {
 		{"test.md", "test"},
 		{"test", "test"},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.filename, func(t *testing.T) {
 			assert.Equal(t, tt.expected, ExtractIDFromFilename(tt.filename))
@@ -275,22 +275,22 @@ func TestExtractIDFromFilename(t *testing.T) {
 
 func TestTicketStartClose(t *testing.T) {
 	ticket := New("test", "Test ticket")
-	
+
 	// Test start
 	err := ticket.Start()
 	require.NoError(t, err)
 	assert.NotNil(t, ticket.StartedAt)
-	
+
 	// Test already started
 	err = ticket.Start()
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "already started")
-	
+
 	// Test close
 	err = ticket.Close()
 	require.NoError(t, err)
 	assert.NotNil(t, ticket.ClosedAt)
-	
+
 	// Test already closed
 	err = ticket.Close()
 	assert.Error(t, err)
@@ -299,7 +299,7 @@ func TestTicketStartClose(t *testing.T) {
 
 func TestTicketCloseNotStarted(t *testing.T) {
 	ticket := New("test", "Test ticket")
-	
+
 	err := ticket.Close()
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "not started")

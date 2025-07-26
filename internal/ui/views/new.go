@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/textarea"
+	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/yshrsmz/ticketflow/internal/ticket"
@@ -25,13 +25,13 @@ const (
 
 // NewTicketModel represents the new ticket creation view
 type NewTicketModel struct {
-	manager     *ticket.Manager
-	state       NewTicketState
-	err         error
-	width       int
-	height      int
-	focusIndex  int
-	
+	manager    *ticket.Manager
+	state      NewTicketState
+	err        error
+	width      int
+	height     int
+	focusIndex int
+
 	// Form inputs
 	slugInput     textinput.Model
 	priorityInput textinput.Model
@@ -108,7 +108,7 @@ func (m NewTicketModel) Update(msg tea.Msg) (NewTicketModel, tea.Cmd) {
 				} else {
 					m.focusIndex = (m.focusIndex - 1 + 4) % 4
 				}
-				
+
 				// Update focus
 				m.updateFocus()
 			}
@@ -248,12 +248,12 @@ func (m NewTicketModel) View() string {
 func (m *NewTicketModel) SetSize(width, height int) {
 	m.width = width
 	m.height = height
-	
+
 	// Update component sizes
 	m.slugInput.Width = min(50, width-10)
 	m.descArea.SetWidth(min(60, width-10))
 	m.contentArea.SetWidth(min(60, width-10))
-	
+
 	// Adjust content area height based on available space
 	availableHeight := height - 25 // Account for other UI elements
 	m.contentArea.SetHeight(min(10, max(5, availableHeight)))
@@ -264,13 +264,13 @@ func (m *NewTicketModel) Reset() {
 	m.state = NewTicketStateInput
 	m.err = nil
 	m.focusIndex = 0
-	
+
 	m.slugInput.Reset()
 	m.priorityInput.Reset()
 	m.priorityInput.SetValue("3")
 	m.descArea.Reset()
 	m.contentArea.Reset()
-	
+
 	m.updateFocus()
 }
 

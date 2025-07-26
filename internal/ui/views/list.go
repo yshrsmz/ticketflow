@@ -23,28 +23,28 @@ const (
 
 // TicketListModel represents the ticket list view
 type TicketListModel struct {
-	manager      *ticket.Manager
-	tickets      []ticket.Ticket
+	manager         *ticket.Manager
+	tickets         []ticket.Ticket
 	filteredTickets []ticket.Ticket
-	cursor       int
-	selected     map[string]bool
-	err          error
-	action       Action
-	statusFilter string
-	activeTab    int // 0=ALL, 1=TODO, 2=DOING, 3=DONE
-	searchMode   bool
-	searchQuery  string
-	width        int
-	height       int
+	cursor          int
+	selected        map[string]bool
+	err             error
+	action          Action
+	statusFilter    string
+	activeTab       int // 0=ALL, 1=TODO, 2=DOING, 3=DONE
+	searchMode      bool
+	searchQuery     string
+	width           int
+	height          int
 }
 
 // NewTicketListModel creates a new ticket list model
 func NewTicketListModel(manager *ticket.Manager) TicketListModel {
 	return TicketListModel{
-		manager:  manager,
-		selected: make(map[string]bool),
-		action:   ActionNone,
-		activeTab: 0, // Start with ALL tab
+		manager:         manager,
+		selected:        make(map[string]bool),
+		action:          ActionNone,
+		activeTab:       0, // Start with ALL tab
 		filteredTickets: []ticket.Ticket{},
 	}
 }
@@ -218,7 +218,7 @@ func (m TicketListModel) View() string {
 		}
 	}
 	s.WriteString(tabBar.String())
-	
+
 	// Search bar
 	if m.searchMode || m.searchQuery != "" {
 		s.WriteString("\n\n")
@@ -229,7 +229,7 @@ func (m TicketListModel) View() string {
 		s.WriteString(styles.InputStyle.Render(searchBar))
 		s.WriteString("\n")
 	}
-	
+
 	s.WriteString("\n")
 
 	// Calculate column widths
@@ -257,14 +257,14 @@ func (m TicketListModel) View() string {
 		} else if m.statusFilter != "" {
 			emptyMsg = fmt.Sprintf("No %s tickets found.", m.statusFilter)
 		}
-		
+
 		// Display empty message at the top-left, where tickets would normally appear
 		styledEmptyMsg := styles.InfoStyle.Render(emptyMsg)
 		s.WriteString(styledEmptyMsg)
 		s.WriteString("\n\n")
 		s.WriteString("Press 'n' to create a new ticket")
 		s.WriteString("\n")
-		
+
 		// Fill remaining space to maintain consistent layout
 		maxVisible := m.height - 10 // Leave room for header and help
 		if m.searchMode || m.searchQuery != "" {
@@ -297,15 +297,15 @@ func (m TicketListModel) View() string {
 
 		for i := visibleStart; i < visibleEnd && i < len(m.filteredTickets); i++ {
 			t := m.filteredTickets[i]
-			
+
 			// Format row
 			statusStyle := styles.GetStatusStyle(string(t.Status()))
 			priorityStyle := styles.GetPriorityStyle(t.Priority)
-			
+
 			id := truncate(t.ID, idWidth)
 			status := statusStyle.Render(fmt.Sprintf("%-*s", statusWidth, t.Status()))
 			priority := priorityStyle.Render(fmt.Sprintf("%d", t.Priority))
-			
+
 			desc := truncate(t.Description, descWidth)
 
 			row := fmt.Sprintf("%-*s %s %s %s",
@@ -398,14 +398,14 @@ func truncate(s string, maxWidth int) string {
 func (m *TicketListModel) applyFilter() {
 	m.filteredTickets = nil
 	query := strings.ToLower(m.searchQuery)
-	
+
 	for _, t := range m.tickets {
 		// If no search query, include all tickets
 		if query == "" {
 			m.filteredTickets = append(m.filteredTickets, t)
 			continue
 		}
-		
+
 		// Search in ID, description, and content
 		if strings.Contains(strings.ToLower(t.ID), query) ||
 			strings.Contains(strings.ToLower(t.Description), query) ||

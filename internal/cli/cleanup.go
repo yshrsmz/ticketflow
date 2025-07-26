@@ -74,7 +74,7 @@ func (app *App) cleanOrphanedWorktrees(dryRun bool) error {
 		// Check if this worktree has an active ticket
 		if !activeMap[wt.Branch] {
 			fmt.Printf("  Removing orphaned worktree: %s (branch: %s)\n", wt.Path, wt.Branch)
-			
+
 			if !dryRun {
 				if err := app.Git.RemoveWorktree(wt.Path); err != nil {
 					fmt.Printf("  Warning: Failed to remove worktree %s: %v\n", wt.Path, err)
@@ -91,7 +91,6 @@ func (app *App) cleanOrphanedWorktrees(dryRun bool) error {
 	return nil
 }
 
-
 // cleanStaleBranches removes branches for done tickets
 func (app *App) cleanStaleBranches(dryRun bool) error {
 	fmt.Println("\nCleaning stale branches...")
@@ -103,7 +102,7 @@ func (app *App) cleanStaleBranches(dryRun bool) error {
 	}
 
 	branches := splitLines(output)
-	
+
 	// Get all tickets (including done ones)
 	allTickets, err := app.Manager.List("")
 	if err != nil {
@@ -128,7 +127,7 @@ func (app *App) cleanStaleBranches(dryRun bool) error {
 			// Remove branches for done tickets
 			if status == ticket.StatusDone {
 				fmt.Printf("  Removing branch for done ticket: %s\n", branch)
-				
+
 				if !dryRun {
 					// Delete local branch (force delete to avoid warnings)
 					if _, err := app.Git.Exec("branch", "-D", branch); err != nil {
@@ -162,13 +161,13 @@ func (app *App) CleanupStats() error {
 	if app.Config.Worktree.Enabled {
 		worktrees, err := app.Git.ListWorktrees()
 		activeTickets, _ := app.Manager.List(string(ticket.StatusDoing))
-		
+
 		if err == nil {
 			activeMap := make(map[string]bool)
 			for _, t := range activeTickets {
 				activeMap[t.ID] = true
 			}
-			
+
 			orphaned := 0
 			for _, wt := range worktrees {
 				if wt.Branch != "" && wt.Branch != app.Config.Git.DefaultBranch && !activeMap[wt.Branch] {
@@ -184,12 +183,12 @@ func (app *App) CleanupStats() error {
 	if err == nil {
 		branches := splitLines(output)
 		allTickets, _ := app.Manager.List("")
-		
+
 		ticketStatus := make(map[string]ticket.Status)
 		for _, t := range allTickets {
 			ticketStatus[t.ID] = t.Status()
 		}
-		
+
 		stale := 0
 		for _, branch := range branches {
 			if status, exists := ticketStatus[branch]; exists && status == ticket.StatusDone {

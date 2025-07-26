@@ -131,7 +131,7 @@ func (m WorktreeListModel) View() string {
 		if branch == "" {
 			branch = styles.MutedStyle.Render("(detached)")
 		}
-		
+
 		// Make path relative if possible
 		path := wt.Path
 		if rel, err := filepath.Rel(m.git.Root, path); err == nil && !strings.HasPrefix(rel, "..") {
@@ -162,7 +162,7 @@ func (m WorktreeListModel) View() string {
 	if m.cursor >= 0 && m.cursor < len(m.worktrees) {
 		selected := m.worktrees[m.cursor]
 		s.WriteString("\n")
-		
+
 		detailBox := lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(styles.GetPriorityStyle(3).GetForeground()).

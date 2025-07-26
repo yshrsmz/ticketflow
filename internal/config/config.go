@@ -30,11 +30,11 @@ type WorktreeConfig struct {
 
 // TicketsConfig represents ticket-related configuration
 type TicketsConfig struct {
-	Dir       string `yaml:"dir"`
-	TodoDir   string `yaml:"todo_dir"`
-	DoingDir  string `yaml:"doing_dir"`
-	DoneDir   string `yaml:"done_dir"`
-	Template  string `yaml:"template"`
+	Dir      string `yaml:"dir"`
+	TodoDir  string `yaml:"todo_dir"`
+	DoingDir string `yaml:"doing_dir"`
+	DoneDir  string `yaml:"done_dir"`
+	Template string `yaml:"template"`
 }
 
 // OutputConfig represents output formatting configuration
@@ -88,29 +88,29 @@ func Default() *Config {
 // Load loads configuration from the specified project root
 func Load(projectRoot string) (*Config, error) {
 	configPath := filepath.Join(projectRoot, ".ticketflow.yaml")
-	
+
 	// Check if config file exists
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
 		return nil, fmt.Errorf("config file not found: %s", configPath)
 	}
-	
+
 	// Read config file
 	data, err := os.ReadFile(configPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read config file: %w", err)
 	}
-	
+
 	// Parse YAML
 	var config Config
 	if err := yaml.Unmarshal(data, &config); err != nil {
 		return nil, fmt.Errorf("failed to parse config file: %w", err)
 	}
-	
+
 	// Validate configuration
 	if err := config.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid configuration: %w", err)
 	}
-	
+
 	return &config, nil
 }
 
@@ -121,18 +121,18 @@ func (c *Config) Save(path string) error {
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return fmt.Errorf("failed to create config directory: %w", err)
 	}
-	
+
 	// Marshal to YAML
 	data, err := yaml.Marshal(c)
 	if err != nil {
 		return fmt.Errorf("failed to marshal config: %w", err)
 	}
-	
+
 	// Write to file
 	if err := os.WriteFile(path, data, 0644); err != nil {
 		return fmt.Errorf("failed to write config file: %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -142,17 +142,17 @@ func (c *Config) Validate() error {
 	if c.Git.DefaultBranch == "" {
 		return fmt.Errorf("git.default_branch cannot be empty")
 	}
-	
+
 	// Validate Tickets config
 	if c.Tickets.Dir == "" {
 		return fmt.Errorf("tickets.dir cannot be empty")
 	}
-	
+
 	// Validate Output config
 	if c.Output.DefaultFormat != "text" && c.Output.DefaultFormat != "json" {
 		return fmt.Errorf("output.default_format must be 'text' or 'json'")
 	}
-	
+
 	return nil
 }
 

@@ -65,7 +65,7 @@ func TestCompleteWorkflow(t *testing.T) {
 	app, err := cli.NewApp()
 	require.NoError(t, err)
 	app.Config.Worktree.Enabled = false
-	
+
 	// Commit the config file to avoid dirty workspace
 	gitCmd := git.New(repoPath)
 	_, err = gitCmd.Exec("add", ".ticketflow.yaml", ".gitignore")

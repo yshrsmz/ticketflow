@@ -168,14 +168,14 @@ func TestWorktreeCleanCommand(t *testing.T) {
 	// (simulating orphaned worktree)
 	ticket1, err := app.Manager.Get(tickets[0].ID)
 	require.NoError(t, err)
-	
+
 	// Manually move the ticket to done directory
 	oldPath := ticket1.Path
 	donePath := filepath.Join(repoPath, "tickets", "done")
 	newPath := filepath.Join(donePath, filepath.Base(ticket1.Path))
 	os.MkdirAll(donePath, 0755)
 	os.Rename(oldPath, newPath)
-	
+
 	// Update ticket status and path
 	ticket1.Path = newPath
 	err = ticket1.Close()

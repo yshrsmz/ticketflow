@@ -33,7 +33,7 @@ func (m *Manager) Create(slug string) (*Ticket, error) {
 
 	// Generate ID
 	id := GenerateID(slug)
-	
+
 	// Check if ticket already exists in any directory
 	if _, err := m.FindTicket(id); err == nil {
 		return nil, fmt.Errorf("ticket already exists: %s", id)
@@ -81,7 +81,7 @@ func (m *Manager) Get(id string) (*Ticket, error) {
 func (m *Manager) List(statusFilter string) ([]Ticket, error) {
 	// Determine which directories to search
 	dirs := m.getDirectoriesForStatus(statusFilter)
-	
+
 	var tickets []Ticket
 	for _, dir := range dirs {
 		entries, err := os.ReadDir(dir)
@@ -160,11 +160,10 @@ func (m *Manager) Update(ticket *Ticket) error {
 	return nil
 }
 
-
 // GetCurrentTicket gets the currently active ticket (if any)
 func (m *Manager) GetCurrentTicket() (*Ticket, error) {
 	linkPath := filepath.Join(m.projectRoot, "current-ticket.md")
-	
+
 	// Check if symlink exists
 	target, err := os.Readlink(linkPath)
 	if err != nil {
@@ -182,10 +181,10 @@ func (m *Manager) GetCurrentTicket() (*Ticket, error) {
 // SetCurrentTicket sets the current ticket symlink
 func (m *Manager) SetCurrentTicket(ticket *Ticket) error {
 	linkPath := filepath.Join(m.projectRoot, "current-ticket.md")
-	
+
 	// Remove existing link if any
 	os.Remove(linkPath)
-	
+
 	if ticket == nil {
 		return nil
 	}
@@ -220,7 +219,7 @@ func (m *Manager) loadTicket(path string) (*Ticket, error) {
 	filename := filepath.Base(path)
 	ticket.ID = ExtractIDFromFilename(filename)
 	ticket.Path = path
-	
+
 	// Extract slug from ID
 	_, slug, err := ParseID(ticket.ID)
 	if err == nil {
@@ -245,7 +244,7 @@ func (m *Manager) WriteContent(id string, content string) error {
 	if err != nil {
 		return err
 	}
-	
+
 	ticket.Content = content
 	return m.Update(ticket)
 }
@@ -272,7 +271,7 @@ func (m *Manager) findTicketInDir(ticketID, dir string) (string, error) {
 		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".md") {
 			continue
 		}
-		
+
 		entryID := ExtractIDFromFilename(entry.Name())
 		if strings.HasPrefix(entryID, ticketID) {
 			matches = append(matches, filepath.Join(dir, entry.Name()))

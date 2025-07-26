@@ -99,7 +99,7 @@ func TestDirectoryCreationWithWorktrees(t *testing.T) {
 	cfg.Worktree.Enabled = true
 	cfg.Worktree.BaseDir = "./.worktrees"
 	cfg.Worktree.InitCommands = []string{"git status"}
-	
+
 	configPath := filepath.Join(repoPath, ".ticketflow.yaml")
 	err := cfg.Save(configPath)
 	require.NoError(t, err)

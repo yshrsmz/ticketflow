@@ -110,7 +110,7 @@ func (m HelpModel) View() string {
 
 	// Join all sections
 	content := lipgloss.JoinVertical(lipgloss.Left, sections...)
-	
+
 	// Add title
 	title := styles.TitleStyle.Render("Keyboard Shortcuts")
 	fullContent := lipgloss.JoinVertical(lipgloss.Left, title, "", content)

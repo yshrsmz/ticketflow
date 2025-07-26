@@ -310,9 +310,9 @@ func (m Model) View() string {
 		content = lipgloss.Place(m.width, m.height, lipgloss.Left, lipgloss.Top, content)
 		helpOverlay := lipgloss.Place(m.width, m.height, lipgloss.Left, lipgloss.Top,
 			lipgloss.NewStyle().Margin(y, 0, 0, x).Render(helpView))
-		
+
 		// Combine layers
-		content = lipgloss.JoinVertical(lipgloss.Left, content[:y]) + 
+		content = lipgloss.JoinVertical(lipgloss.Left, content[:y]) +
 			"\n" + helpOverlay[y:]
 	}
 
@@ -357,7 +357,7 @@ func (m *Model) startTicket(t *ticket.Ticket) tea.Cmd {
 			// Create worktree
 			baseDir := m.config.GetWorktreePath(m.projectRoot)
 			worktreePath = filepath.Join(baseDir, t.ID)
-			
+
 			if err := m.git.AddWorktree(worktreePath, t.ID); err != nil {
 				return fmt.Errorf("failed to create worktree: %w", err)
 			}
@@ -369,7 +369,7 @@ func (m *Model) startTicket(t *ticket.Ticket) tea.Cmd {
 					if len(parts) == 0 {
 						continue
 					}
-					
+
 					execCmd := exec.Command(parts[0], parts[1:]...)
 					execCmd.Dir = worktreePath
 					// Run in background, ignore errors for now
@@ -398,7 +398,7 @@ func (m *Model) startTicket(t *ticket.Ticket) tea.Cmd {
 		oldPath := t.Path
 		doingPath := m.config.GetDoingPath(m.projectRoot)
 		newPath := filepath.Join(doingPath, filepath.Base(t.Path))
-		
+
 		// Move the file
 		if err := os.Rename(oldPath, newPath); err != nil {
 			// Rollback
@@ -409,7 +409,7 @@ func (m *Model) startTicket(t *ticket.Ticket) tea.Cmd {
 			}
 			return fmt.Errorf("failed to move ticket to doing: %w", err)
 		}
-		
+
 		// Update ticket data with new path
 		t.Path = newPath
 		if err := m.manager.Update(t); err != nil {
@@ -422,12 +422,12 @@ func (m *Model) startTicket(t *ticket.Ticket) tea.Cmd {
 			}
 			return fmt.Errorf("failed to update ticket: %w", err)
 		}
-		
+
 		// Git add both old and new paths
 		if err := m.git.Add(oldPath, newPath); err != nil {
 			return fmt.Errorf("failed to stage ticket move: %w", err)
 		}
-		
+
 		// Commit the move
 		if err := m.git.Commit(fmt.Sprintf("Start ticket: %s", t.ID)); err != nil {
 			return fmt.Errorf("failed to commit ticket move: %w", err)
@@ -519,12 +519,12 @@ func (m *Model) closeTicket(t *ticket.Ticket) tea.Cmd {
 		oldPath := t.Path
 		donePath := m.config.GetDonePath(m.projectRoot)
 		newPath := filepath.Join(donePath, filepath.Base(t.Path))
-		
+
 		// Move the file
 		if err := os.Rename(oldPath, newPath); err != nil {
 			return fmt.Errorf("failed to move ticket to done: %w", err)
 		}
-		
+
 		// Update ticket data with new path
 		t.Path = newPath
 		if err := m.manager.Update(t); err != nil {
@@ -532,12 +532,12 @@ func (m *Model) closeTicket(t *ticket.Ticket) tea.Cmd {
 			os.Rename(newPath, oldPath)
 			return fmt.Errorf("failed to update ticket: %w", err)
 		}
-		
+
 		// Git add both old and new paths
 		if err := m.git.Add(oldPath, newPath); err != nil {
 			return fmt.Errorf("failed to stage ticket move: %w", err)
 		}
-		
+
 		// Commit the move
 		if err := m.git.Commit(fmt.Sprintf("Close ticket: %s", t.ID)); err != nil {
 			return fmt.Errorf("failed to commit ticket move: %w", err)
@@ -549,8 +549,8 @@ func (m *Model) closeTicket(t *ticket.Ticket) tea.Cmd {
 		}
 
 		return ticketClosedMsg{
-			ticket: t,
-			isWorktree: isWorktree,
+			ticket:       t,
+			isWorktree:   isWorktree,
 			worktreePath: worktreePath,
 		}
 	}

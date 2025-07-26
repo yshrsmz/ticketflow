@@ -60,7 +60,7 @@ func runTUI() {
 	// Create and run TUI
 	model := ui.New(cfg, manager, g, root)
 	p := tea.NewProgram(model, tea.WithAltScreen())
-	
+
 	if _, err := p.Run(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: failed to run TUI: %v\n", err)
 		os.Exit(1)
@@ -93,7 +93,7 @@ func runCLI() error {
 	statusFormat := statusCmd.String("format", "text", "Output format (text|json)")
 
 	worktreeCmd := flag.NewFlagSet("worktree", flag.ExitOnError)
-	
+
 	cleanupCmd := flag.NewFlagSet("cleanup", flag.ExitOnError)
 	cleanupDryRun := cleanupCmd.Bool("dry-run", false, "Show what would be cleaned without making changes")
 	cleanupForce := cleanupCmd.Bool("force", false, "Skip confirmation prompts")
@@ -154,8 +154,7 @@ func runCLI() error {
 		}
 		worktreeCmd.Parse(os.Args[3:])
 		return handleWorktree(os.Args[2], worktreeCmd.Args())
-	
-	
+
 	case "cleanup":
 		cleanupCmd.Parse(os.Args[2:])
 		if cleanupCmd.NArg() > 0 {
@@ -255,19 +254,19 @@ func handleShow(ticketID, format string) error {
 	fmt.Printf("Priority: %d\n", t.Priority)
 	fmt.Printf("Description: %s\n", t.Description)
 	fmt.Printf("Created: %s\n", t.CreatedAt.Format(time.RFC3339))
-	
+
 	if t.StartedAt != nil {
 		fmt.Printf("Started: %s\n", t.StartedAt.Format(time.RFC3339))
 	}
-	
+
 	if t.ClosedAt != nil {
 		fmt.Printf("Closed: %s\n", t.ClosedAt.Format(time.RFC3339))
 	}
-	
+
 	if len(t.Related) > 0 {
 		fmt.Printf("Related: %s\n", strings.Join(t.Related, ", "))
 	}
-	
+
 	fmt.Printf("\n%s\n", t.Content)
 
 	return nil

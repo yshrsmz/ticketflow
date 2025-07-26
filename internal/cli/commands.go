@@ -81,7 +81,7 @@ func InitCommand() error {
 	todoDir := filepath.Join(ticketsDir, cfg.Tickets.TodoDir)
 	doingDir := filepath.Join(ticketsDir, cfg.Tickets.DoingDir)
 	doneDir := filepath.Join(ticketsDir, cfg.Tickets.DoneDir)
-	
+
 	// Create all directories
 	for _, dir := range []string{ticketsDir, todoDir, doingDir, doneDir} {
 		if err := os.MkdirAll(dir, 0755); err != nil {
@@ -271,7 +271,7 @@ func (app *App) StartTicket(ticketID string) error {
 		// Always use flat worktree structure
 		baseDir := app.Config.GetWorktreePath(app.ProjectRoot)
 		worktreePath = filepath.Join(baseDir, t.ID)
-		
+
 		if err := app.Git.AddWorktree(worktreePath, t.ID); err != nil {
 			return fmt.Errorf("failed to create worktree: %w", err)
 		}
@@ -286,7 +286,7 @@ func (app *App) StartTicket(ticketID string) error {
 				if len(parts) == 0 {
 					continue
 				}
-				
+
 				// Execute in worktree directory
 				execCmd := exec.Command(parts[0], parts[1:]...)
 				execCmd.Dir = worktreePath
@@ -330,7 +330,7 @@ func (app *App) StartTicket(ticketID string) error {
 	oldPath := t.Path
 	doingPath := app.Config.GetDoingPath(app.ProjectRoot)
 	newPath := filepath.Join(doingPath, filepath.Base(t.Path))
-	
+
 	// Ensure doing directory exists
 	if err := os.MkdirAll(doingPath, 0755); err != nil {
 		// Rollback
@@ -341,7 +341,7 @@ func (app *App) StartTicket(ticketID string) error {
 		}
 		return fmt.Errorf("failed to create doing directory: %w", err)
 	}
-	
+
 	// Move the file first
 	if err := os.Rename(oldPath, newPath); err != nil {
 		// Rollback
@@ -352,7 +352,7 @@ func (app *App) StartTicket(ticketID string) error {
 		}
 		return fmt.Errorf("failed to move ticket to doing: %w", err)
 	}
-	
+
 	// Update ticket data with new path
 	t.Path = newPath
 	if err := app.Manager.Update(t); err != nil {
@@ -365,12 +365,12 @@ func (app *App) StartTicket(ticketID string) error {
 		}
 		return fmt.Errorf("failed to update ticket: %w", err)
 	}
-	
+
 	// Git add the changes (use -A to handle the rename properly)
 	if err := app.Git.Add("-A", filepath.Dir(oldPath), filepath.Dir(newPath)); err != nil {
 		return fmt.Errorf("failed to stage ticket move: %w", err)
 	}
-	
+
 	// Commit the move
 	if err := app.Git.Commit(fmt.Sprintf("Start ticket: %s", t.ID)); err != nil {
 		return fmt.Errorf("failed to commit ticket move: %w", err)
@@ -384,7 +384,7 @@ func (app *App) StartTicket(ticketID string) error {
 	// Output success message
 	fmt.Printf("\n✅ Started work on ticket: %s\n", t.ID)
 	fmt.Printf("   Description: %s\n", t.Description)
-	
+
 	if app.Config.Worktree.Enabled {
 		fmt.Printf("\n📁 Worktree created: %s\n", worktreePath)
 		if parentBranch != "" {
@@ -510,17 +510,17 @@ func (app *App) CloseTicket(force bool) error {
 	oldPath := current.Path
 	donePath := app.Config.GetDonePath(app.ProjectRoot)
 	newPath := filepath.Join(donePath, filepath.Base(current.Path))
-	
+
 	// Ensure done directory exists
 	if err := os.MkdirAll(donePath, 0755); err != nil {
 		return fmt.Errorf("failed to create done directory: %w", err)
 	}
-	
+
 	// Move the file first
 	if err := os.Rename(oldPath, newPath); err != nil {
 		return fmt.Errorf("failed to move ticket to done: %w", err)
 	}
-	
+
 	// Update ticket data with new path
 	current.Path = newPath
 	if err := app.Manager.Update(current); err != nil {
@@ -528,12 +528,12 @@ func (app *App) CloseTicket(force bool) error {
 		os.Rename(newPath, oldPath)
 		return fmt.Errorf("failed to update ticket: %w", err)
 	}
-	
+
 	// Git add the changes (use -A to handle the rename properly)
 	if err := app.Git.Add("-A", filepath.Dir(oldPath), filepath.Dir(newPath)); err != nil {
 		return fmt.Errorf("failed to stage ticket move: %w", err)
 	}
-	
+
 	// Commit the move
 	if err := app.Git.Commit(fmt.Sprintf("Close ticket: %s", current.ID)); err != nil {
 		return fmt.Errorf("failed to commit ticket move: %w", err)
@@ -550,7 +550,7 @@ func (app *App) CloseTicket(force bool) error {
 		dur := current.ClosedAt.Sub(*current.StartedAt)
 		duration = formatDuration(dur)
 	}
-	
+
 	// Print success message with next steps
 	fmt.Printf("\n✅ Ticket closed: %s\n", current.ID)
 	fmt.Printf("   Description: %s\n", current.Description)
@@ -559,7 +559,7 @@ func (app *App) CloseTicket(force bool) error {
 		fmt.Printf("   Duration: %s\n", duration)
 	}
 	fmt.Printf("   Committed: \"Close ticket: %s\"\n", current.ID)
-	
+
 	// Check if this is a sub-ticket
 	var parentTicketID string
 	for _, rel := range current.Related {
@@ -571,7 +571,7 @@ func (app *App) CloseTicket(force bool) error {
 	if parentTicketID != "" {
 		fmt.Printf("   Parent ticket: %s\n", parentTicketID)
 	}
-	
+
 	fmt.Printf("\n📋 Next steps:\n")
 	fmt.Printf("1. Push your branch to create/update PR:\n")
 	fmt.Printf("   git push origin %s\n", current.ID)
@@ -585,7 +585,7 @@ func (app *App) CloseTicket(force bool) error {
 	fmt.Printf("   \n")
 	fmt.Printf("3. After PR is merged, clean up:\n")
 	fmt.Printf("   ticketflow cleanup %s\n", current.ID)
-	
+
 	if isWorktree && worktreePath != "" {
 		fmt.Printf("\n🌳 Note: Worktree remains at %s\n", worktreePath)
 		fmt.Printf("   You can continue working there until cleanup\n")
@@ -632,7 +632,7 @@ func (app *App) Status(format OutputFormat) error {
 	}
 
 	// Get ticket stats
-	allTickets, err := app.Manager.List("")
+	allTickets, err := app.Manager.List("all")
 	if err != nil {
 		return err
 	}
@@ -683,7 +683,7 @@ func (app *App) Status(format OutputFormat) error {
 			duration := time.Since(*current.StartedAt)
 			fmt.Printf("   Duration: %s\n", formatDuration(duration))
 		}
-		
+
 		// Check if in worktree
 		if app.Config.Worktree.Enabled {
 			wt, _ := app.Git.FindWorktreeByBranch(current.ID)
@@ -777,12 +777,17 @@ func (app *App) outputTicketListJSON(tickets []*ticket.Ticket) error {
 		ticketList[i] = ticketToJSON(t, worktreePath)
 	}
 
-	// Calculate summary
+	// Always calculate full summary from all tickets
+	allTickets, err := app.Manager.List("all")
+	if err != nil {
+		return err
+	}
+
 	todoCount := 0
 	doingCount := 0
 	doneCount := 0
 
-	for _, t := range tickets {
+	for _, t := range allTickets {
 		switch t.Status() {
 		case ticket.StatusTodo:
 			todoCount++
@@ -796,7 +801,7 @@ func (app *App) outputTicketListJSON(tickets []*ticket.Ticket) error {
 	output := map[string]interface{}{
 		"tickets": ticketList,
 		"summary": map[string]int{
-			"total": len(tickets),
+			"total": len(allTickets),
 			"todo":  todoCount,
 			"doing": doingCount,
 			"done":  doneCount,
@@ -940,7 +945,7 @@ func (app *App) CleanupTicket(ticketID string, force bool) error {
 		}
 		fmt.Printf("  • Delete local branch: %s\n", t.ID)
 		fmt.Printf("\nAre you sure? (y/N): ")
-		
+
 		var response string
 		fmt.Scanln(&response)
 		if response != "y" && response != "Y" {
@@ -950,7 +955,7 @@ func (app *App) CleanupTicket(ticketID string, force bool) error {
 	}
 
 	fmt.Printf("\n🔧 Performing cleanup...\n")
-	
+
 	// Remove worktree if it exists
 	if wt != nil {
 		fmt.Printf("🌳 Removing worktree: %s\n", wt.Path)

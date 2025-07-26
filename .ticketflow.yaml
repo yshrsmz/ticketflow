@@ -13,7 +13,7 @@ tickets:
     dir: tickets
     todo_dir: todo
     doing_dir: doing
-    archive_dir: done
+    done_dir: done
     template: |-
         # 概要
 

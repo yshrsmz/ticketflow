@@ -106,14 +106,14 @@ func IsGitRepo(path string) bool {
 func FindProjectRoot(startPath string) (string, error) {
 	cmd := exec.Command("git", "rev-parse", "--show-toplevel")
 	cmd.Dir = startPath
-	
+
 	var stdout bytes.Buffer
 	cmd.Stdout = &stdout
-	
+
 	if err := cmd.Run(); err != nil {
 		return "", fmt.Errorf("not in a git repository")
 	}
-	
+
 	return strings.TrimSpace(stdout.String()), nil
 }
 

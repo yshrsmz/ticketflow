@@ -144,12 +144,11 @@ func (m TicketDetailModel) View() string {
 	meta.WriteString(fmt.Sprintf("%s %s\n",
 		styles.SubtitleStyle.Render("Status:"),
 		styles.GetStatusStyle(string(m.ticket.Status())).Render(string(m.ticket.Status()))))
-	
+
 	meta.WriteString(fmt.Sprintf("%s %s\n",
 		styles.SubtitleStyle.Render("Priority:"),
 		styles.GetPriorityStyle(m.ticket.Priority).Render(fmt.Sprintf("%d", m.ticket.Priority))))
-	
-	
+
 	meta.WriteString(fmt.Sprintf("%s %s\n",
 		styles.SubtitleStyle.Render("Created:"),
 		styles.InfoStyle.Render(m.ticket.CreatedAt.Format(time.RFC3339))))
@@ -182,14 +181,14 @@ func (m TicketDetailModel) View() string {
 	// Content section
 	if m.content != "" {
 		contentHeight := m.height - 15 - lipgloss.Height(metaStyle.Render(meta.String()))
-		
+
 		s.WriteString(styles.SubtitleStyle.Render("Content:"))
 		s.WriteString("\n")
 
 		// Apply scrolling
 		lines := strings.Split(m.content, "\n")
 		visibleLines := lines
-		
+
 		if len(lines) > contentHeight {
 			start := m.scrollY
 			end := start + contentHeight
@@ -210,9 +209,9 @@ func (m TicketDetailModel) View() string {
 
 		// Scroll indicator
 		if len(lines) > contentHeight {
-			scrollInfo := fmt.Sprintf("Lines %d-%d of %d", 
-				m.scrollY+1, 
-				m.scrollY+len(visibleLines), 
+			scrollInfo := fmt.Sprintf("Lines %d-%d of %d",
+				m.scrollY+1,
+				m.scrollY+len(visibleLines),
 				len(lines))
 			s.WriteString("\n")
 			s.WriteString(styles.HelpStyle.Render(scrollInfo))

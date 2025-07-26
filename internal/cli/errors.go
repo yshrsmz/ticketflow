@@ -85,21 +85,21 @@ func handleCLIError(err *CLIError) {
 		OutputJSONError(err)
 		return
 	}
-	
+
 	// Check if JSON output is requested via environment variable
 	// This allows error formatting even before app initialization
 	if os.Getenv("TICKETFLOW_OUTPUT_FORMAT") == "json" {
 		OutputJSONError(err)
 		return
 	}
-	
+
 	// Default text format
 	fmt.Fprintf(os.Stderr, "Error: %s\n", err.Message)
-	
+
 	if err.Details != "" {
 		fmt.Fprintf(os.Stderr, "Details: %s\n", err.Details)
 	}
-	
+
 	if len(err.Suggestions) > 0 {
 		fmt.Fprintf(os.Stderr, "\nSuggestions:\n")
 		for _, suggestion := range err.Suggestions {
@@ -113,7 +113,7 @@ func OutputJSONError(err *CLIError) {
 	output := map[string]interface{}{
 		"error": err,
 	}
-	
+
 	encoder := json.NewEncoder(os.Stderr)
 	encoder.SetIndent("", "  ")
 	encoder.Encode(output)
