@@ -331,6 +331,17 @@ func (app *App) StartTicket(ticketID string) error {
 	doingPath := app.Config.GetDoingPath(app.ProjectRoot)
 	newPath := filepath.Join(doingPath, filepath.Base(t.Path))
 	
+	// Ensure doing directory exists
+	if err := os.MkdirAll(doingPath, 0755); err != nil {
+		// Rollback
+		if app.Config.Worktree.Enabled {
+			app.Git.RemoveWorktree(worktreePath)
+		} else {
+			app.Git.Checkout(currentBranch)
+		}
+		return fmt.Errorf("failed to create doing directory: %w", err)
+	}
+	
 	// Move the file first
 	if err := os.Rename(oldPath, newPath); err != nil {
 		// Rollback
@@ -355,8 +366,8 @@ func (app *App) StartTicket(ticketID string) error {
 		return fmt.Errorf("failed to update ticket: %w", err)
 	}
 	
-	// Git add both old and new paths
-	if err := app.Git.Add(oldPath, newPath); err != nil {
+	// Git add the changes (use -A to handle the rename properly)
+	if err := app.Git.Add("-A", filepath.Dir(oldPath), filepath.Dir(newPath)); err != nil {
 		return fmt.Errorf("failed to stage ticket move: %w", err)
 	}
 	
@@ -500,6 +511,11 @@ func (app *App) CloseTicket(force bool) error {
 	donePath := app.Config.GetDonePath(app.ProjectRoot)
 	newPath := filepath.Join(donePath, filepath.Base(current.Path))
 	
+	// Ensure done directory exists
+	if err := os.MkdirAll(donePath, 0755); err != nil {
+		return fmt.Errorf("failed to create done directory: %w", err)
+	}
+	
 	// Move the file first
 	if err := os.Rename(oldPath, newPath); err != nil {
 		return fmt.Errorf("failed to move ticket to done: %w", err)
@@ -513,8 +529,8 @@ func (app *App) CloseTicket(force bool) error {
 		return fmt.Errorf("failed to update ticket: %w", err)
 	}
 	
-	// Git add both old and new paths
-	if err := app.Git.Add(oldPath, newPath); err != nil {
+	// Git add the changes (use -A to handle the rename properly)
+	if err := app.Git.Add("-A", filepath.Dir(oldPath), filepath.Dir(newPath)); err != nil {
 		return fmt.Errorf("failed to stage ticket move: %w", err)
 	}
 	

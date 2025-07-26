@@ -3,7 +3,7 @@ priority: 2
 description: auto create ticket directories if it does not exist
 created_at: 2025-07-26T18:24:06.535876+09:00
 started_at: 2025-07-26T20:29:50.30535+09:00
-closed_at: null
+closed_at: 2025-07-26T20:36:50.30535+09:00
 ---
 
 # 概要

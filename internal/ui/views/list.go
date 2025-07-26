@@ -202,16 +202,6 @@ func (m TicketListModel) View() string {
 		return fmt.Sprintf("\n  %s\n", styles.ErrorStyle.Render(fmt.Sprintf("Error: %v", m.err)))
 	}
 
-	if len(m.filteredTickets) == 0 {
-		emptyMsg := "No tickets found."
-		if m.searchQuery != "" {
-			emptyMsg = fmt.Sprintf("No tickets matching '%s'", m.searchQuery)
-		} else if m.statusFilter != "" {
-			emptyMsg = fmt.Sprintf("No %s tickets found.", m.statusFilter)
-		}
-		return fmt.Sprintf("\n  %s\n\n  Press 'n' to create a new ticket.\n", styles.InfoStyle.Render(emptyMsg))
-	}
-
 	var s strings.Builder
 
 	// Tabs
@@ -259,62 +249,90 @@ func (m TicketListModel) View() string {
 	s.WriteString(strings.Repeat("─", m.width-4))
 	s.WriteString("\n")
 
-	// Ticket list
-	visibleStart := 0
-	visibleEnd := len(m.filteredTickets)
-	maxVisible := m.height - 10 // Leave room for header and help
-	if m.searchMode || m.searchQuery != "" {
-		maxVisible -= 3 // Account for search bar
-	}
-
-	if len(m.filteredTickets) > maxVisible {
-		// Scroll to keep cursor visible
-		if m.cursor < visibleStart {
-			visibleStart = m.cursor
-			visibleEnd = visibleStart + maxVisible
-		} else if m.cursor >= visibleStart+maxVisible {
-			visibleEnd = m.cursor + 1
-			visibleStart = visibleEnd - maxVisible
+	// Handle empty state
+	if len(m.filteredTickets) == 0 {
+		emptyMsg := "No tickets found."
+		if m.searchQuery != "" {
+			emptyMsg = fmt.Sprintf("No tickets matching '%s'", m.searchQuery)
+		} else if m.statusFilter != "" {
+			emptyMsg = fmt.Sprintf("No %s tickets found.", m.statusFilter)
 		}
-	}
-
-	for i := visibleStart; i < visibleEnd && i < len(m.filteredTickets); i++ {
-		t := m.filteredTickets[i]
 		
-		// Format row
-		statusStyle := styles.GetStatusStyle(string(t.Status()))
-		priorityStyle := styles.GetPriorityStyle(t.Priority)
+		// Display empty message at the top-left, where tickets would normally appear
+		styledEmptyMsg := styles.InfoStyle.Render(emptyMsg)
+		s.WriteString(styledEmptyMsg)
+		s.WriteString("\n\n")
+		s.WriteString("Press 'n' to create a new ticket")
+		s.WriteString("\n")
 		
-		id := truncate(t.ID, idWidth)
-		status := statusStyle.Render(fmt.Sprintf("%-*s", statusWidth, t.Status()))
-		priority := priorityStyle.Render(fmt.Sprintf("%d", t.Priority))
-		
-		desc := truncate(t.Description, descWidth)
-
-		row := fmt.Sprintf("%-*s %s %s %s",
-			idWidth, id,
-			status,
-			priority,
-			desc)
-
-		// Apply selection/cursor styling
-		if i == m.cursor {
-			row = styles.SelectedItemStyle.Render(row)
-		} else if m.selected[t.ID] {
-			row = styles.ActiveButtonStyle.Render(row)
-		} else {
-			row = styles.ItemStyle.Render(row)
+		// Fill remaining space to maintain consistent layout
+		maxVisible := m.height - 10 // Leave room for header and help
+		if m.searchMode || m.searchQuery != "" {
+			maxVisible -= 3 // Account for search bar
+		}
+		contentHeight := 3 // Empty message takes about 3 lines
+		remainingLines := maxVisible - contentHeight
+		if remainingLines > 0 {
+			s.WriteString(strings.Repeat("\n", remainingLines))
+		}
+	} else {
+		// Ticket list
+		visibleStart := 0
+		visibleEnd := len(m.filteredTickets)
+		maxVisible := m.height - 10 // Leave room for header and help
+		if m.searchMode || m.searchQuery != "" {
+			maxVisible -= 3 // Account for search bar
 		}
 
-		s.WriteString(row)
-		s.WriteString("\n")
-	}
+		if len(m.filteredTickets) > maxVisible {
+			// Scroll to keep cursor visible
+			if m.cursor < visibleStart {
+				visibleStart = m.cursor
+				visibleEnd = visibleStart + maxVisible
+			} else if m.cursor >= visibleStart+maxVisible {
+				visibleEnd = m.cursor + 1
+				visibleStart = visibleEnd - maxVisible
+			}
+		}
 
-	// Scroll indicator
-	if len(m.filteredTickets) > maxVisible {
-		s.WriteString("\n")
-		scrollInfo := fmt.Sprintf("%d-%d of %d", visibleStart+1, visibleEnd, len(m.filteredTickets))
-		s.WriteString(styles.HelpStyle.Render(scrollInfo))
+		for i := visibleStart; i < visibleEnd && i < len(m.filteredTickets); i++ {
+			t := m.filteredTickets[i]
+			
+			// Format row
+			statusStyle := styles.GetStatusStyle(string(t.Status()))
+			priorityStyle := styles.GetPriorityStyle(t.Priority)
+			
+			id := truncate(t.ID, idWidth)
+			status := statusStyle.Render(fmt.Sprintf("%-*s", statusWidth, t.Status()))
+			priority := priorityStyle.Render(fmt.Sprintf("%d", t.Priority))
+			
+			desc := truncate(t.Description, descWidth)
+
+			row := fmt.Sprintf("%-*s %s %s %s",
+				idWidth, id,
+				status,
+				priority,
+				desc)
+
+			// Apply selection/cursor styling
+			if i == m.cursor {
+				row = styles.SelectedItemStyle.Render(row)
+			} else if m.selected[t.ID] {
+				row = styles.ActiveButtonStyle.Render(row)
+			} else {
+				row = styles.ItemStyle.Render(row)
+			}
+
+			s.WriteString(row)
+			s.WriteString("\n")
+		}
+
+		// Scroll indicator
+		if len(m.filteredTickets) > maxVisible {
+			s.WriteString("\n")
+			scrollInfo := fmt.Sprintf("%d-%d of %d", visibleStart+1, visibleEnd, len(m.filteredTickets))
+			s.WriteString(styles.HelpStyle.Render(scrollInfo))
+		}
 	}
 
 	// Help line

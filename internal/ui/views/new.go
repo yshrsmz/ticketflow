@@ -89,7 +89,7 @@ func (m NewTicketModel) Init() tea.Cmd {
 
 // Update handles messages
 func (m NewTicketModel) Update(msg tea.Msg) (NewTicketModel, tea.Cmd) {
-	var cmds []tea.Cmd
+	var cmds []tea.Cmd = make([]tea.Cmd, 4) // Initialize with size 4 for the 4 input fields
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:

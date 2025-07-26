@@ -4,14 +4,16 @@ worktree:
     enabled: true
     base_dir: ./.worktrees
     init_commands:
-        - git pull origin main --rebase
+        - git status
     auto_operations:
         create_on_start: true
         remove_on_close: true
         cleanup_orphaned: true
 tickets:
     dir: tickets
-    archive_dir: tickets/done
+    todo_dir: todo
+    doing_dir: doing
+    archive_dir: done
     template: |-
         # 概要
 

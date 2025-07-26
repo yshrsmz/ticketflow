@@ -1,0 +1,476 @@
+package main
+
+import (
+	"encoding/json"
+	"flag"
+	"fmt"
+	"os"
+	"strings"
+	"time"
+
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/yshrsmz/ticketflow/internal/cli"
+	"github.com/yshrsmz/ticketflow/internal/config"
+	"github.com/yshrsmz/ticketflow/internal/git"
+	"github.com/yshrsmz/ticketflow/internal/ticket"
+	"github.com/yshrsmz/ticketflow/internal/ui"
+)
+
+// Build variables set by ldflags
+var (
+	Version   = "dev"
+	BuildTime = "unknown"
+	GitCommit = "unknown"
+)
+
+func main() {
+	// No arguments = TUI mode
+	if len(os.Args) == 1 {
+		runTUI()
+		return
+	}
+
+	// CLI mode
+	if err := runCLI(); err != nil {
+		cli.HandleError(err)
+		os.Exit(1)
+	}
+}
+
+func runTUI() {
+	// Find git root
+	g := git.New(".")
+	root, err := g.RootPath()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: not in a git repository\n")
+		os.Exit(1)
+	}
+
+	// Load config
+	cfg, err := config.Load(root)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: failed to load config: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Run 'ticketflow init' to initialize the ticket system\n")
+		os.Exit(1)
+	}
+
+	// Create ticket manager
+	manager := ticket.NewManager(cfg, root)
+
+	// Create and run TUI
+	model := ui.New(cfg, manager, g, root)
+	p := tea.NewProgram(model, tea.WithAltScreen())
+	
+	if _, err := p.Run(); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: failed to run TUI: %v\n", err)
+		os.Exit(1)
+	}
+}
+
+func runCLI() error {
+	// Define subcommands
+	initCmd := flag.NewFlagSet("init", flag.ExitOnError)
+
+	newCmd := flag.NewFlagSet("new", flag.ExitOnError)
+
+	listCmd := flag.NewFlagSet("list", flag.ExitOnError)
+	listStatus := listCmd.String("status", "", "Filter by status (todo|doing|done)")
+	listCount := listCmd.Int("count", 20, "Maximum number of tickets to show")
+	listFormat := listCmd.String("format", "text", "Output format (text|json)")
+
+	showCmd := flag.NewFlagSet("show", flag.ExitOnError)
+	showFormat := showCmd.String("format", "text", "Output format (text|json)")
+
+	startCmd := flag.NewFlagSet("start", flag.ExitOnError)
+
+	closeCmd := flag.NewFlagSet("close", flag.ExitOnError)
+	closeForce := closeCmd.Bool("force", false, "Force close with uncommitted changes")
+	closeForceShort := closeCmd.Bool("f", false, "Force close (short form)")
+
+	restoreCmd := flag.NewFlagSet("restore", flag.ExitOnError)
+
+	statusCmd := flag.NewFlagSet("status", flag.ExitOnError)
+	statusFormat := statusCmd.String("format", "text", "Output format (text|json)")
+
+	worktreeCmd := flag.NewFlagSet("worktree", flag.ExitOnError)
+	
+	cleanupCmd := flag.NewFlagSet("cleanup", flag.ExitOnError)
+	cleanupDryRun := cleanupCmd.Bool("dry-run", false, "Show what would be cleaned without making changes")
+	cleanupForce := cleanupCmd.Bool("force", false, "Skip confirmation prompts")
+
+	// Parse command
+	if len(os.Args) < 2 {
+		printUsage()
+		return nil
+	}
+
+	switch os.Args[1] {
+	case "init":
+		initCmd.Parse(os.Args[2:])
+		return handleInit()
+
+	case "new":
+		newCmd.Parse(os.Args[2:])
+		if newCmd.NArg() < 1 {
+			return fmt.Errorf("missing slug argument")
+		}
+		return handleNew(newCmd.Arg(0), *listFormat)
+
+	case "list":
+		listCmd.Parse(os.Args[2:])
+		return handleList(*listStatus, *listCount, *listFormat)
+
+	case "show":
+		showCmd.Parse(os.Args[2:])
+		if showCmd.NArg() < 1 {
+			return fmt.Errorf("missing ticket argument")
+		}
+		return handleShow(showCmd.Arg(0), *showFormat)
+
+	case "start":
+		startCmd.Parse(os.Args[2:])
+		if startCmd.NArg() < 1 {
+			return fmt.Errorf("missing ticket argument")
+		}
+		return handleStart(startCmd.Arg(0), false)
+
+	case "close":
+		closeCmd.Parse(os.Args[2:])
+		force := *closeForce || *closeForceShort
+		return handleClose(false, force)
+
+	case "restore":
+		restoreCmd.Parse(os.Args[2:])
+		return handleRestore()
+
+	case "status":
+		statusCmd.Parse(os.Args[2:])
+		return handleStatus(*statusFormat)
+
+	case "worktree":
+		if len(os.Args) < 3 {
+			printWorktreeUsage()
+			return nil
+		}
+		worktreeCmd.Parse(os.Args[3:])
+		return handleWorktree(os.Args[2], worktreeCmd.Args())
+	
+	
+	case "cleanup":
+		cleanupCmd.Parse(os.Args[2:])
+		if cleanupCmd.NArg() > 0 {
+			// New cleanup command with ticket ID
+			return handleCleanupTicket(cleanupCmd.Arg(0), *cleanupForce)
+		}
+		// Old auto-cleanup command
+		return handleCleanup(*cleanupDryRun)
+
+	case "help", "-h", "--help":
+		printUsage()
+		return nil
+
+	case "version", "-v", "--version":
+		fmt.Printf("ticketflow version %s\n", Version)
+		if Version != "dev" || GitCommit != "unknown" {
+			fmt.Printf("  Git commit: %s\n", GitCommit)
+			fmt.Printf("  Built at:   %s\n", BuildTime)
+		}
+		return nil
+
+	default:
+		return fmt.Errorf("unknown command: %s", os.Args[1])
+	}
+}
+
+func handleInit() error {
+	// Special case: init doesn't require existing config
+	return cli.InitCommand()
+}
+
+func handleNew(slug, format string) error {
+	app, err := cli.NewApp()
+	if err != nil {
+		return err
+	}
+
+	outputFormat := cli.ParseOutputFormat(format)
+	cli.GlobalOutputFormat = outputFormat
+	return app.NewTicket(slug, outputFormat)
+}
+
+func handleList(status string, count int, format string) error {
+	app, err := cli.NewApp()
+	if err != nil {
+		return err
+	}
+
+	var ticketStatus ticket.Status
+	if status != "" {
+		ticketStatus = ticket.Status(status)
+		if !isValidStatus(ticketStatus) {
+			return fmt.Errorf("invalid status: %s", status)
+		}
+	}
+
+	outputFormat := cli.ParseOutputFormat(format)
+	cli.GlobalOutputFormat = outputFormat
+	return app.ListTickets(ticketStatus, count, outputFormat)
+}
+
+func handleShow(ticketID, format string) error {
+	app, err := cli.NewApp()
+	if err != nil {
+		return err
+	}
+
+	// Get the ticket
+	t, err := app.Manager.Get(ticketID)
+	if err != nil {
+		return err
+	}
+
+	outputFormat := cli.ParseOutputFormat(format)
+	cli.GlobalOutputFormat = outputFormat
+	if outputFormat == cli.FormatJSON {
+		// For JSON, just output the ticket data
+		return outputJSON(map[string]interface{}{
+			"ticket": map[string]interface{}{
+				"id":          t.ID,
+				"path":        t.Path,
+				"status":      string(t.Status()),
+				"priority":    t.Priority,
+				"description": t.Description,
+				"created_at":  t.CreatedAt,
+				"started_at":  t.StartedAt,
+				"closed_at":   t.ClosedAt,
+				"related":     t.Related,
+				"content":     t.Content,
+			},
+		})
+	}
+
+	// Text format
+	fmt.Printf("ID: %s\n", t.ID)
+	fmt.Printf("Status: %s\n", t.Status())
+	fmt.Printf("Priority: %d\n", t.Priority)
+	fmt.Printf("Description: %s\n", t.Description)
+	fmt.Printf("Created: %s\n", t.CreatedAt.Format(time.RFC3339))
+	
+	if t.StartedAt != nil {
+		fmt.Printf("Started: %s\n", t.StartedAt.Format(time.RFC3339))
+	}
+	
+	if t.ClosedAt != nil {
+		fmt.Printf("Closed: %s\n", t.ClosedAt.Format(time.RFC3339))
+	}
+	
+	if len(t.Related) > 0 {
+		fmt.Printf("Related: %s\n", strings.Join(t.Related, ", "))
+	}
+	
+	fmt.Printf("\n%s\n", t.Content)
+
+	return nil
+}
+
+func handleStart(ticketID string, noPush bool) error {
+	app, err := cli.NewApp()
+	if err != nil {
+		return err
+	}
+
+	return app.StartTicket(ticketID)
+}
+
+func handleClose(noPush, force bool) error {
+	app, err := cli.NewApp()
+	if err != nil {
+		return err
+	}
+
+	return app.CloseTicket(force)
+}
+
+func handleRestore() error {
+	app, err := cli.NewApp()
+	if err != nil {
+		return err
+	}
+
+	return app.RestoreCurrentTicket()
+}
+
+func handleStatus(format string) error {
+	app, err := cli.NewApp()
+	if err != nil {
+		return err
+	}
+
+	outputFormat := cli.ParseOutputFormat(format)
+	cli.GlobalOutputFormat = outputFormat
+	return app.Status(outputFormat)
+}
+
+func handleWorktree(subcommand string, args []string) error {
+	app, err := cli.NewApp()
+	if err != nil {
+		return err
+	}
+
+	switch subcommand {
+	case "list":
+		format := "text"
+		if len(args) > 0 && args[0] == "--format" && len(args) > 1 {
+			format = args[1]
+		}
+		outputFormat := cli.ParseOutputFormat(format)
+		cli.GlobalOutputFormat = outputFormat
+		return app.ListWorktrees(outputFormat)
+
+	case "clean":
+		return app.CleanWorktrees()
+
+	default:
+		printWorktreeUsage()
+		return fmt.Errorf("unknown worktree subcommand: %s", subcommand)
+	}
+}
+
+func isValidStatus(status ticket.Status) bool {
+	switch status {
+	case ticket.StatusTodo, ticket.StatusDoing, ticket.StatusDone:
+		return true
+	default:
+		return false
+	}
+}
+
+func printUsage() {
+	fmt.Printf(`TicketFlow - Git worktree-based ticket management system (v%s)
+
+USAGE:
+  ticketflow                          Start TUI (interactive mode)
+  ticketflow init                     Initialize ticket system
+  ticketflow new <slug>               Create new ticket
+  ticketflow list [options]           List tickets
+  ticketflow show <ticket> [options]  Show ticket details
+  ticketflow start <ticket> [options] Start working on ticket
+  ticketflow close [options]          Complete current ticket
+  ticketflow restore                  Restore current-ticket link
+  ticketflow status [options]         Show current status
+  ticketflow worktree <command>       Manage worktrees
+  ticketflow cleanup <ticket>         Clean up after PR merge
+  ticketflow cleanup [options]        Auto-cleanup old tickets/worktrees
+  ticketflow help                     Show this help
+  ticketflow version                  Show version
+
+OPTIONS:
+  list:
+    --status STATUS    Filter by status (todo|doing|done)
+    --count N          Maximum number of tickets to show (default: 20)
+    --format FORMAT    Output format: text|json (default: text)
+
+  show:
+    --format FORMAT    Output format: text|json (default: text)
+
+  start:
+    (no options)
+
+  close:
+    --force, -f        Force close with uncommitted changes
+
+  status:
+    --format FORMAT    Output format: text|json (default: text)
+
+  worktree:
+    list [--format FORMAT]  List all worktrees
+    clean                   Remove orphaned worktrees
+
+  cleanup <ticket>:
+    --force                Skip confirmation prompts
+    
+  cleanup (auto):
+    --dry-run              Show what would be cleaned without making changes
+
+EXAMPLES:
+  # Initialize in current git repository
+  ticketflow init
+
+  # Create a new ticket
+  ticketflow new implement-auth
+  
+  # Create a sub-ticket (from within a worktree)
+  cd ../.worktrees/250124-150000-implement-auth
+  ticketflow new auth-database
+
+  # List all todo tickets
+  ticketflow list --status todo
+
+  # Start working on a ticket
+  ticketflow start 250124-150000-implement-auth
+
+  # Close the current ticket
+  ticketflow close
+
+  # Get current status as JSON
+  ticketflow status --format json
+
+Use 'ticketflow <command> -h' for command-specific help.
+`, Version)
+}
+
+func outputJSON(data interface{}) error {
+	encoder := json.NewEncoder(os.Stdout)
+	encoder.SetIndent("", "  ")
+	return encoder.Encode(data)
+}
+
+func printWorktreeUsage() {
+	fmt.Println(`TicketFlow Worktree Management
+
+USAGE:
+  ticketflow worktree list [--format json]   List all worktrees
+  ticketflow worktree clean                   Remove orphaned worktrees
+
+DESCRIPTION:
+  The worktree command manages git worktrees associated with tickets.
+  
+  list    Shows all worktrees with their paths, branches, and HEAD commits
+  clean   Removes worktrees that don't have corresponding active tickets
+
+EXAMPLES:
+  # List all worktrees
+  ticketflow worktree list
+
+  # List worktrees in JSON format
+  ticketflow worktree list --format json
+
+  # Clean up orphaned worktrees
+  ticketflow worktree clean`)
+}
+
+func handleCleanup(dryRun bool) error {
+	app, err := cli.NewApp()
+	if err != nil {
+		return err
+	}
+
+	if dryRun {
+		// Show cleanup statistics first
+		if err := app.CleanupStats(); err != nil {
+			return err
+		}
+		fmt.Println("\nDry-run mode: No changes will be made.")
+	}
+
+	return app.AutoCleanup(dryRun)
+}
+
+func handleCleanupTicket(ticketID string, force bool) error {
+	app, err := cli.NewApp()
+	if err != nil {
+		return err
+	}
+
+	return app.CleanupTicket(ticketID, force)
+}
