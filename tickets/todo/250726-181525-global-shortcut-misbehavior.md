@@ -1,7 +1,7 @@
 ---
 priority: 2
 description: ""
-created_at: 2025-07-25T08:28:56.844877025Z
+created_at: 2025-07-26T18:15:25.212321+09:00
 started_at: null
 closed_at: null
 ---
