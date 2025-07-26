@@ -1,7 +1,7 @@
 ---
-priority: 2
-description: ""
-created_at: 2025-07-26T18:15:25.212321+09:00
+priority: 1
+description: current-ticket.md does not exist in worktree
+created_at: 2025-07-26T23:00:08.843045+09:00
 started_at: null
 closed_at: null
 ---

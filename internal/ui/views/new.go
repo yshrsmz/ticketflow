@@ -238,6 +238,7 @@ func (m NewTicketModel) View() string {
 		fmt.Sprintf("%s navigate", styles.HelpKeyStyle.Render("tab")),
 		fmt.Sprintf("%s save", styles.HelpKeyStyle.Render("ctrl+s")),
 		fmt.Sprintf("%s cancel", styles.HelpKeyStyle.Render("esc")),
+		fmt.Sprintf("%s then %s for help", styles.HelpKeyStyle.Render("esc"), styles.HelpKeyStyle.Render("?")),
 	}
 	s.WriteString(strings.Join(help, " • "))
 

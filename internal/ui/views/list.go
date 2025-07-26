@@ -361,6 +361,11 @@ func (m TicketListModel) SelectedTicket() *ticket.Ticket {
 	return nil
 }
 
+// IsSearchMode returns true if the list is in search mode
+func (m TicketListModel) IsSearchMode() bool {
+	return m.searchMode
+}
+
 // Refresh reloads the ticket list
 func (m TicketListModel) Refresh() tea.Cmd {
 	return m.loadTickets()

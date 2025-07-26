@@ -115,28 +115,38 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 
-		// Global shortcuts
-		switch msg.String() {
-		case "?":
-			m.help.Toggle()
-			return m, nil
-
-		case "ctrl+c":
-			return m, tea.Quit
-
-		case "q":
-			if m.view == ViewTicketList {
+		// Skip most global shortcuts when in text input views
+		isInTextInputMode := m.view == ViewNewTicket || (m.view == ViewTicketList && m.ticketList.IsSearchMode())
+		if isInTextInputMode {
+			// Only handle ctrl+c for emergency exit
+			if msg.String() == "ctrl+c" {
 				return m, tea.Quit
 			}
-			// Otherwise, go back
-			m.view = m.previousView
-			return m, nil
+			// Let all other keys pass to the view for text input
+		} else {
+			// Global shortcuts for non-text-input views
+			switch msg.String() {
+			case "?":
+				m.help.Toggle()
+				return m, nil
 
-		case "w":
-			if m.view != ViewWorktreeList {
-				m.previousView = m.view
-				m.view = ViewWorktreeList
-				return m, m.worktreeList.Init()
+			case "ctrl+c":
+				return m, tea.Quit
+
+			case "q":
+				if m.view == ViewTicketList {
+					return m, tea.Quit
+				}
+				// Otherwise, go back
+				m.view = m.previousView
+				return m, nil
+
+			case "w":
+				if m.view != ViewWorktreeList {
+					m.previousView = m.view
+					m.view = ViewWorktreeList
+					return m, m.worktreeList.Init()
+				}
 			}
 		}
 
