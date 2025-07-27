@@ -1,9 +1,11 @@
 ---
 priority: 2
 description: "Fix TestWorktreeWorkflow test failure on macOS due to symlink path resolution"
-created_at: "2025-07-28T00:10:24+09:00"
+created_at: "2025-07-28T00:16:06+09:00"
 started_at: null
 closed_at: null
+related:
+    - parent:250727-231907-fix-cleanup-force-flag
 ---
 
 # Ticket Overview
