@@ -3,7 +3,7 @@ priority: 2
 description: ""
 created_at: 2025-07-26T18:34:03.720259+09:00
 started_at: 2025-07-27T02:37:24.681758755Z
-closed_at: null
+closed_at: 2025-07-27T02:55:29.297830461Z
 related:
     - parent:250726-230008-current-ticket-not-exist
 ---
