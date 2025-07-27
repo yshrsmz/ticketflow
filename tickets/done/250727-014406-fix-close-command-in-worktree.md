@@ -1,9 +1,9 @@
 ---
 priority: 2
 description: Fix ticketflow close command when run from worktree - current-ticket.md not found
-created_at: 2025-07-27T01:44:06.585250076Z
-started_at: 2025-07-27T11:07:51.537269441Z
-closed_at: 2025-07-27T11:10:03.449310084Z
+created_at: "2025-07-27T01:44:06Z"
+started_at: "2025-07-27T11:07:51Z"
+closed_at: "2025-07-27T11:10:03Z"
 ---
 
 # 概要

@@ -1,7 +1,7 @@
 ---
 priority: 2
 description: ""
-created_at: 2025-07-26T18:34:03.720259+09:00
+created_at: "2025-07-26T18:34:03+09:00"
 started_at: null
 closed_at: null
 ---

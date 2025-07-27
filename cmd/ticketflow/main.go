@@ -98,6 +98,9 @@ func runCLI() error {
 	cleanupDryRun := cleanupCmd.Bool("dry-run", false, "Show what would be cleaned without making changes")
 	cleanupForce := cleanupCmd.Bool("force", false, "Skip confirmation prompts")
 
+	migrateCmd := flag.NewFlagSet("migrate", flag.ExitOnError)
+	migrateDryRun := migrateCmd.Bool("dry-run", false, "Show what would be updated without making changes")
+
 	// Parse command
 	if len(os.Args) < 2 {
 		printUsage()
@@ -163,6 +166,10 @@ func runCLI() error {
 		}
 		// Old auto-cleanup command
 		return handleCleanup(*cleanupDryRun)
+
+	case "migrate":
+		migrateCmd.Parse(os.Args[2:])
+		return handleMigrateDates(*migrateDryRun)
 
 	case "help", "-h", "--help":
 		printUsage()
@@ -239,9 +246,9 @@ func handleShow(ticketID, format string) error {
 				"status":      string(t.Status()),
 				"priority":    t.Priority,
 				"description": t.Description,
-				"created_at":  t.CreatedAt,
-				"started_at":  t.StartedAt,
-				"closed_at":   t.ClosedAt,
+				"created_at":  t.CreatedAt.Time,
+				"started_at":  t.StartedAt.Time,
+				"closed_at":   t.ClosedAt.Time,
 				"related":     t.Related,
 				"content":     t.Content,
 			},
@@ -255,12 +262,12 @@ func handleShow(ticketID, format string) error {
 	fmt.Printf("Description: %s\n", t.Description)
 	fmt.Printf("Created: %s\n", t.CreatedAt.Format(time.RFC3339))
 
-	if t.StartedAt != nil {
-		fmt.Printf("Started: %s\n", t.StartedAt.Format(time.RFC3339))
+	if t.StartedAt.Time != nil {
+		fmt.Printf("Started: %s\n", t.StartedAt.Time.Format(time.RFC3339))
 	}
 
-	if t.ClosedAt != nil {
-		fmt.Printf("Closed: %s\n", t.ClosedAt.Format(time.RFC3339))
+	if t.ClosedAt.Time != nil {
+		fmt.Printf("Closed: %s\n", t.ClosedAt.Time.Format(time.RFC3339))
 	}
 
 	if len(t.Related) > 0 {
@@ -360,6 +367,7 @@ USAGE:
   ticketflow worktree <command>       Manage worktrees
   ticketflow cleanup <ticket>         Clean up after PR merge
   ticketflow cleanup [options]        Auto-cleanup old tickets/worktrees
+  ticketflow migrate [options]        Migrate ticket dates to new format
   ticketflow help                     Show this help
   ticketflow version                  Show version
 
@@ -390,6 +398,9 @@ OPTIONS:
     
   cleanup (auto):
     --dry-run              Show what would be cleaned without making changes
+
+  migrate:
+    --dry-run              Show what would be updated without making changes
 
 EXAMPLES:
   # Initialize in current git repository
@@ -472,4 +483,13 @@ func handleCleanupTicket(ticketID string, force bool) error {
 	}
 
 	return app.CleanupTicket(ticketID, force)
+}
+
+func handleMigrateDates(dryRun bool) error {
+	app, err := cli.NewApp()
+	if err != nil {
+		return err
+	}
+
+	return app.MigrateDates(dryRun)
 }

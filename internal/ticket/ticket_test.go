@@ -20,24 +20,24 @@ func TestTicketStatus(t *testing.T) {
 		{
 			name: "todo ticket",
 			ticket: Ticket{
-				StartedAt: nil,
-				ClosedAt:  nil,
+				StartedAt: RFC3339TimePtr{},
+				ClosedAt:  RFC3339TimePtr{},
 			},
 			expected: StatusTodo,
 		},
 		{
 			name: "doing ticket",
 			ticket: Ticket{
-				StartedAt: &now,
-				ClosedAt:  nil,
+				StartedAt: NewRFC3339TimePtr(&now),
+				ClosedAt:  RFC3339TimePtr{},
 			},
 			expected: StatusDoing,
 		},
 		{
 			name: "done ticket",
 			ticket: Ticket{
-				StartedAt: &now,
-				ClosedAt:  &now,
+				StartedAt: NewRFC3339TimePtr(&now),
+				ClosedAt:  NewRFC3339TimePtr(&now),
 			},
 			expected: StatusDone,
 		},
@@ -61,24 +61,24 @@ func TestTicketHasWorktree(t *testing.T) {
 		{
 			name: "todo ticket has no worktree",
 			ticket: Ticket{
-				StartedAt: nil,
-				ClosedAt:  nil,
+				StartedAt: RFC3339TimePtr{},
+				ClosedAt:  RFC3339TimePtr{},
 			},
 			expected: false,
 		},
 		{
 			name: "doing ticket has worktree",
 			ticket: Ticket{
-				StartedAt: &now,
-				ClosedAt:  nil,
+				StartedAt: NewRFC3339TimePtr(&now),
+				ClosedAt:  RFC3339TimePtr{},
 			},
 			expected: true,
 		},
 		{
 			name: "done ticket has no worktree",
 			ticket: Ticket{
-				StartedAt: &now,
-				ClosedAt:  &now,
+				StartedAt: NewRFC3339TimePtr(&now),
+				ClosedAt:  NewRFC3339TimePtr(&now),
 			},
 			expected: false,
 		},
@@ -155,9 +155,9 @@ func TestToBytes(t *testing.T) {
 	ticket := &Ticket{
 		Priority:    1,
 		Description: "Test ticket",
-		CreatedAt:   now,
-		StartedAt:   nil,
-		ClosedAt:    nil,
+		CreatedAt:   NewRFC3339Time(now),
+		StartedAt:   RFC3339TimePtr{},
+		ClosedAt:    RFC3339TimePtr{},
 		Related:     []string{"related-1", "related-2"},
 		Content:     "# Test Content\n\nThis is the content.",
 	}

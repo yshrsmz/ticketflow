@@ -153,16 +153,16 @@ func (m TicketDetailModel) View() string {
 		styles.SubtitleStyle.Render("Created:"),
 		styles.InfoStyle.Render(m.ticket.CreatedAt.Format(time.RFC3339))))
 
-	if m.ticket.StartedAt != nil {
+	if m.ticket.StartedAt.Time != nil {
 		meta.WriteString(fmt.Sprintf("%s %s\n",
 			styles.SubtitleStyle.Render("Started:"),
-			styles.InfoStyle.Render(m.ticket.StartedAt.Format(time.RFC3339))))
+			styles.InfoStyle.Render(m.ticket.StartedAt.Time.Format(time.RFC3339))))
 	}
 
-	if m.ticket.ClosedAt != nil {
+	if m.ticket.ClosedAt.Time != nil {
 		meta.WriteString(fmt.Sprintf("%s %s\n",
 			styles.SubtitleStyle.Render("Closed:"),
-			styles.InfoStyle.Render(m.ticket.ClosedAt.Format(time.RFC3339))))
+			styles.InfoStyle.Render(m.ticket.ClosedAt.Time.Format(time.RFC3339))))
 	}
 
 	if len(m.ticket.Related) > 0 {

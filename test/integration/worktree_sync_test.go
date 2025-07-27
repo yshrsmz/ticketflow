@@ -77,7 +77,7 @@ func TestStartTicket_WorktreeCreatedAfterCommit(t *testing.T) {
 	// 4. Find the worktree
 	worktrees, err := app.Git.ListWorktrees()
 	require.NoError(t, err)
-	
+
 	var ticketWorktree *git.WorktreeInfo
 	for _, wt := range worktrees {
 		if wt.Branch == ticketID {
@@ -116,4 +116,3 @@ func TestStartTicket_WorktreeCreatedAfterCommit(t *testing.T) {
 	require.NoError(t, err)
 	assert.False(t, dirty, "worktree should have clean status with no uncommitted changes")
 }
-
