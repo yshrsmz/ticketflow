@@ -30,10 +30,10 @@ Are you sure? (y/N):
 - `--force` フラグが指定された場合、確認プロンプトをスキップして直接クリーンアップを実行する
 
 ## タスク
-- [ ] CleanupTicket 関数で force フラグの処理を確認
-- [ ] 確認プロンプトのロジックを修正
-- [ ] テストケースを追加
-- [ ] 動作確認
+- [x] CleanupTicket 関数で force フラグの処理を確認
+- [x] 確認プロンプトのロジックを修正
+- [x] テストケースを追加
+- [x] 動作確認
 
 ## 技術仕様
 
@@ -50,3 +50,35 @@ Are you sure? (y/N):
 
 - この問題は日付フォーマット統一作業の後処理で発見された
 - 手動で `git worktree remove` と `git branch -d` を実行することで回避可能
+
+## 調査結果と修正内容
+
+### 根本原因
+Go の flag パーサーの仕様により、フラグは位置引数（ticket ID）の前に指定する必要があった。
+`ticketflow cleanup <ticket-id> --force` の順序では、`--force` がフラグとして認識されない。
+
+### 実装した修正
+1. **確認プロンプトのロジック修正** (`internal/cli/commands.go`):
+   - クリーンアップ情報の表示を force フラグのチェック外に移動
+   - force が false の場合のみ確認プロンプトを表示するように修正
+
+2. **ヘルプテキストの更新** (`cmd/ticketflow/main.go`):
+   - 使用方法を `ticketflow cleanup [options] <ticket>` に更新
+   - 正しい使用例を追加: `ticketflow cleanup --force 250124-150000-implement-auth`
+
+3. **統合テストの追加** (`test/integration/cleanup_test.go`):
+   - force フラグが正しく動作することを確認するテストケースを追加
+   - テストは成功し、修正が正しく機能することを確認
+
+### 正しい使用方法
+```bash
+# 正しい - フラグを ticket ID の前に指定
+ticketflow cleanup --force <ticket-id>
+
+# 間違い - これは動作しない
+ticketflow cleanup <ticket-id> --force
+```
+
+### その他の発見
+- 統合テストで `TestWorktreeWorkflow` が macOS のパス解決（`/var` vs `/private/var`）の違いにより失敗することを発見
+- この問題は本修正とは無関係のため、別チケット（250728-001024-fix-worktree-test-macos）として記録
