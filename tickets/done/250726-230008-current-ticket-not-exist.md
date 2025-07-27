@@ -3,7 +3,7 @@ priority: 1
 description: current-ticket.md does not exist in worktree
 created_at: 2025-07-26T23:00:08.843045+09:00
 started_at: 2025-07-27T02:36:27.257840763Z
-closed_at: null
+closed_at: 2025-07-27T12:18:00.843045+09:00
 ---
 
 # 概要
