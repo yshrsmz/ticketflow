@@ -44,7 +44,9 @@ func NewRFC3339Time(t time.Time) RFC3339Time {
 	return RFC3339Time{t}
 }
 
-// ToTimePtr converts RFC3339Time to *time.Time
+// ToTimePtr converts RFC3339Time to *time.Time.
+// This method is useful when you need a pointer to a time.Time object
+// for compatibility with APIs or functions that require nullable time values.
 func (t RFC3339Time) ToTimePtr() *time.Time {
 	if t.IsZero() {
 		return nil

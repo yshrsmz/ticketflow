@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/yshrsmz/ticketflow/internal/ticket"
@@ -30,18 +31,20 @@ func (app *App) MigrateDates(dryRun bool) error {
 		hasSubseconds := false
 		contentStr := string(originalContent)
 		
+		// Define regex for RFC3339Nano timestamps
+		rfc3339NanoRegex := regexp.MustCompile(`\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+`)
+		
 		// Check each date field for subseconds
 		for _, field := range []string{"created_at:", "started_at:", "closed_at:"} {
 			if idx := strings.Index(contentStr, field); idx != -1 {
-				// Look for a dot followed by digits in the date value
+				// Extract the line containing the date field
 				lineEnd := strings.IndexByte(contentStr[idx:], '\n')
 				if lineEnd == -1 {
 					lineEnd = len(contentStr) - idx
 				}
 				line := contentStr[idx : idx+lineEnd]
-				// Check if the line contains a dot followed by digits (subseconds)
-				if strings.Contains(line, ".") && strings.ContainsAny(line, "0123456789") &&
-					strings.Contains(line, "T") && strings.Contains(line, ":") {
+				// Check if the line matches the RFC3339Nano regex
+				if rfc3339NanoRegex.MatchString(line) {
 					hasSubseconds = true
 					break
 				}
@@ -49,7 +52,6 @@ func (app *App) MigrateDates(dryRun bool) error {
 		}
 		
 		if hasSubseconds {
-
 			// Parse and re-save the ticket to apply new formatting
 			parsedTicket, err := ticket.Parse(originalContent)
 			if err != nil {
