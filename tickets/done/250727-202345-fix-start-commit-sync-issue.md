@@ -3,7 +3,7 @@ priority: 1
 description: start時の親ブランチコミットとworktreeの同期問題を解決する
 created_at: "2025-07-27T20:23:45+09:00"
 started_at: "2025-07-27T20:26:07+09:00"
-closed_at: null
+closed_at: "2025-07-27T22:17:03+09:00"
 ---
 
 # 概要
