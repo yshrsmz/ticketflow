@@ -3,7 +3,7 @@ priority: 2
 description: ticketflow cleanup コマンドの --force フラグが機能しない問題を修正
 created_at: "2025-07-27T23:19:07+09:00"
 started_at: "2025-07-27T23:45:51+09:00"
-closed_at: null
+closed_at: "2025-07-28T00:24:09+09:00"
 ---
 
 # 概要
