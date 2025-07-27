@@ -365,7 +365,7 @@ USAGE:
   ticketflow restore                  Restore current-ticket link
   ticketflow status [options]         Show current status
   ticketflow worktree <command>       Manage worktrees
-  ticketflow cleanup <ticket>         Clean up after PR merge
+  ticketflow cleanup [options] <ticket> Clean up after PR merge
   ticketflow cleanup [options]        Auto-cleanup old tickets/worktrees
   ticketflow migrate [options]        Migrate ticket dates to new format
   ticketflow help                     Show this help
@@ -395,7 +395,7 @@ OPTIONS:
 
   cleanup <ticket>:
     --force                Skip confirmation prompts
-    
+
   cleanup (auto):
     --dry-run              Show what would be cleaned without making changes
 
@@ -408,7 +408,7 @@ EXAMPLES:
 
   # Create a new ticket
   ticketflow new implement-auth
-  
+
   # Create a sub-ticket (from within a worktree)
   cd ../.worktrees/250124-150000-implement-auth
   ticketflow new auth-database
@@ -424,6 +424,9 @@ EXAMPLES:
 
   # Get current status as JSON
   ticketflow status --format json
+
+  # Clean up after PR merge (with force flag)
+  ticketflow cleanup --force 250124-150000-implement-auth
 
 Use 'ticketflow <command> -h' for command-specific help.
 `, Version)
@@ -444,7 +447,7 @@ USAGE:
 
 DESCRIPTION:
   The worktree command manages git worktrees associated with tickets.
-  
+
   list    Shows all worktrees with their paths, branches, and HEAD commits
   clean   Removes worktrees that don't have corresponding active tickets
 
