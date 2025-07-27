@@ -12,7 +12,7 @@ import (
 	"github.com/yshrsmz/ticketflow/internal/git"
 )
 
-func TestStartTicket_WorktreeSyncSuccess(t *testing.T) {
+func TestStartTicket_WorktreeCreatedAfterCommit(t *testing.T) {
 	// Setup test repository
 	repoPath := setupTestRepo(t)
 	originalWd, _ := os.Getwd()
@@ -44,7 +44,7 @@ func TestStartTicket_WorktreeSyncSuccess(t *testing.T) {
 	require.NoError(t, err)
 
 	// 1. Create a ticket
-	err = app.NewTicket("sync-test", cli.FormatText)
+	err = app.NewTicket("commit-first-test", cli.FormatText)
 	require.NoError(t, err)
 
 	// Commit the ticket
@@ -87,7 +87,7 @@ func TestStartTicket_WorktreeSyncSuccess(t *testing.T) {
 	}
 	require.NotNil(t, ticketWorktree)
 
-	// 5. Verify worktree state
+	// 5. Verify worktree state (should already have ticket in doing, NOT in todo)
 	// Check that ticket is in doing directory
 	worktreeDoingPath := filepath.Join(ticketWorktree.Path, "tickets", "doing", ticketID+".md")
 	_, err = os.Stat(worktreeDoingPath)
@@ -109,67 +109,11 @@ func TestStartTicket_WorktreeSyncSuccess(t *testing.T) {
 	require.NoError(t, err)
 	expectedTarget := filepath.Join("tickets", "doing", ticketID+".md")
 	assert.Equal(t, expectedTarget, target)
+
+	// 7. Verify worktree has clean status (no uncommitted changes)
+	wtGit := git.New(ticketWorktree.Path)
+	dirty, err := wtGit.HasUncommittedChanges()
+	require.NoError(t, err)
+	assert.False(t, dirty, "worktree should have clean status with no uncommitted changes")
 }
 
-func TestStartTicket_WorktreeTodoNotFound(t *testing.T) {
-	// Setup test repository
-	repoPath := setupTestRepo(t)
-	originalWd, _ := os.Getwd()
-	defer os.Chdir(originalWd)
-	os.Chdir(repoPath)
-
-	// Initialize ticketflow with worktree enabled
-	err := cli.InitCommand()
-	require.NoError(t, err)
-
-	cfg, err := config.Load(repoPath)
-	require.NoError(t, err)
-	cfg.Worktree.Enabled = true
-	cfg.Worktree.BaseDir = "./.worktrees"
-	err = cfg.Save(filepath.Join(repoPath, ".ticketflow.yaml"))
-	require.NoError(t, err)
-
-	gitCmd := git.New(repoPath)
-	_, err = gitCmd.Exec("add", ".ticketflow.yaml", ".gitignore")
-	require.NoError(t, err)
-	_, err = gitCmd.Exec("commit", "-m", "Initialize")
-	require.NoError(t, err)
-
-	app, err := cli.NewApp()
-	require.NoError(t, err)
-
-	// Create and commit a ticket
-	err = app.NewTicket("missing-todo-test", cli.FormatText)
-	require.NoError(t, err)
-
-	_, err = gitCmd.Exec("add", "tickets/")
-	require.NoError(t, err)
-	_, err = gitCmd.Exec("commit", "-m", "Add ticket")
-	require.NoError(t, err)
-
-	tickets, err := app.Manager.List("")
-	require.NoError(t, err)
-	ticketID := tickets[0].ID
-
-	// Start the ticket - this should not fail even if todo file doesn't exist in worktree
-	err = app.StartTicket(ticketID)
-	assert.NoError(t, err, "start should succeed even if todo file doesn't exist in worktree")
-
-	// Verify the ticket is properly set up in worktree
-	worktrees, err := app.Git.ListWorktrees()
-	require.NoError(t, err)
-	
-	var ticketWorktree *git.WorktreeInfo
-	for _, wt := range worktrees {
-		if wt.Branch == ticketID {
-			ticketWorktree = &wt
-			break
-		}
-	}
-	require.NotNil(t, ticketWorktree)
-
-	// Verify ticket is in doing directory
-	worktreeDoingPath := filepath.Join(ticketWorktree.Path, "tickets", "doing", ticketID+".md")
-	_, err = os.Stat(worktreeDoingPath)
-	assert.NoError(t, err, "ticket should exist in worktree doing directory")
-}

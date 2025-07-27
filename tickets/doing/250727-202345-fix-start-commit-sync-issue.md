@@ -88,13 +88,13 @@ closed_at: null
 - ファイル操作が2回必要
 - worktree内のファイルは未コミット状態になる（これは許容範囲）
 
-## 選択した解決案: 案4（worktree内でチケット移動を複製）
+## 選択した解決案: 案1（コミット順序の変更）
 
-案4を選択した理由:
-- 既存のワークフローを維持できる
-- 実装がシンプルで理解しやすい
-- エラーハンドリングが容易
-- 親ブランチとworktreeの両方で正しい状態を保てる
+案1を選択した理由:
+- 最もシンプルで直感的な解決策
+- Git的に正しいアプローチ（worktreeは最新コミットから作成される）
+- 手動ファイル同期が不要
+- worktree内に未コミット変更が残らない
 
 ## タスク
 - [x] 現在のstart処理の実装を詳細に調査
@@ -105,53 +105,31 @@ closed_at: null
 - [x] 実装
 - [x] 既存のworktreeへの影響を考慮
 
-## 実装方針
+## 実装内容（完了）
 
-### 1. 修正箇所
-`internal/cli/commands.go`のStartTicket関数（L385-408の処理を拡張）
+### 1. 修正内容
+`internal/cli/commands.go`のStartTicket関数で、コミット順序を変更：
 
-### 2. 実装詳細
-現在のL385-408では、worktree内にdoingディレクトリとticketファイルをコピーしているが、これを以下のように修正:
+**変更前の順序:**
+1. worktree作成
+2. チケット移動・コミット
+3. 手動でファイル同期
 
-```go
-// If using worktree, sync ticket state to worktree
-if app.Config.Worktree.Enabled && worktreePath != "" {
-    // 1. worktree内のtodoディレクトリからチケットを削除
-    worktreeTodoPath := filepath.Join(worktreePath, "tickets", "todo", filepath.Base(t.ID)+".md")
-    if _, err := os.Stat(worktreeTodoPath); err == nil {
-        if err := os.Remove(worktreeTodoPath); err != nil {
-            return fmt.Errorf("failed to remove ticket from worktree todo: %w", err)
-        }
-    }
-    
-    // 2. worktree内のdoingディレクトリを作成
-    worktreeDoingPath := filepath.Join(worktreePath, "tickets", "doing")
-    if err := os.MkdirAll(worktreeDoingPath, 0755); err != nil {
-        return fmt.Errorf("failed to create doing directory in worktree: %w", err)
-    }
-    
-    // 3. 親ブランチの最新のチケットファイルをworktreeにコピー
-    worktreeTicketPath := filepath.Join(worktreeDoingPath, filepath.Base(t.Path))
-    ticketData, err := os.ReadFile(t.Path)
-    if err != nil {
-        return fmt.Errorf("failed to read ticket file: %w", err)
-    }
-    if err := os.WriteFile(worktreeTicketPath, ticketData, 0644); err != nil {
-        return fmt.Errorf("failed to copy ticket to worktree: %w", err)
-    }
-    
-    // 4. current-ticket.mdシンボリックリンクを作成
-    linkPath := filepath.Join(worktreePath, "current-ticket.md")
-    relPath := filepath.Join("tickets", "doing", filepath.Base(t.Path))
-    if err := os.Symlink(relPath, linkPath); err != nil {
-        return fmt.Errorf("failed to create current ticket link in worktree: %w", err)
-    }
-}
-```
+**変更後の順序:**
+1. チケット移動・コミット
+2. worktree作成（最新コミットから）
+3. 手動同期は不要（削除）
 
-### 3. エラーハンドリング
-- todoディレクトリのチケットが存在しない場合は無視（すでに移動済みの可能性）
-- その他のエラーは適切にハンドリングし、必要に応じてロールバック
+### 2. 具体的な変更
+- L262-304: worktree作成処理を後方に移動
+- L333-388: コミット後にworktree作成するよう変更
+- L385-416: 手動ファイル同期コードを削除
+- エラーハンドリング: worktree作成失敗時は`git reset --hard HEAD^`でロールバック
+
+### 3. テスト
+- 新しいテスト`TestStartTicket_WorktreeCreatedAfterCommit`を追加
+- worktreeが最新状態で作成されることを確認
+- worktree内に未コミット変更がないことを確認
 
 ## 技術仕様
 
