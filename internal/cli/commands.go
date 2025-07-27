@@ -941,15 +941,17 @@ func (app *App) CleanupTicket(ticketID string, force bool) error {
 		return fmt.Errorf("failed to find worktree: %w", err)
 	}
 
+	// Show what will be done
+	fmt.Printf("\n🗑️  Cleanup for ticket: %s\n", t.ID)
+	fmt.Printf("   Description: %s\n", t.Description)
+	fmt.Printf("\nThis will:\n")
+	if wt != nil {
+		fmt.Printf("  • Remove worktree: %s\n", wt.Path)
+	}
+	fmt.Printf("  • Delete local branch: %s\n", t.ID)
+
 	// Confirmation prompt if not forced
 	if !force {
-		fmt.Printf("\n🗑️  Cleanup for ticket: %s\n", t.ID)
-		fmt.Printf("   Description: %s\n", t.Description)
-		fmt.Printf("\nThis will:\n")
-		if wt != nil {
-			fmt.Printf("  • Remove worktree: %s\n", wt.Path)
-		}
-		fmt.Printf("  • Delete local branch: %s\n", t.ID)
 		fmt.Printf("\nAre you sure? (y/N): ")
 
 		var response string
