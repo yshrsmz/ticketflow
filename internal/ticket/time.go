@@ -45,8 +45,9 @@ func NewRFC3339Time(t time.Time) RFC3339Time {
 }
 
 // ToTimePtr converts RFC3339Time to *time.Time.
-// This method is useful for compatibility with APIs or functions that require a pointer to a time.Time object.
-// While RFC3339Time itself is non-nullable, this method provides a way to represent zero values as nil pointers.
+// This method is primarily intended for compatibility with APIs or functions that require a pointer to a time.Time object.
+// Note that RFC3339Time is non-nullable by design, but this method deliberately returns nil for zero values
+// to align with the expectations of such APIs. Use this method only when compatibility with external APIs is required.
 func (t RFC3339Time) ToTimePtr() *time.Time {
 	if t.IsZero() {
 		return nil
