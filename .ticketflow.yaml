@@ -15,22 +15,23 @@ tickets:
     doing_dir: doing
     done_dir: done
     template: |-
-        # 概要
+        # Ticket Overview
 
-        [ここにチケットの概要を記述]
+        Write the overview and tasks for this ticket here.
 
-        ## タスク
-        - [ ] タスク1
-        - [ ] タスク2
-        - [ ] タスク3
+        ## Tasks
+        - [ ] task1
+        - [ ] task2
+        - [ ] task3
+        - [ ] Run `make test` to run the tests
+        - [ ] Run `make vet`, `make fmt` and `make lint`
+        - [ ] Update documentation if necessary
+        - [ ] Update README.*.md
+        - [ ] Get developer approval before closing
 
-        ## 技術仕様
+        ## Notes
 
-        [必要に応じて技術的な詳細を記述]
-
-        ## メモ
-
-        [追加の注意事項やメモ]
+        Additional notes or requirements.
 output:
     default_format: text
     json_pretty: true
