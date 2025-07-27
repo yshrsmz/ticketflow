@@ -99,7 +99,7 @@ closed_at: null
 ## タスク
 - [x] 現在のstart処理の実装を詳細に調査
 - [x] 各解決案のメリット・デメリットを整理
-- [x] 最適な解決方法を決定（案4）
+- [x] 最適な解決方法を決定（案1）
 - [x] 実装方針を策定
 - [x] テストケースを設計
 - [x] 実装
@@ -134,38 +134,16 @@ closed_at: null
 ## 技術仕様
 
 ### 影響範囲
-- `internal/cli/commands.go`: StartTicket関数のL385-408を修正
+- `internal/cli/commands.go`: StartTicket関数の処理順序変更
 
 ### 考慮事項
 - 既存のワークフローとの互換性（維持される）
-- ユーザーの期待する動作（worktree内でもチケットがdoingに移動）
+- ユーザーの期待する動作（worktreeが最新状態で作成される）
 - Gitの履歴の整合性（親ブランチのコミットは維持）
-- worktree内の変更は未コミット状態（ユーザーが必要に応じてコミット可能）
-
-## テストケース
-
-### 1. 正常系テスト
-- **テスト名**: TestStartTicket_WorktreeSyncSuccess
-- **内容**: 
-  - todoにチケットを作成
-  - `ticketflow start`を実行
-  - 確認項目:
-    - 親ブランチ: tickets/doing/にチケットが存在
-    - 親ブランチ: tickets/todo/にチケットが存在しない
-    - worktree: tickets/doing/にチケットが存在
-    - worktree: tickets/todo/にチケットが存在しない
-    - worktree: current-ticket.mdシンボリックリンクが正しく設定されている
-
-### 2. エラー系テスト
-- **テスト名**: TestStartTicket_WorktreeTodoNotFound
-- **内容**: worktree内のtodoディレクトリにチケットが存在しない場合でもエラーにならないことを確認
-
-### 3. 既存テストへの影響確認
-- 既存のStartTicketテストが引き続き正常に動作することを確認
-- 特に`test/integration/worktree_test.go`の既存テストを確認
+- worktree内がクリーンな状態（未コミット変更なし）
 
 ## メモ
 
 - この問題は優先度高（priority: 1）として設定
 - worktreeベースの開発フローの根幹に関わる問題
-- 解決方法によってはワークフロー全体の見直しが必要になる可能性
+- 案1の実装により、よりシンプルで保守しやすいコードになった
