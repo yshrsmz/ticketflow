@@ -18,6 +18,9 @@ func (app *App) MigrateDates(dryRun bool) error {
 		return fmt.Errorf("failed to list tickets: %w", err)
 	}
 
+	// Define regex for RFC3339Nano timestamps outside the loop for better performance
+	rfc3339NanoRegex := regexp.MustCompile(`\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+`)
+
 	updatedCount := 0
 	for _, t := range tickets {
 		// Read the original file
@@ -30,9 +33,6 @@ func (app *App) MigrateDates(dryRun bool) error {
 		// Look for patterns like: 2025-07-26T18:14:10.48619+09:00
 		hasSubseconds := false
 		contentStr := string(originalContent)
-
-		// Define regex for RFC3339Nano timestamps
-		rfc3339NanoRegex := regexp.MustCompile(`\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+`)
 
 		// Check each date field for subseconds
 		for _, field := range []string{"created_at:", "started_at:", "closed_at:"} {
