@@ -257,22 +257,104 @@ func (app *App) StartTicket(ticketID string) error {
 		}
 	}
 
-	var worktreePath string
+	// For non-worktree mode, create and checkout branch immediately
+	if !app.Config.Worktree.Enabled {
+		if err := app.Git.CreateBranch(t.ID); err != nil {
+			return fmt.Errorf("failed to create branch: %w", err)
+		}
+	}
 
+	// Check if worktree already exists (for worktree mode)
 	if app.Config.Worktree.Enabled {
-		// Check if worktree already exists
 		if exists, err := app.Git.HasWorktree(t.ID); err != nil {
 			return fmt.Errorf("failed to check worktree: %w", err)
 		} else if exists {
 			return NewError(ErrWorktreeExists, "Worktree already exists",
 				fmt.Sprintf("Worktree for ticket %s already exists", t.ID), nil)
 		}
+	}
 
+	// If this is a sub-ticket, update the related field
+	if parentBranch != "" {
+		t.Related = append(t.Related, fmt.Sprintf("parent:%s", parentBranch))
+		if err := app.Manager.Update(t); err != nil {
+			// Rollback for non-worktree mode
+			if !app.Config.Worktree.Enabled {
+				app.Git.Checkout(currentBranch)
+			}
+			return fmt.Errorf("failed to update ticket parent relationship: %w", err)
+		}
+	}
+
+	// Update ticket status
+	if err := t.Start(); err != nil {
+		// Rollback for non-worktree mode
+		if !app.Config.Worktree.Enabled {
+			app.Git.Checkout(currentBranch)
+		}
+		return err
+	}
+
+	// Move ticket file from todo to doing
+	oldPath := t.Path
+	doingPath := app.Config.GetDoingPath(app.ProjectRoot)
+	newPath := filepath.Join(doingPath, filepath.Base(t.Path))
+
+	// Ensure doing directory exists
+	if err := os.MkdirAll(doingPath, 0755); err != nil {
+		// Rollback for non-worktree mode
+		if !app.Config.Worktree.Enabled {
+			app.Git.Checkout(currentBranch)
+		}
+		return fmt.Errorf("failed to create doing directory: %w", err)
+	}
+
+	// Move the file first
+	if err := os.Rename(oldPath, newPath); err != nil {
+		// Rollback for non-worktree mode
+		if !app.Config.Worktree.Enabled {
+			app.Git.Checkout(currentBranch)
+		}
+		return fmt.Errorf("failed to move ticket to doing: %w", err)
+	}
+
+	// Update ticket data with new path
+	t.Path = newPath
+	if err := app.Manager.Update(t); err != nil {
+		// Rollback file move
+		os.Rename(newPath, oldPath)
+		// Rollback for non-worktree mode
+		if !app.Config.Worktree.Enabled {
+			app.Git.Checkout(currentBranch)
+		}
+		return fmt.Errorf("failed to update ticket: %w", err)
+	}
+
+	// Git add the changes (use -A to handle the rename properly)
+	if err := app.Git.Add("-A", filepath.Dir(oldPath), filepath.Dir(newPath)); err != nil {
+		return fmt.Errorf("failed to stage ticket move: %w", err)
+	}
+
+	// Commit the move
+	if err := app.Git.Commit(fmt.Sprintf("Start ticket: %s", t.ID)); err != nil {
+		return fmt.Errorf("failed to commit ticket move: %w", err)
+	}
+
+	// Set current ticket (in main worktree)
+	if err := app.Manager.SetCurrentTicket(t); err != nil {
+		return fmt.Errorf("failed to set current ticket: %w", err)
+	}
+
+	// Now create worktree AFTER committing (for worktree mode)
+	var worktreePath string
+	if app.Config.Worktree.Enabled {
 		// Always use flat worktree structure
 		baseDir := app.Config.GetWorktreePath(app.ProjectRoot)
 		worktreePath = filepath.Join(baseDir, t.ID)
 
 		if err := app.Git.AddWorktree(worktreePath, t.ID); err != nil {
+			// Rollback: reset to previous commit
+			app.Git.Exec("reset", "--hard", "HEAD^")
 			return fmt.Errorf("failed to create worktree: %w", err)
 		}
 
@@ -295,108 +377,6 @@ func (app *App) StartTicket(ticketID string) error {
 					fmt.Printf("Warning: Command failed: %v\n%s\n", err, output)
 				}
 			}
-		}
-	} else {
-		// Original behavior: create and checkout branch
-		if err := app.Git.CreateBranch(t.ID); err != nil {
-			return fmt.Errorf("failed to create branch: %w", err)
-		}
-	}
-
-	// If this is a sub-ticket, update the related field
-	if parentBranch != "" {
-		t.Related = append(t.Related, fmt.Sprintf("parent:%s", parentBranch))
-		if err := app.Manager.Update(t); err != nil {
-			// Rollback
-			if app.Config.Worktree.Enabled {
-				app.Git.RemoveWorktree(worktreePath)
-			}
-			return fmt.Errorf("failed to update ticket parent relationship: %w", err)
-		}
-	}
-
-	// Update ticket status
-	if err := t.Start(); err != nil {
-		// Rollback
-		if app.Config.Worktree.Enabled {
-			app.Git.RemoveWorktree(worktreePath)
-		} else {
-			app.Git.Checkout(currentBranch)
-		}
-		return err
-	}
-
-	// Move ticket file from todo to doing
-	oldPath := t.Path
-	doingPath := app.Config.GetDoingPath(app.ProjectRoot)
-	newPath := filepath.Join(doingPath, filepath.Base(t.Path))
-
-	// Ensure doing directory exists
-	if err := os.MkdirAll(doingPath, 0755); err != nil {
-		// Rollback
-		if app.Config.Worktree.Enabled {
-			app.Git.RemoveWorktree(worktreePath)
-		} else {
-			app.Git.Checkout(currentBranch)
-		}
-		return fmt.Errorf("failed to create doing directory: %w", err)
-	}
-
-	// Move the file first
-	if err := os.Rename(oldPath, newPath); err != nil {
-		// Rollback
-		if app.Config.Worktree.Enabled {
-			app.Git.RemoveWorktree(worktreePath)
-		} else {
-			app.Git.Checkout(currentBranch)
-		}
-		return fmt.Errorf("failed to move ticket to doing: %w", err)
-	}
-
-	// Update ticket data with new path
-	t.Path = newPath
-	if err := app.Manager.Update(t); err != nil {
-		// Rollback file move
-		os.Rename(newPath, oldPath)
-		if app.Config.Worktree.Enabled {
-			app.Git.RemoveWorktree(worktreePath)
-		} else {
-			app.Git.Checkout(currentBranch)
-		}
-		return fmt.Errorf("failed to update ticket: %w", err)
-	}
-
-	// Git add the changes (use -A to handle the rename properly)
-	if err := app.Git.Add("-A", filepath.Dir(oldPath), filepath.Dir(newPath)); err != nil {
-		return fmt.Errorf("failed to stage ticket move: %w", err)
-	}
-
-	// Commit the move
-	if err := app.Git.Commit(fmt.Sprintf("Start ticket: %s", t.ID)); err != nil {
-		return fmt.Errorf("failed to commit ticket move: %w", err)
-	}
-
-	// Set current ticket (in main worktree)
-	if err := app.Manager.SetCurrentTicket(t); err != nil {
-		return fmt.Errorf("failed to set current ticket: %w", err)
-	}
-
-	// If using worktree, copy ticket file and create symlink
-	if app.Config.Worktree.Enabled && worktreePath != "" {
-		// Ensure doing directory exists in worktree
-		worktreeDoingPath := filepath.Join(worktreePath, "tickets", "doing")
-		if err := os.MkdirAll(worktreeDoingPath, 0755); err != nil {
-			return fmt.Errorf("failed to create doing directory in worktree: %w", err)
-		}
-
-		// Copy ticket file to worktree
-		worktreeTicketPath := filepath.Join(worktreePath, "tickets", "doing", filepath.Base(t.Path))
-		ticketData, err := os.ReadFile(t.Path)
-		if err != nil {
-			return fmt.Errorf("failed to read ticket file: %w", err)
-		}
-		if err := os.WriteFile(worktreeTicketPath, ticketData, 0644); err != nil {
-			return fmt.Errorf("failed to copy ticket to worktree: %w", err)
 		}
 
 		// Create current-ticket.md symlink in worktree
