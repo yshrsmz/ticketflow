@@ -381,6 +381,32 @@ func (app *App) StartTicket(ticketID string) error {
 		return fmt.Errorf("failed to set current ticket: %w", err)
 	}
 
+	// If using worktree, copy ticket file and create symlink
+	if app.Config.Worktree.Enabled && worktreePath != "" {
+		// Ensure doing directory exists in worktree
+		worktreeDoingPath := filepath.Join(worktreePath, "tickets", "doing")
+		if err := os.MkdirAll(worktreeDoingPath, 0755); err != nil {
+			return fmt.Errorf("failed to create doing directory in worktree: %w", err)
+		}
+
+		// Copy ticket file to worktree
+		worktreeTicketPath := filepath.Join(worktreePath, "tickets", "doing", filepath.Base(t.Path))
+		ticketData, err := os.ReadFile(t.Path)
+		if err != nil {
+			return fmt.Errorf("failed to read ticket file: %w", err)
+		}
+		if err := os.WriteFile(worktreeTicketPath, ticketData, 0644); err != nil {
+			return fmt.Errorf("failed to copy ticket to worktree: %w", err)
+		}
+
+		// Create current-ticket.md symlink in worktree
+		linkPath := filepath.Join(worktreePath, "current-ticket.md")
+		relPath := filepath.Join("tickets", "doing", filepath.Base(t.Path))
+		if err := os.Symlink(relPath, linkPath); err != nil {
+			return fmt.Errorf("failed to create current ticket link in worktree: %w", err)
+		}
+	}
+
 	// Output success message
 	fmt.Printf("\n✅ Started work on ticket: %s\n", t.ID)
 	fmt.Printf("   Description: %s\n", t.Description)
