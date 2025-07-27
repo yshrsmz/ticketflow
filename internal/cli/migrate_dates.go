@@ -10,6 +10,9 @@ import (
 	"github.com/yshrsmz/ticketflow/internal/ticket"
 )
 
+// rfc3339NanoRegex matches RFC3339Nano timestamps (with subseconds)
+var rfc3339NanoRegex = regexp.MustCompile(`\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+`)
+
 // MigrateDates updates all ticket files to use standardized date format
 func (app *App) MigrateDates(dryRun bool) error {
 	// Get all tickets
@@ -17,9 +20,6 @@ func (app *App) MigrateDates(dryRun bool) error {
 	if err != nil {
 		return fmt.Errorf("failed to list tickets: %w", err)
 	}
-
-	// Define regex for RFC3339Nano timestamps outside the loop for better performance
-	rfc3339NanoRegex := regexp.MustCompile(`\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+`)
 
 	updatedCount := 0
 	for _, t := range tickets {
