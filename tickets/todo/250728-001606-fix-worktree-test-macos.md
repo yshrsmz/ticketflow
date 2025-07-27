@@ -5,7 +5,7 @@ created_at: "2025-07-28T00:16:06+09:00"
 started_at: null
 closed_at: null
 related:
-    - parent:250727-231907-fix-cleanup-force-flag
+    - "parent:250727-231907-fix-cleanup-force-flag"
 ---
 
 # Ticket Overview
