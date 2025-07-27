@@ -26,10 +26,29 @@ func (app *App) MigrateDates(dryRun bool) error {
 		}
 
 		// Check if the file contains microseconds in dates
-		if strings.Contains(string(originalContent), ".") &&
-			(strings.Contains(string(originalContent), "created_at:") ||
-				strings.Contains(string(originalContent), "started_at:") ||
-				strings.Contains(string(originalContent), "closed_at:")) {
+		// Look for patterns like: 2025-07-26T18:14:10.48619+09:00
+		hasSubseconds := false
+		contentStr := string(originalContent)
+		
+		// Check each date field for subseconds
+		for _, field := range []string{"created_at:", "started_at:", "closed_at:"} {
+			if idx := strings.Index(contentStr, field); idx != -1 {
+				// Look for a dot followed by digits in the date value
+				lineEnd := strings.IndexByte(contentStr[idx:], '\n')
+				if lineEnd == -1 {
+					lineEnd = len(contentStr) - idx
+				}
+				line := contentStr[idx : idx+lineEnd]
+				// Check if the line contains a dot followed by digits (subseconds)
+				if strings.Contains(line, ".") && strings.ContainsAny(line, "0123456789") &&
+					strings.Contains(line, "T") && strings.Contains(line, ":") {
+					hasSubseconds = true
+					break
+				}
+			}
+		}
+		
+		if hasSubseconds {
 
 			// Parse and re-save the ticket to apply new formatting
 			parsedTicket, err := ticket.Parse(originalContent)

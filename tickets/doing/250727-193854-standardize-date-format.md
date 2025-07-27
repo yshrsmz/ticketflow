@@ -1,8 +1,8 @@
 ---
 priority: 2
 description: チケット内のcreated_at, started_at, closed_atの日付フォーマットを統一する
-created_at: 2025-07-27T19:38:54.927166+09:00
-started_at: 2025-07-27T21:38:59.639691+09:00
+created_at: "2025-07-27T19:38:54+09:00"
+started_at: "2025-07-27T21:38:59+09:00"
 closed_at: null
 ---
 

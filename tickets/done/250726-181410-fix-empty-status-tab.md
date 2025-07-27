@@ -1,9 +1,9 @@
 ---
 priority: 2
-description: "Fix TUI inconsistency when displaying empty status tabs"
-created_at: 2025-07-26T18:14:10.48619+09:00
-started_at: 2025-07-26T20:47:00+09:00
-closed_at: 2025-07-26T20:55:30+09:00
+description: Fix TUI inconsistency when displaying empty status tabs
+created_at: "2025-07-26T18:14:10+09:00"
+started_at: "2025-07-26T20:47:00+09:00"
+closed_at: "2025-07-26T20:55:30+09:00"
 ---
 
 # 概要

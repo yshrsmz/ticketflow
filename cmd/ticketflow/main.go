@@ -98,6 +98,9 @@ func runCLI() error {
 	cleanupDryRun := cleanupCmd.Bool("dry-run", false, "Show what would be cleaned without making changes")
 	cleanupForce := cleanupCmd.Bool("force", false, "Skip confirmation prompts")
 
+	migrateCmd := flag.NewFlagSet("migrate", flag.ExitOnError)
+	migrateDryRun := migrateCmd.Bool("dry-run", false, "Show what would be updated without making changes")
+
 	// Parse command
 	if len(os.Args) < 2 {
 		printUsage()
@@ -163,6 +166,10 @@ func runCLI() error {
 		}
 		// Old auto-cleanup command
 		return handleCleanup(*cleanupDryRun)
+
+	case "migrate":
+		migrateCmd.Parse(os.Args[2:])
+		return handleMigrateDates(*migrateDryRun)
 
 	case "help", "-h", "--help":
 		printUsage()
@@ -360,6 +367,7 @@ USAGE:
   ticketflow worktree <command>       Manage worktrees
   ticketflow cleanup <ticket>         Clean up after PR merge
   ticketflow cleanup [options]        Auto-cleanup old tickets/worktrees
+  ticketflow migrate [options]        Migrate ticket dates to new format
   ticketflow help                     Show this help
   ticketflow version                  Show version
 
@@ -390,6 +398,9 @@ OPTIONS:
     
   cleanup (auto):
     --dry-run              Show what would be cleaned without making changes
+
+  migrate:
+    --dry-run              Show what would be updated without making changes
 
 EXAMPLES:
   # Initialize in current git repository
@@ -472,4 +483,13 @@ func handleCleanupTicket(ticketID string, force bool) error {
 	}
 
 	return app.CleanupTicket(ticketID, force)
+}
+
+func handleMigrateDates(dryRun bool) error {
+	app, err := cli.NewApp()
+	if err != nil {
+		return err
+	}
+
+	return app.MigrateDates(dryRun)
 }

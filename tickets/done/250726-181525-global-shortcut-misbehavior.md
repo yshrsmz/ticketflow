@@ -1,9 +1,9 @@
 ---
 priority: 2
-description: "Fix global shortcuts interfering with text input in TUI"
-created_at: 2025-07-26T18:15:25.212321+09:00
-started_at: 2025-07-26T22:41:43+09:00
-closed_at: 2025-07-26T22:52:00+09:00
+description: Fix global shortcuts interfering with text input in TUI
+created_at: "2025-07-26T18:15:25+09:00"
+started_at: "2025-07-26T22:41:43+09:00"
+closed_at: "2025-07-26T22:52:00+09:00"
 ---
 
 # 概要

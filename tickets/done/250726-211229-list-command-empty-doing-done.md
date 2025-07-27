@@ -1,9 +1,9 @@
 ---
 priority: 2
-description: "Fix list command JSON summary to include all ticket counts"
-created_at: 2025-07-26T21:12:29.237378+09:00
-started_at: 2025-07-26T21:30:18+09:00
-closed_at: 2025-07-26T21:35:00+09:00
+description: Fix list command JSON summary to include all ticket counts
+created_at: "2025-07-26T21:12:29+09:00"
+started_at: "2025-07-26T21:30:18+09:00"
+closed_at: "2025-07-26T21:35:00+09:00"
 ---
 
 # 概要
