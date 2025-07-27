@@ -92,4 +92,3 @@ func (t *RFC3339TimePtr) UnmarshalYAML(node *yaml.Node) error {
 func NewRFC3339TimePtr(t *time.Time) RFC3339TimePtr {
 	return RFC3339TimePtr{Time: t}
 }
-

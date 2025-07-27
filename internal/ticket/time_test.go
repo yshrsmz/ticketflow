@@ -172,4 +172,3 @@ func TestTicketDateFormatting(t *testing.T) {
 	// Should NOT contain nanoseconds
 	assert.False(t, strings.Contains(content, ".927166"))
 }
-
