@@ -1,0 +1,193 @@
+---
+priority: 1
+description: start時の親ブランチコミットとworktreeの同期問題を解決する
+created_at: 2025-07-27T20:23:45.005609+09:00
+started_at: 2025-07-27T20:26:07.59654+09:00
+closed_at: null
+---
+
+# 概要
+
+`ticketflow start`コマンド実行時に、親ブランチ側でチケットファイルの移動（todo→doing）をコミットしているが、このコミットがworktree側に含まれないため、以下の問題が発生している：
+
+1. **チケットの重複**: worktree側ではtodoディレクトリに、親ブランチ側ではdoingディレクトリに同じチケットが存在する状態になる
+2. **履歴の齟齬**: 親ブランチの`started_at`更新コミットがworktreeに反映されない
+3. **マージ時の競合リスク**: 後でworktreeをマージする際に、チケットファイルの移動に関する競合が発生する可能性
+
+## 現在の動作
+
+1. `ticketflow start <ticket-id>`実行
+2. worktree作成（L274: `app.Git.AddWorktree`）
+3. 親ブランチで:
+   - チケットをtodo→doingに移動（L345: `os.Rename`）
+   - `started_at`を更新（L319: `t.Start()`）
+   - コミット作成（L375: `app.Git.Commit`）
+4. 結果: worktreeは手順2の時点の状態（コミット前）から分岐するため、todoにチケットが残る
+
+## 解決案の詳細分析
+
+### 案1: コミット順序の変更（チケット移動 → worktree作成）
+**実装**:
+1. チケットをtodo→doingに移動し、`started_at`を更新
+2. 親ブランチでコミット作成
+3. その後でworktree作成（最新のコミットから分岐）
+
+**メリット**:
+- 実装が単純（L274とL319-377の順序を入れ替えるだけ）
+- worktreeに最新の状態が反映される
+- 既存のロジックをほぼ維持できる
+
+**デメリット**:
+- コミット後にworktree作成が失敗した場合のロールバックが複雑
+- 既にコミットしてしまっているため、戻すには`git reset`が必要
+
+### 案2: チケット移動のコミットを廃止
+**実装**:
+- start時はファイル移動のコミットを作らない
+- worktree内でのみチケットステータスを管理
+- cleanup時にマージと同時にステータス更新
+
+**メリット**:
+- 親ブランチとworktreeの同期問題が根本的に解決
+- シンプルな状態管理
+
+**デメリット**:
+- 親ブランチでは作業中のチケットが見えない（todoのまま）
+- ワークフロー全体の見直しが必要
+- 既存ユーザーへの影響大
+
+### 案3: worktree作成後にrebase
+**実装**:
+1. 現状のまま親ブランチでコミット
+2. worktree作成
+3. worktree内で親ブランチの最新コミットをcherry-pickまたはrebase
+
+**メリット**:
+- 親ブランチの状態を正しく保てる
+- worktreeも最新の状態になる
+
+**デメリット**:
+- 実装が複雑
+- worktree内での追加のgit操作が必要
+- エラーハンドリングが複雑
+
+### 案4: worktree内でチケット移動を複製（推奨）
+**実装**:
+1. worktree作成（現状通り）
+2. 親ブランチでチケット移動・コミット（現状通り）
+3. worktree内でも同じチケット移動を実行（コミットなし）
+4. worktree内のcurrent-ticket.mdシンボリックリンクを正しく設定
+
+**メリット**:
+- 実装が比較的シンプル（L385-408の処理を拡張）
+- エラー時のロールバックが容易
+- 親ブランチとworktreeの両方で正しい状態を維持
+- 既存のワークフローを維持
+
+**デメリット**:
+- ファイル操作が2回必要
+- worktree内のファイルは未コミット状態になる（これは許容範囲）
+
+## 選択した解決案: 案4（worktree内でチケット移動を複製）
+
+案4を選択した理由:
+- 既存のワークフローを維持できる
+- 実装がシンプルで理解しやすい
+- エラーハンドリングが容易
+- 親ブランチとworktreeの両方で正しい状態を保てる
+
+## タスク
+- [x] 現在のstart処理の実装を詳細に調査
+- [x] 各解決案のメリット・デメリットを整理
+- [x] 最適な解決方法を決定（案4）
+- [x] 実装方針を策定
+- [x] テストケースを設計
+- [x] 実装
+- [x] 既存のworktreeへの影響を考慮
+
+## 実装方針
+
+### 1. 修正箇所
+`internal/cli/commands.go`のStartTicket関数（L385-408の処理を拡張）
+
+### 2. 実装詳細
+現在のL385-408では、worktree内にdoingディレクトリとticketファイルをコピーしているが、これを以下のように修正:
+
+```go
+// If using worktree, sync ticket state to worktree
+if app.Config.Worktree.Enabled && worktreePath != "" {
+    // 1. worktree内のtodoディレクトリからチケットを削除
+    worktreeTodoPath := filepath.Join(worktreePath, "tickets", "todo", filepath.Base(t.ID)+".md")
+    if _, err := os.Stat(worktreeTodoPath); err == nil {
+        if err := os.Remove(worktreeTodoPath); err != nil {
+            return fmt.Errorf("failed to remove ticket from worktree todo: %w", err)
+        }
+    }
+    
+    // 2. worktree内のdoingディレクトリを作成
+    worktreeDoingPath := filepath.Join(worktreePath, "tickets", "doing")
+    if err := os.MkdirAll(worktreeDoingPath, 0755); err != nil {
+        return fmt.Errorf("failed to create doing directory in worktree: %w", err)
+    }
+    
+    // 3. 親ブランチの最新のチケットファイルをworktreeにコピー
+    worktreeTicketPath := filepath.Join(worktreeDoingPath, filepath.Base(t.Path))
+    ticketData, err := os.ReadFile(t.Path)
+    if err != nil {
+        return fmt.Errorf("failed to read ticket file: %w", err)
+    }
+    if err := os.WriteFile(worktreeTicketPath, ticketData, 0644); err != nil {
+        return fmt.Errorf("failed to copy ticket to worktree: %w", err)
+    }
+    
+    // 4. current-ticket.mdシンボリックリンクを作成
+    linkPath := filepath.Join(worktreePath, "current-ticket.md")
+    relPath := filepath.Join("tickets", "doing", filepath.Base(t.Path))
+    if err := os.Symlink(relPath, linkPath); err != nil {
+        return fmt.Errorf("failed to create current ticket link in worktree: %w", err)
+    }
+}
+```
+
+### 3. エラーハンドリング
+- todoディレクトリのチケットが存在しない場合は無視（すでに移動済みの可能性）
+- その他のエラーは適切にハンドリングし、必要に応じてロールバック
+
+## 技術仕様
+
+### 影響範囲
+- `internal/cli/commands.go`: StartTicket関数のL385-408を修正
+
+### 考慮事項
+- 既存のワークフローとの互換性（維持される）
+- ユーザーの期待する動作（worktree内でもチケットがdoingに移動）
+- Gitの履歴の整合性（親ブランチのコミットは維持）
+- worktree内の変更は未コミット状態（ユーザーが必要に応じてコミット可能）
+
+## テストケース
+
+### 1. 正常系テスト
+- **テスト名**: TestStartTicket_WorktreeSyncSuccess
+- **内容**: 
+  - todoにチケットを作成
+  - `ticketflow start`を実行
+  - 確認項目:
+    - 親ブランチ: tickets/doing/にチケットが存在
+    - 親ブランチ: tickets/todo/にチケットが存在しない
+    - worktree: tickets/doing/にチケットが存在
+    - worktree: tickets/todo/にチケットが存在しない
+    - worktree: current-ticket.mdシンボリックリンクが正しく設定されている
+
+### 2. エラー系テスト
+- **テスト名**: TestStartTicket_WorktreeTodoNotFound
+- **内容**: worktree内のtodoディレクトリにチケットが存在しない場合でもエラーにならないことを確認
+
+### 3. 既存テストへの影響確認
+- 既存のStartTicketテストが引き続き正常に動作することを確認
+- 特に`test/integration/worktree_test.go`の既存テストを確認
+
+## メモ
+
+- この問題は優先度高（priority: 1）として設定
+- worktreeベースの開発フローの根幹に関わる問題
+- 解決方法によってはワークフロー全体の見直しが必要になる可能性

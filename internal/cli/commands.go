@@ -381,16 +381,24 @@ func (app *App) StartTicket(ticketID string) error {
 		return fmt.Errorf("failed to set current ticket: %w", err)
 	}
 
-	// If using worktree, copy ticket file and create symlink
+	// If using worktree, sync ticket state to worktree
 	if app.Config.Worktree.Enabled && worktreePath != "" {
-		// Ensure doing directory exists in worktree
+		// 1. Remove ticket from todo directory in worktree (if exists)
+		worktreeTodoPath := filepath.Join(worktreePath, "tickets", "todo", filepath.Base(t.ID)+".md")
+		if _, err := os.Stat(worktreeTodoPath); err == nil {
+			if err := os.Remove(worktreeTodoPath); err != nil {
+				return fmt.Errorf("failed to remove ticket from worktree todo: %w", err)
+			}
+		}
+
+		// 2. Ensure doing directory exists in worktree
 		worktreeDoingPath := filepath.Join(worktreePath, "tickets", "doing")
 		if err := os.MkdirAll(worktreeDoingPath, 0755); err != nil {
 			return fmt.Errorf("failed to create doing directory in worktree: %w", err)
 		}
 
-		// Copy ticket file to worktree
-		worktreeTicketPath := filepath.Join(worktreePath, "tickets", "doing", filepath.Base(t.Path))
+		// 3. Copy the updated ticket file to worktree
+		worktreeTicketPath := filepath.Join(worktreeDoingPath, filepath.Base(t.Path))
 		ticketData, err := os.ReadFile(t.Path)
 		if err != nil {
 			return fmt.Errorf("failed to read ticket file: %w", err)
@@ -399,7 +407,7 @@ func (app *App) StartTicket(ticketID string) error {
 			return fmt.Errorf("failed to copy ticket to worktree: %w", err)
 		}
 
-		// Create current-ticket.md symlink in worktree
+		// 4. Create current-ticket.md symlink in worktree
 		linkPath := filepath.Join(worktreePath, "current-ticket.md")
 		relPath := filepath.Join("tickets", "doing", filepath.Base(t.Path))
 		if err := os.Symlink(relPath, linkPath); err != nil {
