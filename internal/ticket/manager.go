@@ -113,7 +113,7 @@ func (m *Manager) List(statusFilter string) ([]Ticket, error) {
 		if tickets[i].Priority != tickets[j].Priority {
 			return tickets[i].Priority < tickets[j].Priority
 		}
-		return tickets[i].CreatedAt.Time.After(tickets[j].CreatedAt.Time)
+		return tickets[i].CreatedAt.After(tickets[j].CreatedAt.Time)
 	})
 
 	return tickets, nil
