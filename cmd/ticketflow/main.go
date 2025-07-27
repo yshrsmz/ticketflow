@@ -239,9 +239,9 @@ func handleShow(ticketID, format string) error {
 				"status":      string(t.Status()),
 				"priority":    t.Priority,
 				"description": t.Description,
-				"created_at":  t.CreatedAt,
-				"started_at":  t.StartedAt,
-				"closed_at":   t.ClosedAt,
+				"created_at":  t.CreatedAt.Time,
+				"started_at":  t.StartedAt.Time,
+				"closed_at":   t.ClosedAt.Time,
 				"related":     t.Related,
 				"content":     t.Content,
 			},
@@ -255,12 +255,12 @@ func handleShow(ticketID, format string) error {
 	fmt.Printf("Description: %s\n", t.Description)
 	fmt.Printf("Created: %s\n", t.CreatedAt.Format(time.RFC3339))
 
-	if t.StartedAt != nil {
-		fmt.Printf("Started: %s\n", t.StartedAt.Format(time.RFC3339))
+	if t.StartedAt.Time != nil {
+		fmt.Printf("Started: %s\n", t.StartedAt.Time.Format(time.RFC3339))
 	}
 
-	if t.ClosedAt != nil {
-		fmt.Printf("Closed: %s\n", t.ClosedAt.Format(time.RFC3339))
+	if t.ClosedAt.Time != nil {
+		fmt.Printf("Closed: %s\n", t.ClosedAt.Time.Format(time.RFC3339))
 	}
 
 	if len(t.Related) > 0 {

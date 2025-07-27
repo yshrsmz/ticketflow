@@ -552,8 +552,8 @@ func (app *App) CloseTicket(force bool) error {
 
 	// Calculate work duration
 	var duration string
-	if current.StartedAt != nil && current.ClosedAt != nil {
-		dur := current.ClosedAt.Sub(*current.StartedAt)
+	if current.StartedAt.Time != nil && current.ClosedAt.Time != nil {
+		dur := current.ClosedAt.Time.Sub(*current.StartedAt.Time)
 		duration = formatDuration(dur)
 	}
 
@@ -685,8 +685,8 @@ func (app *App) Status(format OutputFormat) error {
 		fmt.Printf("\n🎯 Active ticket: %s\n", current.ID)
 		fmt.Printf("   Description: %s\n", current.Description)
 		fmt.Printf("   Status: %s\n", current.Status())
-		if current.StartedAt != nil {
-			duration := time.Since(*current.StartedAt)
+		if current.StartedAt.Time != nil {
+			duration := time.Since(*current.StartedAt.Time)
 			fmt.Printf("   Duration: %s\n", formatDuration(duration))
 		}
 

@@ -67,9 +67,9 @@ func ticketToJSON(t *ticket.Ticket, worktreePath string) map[string]interface{} 
 		"status":       string(t.Status()),
 		"priority":     t.Priority,
 		"description":  t.Description,
-		"created_at":   t.CreatedAt,
-		"started_at":   t.StartedAt,
-		"closed_at":    t.ClosedAt,
+		"created_at":   t.CreatedAt.Time,
+		"started_at":   t.StartedAt.Time,
+		"closed_at":    t.ClosedAt.Time,
 		"related":      t.Related,
 		"has_worktree": t.HasWorktree(),
 	}

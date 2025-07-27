@@ -21,12 +21,12 @@ const (
 // Ticket represents a ticket with metadata and content
 type Ticket struct {
 	// Metadata (YAML frontmatter)
-	Priority    int        `yaml:"priority"`
-	Description string     `yaml:"description"`
-	CreatedAt   time.Time  `yaml:"created_at"`
-	StartedAt   *time.Time `yaml:"started_at"`
-	ClosedAt    *time.Time `yaml:"closed_at"`
-	Related     []string   `yaml:"related,omitempty"`
+	Priority    int            `yaml:"priority"`
+	Description string         `yaml:"description"`
+	CreatedAt   RFC3339Time    `yaml:"created_at"`
+	StartedAt   RFC3339TimePtr `yaml:"started_at"`
+	ClosedAt    RFC3339TimePtr `yaml:"closed_at"`
+	Related     []string       `yaml:"related,omitempty"`
 
 	// Computed fields
 	ID      string `yaml:"-"`
@@ -37,10 +37,10 @@ type Ticket struct {
 
 // Status returns the current status of the ticket
 func (t *Ticket) Status() Status {
-	if t.ClosedAt != nil {
+	if t.ClosedAt.Time != nil {
 		return StatusDone
 	}
-	if t.StartedAt != nil {
+	if t.StartedAt.Time != nil {
 		return StatusDoing
 	}
 	return StatusTodo
@@ -146,37 +146,37 @@ func New(slug, description string) *Ticket {
 	return &Ticket{
 		Priority:    2,
 		Description: description,
-		CreatedAt:   now,
-		StartedAt:   nil,
-		ClosedAt:    nil,
+		CreatedAt:   NewRFC3339Time(now),
+		StartedAt:   RFC3339TimePtr{},
+		ClosedAt:    RFC3339TimePtr{},
 		Related:     []string{},
 	}
 }
 
 // Start marks the ticket as started
 func (t *Ticket) Start() error {
-	if t.StartedAt != nil {
+	if t.StartedAt.Time != nil {
 		return fmt.Errorf("ticket already started")
 	}
-	if t.ClosedAt != nil {
+	if t.ClosedAt.Time != nil {
 		return fmt.Errorf("ticket already closed")
 	}
 
 	now := time.Now()
-	t.StartedAt = &now
+	t.StartedAt = NewRFC3339TimePtr(&now)
 	return nil
 }
 
 // Close marks the ticket as closed
 func (t *Ticket) Close() error {
-	if t.StartedAt == nil {
+	if t.StartedAt.Time == nil {
 		return fmt.Errorf("ticket not started")
 	}
-	if t.ClosedAt != nil {
+	if t.ClosedAt.Time != nil {
 		return fmt.Errorf("ticket already closed")
 	}
 
 	now := time.Now()
-	t.ClosedAt = &now
+	t.ClosedAt = NewRFC3339TimePtr(&now)
 	return nil
 }
