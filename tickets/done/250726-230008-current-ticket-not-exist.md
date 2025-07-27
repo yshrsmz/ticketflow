@@ -3,7 +3,7 @@ priority: 1
 description: current-ticket.md does not exist in worktree
 created_at: 2025-07-26T23:00:08.843045+09:00
 started_at: 2025-07-27T02:36:27.257840763Z
-closed_at: null
+closed_at: 2025-07-27T02:55:42.726932Z
 ---
 
 # 概要
@@ -18,9 +18,21 @@ When worktrees are enabled, the `current-ticket.md` symlink is created in the ma
 
 ## タスク
 - [x] Determine if `current-ticket.md` should exist in worktrees - YES
-- [ ] Copy the ticket file from source branch to worktree (to preserve uncommitted changes)
-- [ ] Create `current-ticket.md` symlink in worktree after creating the worktree
-- [ ] Update `StartTicket` in `internal/cli/commands.go` to implement both changes
+- [x] Copy the ticket file from source branch to worktree (to preserve uncommitted changes)
+- [x] Create `current-ticket.md` symlink in worktree after creating the worktree
+- [x] Update `StartTicket` in `internal/cli/commands.go` to implement both changes
+
+## 実装完了
+
+修正内容:
+- `StartTicket`関数で、worktree作成後に以下を実行:
+  1. worktree内に`tickets/doing/`ディレクトリを作成
+  2. チケットファイルをworktreeにコピー（未コミット変更を保持）
+  3. `current-ticket.md`シンボリックリンクを作成
+
+テスト結果:
+- 新しいチケットでworktree作成時に`current-ticket.md`が正しく作成される
+- `ticketflow close`コマンドがworktree内から正常に動作する
 
 ## 技術仕様
 
