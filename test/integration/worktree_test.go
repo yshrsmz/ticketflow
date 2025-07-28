@@ -79,7 +79,12 @@ func TestWorktreeWorkflow(t *testing.T) {
 	require.NotNil(t, ticketWorktree)
 
 	expectedPath := filepath.Join(repoPath, ".worktrees", ticketID)
-	assert.Equal(t, expectedPath, ticketWorktree.Path)
+	// Resolve symlinks to handle macOS /var -> /private/var symlink
+	expectedPath, err = filepath.EvalSymlinks(expectedPath)
+	require.NoError(t, err)
+	actualPath, err := filepath.EvalSymlinks(ticketWorktree.Path)
+	require.NoError(t, err)
+	assert.Equal(t, expectedPath, actualPath)
 
 	// Verify worktree directory exists
 	_, err = os.Stat(ticketWorktree.Path)
