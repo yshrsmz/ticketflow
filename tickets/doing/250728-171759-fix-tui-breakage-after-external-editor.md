@@ -20,7 +20,7 @@ When navigating to the ticket detail view in TUI mode and pressing 'e' to open a
 - [x] Ensure TUI redraws correctly after editor returns
 - [x] Run `make test` to run the tests
 - [x] Run `make vet`, `make fmt` and `make lint`
-- [ ] Update documentation if necessary
+- [x] Update documentation if necessary (no updates needed - existing docs are accurate)
 - [ ] Get developer approval before closing
 
 ## Notes
