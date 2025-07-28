@@ -1,8 +1,8 @@
 ---
 priority: 2
-description: "Fix integration tests failing on PR branches"
+description: Fix integration tests failing on PR branches
 created_at: "2025-07-28T14:25:09+09:00"
-started_at: null
+started_at: "2025-07-28T14:59:41+09:00"
 closed_at: null
 related:
     - parent:250728-001606-fix-worktree-test-macos
