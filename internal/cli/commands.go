@@ -290,7 +290,7 @@ func (app *App) StartTicket(ticketID string) error {
 	if err := t.Start(); err != nil {
 		// Rollback for non-worktree mode
 		if !app.Config.Worktree.Enabled {
-			app.Git.Checkout(currentBranch)
+			_ = app.Git.Checkout(currentBranch)
 		}
 		return err
 	}
@@ -304,7 +304,7 @@ func (app *App) StartTicket(ticketID string) error {
 	if err := os.MkdirAll(doingPath, 0755); err != nil {
 		// Rollback for non-worktree mode
 		if !app.Config.Worktree.Enabled {
-			app.Git.Checkout(currentBranch)
+			_ = app.Git.Checkout(currentBranch)
 		}
 		return fmt.Errorf("failed to create doing directory: %w", err)
 	}
@@ -313,7 +313,7 @@ func (app *App) StartTicket(ticketID string) error {
 	if err := os.Rename(oldPath, newPath); err != nil {
 		// Rollback for non-worktree mode
 		if !app.Config.Worktree.Enabled {
-			app.Git.Checkout(currentBranch)
+			_ = app.Git.Checkout(currentBranch)
 		}
 		return fmt.Errorf("failed to move ticket to doing: %w", err)
 	}
@@ -325,7 +325,7 @@ func (app *App) StartTicket(ticketID string) error {
 		os.Rename(newPath, oldPath)
 		// Rollback for non-worktree mode
 		if !app.Config.Worktree.Enabled {
-			app.Git.Checkout(currentBranch)
+			_ = app.Git.Checkout(currentBranch)
 		}
 		return fmt.Errorf("failed to update ticket: %w", err)
 	}
@@ -354,7 +354,7 @@ func (app *App) StartTicket(ticketID string) error {
 
 		if err := app.Git.AddWorktree(worktreePath, t.ID); err != nil {
 			// Rollback: reset to previous commit
-			app.Git.Exec("reset", "--hard", "HEAD^")
+			_, _ = app.Git.Exec("reset", "--hard", "HEAD^")
 			return fmt.Errorf("failed to create worktree: %w", err)
 		}
 
@@ -955,7 +955,7 @@ func (app *App) CleanupTicket(ticketID string, force bool) error {
 		fmt.Printf("\nAre you sure? (y/N): ")
 
 		var response string
-		fmt.Scanln(&response)
+		_, _ = fmt.Scanln(&response)
 		if response != "y" && response != "Y" {
 			fmt.Println("\n❌ Cleanup cancelled")
 			return nil

@@ -107,7 +107,7 @@ func TestManagerGetAmbiguous(t *testing.T) {
 
 	// Create two tickets with similar IDs manually
 	todoPath := filepath.Join(tmpDir, "tickets", "todo")
-	os.MkdirAll(todoPath, 0755)
+	require.NoError(t, os.MkdirAll(todoPath, 0755))
 
 	// Create two files with same prefix
 	ticket1 := New("test1", "Test 1")
@@ -116,8 +116,8 @@ func TestManagerGetAmbiguous(t *testing.T) {
 	data1, _ := ticket1.ToBytes()
 	data2, _ := ticket2.ToBytes()
 
-	os.WriteFile(filepath.Join(todoPath, "250124-150000-test1.md"), data1, 0644)
-	os.WriteFile(filepath.Join(todoPath, "250124-150001-test2.md"), data2, 0644)
+	require.NoError(t, os.WriteFile(filepath.Join(todoPath, "250124-150000-test1.md"), data1, 0644))
+	require.NoError(t, os.WriteFile(filepath.Join(todoPath, "250124-150001-test2.md"), data2, 0644))
 
 	// Try to get with ambiguous prefix
 	_, err := manager.Get("250124")

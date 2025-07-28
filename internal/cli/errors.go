@@ -116,5 +116,5 @@ func OutputJSONError(err *CLIError) {
 
 	encoder := json.NewEncoder(os.Stderr)
 	encoder.SetIndent("", "  ")
-	encoder.Encode(output)
+	_ = encoder.Encode(output)
 }
