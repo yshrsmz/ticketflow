@@ -571,32 +571,29 @@ func (m *Model) closeTicket(t *ticket.Ticket) tea.Cmd {
 
 // editTicket opens a ticket in the external editor
 func (m *Model) editTicket(t *ticket.Ticket) tea.Cmd {
-	return func() tea.Msg {
-		// Get editor from environment
-		editor := os.Getenv("EDITOR")
-		if editor == "" {
-			editor = "vi" // fallback
-		}
+	// Get editor from environment
+	editor := os.Getenv("EDITOR")
+	if editor == "" {
+		editor = "vi" // fallback
+	}
 
-		// Create command
-		cmd := exec.Command(editor, t.Path)
-		cmd.Stdin = os.Stdin
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
+	// Create command
+	cmd := exec.Command(editor, t.Path)
 
-		// Run editor
-		if err := cmd.Run(); err != nil {
+	// Use tea.ExecProcess to properly handle terminal state
+	return tea.ExecProcess(cmd, func(err error) tea.Msg {
+		if err != nil {
 			return fmt.Errorf("failed to open editor: %w", err)
 		}
 
 		// Reload ticket to get updated content
-		updated, err := m.manager.Get(t.ID)
-		if err != nil {
-			return fmt.Errorf("failed to reload ticket: %w", err)
+		updated, reloadErr := m.manager.Get(t.ID)
+		if reloadErr != nil {
+			return fmt.Errorf("failed to reload ticket: %w", reloadErr)
 		}
 
 		return ticketEditedMsg{
 			ticket: updated,
 		}
-	}
+	})
 }
