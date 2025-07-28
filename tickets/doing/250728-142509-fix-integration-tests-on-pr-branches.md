@@ -44,6 +44,16 @@ The issue was that `ticketflow start` validates that you're on either the defaul
 
 Fixed by updating the `setupTestRepo` helper function in `test/integration/workflow_test.go` to ensure tests always start from the main branch, regardless of which branch they're executed from.
 
+## Key Insights
+
+1. **Test Isolation**: Integration tests create temporary git repositories for each test case using `setupTestRepo()`. These are completely separate from the actual codebase repository.
+
+2. **Branch Context Mismatch**: When GitHub Actions runs tests on a PR, it checks out a merge commit (e.g., `pull/123/merge`). However, the test repositories inherit some git context, causing them to fail ticketflow's branch validation.
+
+3. **Minimal Fix**: By ensuring test repositories explicitly checkout `main` branch during setup, we maintain test isolation while satisfying ticketflow's branch requirements. No changes to production code were needed.
+
+4. **CI Compatibility**: This approach works regardless of which branch the CI runner is on, making tests truly branch-agnostic without compromising the application's branch validation logic.
+
 ## Notes
 
 This issue blocks all PRs from passing CI. The tests work fine locally on the main branch but fail in GitHub Actions PR context.
