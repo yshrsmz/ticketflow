@@ -79,3 +79,13 @@ This issue was discovered while working on ticket 250727-231907-fix-cleanup-forc
 5. **AWK in GitHub Actions**: When using AWK in GitHub Actions YAML, dollar signs must be escaped as `$$` to prevent YAML interpretation. This is a common gotcha when writing shell scripts in workflow files.
 
 6. **Testing Coverage Tools**: Always test coverage generation commands locally before adding to CI. The `go tool cover` output format can vary, and parsing it requires careful attention to edge cases.
+
+## CI Issues Discovered
+
+While the primary fixes were implemented successfully, CI revealed additional pre-existing issues:
+
+1. **Integration Tests on PR Branches**: Tests fail with "Invalid branch for starting ticket" when run on PR branches. Created sub-ticket: 250728-142509-fix-integration-tests-on-pr-branches
+
+2. **Golangci-lint Errors**: 26 lint errors (17 errcheck, 9 staticcheck) are blocking CI. Created sub-ticket: 250728-142515-fix-golangci-lint-errors
+
+These issues are tracked separately as they represent broader codebase issues beyond the scope of this ticket.
