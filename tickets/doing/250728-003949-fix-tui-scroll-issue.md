@@ -1,8 +1,8 @@
 ---
 priority: 2
-description: "Fix TUI ticket detail view not scrolling to show full content"
+description: Fix TUI ticket detail view not scrolling to show full content
 created_at: "2025-07-28T00:39:49+09:00"
-started_at: null
+started_at: "2025-07-28T16:25:32+09:00"
 closed_at: null
 ---
 
