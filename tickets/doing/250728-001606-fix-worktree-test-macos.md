@@ -40,11 +40,19 @@ Fixed the test by using `filepath.EvalSymlinks()` to resolve symlinks before com
    - This ensures consistent path comparison across macOS and Linux
 
 2. **Added GitHub Actions workflow** (.github/workflows/test.yml)
-   - Tests on both Ubuntu and macOS
-   - Tests with Go 1.22 and 1.23
+   - Tests on Ubuntu only (cost-effective)
+   - Tests with Go 1.24
    - Runs unit and integration tests
    - Checks code formatting and runs go vet
    - Includes golangci-lint for comprehensive linting
+   - All actions updated to latest versions (checkout@v4, setup-go@v5, cache@v4, golangci-lint-action@v8)
+
+3. **Replaced Codecov with custom PR comment coverage**
+   - No external dependencies or tokens required
+   - Posts nicely formatted coverage report as PR comment
+   - Shows total coverage with color-coded emoji (🟢 80%+, 🟡 60-79%, 🔴 <60%)
+   - Collapsible detailed coverage by package
+   - Auto-updates existing comment on new pushes
 
 ## Notes
 
