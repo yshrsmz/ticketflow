@@ -38,10 +38,10 @@ func setupTestRepo(t *testing.T) string {
 	require.NoError(t, err)
 
 	// Ensure we're on the main branch (important for CI where tests may run on PR branches)
-	_, err = cmd.Exec("checkout", "-b", "main")
+	_, err = cmd.Exec("checkout", "main")
 	if err != nil {
-		// Branch might already exist, try just checking out
-		_, err = cmd.Exec("checkout", "main")
+		// Branch does not exist, create it
+		_, err = cmd.Exec("checkout", "-b", "main")
 		require.NoError(t, err)
 	}
 
