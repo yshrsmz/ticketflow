@@ -298,7 +298,7 @@ func (m TicketDetailModel) getContentHeight() int {
 			metaLines += descLines
 		}
 	}
-	
+
 	// Account for UI chrome: title, borders, padding, help text
 	uiChrome := 15 + metaLines
 	contentHeight := m.height - uiChrome
