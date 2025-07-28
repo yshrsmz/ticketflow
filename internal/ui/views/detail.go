@@ -180,7 +180,7 @@ func (m TicketDetailModel) View() string {
 
 	// Content section
 	if m.content != "" {
-		contentHeight := m.height - 15 - lipgloss.Height(metaStyle.Render(meta.String()))
+		contentHeight := m.getContentHeight()
 
 		s.WriteString(styles.SubtitleStyle.Render("Content:"))
 		s.WriteString("\n")
@@ -209,7 +209,7 @@ func (m TicketDetailModel) View() string {
 
 		// Scroll indicator
 		if len(lines) > contentHeight {
-			scrollInfo := fmt.Sprintf("Lines %d-%d of %d",
+			scrollInfo := fmt.Sprintf("Lines %d-%d of %d (↑/↓ to scroll)",
 				m.scrollY+1,
 				m.scrollY+len(visibleLines),
 				len(lines))
@@ -228,6 +228,9 @@ func (m TicketDetailModel) View() string {
 			helpItems = append(helpItems, "c: close")
 		}
 		helpItems = append(helpItems, "e: edit")
+	}
+	if m.content != "" && strings.Count(m.content, "\n")+1 > m.getContentHeight() {
+		helpItems = append(helpItems, "↑/↓/j/k: scroll", "g/G: top/bottom")
 	}
 	s.WriteString(styles.HelpStyle.Render(strings.Join(helpItems, " • ")))
 
@@ -266,12 +269,43 @@ func (m TicketDetailModel) SelectedTicket() *ticket.Ticket {
 // getMaxScroll calculates the maximum scroll position
 func (m TicketDetailModel) getMaxScroll() int {
 	lines := strings.Count(m.content, "\n") + 1
-	contentHeight := m.height - 20 // Account for UI chrome
+	contentHeight := m.getContentHeight()
 	maxScroll := lines - contentHeight
 	if maxScroll < 0 {
 		maxScroll = 0
 	}
 	return maxScroll
+}
+
+// getContentHeight calculates the available height for content display
+func (m TicketDetailModel) getContentHeight() int {
+	// Calculate metadata section height
+	metaLines := 7 // Base lines for status, priority, created, description label
+	if m.ticket != nil {
+		if m.ticket.StartedAt.Time != nil {
+			metaLines++
+		}
+		if m.ticket.ClosedAt.Time != nil {
+			metaLines++
+		}
+		if len(m.ticket.Related) > 0 {
+			metaLines++
+		}
+		// Add lines for description wrapping
+		descWidth := m.width - 10
+		if descWidth > 0 {
+			descLines := (len(m.ticket.Description) + descWidth - 1) / descWidth
+			metaLines += descLines
+		}
+	}
+	
+	// Account for UI chrome: title, borders, padding, help text
+	uiChrome := 15 + metaLines
+	contentHeight := m.height - uiChrome
+	if contentHeight < 1 {
+		contentHeight = 1
+	}
+	return contentHeight
 }
 
 // contentLoadedMsg is sent when content is loaded
