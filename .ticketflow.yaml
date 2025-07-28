@@ -27,7 +27,8 @@ tickets:
         - [ ] Run `make test` to run the tests
         - [ ] Run `make vet`, `make fmt` and `make lint`
         - [ ] Update documentation if necessary
-        - [ ] Update README.*.md
+        - [ ] Update README.md
+        - [ ] Update the ticket with insights from resolving this ticket
         - [ ] Get developer approval before closing
 
         ## Notes
