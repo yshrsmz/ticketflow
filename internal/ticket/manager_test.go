@@ -137,14 +137,17 @@ func TestManagerList(t *testing.T) {
 	require.NoError(t, err)
 
 	// Start ticket2 - simulate moving to doing directory
-	ticket2.Start()
+	err = ticket2.Start()
+	require.NoError(t, err)
 
 	// Move ticket2 from todo to doing
 	oldPath := ticket2.Path
 	doingPath := filepath.Join(tmpDir, "tickets", "doing")
-	os.MkdirAll(doingPath, 0755)
+	err = os.MkdirAll(doingPath, 0755)
+	require.NoError(t, err)
 	newPath := filepath.Join(doingPath, filepath.Base(ticket2.Path))
-	os.Rename(oldPath, newPath)
+	err = os.Rename(oldPath, newPath)
+	require.NoError(t, err)
 	ticket2.Path = newPath
 	err = manager.Update(ticket2)
 	require.NoError(t, err)

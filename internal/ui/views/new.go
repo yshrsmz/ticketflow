@@ -89,7 +89,7 @@ func (m NewTicketModel) Init() tea.Cmd {
 
 // Update handles messages
 func (m NewTicketModel) Update(msg tea.Msg) (NewTicketModel, tea.Cmd) {
-	var cmds []tea.Cmd = make([]tea.Cmd, 4) // Initialize with size 4 for the 4 input fields
+	var cmds = make([]tea.Cmd, 4) // Initialize with size 4 for the 4 input fields
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -211,10 +211,10 @@ func (m NewTicketModel) View() string {
 	form.WriteString(styles.SubtitleStyle.Render("Description:"))
 	form.WriteString("\n")
 	if m.focusIndex == 2 {
-		descStyle := styles.FocusedInputStyle.Copy().UnsetBorderStyle()
+		descStyle := styles.FocusedInputStyle.UnsetBorderStyle()
 		form.WriteString(descStyle.Render(m.descArea.View()))
 	} else {
-		descStyle := styles.InputStyle.Copy().UnsetBorderStyle()
+		descStyle := styles.InputStyle.UnsetBorderStyle()
 		form.WriteString(descStyle.Render(m.descArea.View()))
 	}
 	form.WriteString("\n\n")
@@ -223,10 +223,10 @@ func (m NewTicketModel) View() string {
 	form.WriteString(styles.SubtitleStyle.Render("Content:"))
 	form.WriteString("\n")
 	if m.focusIndex == 3 {
-		contentStyle := styles.FocusedInputStyle.Copy().UnsetBorderStyle()
+		contentStyle := styles.FocusedInputStyle.UnsetBorderStyle()
 		form.WriteString(contentStyle.Render(m.contentArea.View()))
 	} else {
-		contentStyle := styles.InputStyle.Copy().UnsetBorderStyle()
+		contentStyle := styles.InputStyle.UnsetBorderStyle()
 		form.WriteString(contentStyle.Render(m.contentArea.View()))
 	}
 

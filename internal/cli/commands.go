@@ -280,7 +280,9 @@ func (app *App) StartTicket(ticketID string) error {
 		if err := app.Manager.Update(t); err != nil {
 			// Rollback for non-worktree mode
 			if !app.Config.Worktree.Enabled {
-				app.Git.Checkout(currentBranch)
+				if checkoutErr := app.Git.Checkout(currentBranch); checkoutErr != nil {
+					return fmt.Errorf("failed to update ticket parent relationship and rollback checkout: %w, checkout error: %v", err, checkoutErr)
+				}
 			}
 			return fmt.Errorf("failed to update ticket parent relationship: %w", err)
 		}
@@ -322,7 +324,9 @@ func (app *App) StartTicket(ticketID string) error {
 	t.Path = newPath
 	if err := app.Manager.Update(t); err != nil {
 		// Rollback file move
-		os.Rename(newPath, oldPath)
+		if renameErr := os.Rename(newPath, oldPath); renameErr != nil {
+			return fmt.Errorf("failed to update ticket and rollback file move: %w, rename error: %v", err, renameErr)
+		}
 		// Rollback for non-worktree mode
 		if !app.Config.Worktree.Enabled {
 			_ = app.Git.Checkout(currentBranch)
@@ -531,7 +535,9 @@ func (app *App) CloseTicket(force bool) error {
 	current.Path = newPath
 	if err := app.Manager.Update(current); err != nil {
 		// Rollback file move
-		os.Rename(newPath, oldPath)
+		if renameErr := os.Rename(newPath, oldPath); renameErr != nil {
+			return fmt.Errorf("failed to update ticket and rollback file move: %w, rename error: %v", err, renameErr)
+		}
 		return fmt.Errorf("failed to update ticket: %w", err)
 	}
 

@@ -13,12 +13,17 @@ import (
 func TestCleanupTicketWithForceFlag(t *testing.T) {
 	// Setup test repository
 	repoPath := setupTestRepo(t)
-	originalWd, _ := os.Getwd()
-	defer os.Chdir(originalWd)
-	os.Chdir(repoPath)
+	originalWd, err := os.Getwd()
+	require.NoError(t, err)
+	defer func() {
+		err := os.Chdir(originalWd)
+		require.NoError(t, err)
+	}()
+	err = os.Chdir(repoPath)
+	require.NoError(t, err)
 
 	// Initialize ticketflow
-	err := cli.InitCommand()
+	err = cli.InitCommand()
 	require.NoError(t, err)
 
 	// Create and test the app

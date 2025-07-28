@@ -16,12 +16,17 @@ import (
 func TestWorktreeWorkflow(t *testing.T) {
 	// Setup test repository
 	repoPath := setupTestRepo(t)
-	originalWd, _ := os.Getwd()
-	defer os.Chdir(originalWd)
-	os.Chdir(repoPath)
+	originalWd, err := os.Getwd()
+	require.NoError(t, err)
+	defer func() {
+		err := os.Chdir(originalWd)
+		require.NoError(t, err)
+	}()
+	err = os.Chdir(repoPath)
+	require.NoError(t, err)
 
 	// Initialize ticketflow with worktree enabled
-	err := cli.InitCommand()
+	err = cli.InitCommand()
 	require.NoError(t, err)
 
 	// Enable worktrees in config
@@ -123,12 +128,17 @@ func TestWorktreeWorkflow(t *testing.T) {
 func TestWorktreeCleanCommand(t *testing.T) {
 	// Setup test repository
 	repoPath := setupTestRepo(t)
-	originalWd, _ := os.Getwd()
-	defer os.Chdir(originalWd)
-	os.Chdir(repoPath)
+	originalWd, err := os.Getwd()
+	require.NoError(t, err)
+	defer func() {
+		err := os.Chdir(originalWd)
+		require.NoError(t, err)
+	}()
+	err = os.Chdir(repoPath)
+	require.NoError(t, err)
 
 	// Initialize ticketflow with worktrees
-	err := cli.InitCommand()
+	err = cli.InitCommand()
 	require.NoError(t, err)
 
 	cfg, err := config.Load(repoPath)
@@ -178,8 +188,10 @@ func TestWorktreeCleanCommand(t *testing.T) {
 	oldPath := ticket1.Path
 	donePath := filepath.Join(repoPath, "tickets", "done")
 	newPath := filepath.Join(donePath, filepath.Base(ticket1.Path))
-	os.MkdirAll(donePath, 0755)
-	os.Rename(oldPath, newPath)
+	err = os.MkdirAll(donePath, 0755)
+	require.NoError(t, err)
+	err = os.Rename(oldPath, newPath)
+	require.NoError(t, err)
 
 	// Update ticket status and path
 	ticket1.Path = newPath
@@ -213,12 +225,17 @@ func TestWorktreeCleanCommand(t *testing.T) {
 func TestWorktreeListCommand(t *testing.T) {
 	// Setup test repository
 	repoPath := setupTestRepo(t)
-	originalWd, _ := os.Getwd()
-	defer os.Chdir(originalWd)
-	os.Chdir(repoPath)
+	originalWd, err := os.Getwd()
+	require.NoError(t, err)
+	defer func() {
+		err := os.Chdir(originalWd)
+		require.NoError(t, err)
+	}()
+	err = os.Chdir(repoPath)
+	require.NoError(t, err)
 
 	// Initialize and setup
-	err := cli.InitCommand()
+	err = cli.InitCommand()
 	require.NoError(t, err)
 
 	cfg, err := config.Load(repoPath)
