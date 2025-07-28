@@ -119,10 +119,7 @@ func ParseID(id string) (time.Time, string, error) {
 // ExtractIDFromFilename extracts ticket ID from filename
 func ExtractIDFromFilename(filename string) string {
 	// Remove .md extension if present
-	if strings.HasSuffix(filename, ".md") {
-		filename = strings.TrimSuffix(filename, ".md")
-	}
-	return filename
+	return strings.TrimSuffix(filename, ".md")
 }
 
 // IsValidSlug checks if a slug is valid
@@ -132,7 +129,7 @@ func IsValidSlug(slug string) bool {
 	}
 
 	for _, r := range slug {
-		if !((r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '-') {
+		if (r < 'a' || r > 'z') && (r < '0' || r > '9') && r != '-' {
 			return false
 		}
 	}

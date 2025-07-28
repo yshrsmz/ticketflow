@@ -15,12 +15,17 @@ import (
 func TestDirectoryAutoCreation(t *testing.T) {
 	// Setup test repository
 	repoPath := setupTestRepo(t)
-	originalWd, _ := os.Getwd()
-	defer os.Chdir(originalWd)
-	os.Chdir(repoPath)
+	originalWd, err := os.Getwd()
+	require.NoError(t, err)
+	defer func() {
+		err := os.Chdir(originalWd)
+		require.NoError(t, err)
+	}()
+	err = os.Chdir(repoPath)
+	require.NoError(t, err)
 
 	// Initialize ticketflow
-	err := cli.InitCommand()
+	err = cli.InitCommand()
 	require.NoError(t, err)
 
 	// Load the app
@@ -90,9 +95,14 @@ func TestDirectoryAutoCreation(t *testing.T) {
 func TestDirectoryCreationWithWorktrees(t *testing.T) {
 	// Setup test repository
 	repoPath := setupTestRepo(t)
-	originalWd, _ := os.Getwd()
-	defer os.Chdir(originalWd)
-	os.Chdir(repoPath)
+	originalWd, err := os.Getwd()
+	require.NoError(t, err)
+	defer func() {
+		err := os.Chdir(originalWd)
+		require.NoError(t, err)
+	}()
+	err = os.Chdir(repoPath)
+	require.NoError(t, err)
 
 	// Create custom config with worktrees enabled
 	cfg := config.Default()
@@ -101,7 +111,7 @@ func TestDirectoryCreationWithWorktrees(t *testing.T) {
 	cfg.Worktree.InitCommands = []string{"git status"}
 
 	configPath := filepath.Join(repoPath, ".ticketflow.yaml")
-	err := cfg.Save(configPath)
+	err = cfg.Save(configPath)
 	require.NoError(t, err)
 
 	// Create initial directories

@@ -95,7 +95,7 @@ var (
 			Background(lipgloss.Color("#2a2a2a")).
 			Padding(0, 1)
 
-	FocusedInputStyle = InputStyle.Copy().
+	FocusedInputStyle = InputStyle.
 				BorderStyle(lipgloss.NormalBorder()).
 				BorderForeground(primaryColor)
 
@@ -106,7 +106,7 @@ var (
 			Padding(0, 2).
 			MarginRight(1)
 
-	ActiveButtonStyle = ButtonStyle.Copy().
+	ActiveButtonStyle = ButtonStyle.
 				Background(primaryColor).
 				Bold(true)
 

@@ -382,8 +382,11 @@ func (m *Model) startTicket(t *ticket.Ticket) tea.Cmd {
 
 					execCmd := exec.Command(parts[0], parts[1:]...)
 					execCmd.Dir = worktreePath
-					// Run in background, ignore errors for now
-					execCmd.Run()
+					// Run in background, log errors but don't fail
+					if err := execCmd.Run(); err != nil {
+						// Log error but continue
+						_ = err
+					}
 				}
 			}
 		} else {
@@ -397,9 +400,9 @@ func (m *Model) startTicket(t *ticket.Ticket) tea.Cmd {
 		if err := t.Start(); err != nil {
 			// Rollback
 			if m.config.Worktree.Enabled && worktreePath != "" {
-				m.git.RemoveWorktree(worktreePath)
+				_ = m.git.RemoveWorktree(worktreePath)
 			} else {
-				m.git.Checkout(currentBranch)
+				_ = m.git.Checkout(currentBranch)
 			}
 			return fmt.Errorf("failed to start ticket: %w", err)
 		}
@@ -413,9 +416,9 @@ func (m *Model) startTicket(t *ticket.Ticket) tea.Cmd {
 		if err := os.Rename(oldPath, newPath); err != nil {
 			// Rollback
 			if m.config.Worktree.Enabled && worktreePath != "" {
-				m.git.RemoveWorktree(worktreePath)
+				_ = m.git.RemoveWorktree(worktreePath)
 			} else {
-				m.git.Checkout(currentBranch)
+				_ = m.git.Checkout(currentBranch)
 			}
 			return fmt.Errorf("failed to move ticket to doing: %w", err)
 		}
@@ -424,11 +427,11 @@ func (m *Model) startTicket(t *ticket.Ticket) tea.Cmd {
 		t.Path = newPath
 		if err := m.manager.Update(t); err != nil {
 			// Rollback file move
-			os.Rename(newPath, oldPath)
+			_ = os.Rename(newPath, oldPath)
 			if m.config.Worktree.Enabled && worktreePath != "" {
-				m.git.RemoveWorktree(worktreePath)
+				_ = m.git.RemoveWorktree(worktreePath)
 			} else {
-				m.git.Checkout(currentBranch)
+				_ = m.git.Checkout(currentBranch)
 			}
 			return fmt.Errorf("failed to update ticket: %w", err)
 		}
@@ -539,7 +542,7 @@ func (m *Model) closeTicket(t *ticket.Ticket) tea.Cmd {
 		t.Path = newPath
 		if err := m.manager.Update(t); err != nil {
 			// Rollback file move
-			os.Rename(newPath, oldPath)
+			_ = os.Rename(newPath, oldPath)
 			return fmt.Errorf("failed to update ticket: %w", err)
 		}
 
