@@ -9,11 +9,7 @@ on:
 jobs:
   test:
     name: Test
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest]
-        go-version: ['1.22.x', '1.23.x']
+    runs-on: ubuntu-latest
     
     steps:
     - name: Checkout code
@@ -22,7 +18,7 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
-        go-version: ${{ matrix.go-version }}
+        go-version: '1.24.x'
     
     - name: Cache Go modules
       uses: actions/cache@v4
@@ -52,10 +48,13 @@ jobs:
     - name: Run go vet
       run: make vet
     
+    - name: Generate coverage report
+      run: make coverage
+    
     - name: Upload coverage to Codecov
-      if: matrix.os == 'ubuntu-latest' && matrix.go-version == '1.23.x'
       uses: codecov/codecov-action@v4
       with:
+        token: ${{ secrets.CODECOV_TOKEN }}
         file: ./coverage.out
         flags: unittests
         name: codecov-umbrella
@@ -72,9 +71,9 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
-        go-version: '1.23.x'
+        go-version: '1.24.x'
     
     - name: Run golangci-lint
-      uses: golangci/golangci-lint-action@v6
+      uses: golangci/golangci-lint-action@v8
       with:
         version: latest
