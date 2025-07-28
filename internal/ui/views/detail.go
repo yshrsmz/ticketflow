@@ -11,6 +11,12 @@ import (
 	"github.com/yshrsmz/ticketflow/internal/ui/styles"
 )
 
+const (
+	// UI layout constants for content height calculation
+	baseMetadataLines = 7  // Status, priority, created, description label, borders
+	baseUIChrome      = 15 // Title, borders, padding, help text, spacing
+)
+
 // DetailAction represents an action from the detail view
 type DetailAction int
 
@@ -280,7 +286,7 @@ func (m TicketDetailModel) getMaxScroll() int {
 // getContentHeight calculates the available height for content display
 func (m TicketDetailModel) getContentHeight() int {
 	// Calculate metadata section height
-	metaLines := 7 // Base lines for status, priority, created, description label
+	metaLines := baseMetadataLines
 	if m.ticket != nil {
 		if m.ticket.StartedAt.Time != nil {
 			metaLines++
@@ -300,7 +306,7 @@ func (m TicketDetailModel) getContentHeight() int {
 	}
 
 	// Account for UI chrome: title, borders, padding, help text
-	uiChrome := 15 + metaLines
+	uiChrome := baseUIChrome + metaLines
 	contentHeight := m.height - uiChrome
 	if contentHeight < 1 {
 		contentHeight = 1
