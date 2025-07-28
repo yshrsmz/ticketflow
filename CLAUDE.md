@@ -93,3 +93,7 @@ These are displayed in `ticketflow version` command.
 - All git operations are explicit - no automatic pushing or merging
 - Worktrees are created under the configured worktreeBaseDir (default: ../)
 - The application supports sub-tickets with parent relationships via YAML frontmatter
+
+## AI Integration Guidelines
+- **ALWAYS use `--format json` when running ticketflow commands** to get structured output for better parsing and analysis
+- JSON output provides comprehensive ticket information including metadata, relationships, and timestamps
