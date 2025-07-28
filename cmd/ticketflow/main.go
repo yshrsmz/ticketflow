@@ -109,45 +109,61 @@ func runCLI() error {
 
 	switch os.Args[1] {
 	case "init":
-		initCmd.Parse(os.Args[2:])
+		if err := initCmd.Parse(os.Args[2:]); err != nil {
+			return err
+		}
 		return handleInit()
 
 	case "new":
-		newCmd.Parse(os.Args[2:])
+		if err := newCmd.Parse(os.Args[2:]); err != nil {
+			return err
+		}
 		if newCmd.NArg() < 1 {
 			return fmt.Errorf("missing slug argument")
 		}
 		return handleNew(newCmd.Arg(0), *listFormat)
 
 	case "list":
-		listCmd.Parse(os.Args[2:])
+		if err := listCmd.Parse(os.Args[2:]); err != nil {
+			return err
+		}
 		return handleList(*listStatus, *listCount, *listFormat)
 
 	case "show":
-		showCmd.Parse(os.Args[2:])
+		if err := showCmd.Parse(os.Args[2:]); err != nil {
+			return err
+		}
 		if showCmd.NArg() < 1 {
 			return fmt.Errorf("missing ticket argument")
 		}
 		return handleShow(showCmd.Arg(0), *showFormat)
 
 	case "start":
-		startCmd.Parse(os.Args[2:])
+		if err := startCmd.Parse(os.Args[2:]); err != nil {
+			return err
+		}
 		if startCmd.NArg() < 1 {
 			return fmt.Errorf("missing ticket argument")
 		}
 		return handleStart(startCmd.Arg(0), false)
 
 	case "close":
-		closeCmd.Parse(os.Args[2:])
+		if err := closeCmd.Parse(os.Args[2:]); err != nil {
+			return err
+		}
 		force := *closeForce || *closeForceShort
 		return handleClose(false, force)
 
 	case "restore":
-		restoreCmd.Parse(os.Args[2:])
+		if err := restoreCmd.Parse(os.Args[2:]); err != nil {
+			return err
+		}
 		return handleRestore()
 
 	case "status":
-		statusCmd.Parse(os.Args[2:])
+		if err := statusCmd.Parse(os.Args[2:]); err != nil {
+			return err
+		}
 		return handleStatus(*statusFormat)
 
 	case "worktree":
@@ -155,11 +171,15 @@ func runCLI() error {
 			printWorktreeUsage()
 			return nil
 		}
-		worktreeCmd.Parse(os.Args[3:])
+		if err := worktreeCmd.Parse(os.Args[3:]); err != nil {
+			return err
+		}
 		return handleWorktree(os.Args[2], worktreeCmd.Args())
 
 	case "cleanup":
-		cleanupCmd.Parse(os.Args[2:])
+		if err := cleanupCmd.Parse(os.Args[2:]); err != nil {
+			return err
+		}
 		if cleanupCmd.NArg() > 0 {
 			// New cleanup command with ticket ID
 			return handleCleanupTicket(cleanupCmd.Arg(0), *cleanupForce)
