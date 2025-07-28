@@ -3,7 +3,7 @@ priority: 2
 description: TUI breaks when returning from external editor in ticket detail view
 created_at: "2025-07-28T17:17:59+09:00"
 started_at: "2025-07-28T17:21:04+09:00"
-closed_at: null
+closed_at: "2025-07-28T17:31:46+09:00"
 ---
 
 # Ticket Overview
