@@ -183,7 +183,7 @@ func (m *Manager) SetCurrentTicket(ticket *Ticket) error {
 	linkPath := filepath.Join(m.projectRoot, "current-ticket.md")
 
 	// Remove existing link if any
-	os.Remove(linkPath)
+	_ = os.Remove(linkPath)
 
 	if ticket == nil {
 		return nil

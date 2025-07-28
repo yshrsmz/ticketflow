@@ -188,7 +188,9 @@ func runCLI() error {
 		return handleCleanup(*cleanupDryRun)
 
 	case "migrate":
-		migrateCmd.Parse(os.Args[2:])
+		if err := migrateCmd.Parse(os.Args[2:]); err != nil {
+			return err
+		}
 		return handleMigrateDates(*migrateDryRun)
 
 	case "help", "-h", "--help":
