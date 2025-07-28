@@ -28,15 +28,21 @@ This affects:
 - TestStartTicket_WorktreeCreatedAfterCommit
 
 ## Tasks
-- [ ] Investigate why tests require main branch
-- [ ] Consider options:
-  - [ ] Make tests branch-agnostic
+- [x] Investigate why tests require main branch
+- [x] Consider options:
+  - [x] Make tests branch-agnostic
   - [ ] Skip certain tests when not on main branch
   - [ ] Use a different approach for PR testing
-- [ ] Implement chosen solution
-- [ ] Run `make test-integration` to verify tests pass
-- [ ] Test on both main branch and PR branches
+- [x] Implement chosen solution
+- [x] Run `make test-integration` to verify tests pass
+- [x] Test on both main branch and PR branches
 - [ ] Update CI workflow if needed
+
+## Solution
+
+The issue was that `ticketflow start` validates that you're on either the default branch (main) or a valid ticket branch. Since PR branches in GitHub Actions (e.g., `pull/123/merge`) are neither, the tests failed.
+
+Fixed by updating the `setupTestRepo` helper function in `test/integration/workflow_test.go` to ensure tests always start from the main branch, regardless of which branch they're executed from.
 
 ## Notes
 
