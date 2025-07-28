@@ -1,8 +1,8 @@
 ---
 priority: 2
-description: "Fix golangci-lint errors blocking CI"
+description: Fix golangci-lint errors blocking CI
 created_at: "2025-07-28T14:25:15+09:00"
-started_at: null
+started_at: "2025-07-28T15:33:01+09:00"
 closed_at: null
 related:
     - parent:250728-001606-fix-worktree-test-macos
