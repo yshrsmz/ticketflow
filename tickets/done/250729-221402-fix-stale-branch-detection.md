@@ -3,7 +3,7 @@ priority: 2
 description: Fix stale branch detection in cleanup command - branches for done tickets not being identified
 created_at: "2025-07-29T22:14:02+09:00"
 started_at: "2025-07-29T22:15:35+09:00"
-closed_at: null
+closed_at: "2025-07-30T00:39:21+09:00"
 ---
 
 # Ticket Overview
