@@ -233,8 +233,8 @@ func (m TicketListModel) View() string {
 	s.WriteString("\n")
 
 	// Calculate column widths
-	// Dynamic ID width: 25% of terminal width with min 20, max 40
-	idWidth := int(float64(m.width) * 0.25)
+	// Dynamic ID width: 30% of terminal width with min 20, max 40
+	idWidth := int(float64(m.width) * 0.30)
 	if idWidth < 20 {
 		idWidth = 20 // Minimum width
 	}
