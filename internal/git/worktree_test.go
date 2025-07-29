@@ -59,7 +59,12 @@ func TestAddWorktree(t *testing.T) {
 	for _, wt := range worktrees {
 		if wt.Branch == "test-branch" {
 			found = true
-			assert.Equal(t, worktreePath, wt.Path)
+			// Resolve symlinks before comparing paths (macOS compatibility)
+			expectedPath, err := filepath.EvalSymlinks(worktreePath)
+			require.NoError(t, err)
+			actualPath, err := filepath.EvalSymlinks(wt.Path)
+			require.NoError(t, err)
+			assert.Equal(t, expectedPath, actualPath)
 			break
 		}
 	}
@@ -73,7 +78,12 @@ func TestListWorktrees(t *testing.T) {
 	worktrees, err := git.ListWorktrees()
 	require.NoError(t, err)
 	assert.Len(t, worktrees, 1)
-	assert.Equal(t, tmpDir, worktrees[0].Path)
+	// Resolve symlinks before comparing paths (macOS compatibility)
+	expectedPath, err := filepath.EvalSymlinks(tmpDir)
+	require.NoError(t, err)
+	actualPath, err := filepath.EvalSymlinks(worktrees[0].Path)
+	require.NoError(t, err)
+	assert.Equal(t, expectedPath, actualPath)
 
 	// Add multiple worktrees
 	for i := 1; i <= 3; i++ {
@@ -130,7 +140,12 @@ func TestFindWorktreeByBranch(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, wt)
 	assert.Equal(t, branch, wt.Branch)
-	assert.Equal(t, worktreePath, wt.Path)
+	// Resolve symlinks before comparing paths (macOS compatibility)
+	expectedPath, err := filepath.EvalSymlinks(worktreePath)
+	require.NoError(t, err)
+	actualPath, err := filepath.EvalSymlinks(wt.Path)
+	require.NoError(t, err)
+	assert.Equal(t, expectedPath, actualPath)
 
 	// Try to find non-existent branch
 	wt, err = git.FindWorktreeByBranch("non-existent")
