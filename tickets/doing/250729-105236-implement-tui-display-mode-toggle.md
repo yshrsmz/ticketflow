@@ -24,7 +24,7 @@ Implement a display mode toggle in the TUI list view that allows users to cycle 
 - [x] Run `make test` to run the tests
 - [x] Run `make vet`, `make fmt` and `make lint`
 - [ ] Update documentation with new keyboard shortcut
-- [x] Update README.md to mention display mode toggle feature
+- [ ] Update README.md to mention display mode toggle feature
 - [ ] Get developer approval before closing
 
 ## Notes
