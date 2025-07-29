@@ -47,6 +47,10 @@ ticketflow/
 └── test/                   # Integration tests
 ```
 
+## Inspiration
+
+TicketFlow was inspired by [ticket.sh](https://github.com/llimllib/ticket.sh), a simple shell script for git-based ticket management. While ticket.sh provides the core concept of using git worktrees for ticket management, TicketFlow extends this idea with a modern Go implementation, adding features like an interactive TUI, structured data formats for AI integration, and comprehensive ticket lifecycle management.
+
 ## Installation
 
 ### Pre-built Binaries
@@ -121,6 +125,7 @@ ticketflow
 - Edit tickets in external editor with `e`
 - Close tickets with `c` (in detail view)
 - View worktrees with `w`
+- Toggle display mode with `d` (cycle between ID, slug, and description)
 - Help overlay with `?`
 
 ### Basic Workflow
