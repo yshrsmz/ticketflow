@@ -37,7 +37,7 @@ type TicketListModel struct {
 	selected        map[string]bool
 	err             error
 	action          Action
-	statusFilter    string
+	statusFilter    ticket.StatusFilter
 	activeTab       int // 0=ALL, 1=TODO, 2=DOING, 3=DONE
 	searchMode      bool
 	searchQuery     string
@@ -144,13 +144,13 @@ func (m TicketListModel) Update(msg tea.Msg) (TicketListModel, tea.Cmd) {
 			// Update status filter based on tab
 			switch m.activeTab {
 			case 0:
-				m.statusFilter = ""
+				m.statusFilter = ticket.StatusFilterActive
 			case 1:
-				m.statusFilter = "todo"
+				m.statusFilter = ticket.StatusFilterTodo
 			case 2:
-				m.statusFilter = "doing"
+				m.statusFilter = ticket.StatusFilterDoing
 			case 3:
-				m.statusFilter = "done"
+				m.statusFilter = ticket.StatusFilterDone
 			}
 			m.cursor = 0
 			return m, m.loadTickets()
@@ -167,11 +167,11 @@ func (m TicketListModel) Update(msg tea.Msg) (TicketListModel, tea.Cmd) {
 				// Update status filter
 				switch m.activeTab {
 				case 1:
-					m.statusFilter = "todo"
+					m.statusFilter = ticket.StatusFilterTodo
 				case 2:
-					m.statusFilter = "doing"
+					m.statusFilter = ticket.StatusFilterDoing
 				case 3:
-					m.statusFilter = "done"
+					m.statusFilter = ticket.StatusFilterDone
 				}
 				m.cursor = 0
 				return m, m.loadTickets()
@@ -180,7 +180,7 @@ func (m TicketListModel) Update(msg tea.Msg) (TicketListModel, tea.Cmd) {
 		case "a":
 			// Show all tickets
 			m.activeTab = 0
-			m.statusFilter = ""
+			m.statusFilter = ticket.StatusFilterActive
 			m.cursor = 0
 			return m, m.loadTickets()
 		}

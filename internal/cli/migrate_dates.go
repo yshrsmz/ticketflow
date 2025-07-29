@@ -16,7 +16,7 @@ var rfc3339NanoRegex = regexp.MustCompile(`\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.
 // MigrateDates updates all ticket files to use standardized date format
 func (app *App) MigrateDates(dryRun bool) error {
 	// Get all tickets
-	tickets, err := app.Manager.List("all")
+	tickets, err := app.Manager.List(ticket.StatusFilterAll)
 	if err != nil {
 		return fmt.Errorf("failed to list tickets: %w", err)
 	}

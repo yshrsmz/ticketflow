@@ -43,7 +43,7 @@ func TestAutoCleanupStaleBranchesIntegration(t *testing.T) {
 		require.NoError(t, err)
 
 		// Find the ticket ID
-		tickets, err := app.Manager.List("todo")
+		tickets, err := app.Manager.List(ticket.StatusFilterTodo)
 		require.NoError(t, err)
 
 		var ticketID string
@@ -141,7 +141,7 @@ func TestAutoCleanupDryRun(t *testing.T) {
 	require.NoError(t, err)
 
 	// Find the ticket ID
-	tickets, err := app.Manager.List("todo")
+	tickets, err := app.Manager.List(ticket.StatusFilterTodo)
 	require.NoError(t, err)
 	require.NotEmpty(t, tickets)
 

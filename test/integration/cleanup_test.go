@@ -35,7 +35,7 @@ func TestCleanupTicketWithForceFlag(t *testing.T) {
 	require.NoError(t, err)
 
 	// List tickets to get the actual ID
-	tickets, err := app.Manager.List("todo")
+	tickets, err := app.Manager.List(ticket.StatusFilterTodo)
 	require.NoError(t, err)
 	require.NotEmpty(t, tickets)
 

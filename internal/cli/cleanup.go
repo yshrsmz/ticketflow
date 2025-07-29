@@ -15,6 +15,11 @@ type CleanupResult struct {
 	Errors            []string
 }
 
+// HasErrors returns true if any errors occurred during cleanup
+func (r *CleanupResult) HasErrors() bool {
+	return len(r.Errors) > 0
+}
+
 // AutoCleanup performs automatic cleanup of old tickets and worktrees
 func (app *App) AutoCleanup(dryRun bool) (*CleanupResult, error) {
 	fmt.Println("Starting auto-cleanup...")
@@ -72,7 +77,7 @@ func (app *App) cleanOrphanedWorktrees(dryRun bool) (int, error) {
 	}
 
 	// Get all active tickets
-	activeTickets, err := app.Manager.List(string(ticket.StatusDoing))
+	activeTickets, err := app.Manager.List(ticket.StatusFilterDoing)
 	if err != nil {
 		return 0, fmt.Errorf("failed to list active tickets: %w", err)
 	}
@@ -172,7 +177,7 @@ func (app *App) CleanupStats() error {
 	fmt.Println("==================")
 
 	// Done tickets statistics
-	doneTickets, err := app.Manager.List(string(ticket.StatusDone))
+	doneTickets, err := app.Manager.List(ticket.StatusFilterDone)
 	if err == nil {
 		fmt.Printf("\nDone tickets: %d\n", len(doneTickets))
 	}
@@ -180,7 +185,7 @@ func (app *App) CleanupStats() error {
 	// Worktree statistics
 	if app.Config.Worktree.Enabled {
 		worktrees, err := app.Git.ListWorktrees()
-		activeTickets, _ := app.Manager.List(string(ticket.StatusDoing))
+		activeTickets, _ := app.Manager.List(ticket.StatusFilterDoing)
 
 		if err == nil {
 			activeMap := make(map[string]bool)

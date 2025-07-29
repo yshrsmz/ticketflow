@@ -153,17 +153,17 @@ func TestManagerList(t *testing.T) {
 	require.NoError(t, err)
 
 	// List all tickets
-	tickets, err := manager.List("")
+	tickets, err := manager.List(StatusFilterActive)
 	require.NoError(t, err)
 	assert.Len(t, tickets, 2)
 
 	// List by status
-	todoTickets, err := manager.List(string(StatusTodo))
+	todoTickets, err := manager.List(StatusFilterTodo)
 	require.NoError(t, err)
 	assert.Len(t, todoTickets, 1)
 	assert.Equal(t, ticket1.ID, todoTickets[0].ID)
 
-	doingTickets, err := manager.List(string(StatusDoing))
+	doingTickets, err := manager.List(StatusFilterDoing)
 	require.NoError(t, err)
 	assert.Len(t, doingTickets, 1)
 	assert.Equal(t, ticket2.ID, doingTickets[0].ID)
