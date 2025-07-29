@@ -10,6 +10,13 @@ import (
 	"github.com/yshrsmz/ticketflow/internal/ui/styles"
 )
 
+// Constants for column width calculations
+const (
+	idColumnWidthPercentage = 0.30
+	minIDColumnWidth        = 20
+	maxIDColumnWidth        = 40
+)
+
 // Action represents an action to take from the list view
 type Action int
 
@@ -234,12 +241,12 @@ func (m TicketListModel) View() string {
 
 	// Calculate column widths
 	// Dynamic ID width: 30% of terminal width with min 20, max 40
-	idWidth := int(float64(m.width) * 0.30)
-	if idWidth < 20 {
-		idWidth = 20 // Minimum width
+	idWidth := int(float64(m.width) * idColumnWidthPercentage)
+	if idWidth < minIDColumnWidth {
+		idWidth = minIDColumnWidth // Minimum width
 	}
-	if idWidth > 40 {
-		idWidth = 40 // Maximum width
+	if idWidth > maxIDColumnWidth {
+		idWidth = maxIDColumnWidth // Maximum width
 	}
 	statusWidth := 7
 	priorityWidth := 3
