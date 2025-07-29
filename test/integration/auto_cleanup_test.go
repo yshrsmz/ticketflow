@@ -45,7 +45,7 @@ func TestAutoCleanupStaleBranchesIntegration(t *testing.T) {
 		// Find the ticket ID
 		tickets, err := app.Manager.List("todo")
 		require.NoError(t, err)
-		
+
 		var ticketID string
 		for _, t := range tickets {
 			if t.Slug == slug {
@@ -75,19 +75,19 @@ func TestAutoCleanupStaleBranchesIntegration(t *testing.T) {
 		// Get the ticket
 		tkt, err := app.Manager.Get(ticketIDs[i])
 		require.NoError(t, err)
-		
+
 		// Update ticket to set closed time
 		now := time.Now()
 		tkt.ClosedAt = ticket.RFC3339TimePtr{Time: &now}
 		err = app.Manager.Update(tkt)
 		require.NoError(t, err)
-		
+
 		// Move ticket file to done directory
 		oldPath := tkt.Path
 		newPath := filepath.Join(repoPath, "tickets", "done", filepath.Base(oldPath))
 		err = os.Rename(oldPath, newPath)
 		require.NoError(t, err)
-		
+
 		// Verify ticket is done
 		tkt, err = app.Manager.Get(ticketIDs[i])
 		require.NoError(t, err)
@@ -102,14 +102,14 @@ func TestAutoCleanupStaleBranchesIntegration(t *testing.T) {
 	output, err = app.Git.Exec("branch", "--format=%(refname:short)")
 	require.NoError(t, err)
 	branches = strings.Split(strings.TrimSpace(output), "\n")
-	
+
 	// First two should be gone (done tickets)
 	assert.NotContains(t, branches, ticketIDs[0])
 	assert.NotContains(t, branches, ticketIDs[1])
-	
+
 	// Third should still exist (still in doing)
 	assert.Contains(t, branches, ticketIDs[2])
-	
+
 	// Main branch should still exist
 	assert.Contains(t, branches, "main")
 }
@@ -142,7 +142,7 @@ func TestAutoCleanupDryRun(t *testing.T) {
 	tickets, err := app.Manager.List("todo")
 	require.NoError(t, err)
 	require.NotEmpty(t, tickets)
-	
+
 	var ticketID string
 	for _, t := range tickets {
 		if t.Slug == "dry-run-test" {
@@ -159,13 +159,13 @@ func TestAutoCleanupDryRun(t *testing.T) {
 	// Manually close the ticket
 	tkt, err := app.Manager.Get(ticketID)
 	require.NoError(t, err)
-	
+
 	// Update ticket to set closed time
 	now := time.Now()
 	tkt.ClosedAt = ticket.RFC3339TimePtr{Time: &now}
 	err = app.Manager.Update(tkt)
 	require.NoError(t, err)
-	
+
 	// Move ticket file to done directory
 	oldPath := tkt.Path
 	newPath := filepath.Join(repoPath, "tickets", "done", filepath.Base(oldPath))
@@ -186,3 +186,4 @@ func TestAutoCleanupDryRun(t *testing.T) {
 	require.NoError(t, err)
 	assert.Contains(t, output, ticketID)
 }
+

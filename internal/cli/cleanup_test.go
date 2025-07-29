@@ -47,7 +47,7 @@ func TestAutoCleanupStaleBranches(t *testing.T) {
 
 	// Create config
 	cfg := config.Default()
-	
+
 	// Check what the default branch actually is
 	defaultBranch, err := gitOps.Exec("rev-parse", "--abbrev-ref", "HEAD")
 	require.NoError(t, err)
@@ -95,13 +95,13 @@ func TestAutoCleanupStaleBranches(t *testing.T) {
 			CreatedAt:   ticket.NewRFC3339Time(now),
 			Path:        filepath.Join(cfg.Tickets.Dir, string(tc.status), tc.id+".md"),
 		}
-		
+
 		// Set closed time for done tickets
 		if tc.status == ticket.StatusDone {
 			closedTime := now.Add(1 * time.Hour)
 			tkt.ClosedAt = ticket.RFC3339TimePtr{Time: &closedTime}
 		}
-		
+
 		// Write ticket file
 		data, err := tkt.ToBytes()
 		require.NoError(t, err)
@@ -145,7 +145,7 @@ func TestAutoCleanupStaleBranches(t *testing.T) {
 	assert.NotContains(t, branches, "ticket-1") // Should be removed (done)
 	assert.NotContains(t, branches, "ticket-2") // Should be removed (done)
 	assert.Contains(t, branches, "ticket-3")    // Should still exist (doing)
-	assert.Contains(t, branches, defaultBranch)  // Should still exist
+	assert.Contains(t, branches, defaultBranch) // Should still exist
 }
 
 func TestCleanupStatsWithDoneTickets(t *testing.T) {
@@ -181,7 +181,7 @@ func TestCleanupStatsWithDoneTickets(t *testing.T) {
 
 	// Create config
 	cfg := config.Default()
-	
+
 	// Check what the default branch actually is
 	defaultBranch, err := gitOps.Exec("rev-parse", "--abbrev-ref", "HEAD")
 	require.NoError(t, err)
@@ -210,13 +210,13 @@ func TestCleanupStatsWithDoneTickets(t *testing.T) {
 			CreatedAt:   ticket.NewRFC3339Time(now),
 			Path:        filepath.Join(cfg.Tickets.Dir, "done", id+".md"),
 		}
-		
+
 		// Set started and closed times
 		startedTime := now.Add(1 * time.Hour)
 		tkt.StartedAt = ticket.RFC3339TimePtr{Time: &startedTime}
 		closedTime := now.Add(2 * time.Hour)
 		tkt.ClosedAt = ticket.RFC3339TimePtr{Time: &closedTime}
-		
+
 		// Write ticket file
 		data, err := tkt.ToBytes()
 		require.NoError(t, err)
@@ -238,11 +238,11 @@ func TestCleanupStatsWithDoneTickets(t *testing.T) {
 		CreatedAt:   ticket.NewRFC3339Time(now),
 		Path:        filepath.Join(cfg.Tickets.Dir, "doing", "active-1.md"),
 	}
-	
+
 	// Set started time
 	startedTime := now.Add(1 * time.Hour)
 	activeTkt.StartedAt = ticket.RFC3339TimePtr{Time: &startedTime}
-	
+
 	// Write ticket file
 	data, err := activeTkt.ToBytes()
 	require.NoError(t, err)
@@ -255,7 +255,7 @@ func TestCleanupStatsWithDoneTickets(t *testing.T) {
 	// Run CleanupStats and verify it counts stale branches correctly
 	// Since CleanupStats prints to stdout, we can't easily capture its output in a test
 	// But we can verify the underlying logic by checking what branches would be cleaned
-	
+
 	// Get all branches
 	output, err := gitOps.Exec("branch", "--format=%(refname:short)")
 	require.NoError(t, err)
@@ -284,3 +284,4 @@ func TestCleanupStatsWithDoneTickets(t *testing.T) {
 	// Should have 3 stale branches (the done tickets)
 	assert.Equal(t, 3, staleCount)
 }
+
