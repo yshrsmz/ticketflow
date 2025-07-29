@@ -13,16 +13,16 @@ related:
 Implement a display mode toggle in the TUI list view that allows users to cycle between showing full ID, slug only, or description in the first column. Users can press 'd' to switch between display modes based on their preference and current needs.
 
 ## Tasks
-- [ ] Add DisplayMode type and constants to `list.go`
-- [ ] Add displayMode field to TicketListModel struct
-- [ ] Implement 'd' key handler in Update() to cycle display modes
-- [ ] Modify display logic to show different content based on current mode
-- [ ] Add visual indicator showing current display mode (e.g., in header or status bar)
-- [ ] Update help text to include 'd' key functionality
+- [x] Add DisplayMode type and constants to `list.go`
+- [x] Add displayMode field to TicketListModel struct
+- [x] Implement 'd' key handler in Update() to cycle display modes
+- [x] Modify display logic to show different content based on current mode
+- [x] Add visual indicator showing current display mode (e.g., in header or status bar)
+- [x] Update help text to include 'd' key functionality
 - [ ] Persist display mode preference (optional, for future enhancement)
-- [ ] Test all three modes with various ticket types
-- [ ] Run `make test` to run the tests
-- [ ] Run `make vet`, `make fmt` and `make lint`
+- [x] Test all three modes with various ticket types
+- [x] Run `make test` to run the tests
+- [x] Run `make vet`, `make fmt` and `make lint`
 - [ ] Update documentation with new keyboard shortcut
 - [ ] Update README.md to mention display mode toggle feature
 - [ ] Get developer approval before closing
