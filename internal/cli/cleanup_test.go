@@ -249,7 +249,7 @@ func TestCleanupStatsWithDoneTickets(t *testing.T) {
 	require.NoError(t, os.WriteFile(activeTkt.Path, data, 0644))
 	_, err = gitOps.Exec("checkout", "-b", "active-1")
 	require.NoError(t, err)
-	_, err = gitOps.Exec("checkout", "main")
+	_, err = gitOps.Exec("checkout", defaultBranch)
 	require.NoError(t, err)
 
 	// Run CleanupStats and verify it counts stale branches correctly
