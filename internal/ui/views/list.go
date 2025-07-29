@@ -233,21 +233,14 @@ func (m TicketListModel) View() string {
 	s.WriteString("\n")
 
 	// Calculate column widths
-	dateWidth := 13 // Fixed width for YYMMDD-HHMMSS format
+	idWidth := 20
 	statusWidth := 7
 	priorityWidth := 3
-	// Calculate slug width dynamically based on available space
-	// Account for: date (13) + status (7) + priority (3) + spaces between columns (4) + padding (4)
-	slugWidth := m.width - dateWidth - statusWidth - priorityWidth - 4 - 8
-	if slugWidth < 10 {
-		slugWidth = 10 // Minimum slug width
-	}
-	descWidth := m.width - dateWidth - slugWidth - statusWidth - priorityWidth - 12 // padding and borders
+	descWidth := m.width - idWidth - statusWidth - priorityWidth - 8 // padding and borders
 
 	// Header
-	header := fmt.Sprintf("%-*s %-*s %-*s %-*s %s",
-		dateWidth, "Date",
-		slugWidth, "Slug",
+	header := fmt.Sprintf("%-*s %-*s %-*s %s",
+		idWidth, "ID",
 		statusWidth, "Status",
 		priorityWidth, "Pri",
 		"Description")
@@ -309,30 +302,14 @@ func (m TicketListModel) View() string {
 			statusStyle := styles.GetStatusStyle(string(t.Status()))
 			priorityStyle := styles.GetPriorityStyle(t.Priority)
 
-			// Parse ID into date and slug parts
-			date := ""
-			slug := ""
-			if len(t.ID) > 13 && t.ID[6] == '-' && t.ID[13] == '-' {
-				// Expected format: YYMMDD-HHMMSS-slug
-				date = t.ID[:13]
-				slug = t.ID[14:]
-			} else {
-				// Handle tickets that don't follow expected format
-				date = truncate(t.ID, dateWidth)
-				slug = ""
-			}
-
-			// Truncate slug if necessary
-			slug = truncate(slug, slugWidth)
-
+			id := truncate(t.ID, idWidth)
 			status := statusStyle.Render(fmt.Sprintf("%-*s", statusWidth, t.Status()))
 			priority := priorityStyle.Render(fmt.Sprintf("%d", t.Priority))
 
 			desc := truncate(t.Description, descWidth)
 
-			row := fmt.Sprintf("%-*s %-*s %s %s %s",
-				dateWidth, date,
-				slugWidth, slug,
+			row := fmt.Sprintf("%-*s %s %s %s",
+				idWidth, id,
 				status,
 				priority,
 				desc)
