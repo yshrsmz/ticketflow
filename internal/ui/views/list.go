@@ -236,23 +236,13 @@ func (m TicketListModel) View() string {
 	dateWidth := 13 // Fixed width for YYMMDD-HHMMSS format
 	statusWidth := 7
 	priorityWidth := 3
-	spaceBetweenColumns := 4 // 4 spaces between the 5 columns
-	padding := 4 // Some padding for the terminal edges
-	
-	// Calculate remaining width for slug and description columns
-	fixedWidth := dateWidth + statusWidth + priorityWidth + spaceBetweenColumns + padding
-	remainingWidth := m.width - fixedWidth
-	
-	// Split remaining width between slug and description
-	// Give more space to description (70/30 split)
-	slugWidth := remainingWidth * 30 / 100
+	// Calculate slug width dynamically based on available space
+	// Account for: date (13) + status (7) + priority (3) + spaces between columns (4) + padding (4)
+	slugWidth := m.width - dateWidth - statusWidth - priorityWidth - 4 - 8
 	if slugWidth < 10 {
 		slugWidth = 10 // Minimum slug width
 	}
-	descWidth := remainingWidth - slugWidth
-	if descWidth < 20 {
-		descWidth = 20 // Minimum description width
-	}
+	descWidth := m.width - dateWidth - slugWidth - statusWidth - priorityWidth - 12 // padding and borders
 
 	// Header
 	header := fmt.Sprintf("%-*s %-*s %-*s %-*s %s",
