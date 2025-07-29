@@ -13,15 +13,15 @@ related:
 Implement a two-column display for ticket IDs in the TUI list view, splitting the current ID column into a Date column (13 chars) and a Slug column (variable width). This will ensure the full date is always visible while giving more space to display the meaningful slug portion of ticket IDs.
 
 ## Tasks
-- [ ] Modify column width calculations in `list.go` to accommodate separate date and slug columns
-- [ ] Update header format (lines 242-247) to show "Date" and "Slug" instead of "ID"
-- [ ] Parse ticket ID to extract date and slug parts in the display loop
-- [ ] Update row formatting (lines 311-315) to display date and slug in separate columns
-- [ ] Adjust total width calculations to ensure proper layout
-- [ ] Test with various terminal widths to ensure responsive behavior
-- [ ] Ensure truncation works properly for long slugs in the slug column
-- [ ] Run `make test` to run the tests
-- [ ] Run `make vet`, `make fmt` and `make lint`
+- [x] Modify column width calculations in `list.go` to accommodate separate date and slug columns
+- [x] Update header format (lines 242-247) to show "Date" and "Slug" instead of "ID"
+- [x] Parse ticket ID to extract date and slug parts in the display loop
+- [x] Update row formatting (lines 311-315) to display date and slug in separate columns
+- [x] Adjust total width calculations to ensure proper layout
+- [x] Test with various terminal widths to ensure responsive behavior
+- [x] Ensure truncation works properly for long slugs in the slug column
+- [x] Run `make test` to run the tests
+- [x] Run `make vet`, `make fmt` and `make lint`
 - [ ] Update documentation if necessary
 - [ ] Get developer approval before closing
 
