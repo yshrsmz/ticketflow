@@ -3,7 +3,7 @@ priority: 2
 description: Add toggle key to cycle between ID, slug, and description display modes in TUI list
 created_at: "2025-07-29T10:52:36+09:00"
 started_at: "2025-07-29T11:10:09+09:00"
-closed_at: null
+closed_at: "2025-07-29T13:45:31+09:00"
 related:
     - 250728-230137-improve-tui-ticket-title-visibility
 ---
