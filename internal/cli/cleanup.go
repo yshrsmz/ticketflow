@@ -104,7 +104,8 @@ func (app *App) cleanStaleBranches(dryRun bool) error {
 	branches := splitLines(output)
 
 	// Get all tickets (including done ones)
-	allTickets, err := app.Manager.List("")
+	// Pass "all" to include done tickets
+	allTickets, err := app.Manager.List("all")
 	if err != nil {
 		return fmt.Errorf("failed to list tickets: %w", err)
 	}
@@ -182,7 +183,7 @@ func (app *App) CleanupStats() error {
 	output, err := app.Git.Exec("branch", "--format=%(refname:short)")
 	if err == nil {
 		branches := splitLines(output)
-		allTickets, _ := app.Manager.List("")
+		allTickets, _ := app.Manager.List("all")
 
 		ticketStatus := make(map[string]ticket.Status)
 		for _, t := range allTickets {
