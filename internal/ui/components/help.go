@@ -46,7 +46,6 @@ func NewHelpModel() HelpModel {
 				{Key: "shift+tab", Desc: "Previous tab"},
 				{Key: "1/2/3", Desc: "Jump to TODO/DOING/DONE"},
 				{Key: "a", Desc: "Show all tickets"},
-				{Key: "d", Desc: "Toggle display mode"},
 				{Key: "esc", Desc: "Back/Cancel"},
 				{Key: "r", Desc: "Refresh"},
 			},
