@@ -192,8 +192,10 @@ func (app *App) ListTickets(status ticket.Status, count int, format OutputFormat
 		statusFilter = ticket.StatusFilterDoing
 	case ticket.StatusDone:
 		statusFilter = ticket.StatusFilterDone
-	default:
+	case "all":
 		statusFilter = ticket.StatusFilterAll
+	default:
+		return fmt.Errorf("invalid status filter: %s", status)
 	}
 
 	tickets, err := app.Manager.List(statusFilter)

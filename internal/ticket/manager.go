@@ -93,6 +93,9 @@ func (m *Manager) Get(id string) (*Ticket, error) {
 func (m *Manager) List(statusFilter StatusFilter) ([]Ticket, error) {
 	// Determine which directories to search
 	dirs := m.getDirectoriesForStatus(statusFilter)
+	if dirs == nil {
+		return nil, fmt.Errorf("invalid status filter: %s", statusFilter)
+	}
 
 	var tickets []Ticket
 	for _, dir := range dirs {
@@ -151,12 +154,9 @@ func (m *Manager) getDirectoriesForStatus(statusFilter StatusFilter) []string {
 			m.config.GetDoingPath(m.projectRoot),
 			m.config.GetDonePath(m.projectRoot),
 		}
-	default: // For backward compatibility, treat unknown values as "all"
-		return []string{
-			m.config.GetTodoPath(m.projectRoot),
-			m.config.GetDoingPath(m.projectRoot),
-			m.config.GetDonePath(m.projectRoot),
-		}
+	default:
+		// Return nil to indicate invalid filter
+		return nil
 	}
 }
 
