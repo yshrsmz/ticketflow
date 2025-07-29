@@ -13,15 +13,15 @@ related:
 Implement responsive ID column width that adapts based on terminal width. Instead of a fixed 20-character width, the ID column should use a percentage of available terminal width with minimum and maximum constraints, allowing more space for ticket IDs on wider terminals.
 
 ## Tasks
-- [ ] Replace fixed `idWidth := 20` with dynamic calculation based on terminal width
-- [ ] Implement percentage-based width calculation (e.g., 25% of terminal width)
-- [ ] Add minimum width constraint (20 characters) to ensure readability
-- [ ] Add maximum width constraint (40 characters) to prevent excessive space usage
-- [ ] Update column width recalculation when terminal is resized
-- [ ] Test with various terminal widths (80, 100, 120, 160 columns)
-- [ ] Ensure other columns adjust properly with dynamic ID width
-- [ ] Run `make test` to run the tests
-- [ ] Run `make vet`, `make fmt` and `make lint`
+- [x] Replace fixed `idWidth := 20` with dynamic calculation based on terminal width
+- [x] Implement percentage-based width calculation (e.g., 25% of terminal width)
+- [x] Add minimum width constraint (20 characters) to ensure readability
+- [x] Add maximum width constraint (40 characters) to prevent excessive space usage
+- [x] Update column width recalculation when terminal is resized
+- [x] Test with various terminal widths (80, 100, 120, 160 columns)
+- [x] Ensure other columns adjust properly with dynamic ID width
+- [x] Run `make test` to run the tests
+- [x] Run `make vet`, `make fmt` and `make lint`
 - [ ] Update documentation if necessary
 - [ ] Get developer approval before closing
 
@@ -48,3 +48,20 @@ if idWidth > 40 {
 - Need to ensure description column still has adequate space
 - Column widths should recalculate on terminal resize
 - May want to make the percentage configurable in the future
+
+## Implementation Summary
+
+Successfully implemented responsive ID column width in `internal/ui/views/list.go`:
+
+- Replaced the fixed `idWidth := 20` with a dynamic calculation based on terminal width
+- The ID column now uses 25% of the terminal width
+- Implemented constraints: minimum 20 characters, maximum 40 characters
+- The calculation automatically updates when the terminal is resized (via the existing `SetSize` method)
+
+### Testing Results:
+- 80 columns terminal: ID width = 20 (minimum)
+- 100 columns terminal: ID width = 25
+- 120 columns terminal: ID width = 30
+- 160+ columns terminal: ID width = 40 (maximum)
+
+The implementation ensures better visibility of ticket IDs on wider terminals while maintaining readability on narrow terminals. The description column automatically adjusts to use the remaining space.
