@@ -3,7 +3,7 @@ priority: 2
 description: Split ticket ID display into separate date and slug columns in TUI list view
 created_at: "2025-07-29T10:51:28+09:00"
 started_at: "2025-07-29T11:10:01+09:00"
-closed_at: null
+closed_at: "2025-07-29T13:16:29+09:00"
 related:
     - 250728-230137-improve-tui-ticket-title-visibility
 ---
