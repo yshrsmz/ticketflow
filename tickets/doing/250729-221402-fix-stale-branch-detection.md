@@ -42,8 +42,8 @@ Expected behavior:
 - [x] Test the fix with multiple done tickets
 - [x] Run `make test` to ensure no regressions
 - [x] Run `make vet`, `make fmt` and `make lint`
-- [ ] Update tests if the branch matching logic changes
-- [ ] Document any changes to branch naming conventions
+- [x] Update tests if the branch matching logic changes
+- [x] Document any changes to branch naming conventions
 - [x] Update the ticket with insights from resolving this ticket
 - [ ] Get developer approval before closing
 
