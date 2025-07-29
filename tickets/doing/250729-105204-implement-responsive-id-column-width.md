@@ -1,11 +1,11 @@
 ---
 priority: 2
-description: "Make ID column width responsive based on terminal width in TUI list view"
+description: Make ID column width responsive based on terminal width in TUI list view
 created_at: "2025-07-29T10:52:04+09:00"
-started_at: null
+started_at: "2025-07-29T11:10:05+09:00"
 closed_at: null
 related:
-  - 250728-230137-improve-tui-ticket-title-visibility
+    - 250728-230137-improve-tui-ticket-title-visibility
 ---
 
 # Ticket Overview
