@@ -41,13 +41,15 @@ In the TUI list view, ticket titles are displayed using their full filenames whi
 
 ### Detailed Solution Proposals:
 
-#### Solution 1: Show Only Slug in List View
+#### ~~Solution 1: Show Only Slug in List View~~
+- **Rejected**: we need to display date/time as well
 - **Implementation**: Change line 305 to `id := truncate(t.Slug, idWidth)`
 - **Pros**: Maximum visibility for meaningful content, simple one-line change
 - **Cons**: No date/time info visible, potential confusion with duplicate slugs
 - **Example**: `improve-tui-ticket-t...` instead of `250728-230137-improv...`
 
-#### Solution 2: Smart Truncation (Date + Slug End)
+#### ~~Solution 2: Smart Truncation (Date + Slug End)~~
+- **Rejected**: this is not readable
 - **Implementation**: Create new function `smartTruncateID()` that shows first 6 chars + "..." + last N chars
 - **Code Example**:
   ```go
@@ -76,7 +78,8 @@ In the TUI list view, ticket titles are displayed using their full filenames whi
 - **Pros**: Full date visible, slug gets dedicated space
 - **Cons**: More complex layout changes, less space for description
 
-#### Solution 4: Use Description Field as Primary Display
+#### ~~Solution 4: Use Description Field as Primary Display~~
+- **Rejected**: description is already displayed.
 - **Implementation**: 
   ```go
   displayText := t.Description
@@ -98,7 +101,8 @@ In the TUI list view, ticket titles are displayed using their full filenames whi
 - **Pros**: Adapts to available space
 - **Cons**: Layout shifts as window resizes
 
-#### Solution 6: Selection-Based Expansion
+#### ~~Solution 6: Selection-Based Expansion~~
+- **Rejected**: We want it to be accessible by default
 - **Implementation**: Show full ID only for selected ticket
   ```go
   if i == m.cursor {
