@@ -21,6 +21,15 @@ const (
 	ActionRefresh
 )
 
+// DisplayMode represents the display mode for ticket IDs
+type DisplayMode int
+
+const (
+	DisplayID DisplayMode = iota // Show full ticket ID (default)
+	DisplaySlug                  // Show slug only
+	DisplayDescription           // Show description (fallback to slug if empty)
+)
+
 // TicketListModel represents the ticket list view
 type TicketListModel struct {
 	manager         *ticket.Manager
@@ -36,6 +45,7 @@ type TicketListModel struct {
 	searchQuery     string
 	width           int
 	height          int
+	displayMode     DisplayMode
 }
 
 // NewTicketListModel creates a new ticket list model
@@ -46,6 +56,7 @@ func NewTicketListModel(manager *ticket.Manager) TicketListModel {
 		action:          ActionNone,
 		activeTab:       0, // Start with ALL tab
 		filteredTickets: []ticket.Ticket{},
+		displayMode:     DisplayID, // Default to showing full ID
 	}
 }
 
@@ -176,6 +187,10 @@ func (m TicketListModel) Update(msg tea.Msg) (TicketListModel, tea.Cmd) {
 			m.statusFilter = ""
 			m.cursor = 0
 			return m, m.loadTickets()
+
+		case "d":
+			// Cycle display mode
+			m.displayMode = (m.displayMode + 1) % 3
 		}
 
 	case ticketsLoadedMsg:
@@ -238,9 +253,18 @@ func (m TicketListModel) View() string {
 	priorityWidth := 3
 	descWidth := m.width - idWidth - statusWidth - priorityWidth - 8 // padding and borders
 
-	// Header
+	// Header with display mode
+	var displayModeText string
+	switch m.displayMode {
+	case DisplaySlug:
+		displayModeText = "Slug"
+	case DisplayDescription:
+		displayModeText = "Description"
+	default:
+		displayModeText = "ID"
+	}
 	header := fmt.Sprintf("%-*s %-*s %-*s %s",
-		idWidth, "ID",
+		idWidth, displayModeText,
 		statusWidth, "Status",
 		priorityWidth, "Pri",
 		"Description")
@@ -302,7 +326,21 @@ func (m TicketListModel) View() string {
 			statusStyle := styles.GetStatusStyle(string(t.Status()))
 			priorityStyle := styles.GetPriorityStyle(t.Priority)
 
-			id := truncate(t.ID, idWidth)
+			// Determine display text based on mode
+			var displayText string
+			switch m.displayMode {
+			case DisplaySlug:
+				displayText = t.Slug
+			case DisplayDescription:
+				if t.Description != "" {
+					displayText = t.Description
+				} else {
+					displayText = t.Slug
+				}
+			default:
+				displayText = t.ID
+			}
+			id := truncate(displayText, idWidth)
 			status := statusStyle.Render(fmt.Sprintf("%-*s", statusWidth, t.Status()))
 			priority := priorityStyle.Render(fmt.Sprintf("%d", t.Priority))
 
