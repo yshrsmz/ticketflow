@@ -186,4 +186,3 @@ func TestAutoCleanupDryRun(t *testing.T) {
 	require.NoError(t, err)
 	assert.Contains(t, output, ticketID)
 }
-

@@ -284,4 +284,3 @@ func TestCleanupStatsWithDoneTickets(t *testing.T) {
 	// Should have 3 stale branches (the done tickets)
 	assert.Equal(t, 3, staleCount)
 }
-
