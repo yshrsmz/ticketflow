@@ -3,6 +3,7 @@ package cli
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -46,7 +47,12 @@ func TestAutoCleanupStaleBranches(t *testing.T) {
 
 	// Create config
 	cfg := config.Default()
-	cfg.Git.DefaultBranch = "main"
+	
+	// Check what the default branch actually is
+	defaultBranch, err := gitOps.Exec("rev-parse", "--abbrev-ref", "HEAD")
+	require.NoError(t, err)
+	defaultBranch = strings.TrimSpace(defaultBranch)
+	cfg.Git.DefaultBranch = defaultBranch
 	cfg.Tickets.Dir = "tickets"
 	cfg.Worktree.Enabled = false // Disable worktrees for this test
 
@@ -104,7 +110,7 @@ func TestAutoCleanupStaleBranches(t *testing.T) {
 		// Create branch for the ticket
 		_, err = gitOps.Exec("checkout", "-b", tc.id)
 		require.NoError(t, err)
-		_, err = gitOps.Exec("checkout", "main")
+		_, err = gitOps.Exec("checkout", defaultBranch)
 		require.NoError(t, err)
 	}
 
@@ -139,7 +145,7 @@ func TestAutoCleanupStaleBranches(t *testing.T) {
 	assert.NotContains(t, branches, "ticket-1") // Should be removed (done)
 	assert.NotContains(t, branches, "ticket-2") // Should be removed (done)
 	assert.Contains(t, branches, "ticket-3")    // Should still exist (doing)
-	assert.Contains(t, branches, "main")        // Should still exist
+	assert.Contains(t, branches, defaultBranch)  // Should still exist
 }
 
 func TestCleanupStatsWithDoneTickets(t *testing.T) {
@@ -175,7 +181,12 @@ func TestCleanupStatsWithDoneTickets(t *testing.T) {
 
 	// Create config
 	cfg := config.Default()
-	cfg.Git.DefaultBranch = "main"
+	
+	// Check what the default branch actually is
+	defaultBranch, err := gitOps.Exec("rev-parse", "--abbrev-ref", "HEAD")
+	require.NoError(t, err)
+	defaultBranch = strings.TrimSpace(defaultBranch)
+	cfg.Git.DefaultBranch = defaultBranch
 	cfg.Tickets.Dir = "tickets"
 
 	// Create ticket directories
@@ -214,7 +225,7 @@ func TestCleanupStatsWithDoneTickets(t *testing.T) {
 		// Create branch
 		_, err = gitOps.Exec("checkout", "-b", id)
 		require.NoError(t, err)
-		_, err = gitOps.Exec("checkout", "main")
+		_, err = gitOps.Exec("checkout", defaultBranch)
 		require.NoError(t, err)
 	}
 
@@ -262,7 +273,7 @@ func TestCleanupStatsWithDoneTickets(t *testing.T) {
 
 	staleCount := 0
 	for _, branch := range branches {
-		if branch == "main" {
+		if branch == defaultBranch {
 			continue
 		}
 		if status, exists := ticketStatus[branch]; exists && status == ticket.StatusDone {
