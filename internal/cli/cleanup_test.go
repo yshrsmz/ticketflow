@@ -123,8 +123,10 @@ func TestAutoCleanupStaleBranches(t *testing.T) {
 	assert.Contains(t, branches, "ticket-3")
 
 	// Run auto cleanup with dry run
-	err = app.AutoCleanup(true)
+	result, err := app.AutoCleanup(true)
 	require.NoError(t, err)
+	assert.Equal(t, 2, result.StaleBranches, "Should detect 2 stale branches in dry run")
+	assert.Equal(t, 0, result.OrphanedWorktrees, "Should not detect orphaned worktrees (disabled)")
 
 	// Verify branches still exist (dry run)
 	output, err = gitOps.Exec("branch", "--format=%(refname:short)")
@@ -135,8 +137,10 @@ func TestAutoCleanupStaleBranches(t *testing.T) {
 	assert.Contains(t, branches, "ticket-3")
 
 	// Run actual cleanup
-	err = app.AutoCleanup(false)
+	result, err = app.AutoCleanup(false)
 	require.NoError(t, err)
+	assert.Equal(t, 2, result.StaleBranches, "Should clean 2 stale branches")
+	assert.Equal(t, 0, result.OrphanedWorktrees, "Should not clean orphaned worktrees (disabled)")
 
 	// Verify only done ticket branches were removed
 	output, err = gitOps.Exec("branch", "--format=%(refname:short)")
