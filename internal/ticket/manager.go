@@ -10,6 +10,11 @@ import (
 	"github.com/yshrsmz/ticketflow/internal/config"
 )
 
+// Status filter constants for List method
+const (
+	StatusFilterAll = "all" // Include all tickets (todo, doing, done)
+)
+
 // Manager manages ticket operations
 type Manager struct {
 	config      *config.Config
@@ -133,7 +138,7 @@ func (m *Manager) getDirectoriesForStatus(statusFilter string) []string {
 			m.config.GetTodoPath(m.projectRoot),
 			m.config.GetDoingPath(m.projectRoot),
 		}
-	default: // All tickets
+	default: // All tickets (including done) - handles StatusFilterAll and any other value
 		return []string{
 			m.config.GetTodoPath(m.projectRoot),
 			m.config.GetDoingPath(m.projectRoot),

@@ -67,3 +67,4 @@ This change was made in two places:
 2. In `CleanupStats` function (line 187)
 
 After the fix, the cleanup command correctly identifies and removes branches for done tickets. The issue was not related to branch naming or matching logic, but simply that done tickets weren't being loaded for comparison.
+

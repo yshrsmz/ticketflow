@@ -251,7 +251,7 @@ func TestCleanupStatsWithDoneTickets(t *testing.T) {
 	branches := splitLines(output)
 
 	// Get all tickets
-	allTickets, err := manager.List("all")
+	allTickets, err := manager.List(ticket.StatusFilterAll)
 	require.NoError(t, err)
 
 	// Count stale branches manually
