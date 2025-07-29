@@ -10,6 +10,18 @@ import (
 	"github.com/yshrsmz/ticketflow/internal/config"
 )
 
+// StatusFilter represents the filter type for listing tickets
+type StatusFilter string
+
+// Status filter constants for List method
+const (
+	StatusFilterAll    StatusFilter = "all"    // Include all tickets (todo, doing, done)
+	StatusFilterActive StatusFilter = "active" // Include only active tickets (todo, doing)
+	StatusFilterTodo   StatusFilter = "todo"   // Include only todo tickets
+	StatusFilterDoing  StatusFilter = "doing"  // Include only doing tickets
+	StatusFilterDone   StatusFilter = "done"   // Include only done tickets
+)
+
 // Manager manages ticket operations
 type Manager struct {
 	config      *config.Config
@@ -78,9 +90,12 @@ func (m *Manager) Get(id string) (*Ticket, error) {
 }
 
 // List lists tickets with optional status filter
-func (m *Manager) List(statusFilter string) ([]Ticket, error) {
+func (m *Manager) List(statusFilter StatusFilter) ([]Ticket, error) {
 	// Determine which directories to search
 	dirs := m.getDirectoriesForStatus(statusFilter)
+	if dirs == nil {
+		return nil, fmt.Errorf("invalid status filter: %s", statusFilter)
+	}
 
 	var tickets []Ticket
 	for _, dir := range dirs {
@@ -120,25 +135,28 @@ func (m *Manager) List(statusFilter string) ([]Ticket, error) {
 }
 
 // getDirectoriesForStatus returns the directories to search based on status filter
-func (m *Manager) getDirectoriesForStatus(statusFilter string) []string {
+func (m *Manager) getDirectoriesForStatus(statusFilter StatusFilter) []string {
 	switch statusFilter {
-	case "todo":
+	case StatusFilterTodo:
 		return []string{m.config.GetTodoPath(m.projectRoot)}
-	case "doing":
+	case StatusFilterDoing:
 		return []string{m.config.GetDoingPath(m.projectRoot)}
-	case "done":
+	case StatusFilterDone:
 		return []string{m.config.GetDonePath(m.projectRoot)}
-	case "": // All active tickets (todo and doing)
+	case StatusFilterActive, "": // Active tickets (todo and doing)
 		return []string{
 			m.config.GetTodoPath(m.projectRoot),
 			m.config.GetDoingPath(m.projectRoot),
 		}
-	default: // All tickets
+	case StatusFilterAll:
 		return []string{
 			m.config.GetTodoPath(m.projectRoot),
 			m.config.GetDoingPath(m.projectRoot),
 			m.config.GetDonePath(m.projectRoot),
 		}
+	default:
+		// Return nil to indicate invalid filter
+		return nil
 	}
 }
 

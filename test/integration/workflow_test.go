@@ -92,7 +92,7 @@ func TestCompleteWorkflow(t *testing.T) {
 	require.NoError(t, err)
 
 	// 3. List tickets
-	tickets, err := app.Manager.List("")
+	tickets, err := app.Manager.List(ticket.StatusFilterActive)
 	require.NoError(t, err)
 	assert.Len(t, tickets, 1)
 	assert.Equal(t, "test-feature", tickets[0].Slug)
@@ -188,7 +188,7 @@ func TestRestoreWorkflow(t *testing.T) {
 	err = app.NewTicket("restore-test", cli.FormatText)
 	require.NoError(t, err)
 
-	tickets, err := app.Manager.List("")
+	tickets, err := app.Manager.List(ticket.StatusFilterActive)
 	require.NoError(t, err)
 	ticketID := tickets[0].ID
 

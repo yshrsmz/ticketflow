@@ -10,6 +10,7 @@ import (
 	"github.com/yshrsmz/ticketflow/internal/cli"
 	"github.com/yshrsmz/ticketflow/internal/config"
 	"github.com/yshrsmz/ticketflow/internal/git"
+	"github.com/yshrsmz/ticketflow/internal/ticket"
 )
 
 func TestStartTicket_WorktreeCreatedAfterCommit(t *testing.T) {
@@ -59,7 +60,7 @@ func TestStartTicket_WorktreeCreatedAfterCommit(t *testing.T) {
 	require.NoError(t, err)
 
 	// Get ticket ID
-	tickets, err := app.Manager.List("")
+	tickets, err := app.Manager.List(ticket.StatusFilterActive)
 	require.NoError(t, err)
 	require.Len(t, tickets, 1)
 	ticketID := tickets[0].ID

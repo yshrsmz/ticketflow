@@ -388,7 +388,7 @@ USAGE:
   ticketflow status [options]         Show current status
   ticketflow worktree <command>       Manage worktrees
   ticketflow cleanup [options] <ticket> Clean up after PR merge
-  ticketflow cleanup [options]        Auto-cleanup old tickets/worktrees
+  ticketflow cleanup [options]        Auto-cleanup orphaned worktrees and stale branches
   ticketflow migrate [options]        Migrate ticket dates to new format
   ticketflow help                     Show this help
   ticketflow version                  Show version
@@ -450,6 +450,10 @@ EXAMPLES:
   # Clean up after PR merge (with force flag)
   ticketflow cleanup --force 250124-150000-implement-auth
 
+  # Auto-cleanup orphaned worktrees and stale branches for done tickets
+  ticketflow cleanup --dry-run  # Preview what would be cleaned
+  ticketflow cleanup            # Perform cleanup
+
 Use 'ticketflow <command> -h' for command-specific help.
 `, Version)
 }
@@ -498,7 +502,8 @@ func handleCleanup(dryRun bool) error {
 		fmt.Println("\nDry-run mode: No changes will be made.")
 	}
 
-	return app.AutoCleanup(dryRun)
+	_, err = app.AutoCleanup(dryRun)
+	return err
 }
 
 func handleCleanupTicket(ticketID string, force bool) error {

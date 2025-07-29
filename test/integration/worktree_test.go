@@ -11,6 +11,7 @@ import (
 	"github.com/yshrsmz/ticketflow/internal/cli"
 	"github.com/yshrsmz/ticketflow/internal/config"
 	"github.com/yshrsmz/ticketflow/internal/git"
+	"github.com/yshrsmz/ticketflow/internal/ticket"
 )
 
 func TestWorktreeWorkflow(t *testing.T) {
@@ -60,7 +61,7 @@ func TestWorktreeWorkflow(t *testing.T) {
 	require.NoError(t, err)
 
 	// 2. Start work on ticket (should create worktree)
-	tickets, err := app.Manager.List("")
+	tickets, err := app.Manager.List(ticket.StatusFilterActive)
 	require.NoError(t, err)
 	require.Len(t, tickets, 1)
 
@@ -169,7 +170,7 @@ func TestWorktreeCleanCommand(t *testing.T) {
 	_, err = gitCmd.Exec("commit", "-m", "Add test tickets")
 	require.NoError(t, err)
 
-	tickets, err := app.Manager.List("")
+	tickets, err := app.Manager.List(ticket.StatusFilterActive)
 	require.NoError(t, err)
 	require.Len(t, tickets, 3)
 
@@ -263,7 +264,7 @@ func TestWorktreeListCommand(t *testing.T) {
 	_, err = gitCmd.Exec("commit", "-m", "Add ticket")
 	require.NoError(t, err)
 
-	tickets, err := app.Manager.List("")
+	tickets, err := app.Manager.List(ticket.StatusFilterActive)
 	require.NoError(t, err)
 	err = app.StartTicket(tickets[0].ID)
 	require.NoError(t, err)

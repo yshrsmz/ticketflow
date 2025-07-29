@@ -198,6 +198,23 @@ ticketflow cleanup 250124-150000-implement-feature
 # Removes worktree and deletes local branch
 ```
 
+### Auto-cleanup
+
+Remove orphaned worktrees and stale branches for done tickets:
+
+```bash
+# Preview what would be cleaned
+ticketflow cleanup --dry-run
+
+# Perform cleanup
+ticketflow cleanup
+```
+
+The auto-cleanup command will:
+- Remove worktrees for tickets that no longer exist or are in done status
+- Delete local git branches for tickets that are marked as done
+- Show statistics of what was cleaned
+
 ## CLI Commands
 
 ### Core Commands
@@ -213,7 +230,8 @@ ticketflow cleanup 250124-150000-implement-feature
 | `ticketflow close [options]` | Close the current ticket |
 | `ticketflow restore` | Restore current-ticket symlink |
 | `ticketflow status [options]` | Show current status |
-| `ticketflow cleanup <id> [options]` | Clean up after PR merge |
+| `ticketflow cleanup <id> [options]` | Clean up specific ticket after PR merge |
+| `ticketflow cleanup [options]` | Auto-cleanup orphaned worktrees and stale branches |
 
 ### Worktree Commands
 

@@ -181,7 +181,24 @@ func (app *App) NewTicket(slug string, format OutputFormat) error {
 
 // ListTickets lists tickets
 func (app *App) ListTickets(status ticket.Status, count int, format OutputFormat) error {
-	tickets, err := app.Manager.List(string(status))
+	// Convert Status to StatusFilter
+	var statusFilter ticket.StatusFilter
+	switch status {
+	case "":
+		statusFilter = ticket.StatusFilterActive
+	case ticket.StatusTodo:
+		statusFilter = ticket.StatusFilterTodo
+	case ticket.StatusDoing:
+		statusFilter = ticket.StatusFilterDoing
+	case ticket.StatusDone:
+		statusFilter = ticket.StatusFilterDone
+	case "all":
+		statusFilter = ticket.StatusFilterAll
+	default:
+		return fmt.Errorf("invalid status filter: %s", status)
+	}
+
+	tickets, err := app.Manager.List(statusFilter)
 	if err != nil {
 		return err
 	}
@@ -644,7 +661,7 @@ func (app *App) Status(format OutputFormat) error {
 	}
 
 	// Get ticket stats
-	allTickets, err := app.Manager.List("all")
+	allTickets, err := app.Manager.List(ticket.StatusFilterAll)
 	if err != nil {
 		return err
 	}
@@ -790,7 +807,7 @@ func (app *App) outputTicketListJSON(tickets []*ticket.Ticket) error {
 	}
 
 	// Always calculate full summary from all tickets
-	allTickets, err := app.Manager.List("all")
+	allTickets, err := app.Manager.List(ticket.StatusFilterAll)
 	if err != nil {
 		return err
 	}
@@ -871,7 +888,7 @@ func (app *App) CleanWorktrees() error {
 	}
 
 	// Get all active tickets
-	activeTickets, err := app.Manager.List(string(ticket.StatusDoing))
+	activeTickets, err := app.Manager.List(ticket.StatusFilterDoing)
 	if err != nil {
 		return fmt.Errorf("failed to list active tickets: %w", err)
 	}
