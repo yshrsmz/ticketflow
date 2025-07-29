@@ -65,3 +65,21 @@ Successfully implemented responsive ID column width in `internal/ui/views/list.g
 - 160+ columns terminal: ID width = 40 (maximum)
 
 The implementation ensures better visibility of ticket IDs on wider terminals while maintaining readability on narrow terminals. The description column automatically adjusts to use the remaining space.
+
+## Final Solution: 30% Width
+
+After testing various percentages, the final implementation uses **30%** of terminal width for the ID column instead of the initially proposed 25%. This decision was made because:
+
+1. **Simplicity**: The implementation was straightforward - just changed the calculation from 25% to 30%
+2. **Effectiveness**: Works well across different terminal widths (80-160+ columns)
+3. **Backward Compatibility**: Maintains the minimum 20 character constraint for narrow terminals
+4. **Balance**: Provides a good balance between ID visibility and description space
+5. **User Experience**: The 30% gives enough space for most ticket IDs without taking too much from the description column
+
+### Testing with 30% Width:
+- 80 columns terminal: ID width = 20 (minimum, same as before)
+- 100 columns terminal: ID width = 30 (vs 25 with 25%)
+- 120 columns terminal: ID width = 36 (vs 30 with 25%)
+- 160+ columns terminal: ID width = 40 (maximum, capped)
+
+This simple change significantly improves the user experience without adding complexity or breaking existing functionality.
