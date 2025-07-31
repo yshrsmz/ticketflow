@@ -3,7 +3,7 @@ priority: 2
 description: Update the default ticket template in the code to use English instead of Japanese
 created_at: "2025-07-31T15:54:47+09:00"
 started_at: "2025-07-31T15:58:52+09:00"
-closed_at: null
+closed_at: "2025-07-31T18:17:00+09:00"
 ---
 
 # Ticket Overview
