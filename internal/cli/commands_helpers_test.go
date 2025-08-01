@@ -12,7 +12,7 @@ import (
 
 func TestCountTicketsByStatus(t *testing.T) {
 	now := time.Now()
-	
+
 	tests := []struct {
 		name      string
 		tickets   []ticket.Ticket
@@ -32,7 +32,7 @@ func TestCountTicketsByStatus(t *testing.T) {
 			tickets: []ticket.Ticket{
 				{Path: "/todo/ticket1.md"}, // Todo - no times set
 				{Path: "/todo/ticket2.md"}, // Todo - no times set
-				{Path: "/doing/ticket3.md", StartedAt: ticket.RFC3339TimePtr{Time: &now}}, // Doing - started
+				{Path: "/doing/ticket3.md", StartedAt: ticket.RFC3339TimePtr{Time: &now}},                                             // Doing - started
 				{Path: "/done/ticket4.md", StartedAt: ticket.RFC3339TimePtr{Time: &now}, ClosedAt: ticket.RFC3339TimePtr{Time: &now}}, // Done
 				{Path: "/done/ticket5.md", StartedAt: ticket.RFC3339TimePtr{Time: &now}, ClosedAt: ticket.RFC3339TimePtr{Time: &now}}, // Done
 				{Path: "/done/ticket6.md", StartedAt: ticket.RFC3339TimePtr{Time: &now}, ClosedAt: ticket.RFC3339TimePtr{Time: &now}}, // Done
@@ -70,7 +70,7 @@ func TestCalculateWorkDuration(t *testing.T) {
 	twoHoursAgo := now.Add(-2 * time.Hour)
 
 	tests := []struct {
-		name string
+		name   string
 		ticket *ticket.Ticket
 		want   string
 	}{
@@ -164,42 +164,42 @@ func TestExtractParentTicketID(t *testing.T) {
 
 func TestCheckExistingWorktree(t *testing.T) {
 	tests := []struct {
-		name          string
+		name            string
 		worktreeEnabled bool
-		hasWorktree   bool
-		checkError    error
-		wantErr       bool
-		errContains   string
+		hasWorktree     bool
+		checkError      error
+		wantErr         bool
+		errContains     string
 	}{
 		{
-			name:          "worktree disabled",
+			name:            "worktree disabled",
 			worktreeEnabled: false,
-			hasWorktree:   false,
-			checkError:    nil,
-			wantErr:       false,
+			hasWorktree:     false,
+			checkError:      nil,
+			wantErr:         false,
 		},
 		{
-			name:          "worktree does not exist",
+			name:            "worktree does not exist",
 			worktreeEnabled: true,
-			hasWorktree:   false,
-			checkError:    nil,
-			wantErr:       false,
+			hasWorktree:     false,
+			checkError:      nil,
+			wantErr:         false,
 		},
 		{
-			name:          "worktree already exists",
+			name:            "worktree already exists",
 			worktreeEnabled: true,
-			hasWorktree:   true,
-			checkError:    nil,
-			wantErr:       true,
-			errContains:   "Worktree already exists",
+			hasWorktree:     true,
+			checkError:      nil,
+			wantErr:         true,
+			errContains:     "Worktree already exists",
 		},
 		{
-			name:          "check worktree error",
+			name:            "check worktree error",
 			worktreeEnabled: true,
-			hasWorktree:   false,
-			checkError:    assert.AnError,
-			wantErr:       true,
-			errContains:   "failed to check worktree",
+			hasWorktree:     false,
+			checkError:      assert.AnError,
+			wantErr:         true,
+			errContains:     "failed to check worktree",
 		},
 	}
 

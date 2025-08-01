@@ -12,7 +12,7 @@ import (
 
 func TestValidateTicketForStart(t *testing.T) {
 	now := time.Now()
-	
+
 	tests := []struct {
 		name    string
 		ticket  *ticket.Ticket
@@ -53,7 +53,7 @@ func TestValidateTicketForStart(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			m := &Model{}
 			err := m.validateTicketForStart(tt.ticket)
-			
+
 			if tt.wantErr {
 				assert.Error(t, err)
 				assert.Contains(t, err.Error(), tt.errMsg)
@@ -66,12 +66,12 @@ func TestValidateTicketForStart(t *testing.T) {
 
 func TestCheckWorkspaceForStart(t *testing.T) {
 	tests := []struct {
-		name              string
-		worktreeEnabled   bool
-		hasUncommitted    bool
-		checkError        error
-		wantErr           bool
-		errContains       string
+		name            string
+		worktreeEnabled bool
+		hasUncommitted  bool
+		checkError      error
+		wantErr         bool
+		errContains     string
 	}{
 		{
 			name:            "worktree enabled - no check needed",
