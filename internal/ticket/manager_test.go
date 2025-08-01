@@ -1,6 +1,7 @@
 package ticket
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
@@ -9,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/yshrsmz/ticketflow/internal/config"
+	ticketerrors "github.com/yshrsmz/ticketflow/internal/errors"
 )
 
 func setupTestManager(t *testing.T) (*Manager, string) {
@@ -99,7 +101,7 @@ func TestManagerGetNotFound(t *testing.T) {
 
 	_, err := manager.Get("nonexistent")
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "ticket not found")
+	assert.True(t, errors.Is(err, ticketerrors.ErrTicketNotFound))
 }
 
 func TestManagerGetAmbiguous(t *testing.T) {

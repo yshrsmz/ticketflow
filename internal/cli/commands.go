@@ -194,7 +194,7 @@ func (app *App) NewTicket(slug string, format OutputFormat) error {
 	// Create ticket
 	t, err := app.Manager.Create(slug)
 	if err != nil {
-		return err
+		return ConvertError(err)
 	}
 
 	// If this is a sub-ticket, update its metadata
@@ -373,7 +373,7 @@ func (app *App) RestoreCurrentTicket() error {
 	// Try to get ticket by branch name
 	t, err := app.Manager.Get(branch)
 	if err != nil {
-		return fmt.Errorf("no ticket found for branch %s", branch)
+		return ConvertError(fmt.Errorf("no ticket found for branch %s", branch))
 	}
 
 	// Set current ticket
@@ -390,7 +390,7 @@ func (app *App) Status(format OutputFormat) error {
 	// Get current ticket
 	current, err := app.Manager.GetCurrentTicket()
 	if err != nil {
-		return err
+		return ConvertError(err)
 	}
 
 	// Get current branch
@@ -601,7 +601,7 @@ func (app *App) CleanupTicket(ticketID string, force bool) error {
 	// Get the ticket to verify it exists and is done
 	t, err := app.Manager.Get(ticketID)
 	if err != nil {
-		return err
+		return ConvertError(err)
 	}
 
 	// Check if ticket is done
@@ -684,7 +684,7 @@ func (app *App) validateTicketForStart(ticketID string) (*ticket.Ticket, error) 
 	// Get the ticket
 	t, err := app.Manager.Get(ticketID)
 	if err != nil {
-		return nil, err
+		return nil, ConvertError(err)
 	}
 
 	// Check if already started
@@ -837,7 +837,7 @@ func (app *App) validateTicketForClose(force bool) (*ticket.Ticket, string, erro
 	// Get current ticket
 	current, err := app.Manager.GetCurrentTicket()
 	if err != nil {
-		return nil, "", err
+		return nil, "", ConvertError(err)
 	}
 	if current == nil {
 		return nil, "", NewError(ErrTicketNotStarted, "No active ticket",

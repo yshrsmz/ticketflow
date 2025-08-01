@@ -1,6 +1,7 @@
 package ticket
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -8,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/yshrsmz/ticketflow/internal/config"
+	ticketerrors "github.com/yshrsmz/ticketflow/internal/errors"
 )
 
 // StatusFilter represents the filter type for listing tickets
@@ -48,7 +50,7 @@ func (m *Manager) Create(slug string) (*Ticket, error) {
 
 	// Check if ticket already exists in any directory
 	if _, err := m.FindTicket(id); err == nil {
-		return nil, fmt.Errorf("ticket already exists: %s", id)
+		return nil, ticketerrors.NewTicketError("create", id, ticketerrors.ErrTicketExists)
 	}
 
 	// Create ticket in todo directory
@@ -70,11 +72,11 @@ func (m *Manager) Create(slug string) (*Ticket, error) {
 	// Write ticket file
 	data, err := ticket.ToBytes()
 	if err != nil {
-		return nil, fmt.Errorf("failed to serialize ticket: %w", err)
+		return nil, ticketerrors.NewTicketError("create", id, fmt.Errorf("failed to serialize ticket: %w", err))
 	}
 
 	if err := os.WriteFile(ticketPath, data, 0644); err != nil {
-		return nil, fmt.Errorf("failed to write ticket file: %w", err)
+		return nil, ticketerrors.NewTicketError("create", id, fmt.Errorf("failed to write ticket file: %w", err))
 	}
 
 	return ticket, nil
@@ -163,16 +165,16 @@ func (m *Manager) getDirectoriesForStatus(statusFilter StatusFilter) []string {
 // Update updates a ticket
 func (m *Manager) Update(ticket *Ticket) error {
 	if ticket.Path == "" {
-		return fmt.Errorf("ticket path not set")
+		return ticketerrors.NewTicketError("update", ticket.ID, ticketerrors.ErrTicketInvalid)
 	}
 
 	data, err := ticket.ToBytes()
 	if err != nil {
-		return fmt.Errorf("failed to serialize ticket: %w", err)
+		return ticketerrors.NewTicketError("update", ticket.ID, fmt.Errorf("failed to serialize ticket: %w", err))
 	}
 
 	if err := os.WriteFile(ticket.Path, data, 0644); err != nil {
-		return fmt.Errorf("failed to write ticket file: %w", err)
+		return ticketerrors.NewTicketError("update", ticket.ID, fmt.Errorf("failed to write ticket file: %w", err))
 	}
 
 	return nil
@@ -225,12 +227,12 @@ func (m *Manager) SetCurrentTicket(ticket *Ticket) error {
 func (m *Manager) loadTicket(path string) (*Ticket, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read ticket file: %w", err)
+		return nil, ticketerrors.NewTicketError("read", filepath.Base(path), fmt.Errorf("failed to read ticket file: %w", err))
 	}
 
 	ticket, err := Parse(data)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse ticket: %w", err)
+		return nil, ticketerrors.NewTicketError("parse", filepath.Base(path), fmt.Errorf("failed to parse ticket: %w", err))
 	}
 
 	// Set computed fields
@@ -279,7 +281,7 @@ func (m *Manager) findTicketInDir(ticketID, dir string) (string, error) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return "", fmt.Errorf("directory not found")
+			return "", ticketerrors.ErrTicketNotFound
 		}
 		return "", fmt.Errorf("failed to read directory: %w", err)
 	}
@@ -297,10 +299,10 @@ func (m *Manager) findTicketInDir(ticketID, dir string) (string, error) {
 	}
 
 	if len(matches) == 0 {
-		return "", fmt.Errorf("ticket not found")
+		return "", ticketerrors.ErrTicketNotFound
 	}
 	if len(matches) > 1 {
-		return "", fmt.Errorf("ambiguous ticket ID, multiple matches found")
+		return "", ticketerrors.NewTicketError("find", ticketID, fmt.Errorf("ambiguous ticket ID, multiple matches found"))
 	}
 
 	return matches[0], nil
@@ -322,7 +324,7 @@ func (m *Manager) FindTicket(ticketID string) (string, error) {
 			return path, nil
 		}
 		// Keep track of errors other than "not found"
-		if err != nil && !strings.Contains(err.Error(), "not found") {
+		if err != nil && !errors.Is(err, ticketerrors.ErrTicketNotFound) {
 			lastErr = err
 		}
 	}
@@ -332,5 +334,5 @@ func (m *Manager) FindTicket(ticketID string) (string, error) {
 		return "", lastErr
 	}
 
-	return "", fmt.Errorf("ticket not found: %s", ticketID)
+	return "", ticketerrors.NewTicketError("find", ticketID, ticketerrors.ErrTicketNotFound)
 }

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os/exec"
 	"strings"
+
+	ticketerrors "github.com/yshrsmz/ticketflow/internal/errors"
 )
 
 // Git provides git operations
@@ -111,7 +113,7 @@ func FindProjectRoot(startPath string) (string, error) {
 	cmd.Stdout = &stdout
 
 	if err := cmd.Run(); err != nil {
-		return "", fmt.Errorf("not in a git repository")
+		return "", ticketerrors.ErrNotGitRepo
 	}
 
 	return strings.TrimSpace(stdout.String()), nil

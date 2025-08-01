@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	ticketerrors "github.com/yshrsmz/ticketflow/internal/errors"
 )
 
 // WorktreeInfo represents worktree information
@@ -60,7 +62,7 @@ func (g *Git) ListWorktrees() ([]WorktreeInfo, error) {
 func (g *Git) AddWorktree(path, branch string) error {
 	// Create parent directory if needed
 	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
-		return fmt.Errorf("failed to create worktree directory: %w", err)
+		return ticketerrors.NewWorktreeError("create", path, fmt.Errorf("failed to create worktree directory: %w", err))
 	}
 
 	_, err := g.Exec("worktree", "add", path, "-b", branch)
