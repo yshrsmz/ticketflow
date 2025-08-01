@@ -56,6 +56,7 @@ make release-archives   # Create release archives with checksums
 3. **Model-View Architecture**: Clear separation between business logic (internal packages) and UI layers
 4. **Command Pattern**: CLI commands are self-contained with their own Execute methods
 5. **Interface-based Git Operations**: Git package provides an abstraction over git commands
+6. **Small, Focused Functions**: Following Single Responsibility Principle, complex operations are decomposed into smaller helper functions for better maintainability and testability
 
 ### Configuration (.ticketflow.yaml)
 The application is configured via .ticketflow.yaml which controls:
@@ -69,6 +70,15 @@ The application is configured via .ticketflow.yaml which controls:
 - Integration tests in test/integration/ verify full workflows
 - Test files follow Go convention (*_test.go) alongside implementation
 - Mock implementations provided for Git operations to enable testing without real git repos
+- Helper functions are thoroughly tested with table-driven tests for better coverage
+
+### Code Organization Best Practices
+- **Function Size**: Keep functions under 50 lines when possible
+- **Single Responsibility**: Each function should do one thing well
+- **Clear Naming**: Use descriptive verb-noun combinations (e.g., `validateTicket`, `createWorktree`)
+- **Error Handling**: Wrap errors with context using `fmt.Errorf` for better debugging
+- **Helper Functions**: Extract common validation, setup, and cleanup logic into reusable helpers
+- **Early Returns**: Use guard clauses to reduce nesting and improve readability
 
 ### Version Management
 Version information is embedded at build time using ldflags:
