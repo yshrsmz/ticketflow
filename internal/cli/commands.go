@@ -964,46 +964,46 @@ func (app *App) moveTicketToDoing(t *ticket.Ticket, currentBranch string) error 
 	if err := t.Start(); err != nil {
 		return fmt.Errorf("failed to start ticket: %w", err)
 	}
-	
+
 	// Move ticket to doing
 	doingPath := app.Config.GetDoingPath(app.ProjectRoot)
 	newPath := filepath.Join(doingPath, filepath.Base(t.Path))
-	
+
 	// Ensure doing directory exists
 	if err := os.MkdirAll(doingPath, 0755); err != nil {
 		return fmt.Errorf("failed to create doing directory: %w", err)
 	}
-	
+
 	// Store the old path before moving
 	oldPath := t.Path
-	
+
 	// Move the file
 	if err := os.Rename(t.Path, newPath); err != nil {
 		return fmt.Errorf("failed to move ticket to doing: %w", err)
 	}
-	
+
 	// Update ticket path
 	t.Path = newPath
-	
+
 	// Update the ticket with new path and started timestamp
 	if err := app.Manager.Update(t); err != nil {
 		return fmt.Errorf("failed to update ticket: %w", err)
 	}
-	
+
 	// Stage and commit the move - use -A to handle the rename properly
 	if err := app.Git.Add("-A", filepath.Dir(oldPath), filepath.Dir(newPath)); err != nil {
 		return fmt.Errorf("failed to stage ticket move: %w", err)
 	}
-	
+
 	if err := app.Git.Commit(fmt.Sprintf("Start ticket: %s", t.ID)); err != nil {
 		return fmt.Errorf("failed to commit ticket move: %w", err)
 	}
-	
+
 	// Set as current ticket
 	if err := app.Manager.SetCurrentTicket(t); err != nil {
 		return fmt.Errorf("failed to set current ticket: %w", err)
 	}
-	
+
 	// In worktree mode, switch back to original branch
 	// In non-worktree mode, stay on the ticket branch to work on it
 	if app.Config.Worktree.Enabled && currentBranch != t.ID {
@@ -1011,7 +1011,7 @@ func (app *App) moveTicketToDoing(t *ticket.Ticket, currentBranch string) error 
 			return fmt.Errorf("failed to switch back to original branch: %w", err)
 		}
 	}
-	
+
 	return nil
 }
 

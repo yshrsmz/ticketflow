@@ -18,7 +18,7 @@ type BasicGitClient interface {
 // WorktreeClient defines the interface for git worktree operations
 type WorktreeClient interface {
 	BasicGitClient
-	
+
 	// Worktree-specific operations
 	ListWorktrees() ([]WorktreeInfo, error)
 	AddWorktree(path, branch string) error
@@ -34,3 +34,4 @@ type WorktreeClient interface {
 type GitClient interface {
 	WorktreeClient
 }
+

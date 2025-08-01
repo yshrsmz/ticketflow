@@ -29,7 +29,7 @@ func TestApp_NewTicket(t *testing.T) {
 			setupMocks: func(m *mocks.MockTicketManager, g *mocks.MockGitClient) {
 				// Git mocks for parent detection
 				g.On("CurrentBranch").Return("main", nil)
-				
+
 				// Manager mocks
 				newTicket := &ticket.Ticket{
 					ID:          "250131-120000-test-feature",
@@ -185,14 +185,17 @@ func TestApp_StartTicket_WithMocks(t *testing.T) {
 	// Create temporary directory for test
 	tmpDir, err := os.MkdirTemp("", "ticketflow-test-*")
 	require.NoError(t, err)
-	defer os.RemoveAll(tmpDir)
-	
+	defer func() {
+		err := os.RemoveAll(tmpDir)
+		require.NoError(t, err)
+	}()
+
 	// Create tickets directories
 	todoDir := filepath.Join(tmpDir, "tickets", "todo")
 	doingDir := filepath.Join(tmpDir, "tickets", "doing")
 	require.NoError(t, os.MkdirAll(todoDir, 0755))
 	require.NoError(t, os.MkdirAll(doingDir, 0755))
-	
+
 	tests := []struct {
 		name          string
 		ticketID      string
@@ -207,27 +210,27 @@ func TestApp_StartTicket_WithMocks(t *testing.T) {
 				// Create ticket file
 				ticketPath := filepath.Join(tmpDir, "tickets", "todo", "250131-120000-test.md")
 				require.NoError(t, os.WriteFile(ticketPath, []byte("test content"), 0644))
-				
+
 				testTicket := &ticket.Ticket{
 					ID:       "250131-120000-test",
 					Path:     ticketPath,
 					Priority: 2,
 				}
-				
+
 				// validateTicketForStart calls
 				tm.On("Get", "250131-120000-test").Return(testTicket, nil)
 				tm.On("GetCurrentTicket").Return(nil, nil).Maybe() // No current ticket - Maybe() allows 0 or more calls
-				
+
 				// checkWorkspaceForStart calls
 				// HasUncommittedChanges is NOT called when worktree is enabled
-				
+
 				// detectParentBranch calls
 				gc.On("CurrentBranch").Return("main", nil)
 				// No Manager.Get("main") call because we skip when currentBranch == defaultBranch
-				
+
 				// setupTicketBranch calls (worktree is enabled in the test config)
 				// No CreateBranch call when worktree is enabled
-				
+
 				// moveTicketToDoing calls
 				newPath := filepath.Join(tmpDir, "tickets", "doing", "250131-120000-test.md")
 				// Update is called after Start() to save the started timestamp
@@ -242,19 +245,21 @@ func TestApp_StartTicket_WithMocks(t *testing.T) {
 				tm.On("SetCurrentTicket", mock.MatchedBy(func(t *ticket.Ticket) bool {
 					return t.ID == "250131-120000-test" && t.Path == newPath
 				})).Return(nil)
-				
+
 				// For worktree mode, we need these additional calls
 				gc.On("HasWorktree", "250131-120000-test").Return(false, nil)
 				gc.On("Checkout", "main").Return(nil)
-				
+
 				// AddWorktree should create the directory
 				worktreePath := filepath.Join(tmpDir, ".worktrees", "250131-120000-test")
 				gc.On("AddWorktree", mock.MatchedBy(func(path string) bool {
 					// Create the worktree directory when this is called
-					os.MkdirAll(path, 0755)
+					err := os.MkdirAll(path, 0755)
+					require.NoError(t, err)
 					// Also create the tickets/doing directory in the worktree
 					ticketsDoingPath := filepath.Join(path, "tickets", "doing")
-					os.MkdirAll(ticketsDoingPath, 0755)
+					err = os.MkdirAll(ticketsDoingPath, 0755)
+					require.NoError(t, err)
 					return path == worktreePath
 				}), "250131-120000-test").Return(nil)
 			},
@@ -275,7 +280,7 @@ func TestApp_StartTicket_WithMocks(t *testing.T) {
 			// Create mocks
 			mockManager := new(mocks.MockTicketManager)
 			mockGit := new(mocks.MockGitClient)
-			
+
 			if tt.setupMocks != nil {
 				tt.setupMocks(mockManager, mockGit, tmpDir)
 			}
@@ -284,10 +289,10 @@ func TestApp_StartTicket_WithMocks(t *testing.T) {
 			cfg := config.Default()
 			cfg.Worktree.Enabled = true
 			cfg.Worktree.BaseDir = filepath.Join(tmpDir, ".worktrees") // Use absolute path
-			cfg.Worktree.InitCommands = []string{} // Disable init commands for test
+			cfg.Worktree.InitCommands = []string{}                     // Disable init commands for test
 			cfg.Git.DefaultBranch = "main"
 			cfg.Tickets.Dir = "tickets"
-			
+
 			app := &App{
 				Config:      cfg,
 				Manager:     mockManager,
@@ -314,3 +319,4 @@ func TestApp_StartTicket_WithMocks(t *testing.T) {
 		})
 	}
 }
+
