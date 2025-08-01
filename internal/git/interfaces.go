@@ -34,4 +34,3 @@ type WorktreeClient interface {
 type GitClient interface {
 	WorktreeClient
 }
-

@@ -29,4 +29,3 @@ type TicketManager interface {
 	// FindTicket finds a ticket by ID across all directories
 	FindTicket(ticketID string) (string, error)
 }
-

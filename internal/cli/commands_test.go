@@ -319,4 +319,3 @@ func TestApp_StartTicket_WithMocks(t *testing.T) {
 		})
 	}
 }
-
