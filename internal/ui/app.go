@@ -17,6 +17,35 @@ import (
 	"github.com/yshrsmz/ticketflow/internal/ui/views"
 )
 
+// InitCommandError represents a non-fatal error during worktree initialization
+type InitCommandError struct {
+	FailedCommands []string
+	underlying     error
+}
+
+// Error implements the error interface
+func (e *InitCommandError) Error() string {
+	return fmt.Sprintf("some initialization commands failed: %s", strings.Join(e.FailedCommands, ", "))
+}
+
+// Unwrap implements the errors.Unwrap interface
+func (e *InitCommandError) Unwrap() error {
+	return e.underlying
+}
+
+// IsInitCommandError checks if an error is an InitCommandError
+func IsInitCommandError(err error) bool {
+	_, ok := err.(*InitCommandError)
+	return ok
+}
+
+// NewInitCommandError creates a new InitCommandError
+func NewInitCommandError(failedCommands []string) *InitCommandError {
+	return &InitCommandError{
+		FailedCommands: failedCommands,
+	}
+}
+
 // ViewType represents the current view
 type ViewType int
 
@@ -359,7 +388,7 @@ func (m *Model) startTicket(t *ticket.Ticket) tea.Cmd {
 
 		// Setup branch or worktree
 		worktreePath, initErr := m.setupTicketBranchOrWorktree(t)
-		if initErr != nil && !strings.Contains(initErr.Error(), "initialization commands failed") {
+		if initErr != nil && !IsInitCommandError(initErr) {
 			// If it's not an init command error, it's a fatal error
 			return initErr
 		}
@@ -516,7 +545,7 @@ func (m *Model) runWorktreeInitCommands(worktreePath string) error {
 	}
 
 	if len(failedCommands) > 0 {
-		return fmt.Errorf("some initialization commands failed: %s", strings.Join(failedCommands, ", "))
+		return NewInitCommandError(failedCommands)
 	}
 	return nil
 }
