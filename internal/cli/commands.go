@@ -1011,6 +1011,7 @@ func (app *App) runWorktreeInitCommands(worktreePath string) error {
 	}
 
 	fmt.Println("Running initialization commands...")
+	var failedCommands []string
 	for _, cmd := range app.Config.Worktree.InitCommands {
 		fmt.Printf("  $ %s\n", cmd)
 		// Parse the command
@@ -1024,10 +1025,16 @@ func (app *App) runWorktreeInitCommands(worktreePath string) error {
 		execCmd.Dir = worktreePath
 		output, err := execCmd.CombinedOutput()
 		if err != nil {
-			fmt.Printf("Warning: Command failed: %v\n%s\n", err, output)
+			failedCommands = append(failedCommands, fmt.Sprintf("%s (%v)", cmd, err))
+			if len(output) > 0 {
+				fmt.Printf("    Output: %s\n", strings.TrimSpace(string(output)))
+			}
 		}
 	}
 
+	if len(failedCommands) > 0 {
+		return fmt.Errorf("some initialization commands failed: %s", strings.Join(failedCommands, ", "))
+	}
 	return nil
 }
 

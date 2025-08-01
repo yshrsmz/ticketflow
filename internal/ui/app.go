@@ -31,6 +31,7 @@ const (
 type ticketStartedMsg struct {
 	ticket       *ticket.Ticket
 	worktreePath string
+	initWarning  string // Warning message if init commands failed
 }
 
 // ticketClosedMsg is sent when a ticket is successfully closed
@@ -167,11 +168,19 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case ticketStartedMsg:
 		// Ticket was successfully started
+		var successMsg string
 		if msg.worktreePath != "" {
-			m.err = fmt.Errorf("✅ Ticket started! Worktree created at: %s", msg.worktreePath)
+			successMsg = fmt.Sprintf("✅ Ticket started! Worktree created at: %s", msg.worktreePath)
 		} else {
-			m.err = fmt.Errorf("✅ Ticket started! Switched to branch: %s", msg.ticket.ID)
+			successMsg = fmt.Sprintf("✅ Ticket started! Switched to branch: %s", msg.ticket.ID)
 		}
+		
+		// Add warning if init commands failed
+		if msg.initWarning != "" {
+			successMsg += fmt.Sprintf("\n⚠️  Warning: %s", msg.initWarning)
+		}
+		
+		m.err = fmt.Errorf("%s", successMsg)
 		// Refresh the list
 		cmds = append(cmds, m.ticketList.Refresh())
 		return m, tea.Batch(cmds...)
@@ -349,9 +358,10 @@ func (m *Model) startTicket(t *ticket.Ticket) tea.Cmd {
 		}
 
 		// Setup branch or worktree
-		worktreePath, err := m.setupTicketBranchOrWorktree(t)
-		if err != nil {
-			return err
+		worktreePath, initErr := m.setupTicketBranchOrWorktree(t)
+		if initErr != nil && !strings.Contains(initErr.Error(), "initialization commands failed") {
+			// If it's not an init command error, it's a fatal error
+			return initErr
 		}
 
 		// Move ticket to doing status and commit
@@ -359,16 +369,15 @@ func (m *Model) startTicket(t *ticket.Ticket) tea.Cmd {
 			return err
 		}
 
-		// Return success message
-		if m.config.Worktree.Enabled {
-			return ticketStartedMsg{
-				ticket:       t,
-				worktreePath: worktreePath,
-			}
+		// Return success message with any init warning
+		msg := ticketStartedMsg{
+			ticket:       t,
+			worktreePath: worktreePath,
 		}
-		return ticketStartedMsg{
-			ticket: t,
+		if initErr != nil {
+			msg.initWarning = initErr.Error()
 		}
+		return msg
 	}
 }
 
@@ -473,8 +482,8 @@ func (m *Model) setupTicketBranchOrWorktree(t *ticket.Ticket) (string, error) {
 
 		// Run init commands if configured
 		if err := m.runWorktreeInitCommands(worktreePath); err != nil {
-			// Non-fatal: just log the error
-			_ = err
+			// Non-fatal: store as warning to display later
+			return worktreePath, err
 		}
 	} else {
 		// Original behavior: create and checkout branch
@@ -492,6 +501,7 @@ func (m *Model) runWorktreeInitCommands(worktreePath string) error {
 		return nil
 	}
 
+	var failedCommands []string
 	for _, cmd := range m.config.Worktree.InitCommands {
 		parts := strings.Fields(cmd)
 		if len(parts) == 0 {
@@ -500,11 +510,13 @@ func (m *Model) runWorktreeInitCommands(worktreePath string) error {
 
 		execCmd := exec.Command(parts[0], parts[1:]...)
 		execCmd.Dir = worktreePath
-		// Run in background, log errors but don't fail
 		if err := execCmd.Run(); err != nil {
-			// Log error but continue
-			_ = err
+			failedCommands = append(failedCommands, fmt.Sprintf("%s (%v)", cmd, err))
 		}
+	}
+
+	if len(failedCommands) > 0 {
+		return fmt.Errorf("some initialization commands failed: %s", strings.Join(failedCommands, ", "))
 	}
 	return nil
 }
