@@ -3,6 +3,7 @@ package errors
 import (
 	"errors"
 	"fmt"
+	"strings"
 )
 
 // Sentinel errors for common error conditions
@@ -41,16 +42,21 @@ var (
 
 // TicketError represents an error related to ticket operations
 type TicketError struct {
-	Op       string // Operation that failed (e.g., "create", "start", "close")
-	TicketID string // ID of the ticket involved
-	Err      error  // Underlying error
+	Op       string   // Operation that failed (e.g., "create", "start", "close")
+	TicketID string   // ID of the ticket involved
+	Err      error    // Underlying error
+	Context  []string // Optional context chain (e.g., ["worktree", "create", "ticket"])
 }
 
 func (e *TicketError) Error() string {
-	if e.TicketID != "" {
-		return fmt.Sprintf("%s ticket %s: %v", e.Op, e.TicketID, e.Err)
+	prefix := e.Op
+	if len(e.Context) > 0 {
+		prefix = strings.Join(e.Context, " > ") + " > " + e.Op
 	}
-	return fmt.Sprintf("%s ticket: %v", e.Op, e.Err)
+	if e.TicketID != "" {
+		return fmt.Sprintf("%s ticket %s: %v", prefix, e.TicketID, e.Err)
+	}
+	return fmt.Sprintf("%s ticket: %v", prefix, e.Err)
 }
 
 func (e *TicketError) Unwrap() error {
@@ -59,10 +65,32 @@ func (e *TicketError) Unwrap() error {
 
 // NewTicketError creates a new TicketError
 func NewTicketError(op, ticketID string, err error) error {
+	if op == "" {
+		return fmt.Errorf("ticket error: operation cannot be empty")
+	}
+	if err == nil {
+		return fmt.Errorf("ticket error: underlying error cannot be nil")
+	}
 	return &TicketError{
 		Op:       op,
 		TicketID: ticketID,
 		Err:      err,
+	}
+}
+
+// NewTicketErrorWithContext creates a new TicketError with context chain
+func NewTicketErrorWithContext(op, ticketID string, err error, context ...string) error {
+	if op == "" {
+		return fmt.Errorf("ticket error: operation cannot be empty")
+	}
+	if err == nil {
+		return fmt.Errorf("ticket error: underlying error cannot be nil")
+	}
+	return &TicketError{
+		Op:       op,
+		TicketID: ticketID,
+		Err:      err,
+		Context:  context,
 	}
 }
 
@@ -86,6 +114,12 @@ func (e *GitError) Unwrap() error {
 
 // NewGitError creates a new GitError
 func NewGitError(op, branch string, err error) error {
+	if op == "" {
+		return fmt.Errorf("git error: operation cannot be empty")
+	}
+	if err == nil {
+		return fmt.Errorf("git error: underlying error cannot be nil")
+	}
 	return &GitError{
 		Op:     op,
 		Branch: branch,
@@ -113,6 +147,12 @@ func (e *WorktreeError) Unwrap() error {
 
 // NewWorktreeError creates a new WorktreeError
 func NewWorktreeError(op, path string, err error) error {
+	if op == "" {
+		return fmt.Errorf("worktree error: operation cannot be empty")
+	}
+	if err == nil {
+		return fmt.Errorf("worktree error: underlying error cannot be nil")
+	}
 	return &WorktreeError{
 		Op:   op,
 		Path: path,
@@ -142,6 +182,9 @@ func (e *ConfigError) Unwrap() error {
 
 // NewConfigError creates a new ConfigError
 func NewConfigError(field, value string, err error) error {
+	if err == nil {
+		return fmt.Errorf("config error: underlying error cannot be nil")
+	}
 	return &ConfigError{
 		Field: field,
 		Value: value,
@@ -165,4 +208,3 @@ func IsAlreadyExists(err error) bool {
 		errors.Is(err, ErrTicketAlreadyStarted) ||
 		errors.Is(err, ErrTicketAlreadyClosed)
 }
-

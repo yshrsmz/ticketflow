@@ -34,8 +34,20 @@ func (g *Git) Exec(args ...string) (string, error) {
 	cmd.Stderr = &stderr
 
 	if err := cmd.Run(); err != nil {
-		return "", fmt.Errorf("git %s failed: %w\n%s",
-			strings.Join(args, " "), err, stderr.String())
+		// Extract the git subcommand and branch if applicable
+		subcommand := ""
+		branch := ""
+		if len(args) > 0 {
+			subcommand = args[0]
+		}
+		// For branch-related commands, try to extract branch name
+		if len(args) > 1 && (subcommand == "checkout" || subcommand == "push" || subcommand == "pull" || subcommand == "merge") {
+			branch = args[len(args)-1]
+		}
+
+		gitErr := ticketerrors.NewGitError(subcommand, branch,
+			fmt.Errorf("command failed: %w\n%s", err, stderr.String()))
+		return "", gitErr
 	}
 
 	return strings.TrimSpace(stdout.String()), nil

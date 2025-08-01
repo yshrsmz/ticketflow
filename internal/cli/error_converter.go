@@ -109,4 +109,3 @@ func ConvertError(err error) error {
 	// Generic error
 	return err
 }
-
