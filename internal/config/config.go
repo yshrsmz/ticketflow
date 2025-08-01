@@ -61,22 +61,22 @@ func Default() *Config {
 			TodoDir:  "todo",
 			DoingDir: "doing",
 			DoneDir:  "done",
-			Template: `# 概要
+			Template: `# Summary
 
-[ここにチケットの概要を記述]
+[Describe the ticket summary here]
 
-## タスク
-- [ ] タスク1
-- [ ] タスク2
-- [ ] タスク3
+## Tasks
+- [ ] Task 1
+- [ ] Task 2
+- [ ] Task 3
 
-## 技術仕様
+## Technical Specifications
 
-[必要に応じて技術的な詳細を記述]
+[Add technical details as needed]
 
-## メモ
+## Notes
 
-[追加の注意事項やメモ]`,
+[Additional notes or remarks]`,
 		},
 		Output: OutputConfig{
 			DefaultFormat: "text",
