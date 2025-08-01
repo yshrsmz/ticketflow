@@ -3,7 +3,7 @@ priority: 1
 description: Extract interfaces from concrete implementations to improve testability and enable dependency injection
 created_at: "2025-08-01T00:29:17+09:00"
 started_at: "2025-08-01T00:42:50+09:00"
-closed_at: null
+closed_at: "2025-08-01T10:36:13+09:00"
 ---
 
 # Extract Interfaces for Testability
