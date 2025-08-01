@@ -29,7 +29,7 @@ const (
 
 // TicketDetailModel represents the ticket detail view
 type TicketDetailModel struct {
-	manager    *ticket.Manager
+	manager    ticket.TicketManager
 	ticket     *ticket.Ticket
 	content    string
 	scrollY    int
@@ -41,7 +41,7 @@ type TicketDetailModel struct {
 }
 
 // NewTicketDetailModel creates a new ticket detail model
-func NewTicketDetailModel(manager *ticket.Manager) TicketDetailModel {
+func NewTicketDetailModel(manager ticket.TicketManager) TicketDetailModel {
 	return TicketDetailModel{
 		manager: manager,
 	}

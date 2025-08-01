@@ -30,7 +30,7 @@ const (
 
 // TicketListModel represents the ticket list view
 type TicketListModel struct {
-	manager         *ticket.Manager
+	manager         ticket.TicketManager
 	tickets         []ticket.Ticket
 	filteredTickets []ticket.Ticket
 	cursor          int
@@ -46,7 +46,7 @@ type TicketListModel struct {
 }
 
 // NewTicketListModel creates a new ticket list model
-func NewTicketListModel(manager *ticket.Manager) TicketListModel {
+func NewTicketListModel(manager ticket.TicketManager) TicketListModel {
 	return TicketListModel{
 		manager:         manager,
 		selected:        make(map[string]bool),

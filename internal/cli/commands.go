@@ -16,9 +16,69 @@ import (
 // App represents the CLI application
 type App struct {
 	Config      *config.Config
-	Git         *git.Git
-	Manager     *ticket.Manager
+	Git         git.GitClient
+	Manager     ticket.TicketManager
 	ProjectRoot string
+}
+
+// AppOption represents an option for creating a new App
+type AppOption func(*App)
+
+// WithGitClient sets a custom GitClient
+func WithGitClient(client git.GitClient) AppOption {
+	return func(a *App) {
+		a.Git = client
+	}
+}
+
+// WithTicketManager sets a custom TicketManager
+func WithTicketManager(manager ticket.TicketManager) AppOption {
+	return func(a *App) {
+		a.Manager = manager
+	}
+}
+
+// NewAppWithOptions creates a new CLI application with custom options
+func NewAppWithOptions(opts ...AppOption) (*App, error) {
+	// Find project root (with .git directory)
+	projectRoot, err := git.FindProjectRoot(".")
+	if err != nil {
+		return nil, NewError(ErrNotGitRepo, "Not in a git repository", "",
+			[]string{
+				"Navigate to your project root directory",
+				"Initialize a new git repository with 'git init'",
+			})
+	}
+
+	// Load config
+	cfg, err := config.Load(projectRoot)
+	if err != nil {
+		return nil, NewError(ErrConfigNotFound, "Ticket system not initialized", "",
+			[]string{
+				"Run 'ticketflow init' to initialize",
+				"Navigate to the project root directory",
+			})
+	}
+
+	app := &App{
+		Config:      cfg,
+		ProjectRoot: projectRoot,
+	}
+
+	// Apply options
+	for _, opt := range opts {
+		opt(app)
+	}
+
+	// Set defaults if not provided
+	if app.Git == nil {
+		app.Git = git.New(projectRoot)
+	}
+	if app.Manager == nil {
+		app.Manager = ticket.NewManager(cfg, projectRoot)
+	}
+
+	return app, nil
 }
 
 // NewApp creates a new CLI application
@@ -223,62 +283,26 @@ func (app *App) ListTickets(status ticket.Status, count int, format OutputFormat
 
 // StartTicket starts working on a ticket
 func (app *App) StartTicket(ticketID string) error {
-	// Get the ticket
-	t, err := app.Manager.Get(ticketID)
+	// Get and validate the ticket
+	t, err := app.validateTicketForStart(ticketID)
 	if err != nil {
 		return err
 	}
 
-	// Check if already started
-	if t.Status() == ticket.StatusDoing {
-		return NewError(ErrTicketAlreadyStarted, "Ticket already started",
-			fmt.Sprintf("Ticket %s is already in progress", t.ID), nil)
+	// Check workspace state
+	if err := app.checkWorkspaceForStart(); err != nil {
+		return err
 	}
 
-	// Check for uncommitted changes (only if not using worktrees)
-	if !app.Config.Worktree.Enabled {
-		dirty, err := app.Git.HasUncommittedChanges()
-		if err != nil {
-			return fmt.Errorf("failed to check git status: %w", err)
-		}
-		if dirty {
-			return NewError(ErrGitDirtyWorkspace, "Uncommitted changes detected",
-				"Please commit or stash your changes before starting a ticket",
-				[]string{
-					"Commit your changes: git commit -am 'Your message'",
-					"Stash your changes: git stash",
-				})
-		}
-	}
-
-	// Get current branch
-	currentBranch, err := app.Git.CurrentBranch()
+	// Get current branch and detect parent
+	currentBranch, parentBranch, err := app.detectParentBranch()
 	if err != nil {
-		return fmt.Errorf("failed to get current branch: %w", err)
+		return err
 	}
 
-	// Check if we're starting from a worktree (for sub-tickets)
-	var parentBranch string
-	if currentBranch != app.Config.Git.DefaultBranch {
-		// Verify this is a valid ticket branch
-		if _, err := app.Manager.Get(currentBranch); err == nil {
-			// This is a sub-ticket being created from a parent ticket
-			parentBranch = currentBranch
-		} else {
-			return NewError(ErrTicketInvalid, "Invalid branch for starting ticket",
-				fmt.Sprintf("Currently on branch '%s', which is not a ticket branch", currentBranch),
-				[]string{
-					fmt.Sprintf("Switch to default branch: git checkout %s", app.Config.Git.DefaultBranch),
-					"Or start from a valid ticket branch",
-				})
-		}
-	}
-
-	// For non-worktree mode, create and checkout branch immediately
-	if !app.Config.Worktree.Enabled {
-		if err := app.Git.CreateBranch(t.ID); err != nil {
-			return fmt.Errorf("failed to create branch: %w", err)
-		}
+	// Setup branch for the ticket
+	if err := app.setupTicketBranch(t, currentBranch); err != nil {
+		return err
 	}
 
 	// Check if worktree already exists (for worktree mode)
@@ -291,79 +315,14 @@ func (app *App) StartTicket(ticketID string) error {
 		}
 	}
 
-	// If this is a sub-ticket, update the related field
-	if parentBranch != "" {
-		t.Related = append(t.Related, fmt.Sprintf("parent:%s", parentBranch))
-		if err := app.Manager.Update(t); err != nil {
-			// Rollback for non-worktree mode
-			if !app.Config.Worktree.Enabled {
-				if checkoutErr := app.Git.Checkout(currentBranch); checkoutErr != nil {
-					return fmt.Errorf("failed to update ticket parent relationship and rollback checkout: %w, checkout error: %v", err, checkoutErr)
-				}
-			}
-			return fmt.Errorf("failed to update ticket parent relationship: %w", err)
-		}
-	}
-
-	// Update ticket status
-	if err := t.Start(); err != nil {
-		// Rollback for non-worktree mode
-		if !app.Config.Worktree.Enabled {
-			_ = app.Git.Checkout(currentBranch)
-		}
+	// Update parent relationship if needed
+	if err := app.updateParentRelationship(t, parentBranch, currentBranch); err != nil {
 		return err
 	}
 
-	// Move ticket file from todo to doing
-	oldPath := t.Path
-	doingPath := app.Config.GetDoingPath(app.ProjectRoot)
-	newPath := filepath.Join(doingPath, filepath.Base(t.Path))
-
-	// Ensure doing directory exists
-	if err := os.MkdirAll(doingPath, 0755); err != nil {
-		// Rollback for non-worktree mode
-		if !app.Config.Worktree.Enabled {
-			_ = app.Git.Checkout(currentBranch)
-		}
-		return fmt.Errorf("failed to create doing directory: %w", err)
-	}
-
-	// Move the file first
-	if err := os.Rename(oldPath, newPath); err != nil {
-		// Rollback for non-worktree mode
-		if !app.Config.Worktree.Enabled {
-			_ = app.Git.Checkout(currentBranch)
-		}
-		return fmt.Errorf("failed to move ticket to doing: %w", err)
-	}
-
-	// Update ticket data with new path
-	t.Path = newPath
-	if err := app.Manager.Update(t); err != nil {
-		// Rollback file move
-		if renameErr := os.Rename(newPath, oldPath); renameErr != nil {
-			return fmt.Errorf("failed to update ticket and rollback file move: %w, rename error: %v", err, renameErr)
-		}
-		// Rollback for non-worktree mode
-		if !app.Config.Worktree.Enabled {
-			_ = app.Git.Checkout(currentBranch)
-		}
-		return fmt.Errorf("failed to update ticket: %w", err)
-	}
-
-	// Git add the changes (use -A to handle the rename properly)
-	if err := app.Git.Add("-A", filepath.Dir(oldPath), filepath.Dir(newPath)); err != nil {
-		return fmt.Errorf("failed to stage ticket move: %w", err)
-	}
-
-	// Commit the move
-	if err := app.Git.Commit(fmt.Sprintf("Start ticket: %s", t.ID)); err != nil {
-		return fmt.Errorf("failed to commit ticket move: %w", err)
-	}
-
-	// Set current ticket (in main worktree)
-	if err := app.Manager.SetCurrentTicket(t); err != nil {
-		return fmt.Errorf("failed to set current ticket: %w", err)
+	// Move ticket to doing status
+	if err := app.moveTicketToDoing(t, currentBranch); err != nil {
+		return err
 	}
 
 	// Now create worktree AFTER committing (for worktree mode)
@@ -376,7 +335,7 @@ func (app *App) StartTicket(ticketID string) error {
 		if err := app.Git.AddWorktree(worktreePath, t.ID); err != nil {
 			// Rollback: reset to previous commit
 			_, _ = app.Git.Exec("reset", "--hard", "HEAD^")
-			return fmt.Errorf("failed to create worktree: %w", err)
+			return fmt.Errorf("failed to create worktree at %s for branch %s: %w", worktreePath, ticketID, err)
 		}
 
 		// Run init commands if configured
@@ -450,82 +409,10 @@ func (app *App) StartTicket(ticketID string) error {
 
 // CloseTicket closes the current ticket
 func (app *App) CloseTicket(force bool) error {
-	// Get current ticket
-	current, err := app.Manager.GetCurrentTicket()
+	// Validate current ticket for close
+	current, worktreePath, err := app.validateTicketForClose(force)
 	if err != nil {
 		return err
-	}
-	if current == nil {
-		return NewError(ErrTicketNotStarted, "No active ticket",
-			"There is no ticket currently being worked on",
-			[]string{
-				"Start a ticket first: ticketflow start <ticket-id>",
-				"List available tickets: ticketflow list",
-			})
-	}
-
-	var worktreePath string
-	var isWorktree bool
-
-	if app.Config.Worktree.Enabled {
-		// Check if a worktree exists for this ticket
-		wt, err := app.Git.FindWorktreeByBranch(current.ID)
-		if err != nil {
-			return fmt.Errorf("failed to find worktree: %w", err)
-		}
-		if wt != nil {
-			isWorktree = true
-			worktreePath = wt.Path
-
-			// Check for uncommitted changes in worktree
-			if !force {
-				wtGit := git.New(worktreePath)
-				dirty, err := wtGit.HasUncommittedChanges()
-				if err != nil {
-					return fmt.Errorf("failed to check worktree status: %w", err)
-				}
-				if dirty {
-					return NewError(ErrGitDirtyWorkspace, "Uncommitted changes in worktree",
-						fmt.Sprintf("Please commit your changes in %s before closing the ticket", worktreePath),
-						[]string{
-							fmt.Sprintf("cd %s && git commit -am 'Your message'", worktreePath),
-							"Force close without committing: ticketflow close --force",
-						})
-				}
-			}
-
-		}
-	}
-
-	if !isWorktree {
-		// Original behavior for non-worktree mode
-		// Check for uncommitted changes
-		if !force {
-			dirty, err := app.Git.HasUncommittedChanges()
-			if err != nil {
-				return fmt.Errorf("failed to check git status: %w", err)
-			}
-			if dirty {
-				return NewError(ErrGitDirtyWorkspace, "Uncommitted changes detected",
-					"Please commit your changes before closing the ticket",
-					[]string{
-						"Commit your changes: git commit -am 'Your message'",
-						"Force close without committing: ticketflow close --force",
-					})
-			}
-		}
-
-		// Get current branch
-		currentBranch, err := app.Git.CurrentBranch()
-		if err != nil {
-			return fmt.Errorf("failed to get current branch: %w", err)
-		}
-
-		// Ensure we're on the ticket branch
-		if currentBranch != current.ID {
-			return fmt.Errorf("not on ticket branch, expected %s but on %s", current.ID, currentBranch)
-		}
-
 	}
 
 	// Update ticket status
@@ -533,44 +420,9 @@ func (app *App) CloseTicket(force bool) error {
 		return err
 	}
 
-	// Move ticket file from doing to done
-	oldPath := current.Path
-	donePath := app.Config.GetDonePath(app.ProjectRoot)
-	newPath := filepath.Join(donePath, filepath.Base(current.Path))
-
-	// Ensure done directory exists
-	if err := os.MkdirAll(donePath, 0755); err != nil {
-		return fmt.Errorf("failed to create done directory: %w", err)
-	}
-
-	// Move the file first
-	if err := os.Rename(oldPath, newPath); err != nil {
-		return fmt.Errorf("failed to move ticket to done: %w", err)
-	}
-
-	// Update ticket data with new path
-	current.Path = newPath
-	if err := app.Manager.Update(current); err != nil {
-		// Rollback file move
-		if renameErr := os.Rename(newPath, oldPath); renameErr != nil {
-			return fmt.Errorf("failed to update ticket and rollback file move: %w, rename error: %v", err, renameErr)
-		}
-		return fmt.Errorf("failed to update ticket: %w", err)
-	}
-
-	// Git add the changes (use -A to handle the rename properly)
-	if err := app.Git.Add("-A", filepath.Dir(oldPath), filepath.Dir(newPath)); err != nil {
-		return fmt.Errorf("failed to stage ticket move: %w", err)
-	}
-
-	// Commit the move
-	if err := app.Git.Commit(fmt.Sprintf("Close ticket: %s", current.ID)); err != nil {
-		return fmt.Errorf("failed to commit ticket move: %w", err)
-	}
-
-	// Remove current ticket link
-	if err := app.Manager.SetCurrentTicket(nil); err != nil {
-		return fmt.Errorf("failed to remove current ticket link: %w", err)
+	// Move ticket to done status
+	if err := app.moveTicketToDone(current); err != nil {
+		return err
 	}
 
 	// Calculate work duration
@@ -615,7 +467,7 @@ func (app *App) CloseTicket(force bool) error {
 	fmt.Printf("3. After PR is merged, clean up:\n")
 	fmt.Printf("   ticketflow cleanup %s\n", current.ID)
 
-	if isWorktree && worktreePath != "" {
+	if worktreePath != "" {
 		fmt.Printf("\n🌳 Note: Worktree remains at %s\n", worktreePath)
 		fmt.Printf("   You can continue working there until cleanup\n")
 	}
@@ -991,7 +843,7 @@ func (app *App) CleanupTicket(ticketID string, force bool) error {
 	if wt != nil {
 		fmt.Printf("🌳 Removing worktree: %s\n", wt.Path)
 		if err := app.Git.RemoveWorktree(wt.Path); err != nil {
-			return fmt.Errorf("failed to remove worktree: %w", err)
+			return fmt.Errorf("failed to remove worktree at %s for ticket %s: %w", wt.Path, ticketID, err)
 		}
 	}
 
@@ -1007,5 +859,284 @@ func (app *App) CleanupTicket(ticketID string, force bool) error {
 	fmt.Printf("• Start a new ticket: ticketflow new <slug>\n")
 	fmt.Printf("• View open tickets: ticketflow list --status todo\n")
 	fmt.Printf("• Check active work: ticketflow list --status doing\n")
+	return nil
+}
+
+// validateTicketForStart validates that a ticket can be started
+func (app *App) validateTicketForStart(ticketID string) (*ticket.Ticket, error) {
+	// Get the ticket
+	t, err := app.Manager.Get(ticketID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Check if already started
+	if t.Status() == ticket.StatusDoing {
+		return nil, NewError(ErrTicketAlreadyStarted, "Ticket already started",
+			fmt.Sprintf("Ticket %s is already in progress", t.ID), nil)
+	}
+
+	return t, nil
+}
+
+// checkWorkspaceForStart checks if the workspace is ready to start a ticket
+func (app *App) checkWorkspaceForStart() error {
+	// Check for uncommitted changes (only if not using worktrees)
+	if !app.Config.Worktree.Enabled {
+		dirty, err := app.Git.HasUncommittedChanges()
+		if err != nil {
+			return fmt.Errorf("failed to check git status: %w", err)
+		}
+		if dirty {
+			return NewError(ErrGitDirtyWorkspace, "Uncommitted changes detected",
+				"Please commit or stash your changes before starting a ticket",
+				[]string{
+					"Commit your changes: git commit -am 'Your message'",
+					"Stash your changes: git stash",
+				})
+		}
+	}
+	return nil
+}
+
+// detectParentBranch detects if we're starting from a parent ticket branch
+func (app *App) detectParentBranch() (currentBranch string, parentBranch string, err error) {
+	currentBranch, err = app.Git.CurrentBranch()
+	if err != nil {
+		return "", "", fmt.Errorf("failed to get current branch: %w", err)
+	}
+
+	// Check if we're starting from a worktree (for sub-tickets)
+	if currentBranch != app.Config.Git.DefaultBranch {
+		// Verify this is a valid ticket branch
+		if _, err := app.Manager.Get(currentBranch); err == nil {
+			// This is a sub-ticket being created from a parent ticket
+			parentBranch = currentBranch
+		} else {
+			return "", "", NewError(ErrTicketInvalid, "Invalid branch for starting ticket",
+				fmt.Sprintf("Currently on branch '%s', which is not a ticket branch", currentBranch),
+				[]string{
+					fmt.Sprintf("Switch to default branch: git checkout %s", app.Config.Git.DefaultBranch),
+					"Or start from a valid ticket branch",
+				})
+		}
+	}
+
+	return currentBranch, parentBranch, nil
+}
+
+// setupTicketBranch creates and sets up the branch for the ticket
+func (app *App) setupTicketBranch(t *ticket.Ticket, currentBranch string) error {
+	// For non-worktree mode, create and checkout branch immediately
+	if !app.Config.Worktree.Enabled {
+		if err := app.Git.CreateBranch(t.ID); err != nil {
+			return fmt.Errorf("failed to create branch %s: %w", t.ID, err)
+		}
+	}
+	return nil
+}
+
+// updateParentRelationship updates the parent relationship if needed
+func (app *App) updateParentRelationship(t *ticket.Ticket, parentBranch string, currentBranch string) error {
+	if parentBranch != "" && parentBranch != currentBranch {
+		// Add parent to Related field
+		parentRef := fmt.Sprintf("parent:%s", parentBranch)
+		hasParent := false
+		for _, rel := range t.Related {
+			if rel == parentRef {
+				hasParent = true
+				break
+			}
+		}
+		if !hasParent {
+			t.Related = append(t.Related, parentRef)
+		}
+		if err := app.Manager.Update(t); err != nil {
+			return fmt.Errorf("failed to update parent relationship: %w", err)
+		}
+	}
+	return nil
+}
+
+// moveTicketToDoing moves the ticket to doing status and commits the change
+func (app *App) moveTicketToDoing(t *ticket.Ticket, currentBranch string) error {
+	// Mark ticket as started
+	if err := t.Start(); err != nil {
+		return fmt.Errorf("failed to start ticket: %w", err)
+	}
+
+	// Move ticket to doing
+	doingPath := app.Config.GetDoingPath(app.ProjectRoot)
+	newPath := filepath.Join(doingPath, filepath.Base(t.Path))
+
+	// Ensure doing directory exists
+	if err := os.MkdirAll(doingPath, 0755); err != nil {
+		return fmt.Errorf("failed to create doing directory: %w", err)
+	}
+
+	// Store the old path before moving
+	oldPath := t.Path
+
+	// Move the file
+	if err := os.Rename(t.Path, newPath); err != nil {
+		return fmt.Errorf("failed to move ticket to doing: %w", err)
+	}
+
+	// Update ticket path
+	t.Path = newPath
+
+	// Update the ticket with new path and started timestamp
+	if err := app.Manager.Update(t); err != nil {
+		return fmt.Errorf("failed to update ticket: %w", err)
+	}
+
+	// Stage and commit the move - use -A to handle the rename properly
+	if err := app.Git.Add("-A", filepath.Dir(oldPath), filepath.Dir(newPath)); err != nil {
+		return fmt.Errorf("failed to stage ticket move: %w", err)
+	}
+
+	if err := app.Git.Commit(fmt.Sprintf("Start ticket: %s", t.ID)); err != nil {
+		return fmt.Errorf("failed to commit ticket move: %w", err)
+	}
+
+	// Set as current ticket
+	if err := app.Manager.SetCurrentTicket(t); err != nil {
+		return fmt.Errorf("failed to set current ticket: %w", err)
+	}
+
+	// In worktree mode, switch back to original branch
+	// In non-worktree mode, stay on the ticket branch to work on it
+	if app.Config.Worktree.Enabled && currentBranch != t.ID {
+		if err := app.Git.Checkout(currentBranch); err != nil {
+			return fmt.Errorf("failed to switch back to original branch: %w", err)
+		}
+	}
+
+	return nil
+}
+
+// validateTicketForClose validates that a ticket can be closed
+func (app *App) validateTicketForClose(force bool) (*ticket.Ticket, string, error) {
+	// Get current ticket
+	current, err := app.Manager.GetCurrentTicket()
+	if err != nil {
+		return nil, "", err
+	}
+	if current == nil {
+		return nil, "", NewError(ErrTicketNotStarted, "No active ticket",
+			"There is no ticket currently being worked on",
+			[]string{
+				"Start a ticket first: ticketflow start <ticket-id>",
+				"List available tickets: ticketflow list",
+			})
+	}
+
+	var worktreePath string
+	var isWorktree bool
+
+	if app.Config.Worktree.Enabled {
+		// Check if a worktree exists for this ticket
+		wt, err := app.Git.FindWorktreeByBranch(current.ID)
+		if err != nil {
+			return nil, "", fmt.Errorf("failed to find worktree: %w", err)
+		}
+		if wt != nil {
+			isWorktree = true
+			worktreePath = wt.Path
+
+			// Check for uncommitted changes in worktree
+			if !force {
+				wtGit := git.New(worktreePath)
+				dirty, err := wtGit.HasUncommittedChanges()
+				if err != nil {
+					return nil, "", fmt.Errorf("failed to check worktree status: %w", err)
+				}
+				if dirty {
+					return nil, "", NewError(ErrGitDirtyWorkspace, "Uncommitted changes in worktree",
+						fmt.Sprintf("Please commit your changes in %s before closing the ticket", worktreePath),
+						[]string{
+							fmt.Sprintf("cd %s && git commit -am 'Your message'", worktreePath),
+							"Force close without committing: ticketflow close --force",
+						})
+				}
+			}
+		}
+	}
+
+	if !isWorktree {
+		// Original behavior for non-worktree mode
+		// Check for uncommitted changes
+		if !force {
+			dirty, err := app.Git.HasUncommittedChanges()
+			if err != nil {
+				return nil, "", fmt.Errorf("failed to check git status: %w", err)
+			}
+			if dirty {
+				return nil, "", NewError(ErrGitDirtyWorkspace, "Uncommitted changes detected",
+					"Please commit your changes before closing the ticket",
+					[]string{
+						"Commit your changes: git commit -am 'Your message'",
+						"Force close without committing: ticketflow close --force",
+					})
+			}
+		}
+
+		// Get current branch
+		currentBranch, err := app.Git.CurrentBranch()
+		if err != nil {
+			return nil, "", fmt.Errorf("failed to get current branch: %w", err)
+		}
+
+		// Ensure we're on the ticket branch
+		if currentBranch != current.ID {
+			return nil, "", fmt.Errorf("not on ticket branch, expected %s but on %s", current.ID, currentBranch)
+		}
+	}
+
+	return current, worktreePath, nil
+}
+
+// moveTicketToDone moves the ticket to done status and commits the change
+func (app *App) moveTicketToDone(current *ticket.Ticket) error {
+	// Move ticket file from doing to done
+	oldPath := current.Path
+	donePath := app.Config.GetDonePath(app.ProjectRoot)
+	newPath := filepath.Join(donePath, filepath.Base(current.Path))
+
+	// Ensure done directory exists
+	if err := os.MkdirAll(donePath, 0755); err != nil {
+		return fmt.Errorf("failed to create done directory: %w", err)
+	}
+
+	// Move the file first
+	if err := os.Rename(oldPath, newPath); err != nil {
+		return fmt.Errorf("failed to move ticket %s from %s to done: %w", current.ID, oldPath, err)
+	}
+
+	// Update ticket data with new path
+	current.Path = newPath
+	if err := app.Manager.Update(current); err != nil {
+		// Rollback file move
+		if renameErr := os.Rename(newPath, oldPath); renameErr != nil {
+			return fmt.Errorf("failed to update ticket and rollback file move: %w, rename error: %v", err, renameErr)
+		}
+		return fmt.Errorf("failed to update ticket %s close time: %w", current.ID, err)
+	}
+
+	// Git add the changes (use -A to handle the rename properly)
+	if err := app.Git.Add("-A", filepath.Dir(oldPath), filepath.Dir(newPath)); err != nil {
+		return fmt.Errorf("failed to stage ticket move: %w", err)
+	}
+
+	// Commit the move
+	if err := app.Git.Commit(fmt.Sprintf("Close ticket: %s", current.ID)); err != nil {
+		return fmt.Errorf("failed to commit ticket move: %w", err)
+	}
+
+	// Remove current ticket link
+	if err := app.Manager.SetCurrentTicket(nil); err != nil {
+		return fmt.Errorf("failed to remove current ticket link: %w", err)
+	}
+
 	return nil
 }

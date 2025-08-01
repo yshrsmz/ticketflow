@@ -25,7 +25,7 @@ const (
 
 // NewTicketModel represents the new ticket creation view
 type NewTicketModel struct {
-	manager    *ticket.Manager
+	manager    ticket.TicketManager
 	state      NewTicketState
 	err        error
 	width      int
@@ -40,7 +40,7 @@ type NewTicketModel struct {
 }
 
 // NewNewTicketModel creates a new ticket creation model
-func NewNewTicketModel(manager *ticket.Manager) NewTicketModel {
+func NewNewTicketModel(manager ticket.TicketManager) NewTicketModel {
 	// Slug input
 	slugInput := textinput.New()
 	slugInput.Placeholder = "feature-name"
