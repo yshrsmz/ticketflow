@@ -174,12 +174,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		} else {
 			successMsg = fmt.Sprintf("✅ Ticket started! Switched to branch: %s", msg.ticket.ID)
 		}
-		
+
 		// Add warning if init commands failed
 		if msg.initWarning != "" {
 			successMsg += fmt.Sprintf("\n⚠️  Warning: %s", msg.initWarning)
 		}
-		
+
 		m.err = fmt.Errorf("%s", successMsg)
 		// Refresh the list
 		cmds = append(cmds, m.ticketList.Refresh())
