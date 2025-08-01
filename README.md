@@ -166,7 +166,7 @@ git push origin 250124-150000-implement-feature
 ```yaml
 worktree:
   enabled: true
-  base_dir: "../.worktrees"  # Relative to project root
+  base_dir: "../ticketflow.worktrees"  # Relative to project root
   init_commands:
     - "git fetch origin"
     # - "npm install"
@@ -176,12 +176,12 @@ worktree:
 2. **Start work (creates worktree)**:
 ```bash
 ticketflow start 250124-150000-implement-feature
-# Creates worktree at ../.worktrees/250124-150000-implement-feature
+# Creates worktree at ../ticketflow.worktrees/250124-150000-implement-feature
 ```
 
 3. **Navigate to worktree and develop**:
 ```bash
-cd ../.worktrees/250124-150000-implement-feature
+cd ../ticketflow.worktrees/250124-150000-implement-feature
 # Make changes, commit as usual
 ```
 
@@ -293,7 +293,7 @@ Create sub-tickets while working on a parent ticket:
 
 ```bash
 # In parent worktree
-cd ../.worktrees/250124-150000-user-system
+cd ../ticketflow.worktrees/250124-150000-user-system
 
 # Create sub-tickets
 ticketflow new user-model
@@ -303,7 +303,7 @@ ticketflow new user-auth
 ticketflow start 250124-151000-user-model
 
 # Work in sub-ticket worktree
-cd ../.worktrees/250124-151000-user-model
+cd ../ticketflow.worktrees/250124-151000-user-model
 # ... implement ...
 
 # Create PR targeting parent branch

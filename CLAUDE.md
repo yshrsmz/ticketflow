@@ -81,18 +81,47 @@ These are displayed in `ticketflow version` command.
 
 1. Create a feature ticket: `ticketflow new my-feature`
 2. Start work (creates worktree): `ticketflow start <ticket-id>`
-3. Make changes in the worktree
-4. Run tests: `make test`
-5. Run linters: `make fmt vet lint`
-6. Commit and push changes
-7. After PR merge: `ticketflow cleanup <ticket-id>`
+3. Navigate to the worktree: `cd ../ticketflow.worktrees/<ticket-id>`
+4. Make changes in the worktree
+5. Run tests: `make test`
+6. Run linters: `make fmt vet lint`
+7. Commit and push changes
+8. **Close the ticket FROM THE WORKTREE**: `ticketflow close`
+9. Push the branch with the close commit: `git push`
+10. After PR merge: `ticketflow cleanup <ticket-id>`
+
+## Ticket Lifecycle Management
+
+### IMPORTANT: Closing Tickets with Worktrees
+When using worktrees (the default mode), you MUST close tickets from within the worktree directory, not from the main repository. This ensures the "Close ticket" commit is created on the feature branch.
+
+**Correct workflow:**
+```bash
+cd ../ticketflow.worktrees/<ticket-id>  # Stay in the worktree
+ticketflow close                        # Creates close commit on feature branch
+git push                                # Push the complete branch with close commit
+```
+
+**Common mistake to avoid:**
+```bash
+# WRONG: Don't do this!
+cd /path/to/main/repo      # Going back to main repo
+ticketflow close           # This creates commit on wrong branch!
+```
+
+### Why this matters
+- The ticket file exists in the feature branch, not in main
+- Closing from the main repo may create the commit on the main branch
+- This can cause confusing rebase issues where the ticket file disappears
+- The close commit should be part of the PR, not a separate commit on main
 
 ## Important Notes
 - The TUI is launched when running `ticketflow` without arguments
 - JSON output mode (`-o json`) is designed for AI tool integration
 - All git operations are explicit - no automatic pushing or merging
-- Worktrees are created under the configured worktreeBaseDir (default: ../)
+- Worktrees are created under the configured worktreeBaseDir (this project uses: ../ticketflow.worktrees)
 - The application supports sub-tickets with parent relationships via YAML frontmatter
+- **Always work within the worktree directory when making ticket-related changes**
 
 ## AI Integration Guidelines
 - **ALWAYS use `--format json` when running ticketflow commands** to get structured output for better parsing and analysis

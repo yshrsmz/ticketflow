@@ -2,7 +2,7 @@ git:
     default_branch: main
 worktree:
     enabled: true
-    base_dir: ./.worktrees
+    base_dir: ../ticketflow.worktrees
     init_commands:
         - git status
         - if command -v mise >/dev/null 2>&1; then mise trust; fi
