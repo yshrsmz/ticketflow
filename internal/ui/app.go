@@ -49,8 +49,8 @@ type ticketEditedMsg struct {
 type Model struct {
 	// Core components
 	config      *config.Config
-	manager     *ticket.Manager
-	git         *git.Git
+	manager     ticket.TicketManager
+	git         git.GitClient
 	projectRoot string
 
 	// View state
@@ -72,18 +72,18 @@ type Model struct {
 }
 
 // New creates a new TUI application
-func New(cfg *config.Config, manager *ticket.Manager, git *git.Git, projectRoot string) Model {
+func New(cfg *config.Config, manager ticket.TicketManager, gitClient git.GitClient, projectRoot string) Model {
 	return Model{
 		config:       cfg,
 		manager:      manager,
-		git:          git,
+		git:          gitClient,
 		projectRoot:  projectRoot,
 		view:         ViewTicketList,
 		previousView: ViewTicketList,
 		ticketList:   views.NewTicketListModel(manager),
 		ticketDetail: views.NewTicketDetailModel(manager),
 		newTicket:    views.NewNewTicketModel(manager),
-		worktreeList: views.NewWorktreeListModel(git, cfg),
+		worktreeList: views.NewWorktreeListModel(gitClient, cfg),
 		help:         components.NewHelpModel(),
 		ready:        false,
 	}

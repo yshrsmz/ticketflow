@@ -14,7 +14,7 @@ import (
 
 // WorktreeListModel represents the worktree list view
 type WorktreeListModel struct {
-	git        *git.Git
+	git        git.GitClient
 	config     *config.Config
 	worktrees  []git.WorktreeInfo
 	cursor     int
@@ -22,13 +22,16 @@ type WorktreeListModel struct {
 	shouldBack bool
 	width      int
 	height     int
+	gitRoot    string // cached git root path
 }
 
 // NewWorktreeListModel creates a new worktree list model
-func NewWorktreeListModel(g *git.Git, cfg *config.Config) WorktreeListModel {
+func NewWorktreeListModel(g git.GitClient, cfg *config.Config) WorktreeListModel {
+	root, _ := g.RootPath()
 	return WorktreeListModel{
-		git:    g,
-		config: cfg,
+		git:     g,
+		config:  cfg,
+		gitRoot: root,
 	}
 }
 
@@ -134,12 +137,12 @@ func (m WorktreeListModel) View() string {
 
 		// Make path relative if possible
 		path := wt.Path
-		if rel, err := filepath.Rel(m.git.Root, path); err == nil && !strings.HasPrefix(rel, "..") {
+		if rel, err := filepath.Rel(m.gitRoot, path); err == nil && !strings.HasPrefix(rel, "..") {
 			path = rel
 		}
 
 		// Highlight main worktree
-		if wt.Branch == "" || strings.Contains(path, m.git.Root) && !strings.Contains(path, m.config.Worktree.BaseDir) {
+		if wt.Branch == "" || strings.Contains(path, m.gitRoot) && !strings.Contains(path, m.config.Worktree.BaseDir) {
 			branch = styles.SuccessStyle.Render("main")
 		}
 
