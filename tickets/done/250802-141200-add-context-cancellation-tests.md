@@ -3,7 +3,7 @@ priority: 2
 description: ""
 created_at: "2025-08-02T14:12:00+09:00"
 started_at: "2025-08-02T16:19:19+09:00"
-closed_at: null
+closed_at: "2025-08-02T17:17:58+09:00"
 related:
     - parent:250801-003206-add-context-support
 ---
