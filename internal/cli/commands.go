@@ -427,15 +427,15 @@ func updateGitignore(path string) error {
 	}
 
 	// Check if already contains our entries
-	if strings.Contains(content, "current-ticket.md") {
+	if strings.Contains(content, ticket.CurrentTicketFile) {
 		return nil
 	}
 
 	// Append our entries
-	toAdd := "\n# TicketFlow\ncurrent-ticket.md\n.worktrees/\n"
+	toAdd := fmt.Sprintf("\n# TicketFlow\n%s\n%s\n", ticket.CurrentTicketFile, WorktreesDir)
 
 	// Write back
-	return os.WriteFile(path, []byte(content+toAdd), 0644)
+	return os.WriteFile(path, []byte(content+toAdd), ticket.DefaultPermission)
 }
 
 func (app *App) outputTicketListText(tickets []*ticket.Ticket) error {
