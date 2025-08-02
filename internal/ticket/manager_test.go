@@ -285,14 +285,12 @@ func TestReadFileWithContext(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, largeData, data)
 
-		// Test with timeout (might not trigger if read is too fast)
-		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Nanosecond)
-		defer cancel()
-		time.Sleep(2 * time.Millisecond) // Ensure timeout
+		// Test with pre-cancelled context for deterministic cancellation testing
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel() // Cancel immediately to ensure deterministic behavior
 		_, err = readFileWithContext(ctx, largeFile)
-		if err != nil {
-			assert.Contains(t, err.Error(), "cancelled")
-		}
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "cancelled")
 	})
 
 	t.Run("file size validation", func(t *testing.T) {
@@ -392,14 +390,113 @@ func TestWriteFileWithContext(t *testing.T) {
 		testFile := filepath.Join(tmpDir, "timeout_write.txt")
 		largeData := make([]byte, 2*1024*1024) // 2MB
 
-		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Nanosecond)
-		defer cancel()
-		time.Sleep(2 * time.Millisecond) // Ensure timeout
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel() // Cancel immediately to ensure deterministic behavior
 
 		err := writeFileWithContext(ctx, testFile, largeData, 0644)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "cancelled")
+	})
+}
+
+func TestContextCancellationScenarios(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	t.Run("read with cancelled context before operation", func(t *testing.T) {
+		// Create a test file
+		testFile := filepath.Join(tmpDir, "test.txt")
+		testContent := []byte("test content")
+		err := os.WriteFile(testFile, testContent, 0644)
+		require.NoError(t, err)
+
+		// Create pre-cancelled context
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel() // Cancel before calling the function
+
+		// Should fail immediately with cancellation error
+		_, err = readFileWithContext(ctx, testFile)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "operation cancelled")
+		assert.Contains(t, err.Error(), "context canceled")
+	})
+
+	t.Run("write with cancelled context before operation", func(t *testing.T) {
+		testFile := filepath.Join(tmpDir, "cancelled_write.txt")
+		testContent := []byte("should not be written")
+
+		// Create pre-cancelled context
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel() // Cancel before calling the function
+
+		// Should fail immediately with cancellation error
+		err := writeFileWithContext(ctx, testFile, testContent, 0644)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "operation cancelled")
+		assert.Contains(t, err.Error(), "context canceled")
+
+		// Verify file was not created
+		_, err = os.Stat(testFile)
+		assert.True(t, os.IsNotExist(err), "file should not exist after cancelled write")
+	})
+
+	t.Run("read large file with context cancellation during chunks", func(t *testing.T) {
+		// Create a large file (>1MB to trigger chunked reading)
+		largeFile := filepath.Join(tmpDir, "large_for_cancellation.txt")
+		largeData := make([]byte, 2*1024*1024) // 2MB
+		for i := range largeData {
+			largeData[i] = byte('A' + (i % 26))
+		}
+		err := os.WriteFile(largeFile, largeData, 0644)
+		require.NoError(t, err)
+
+		// Test with context that gets cancelled during operation
+		// We use a timeout that should allow file opening but cancel during chunked reading
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
+		defer cancel()
+
+		// For this test, we expect either success (if operation completes quickly)
+		// or cancellation error (if context times out during chunked reading)
+		_, err = readFileWithContext(ctx, largeFile)
 		if err != nil {
+			// If there's an error, it should be a cancellation error
 			assert.Contains(t, err.Error(), "cancelled")
 		}
+		// If no error, the operation completed before timeout - this is also valid
+	})
+
+	t.Run("write large file with context cancellation during chunks", func(t *testing.T) {
+		testFile := filepath.Join(tmpDir, "large_write_cancellation.txt")
+		// Create 2MB of data to trigger chunked writing
+		largeData := make([]byte, 2*1024*1024)
+		for i := range largeData {
+			largeData[i] = byte('B' + (i % 26))
+		}
+
+		// Test with context that gets cancelled during operation
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
+		defer cancel()
+
+		// For this test, we expect either success (if operation completes quickly)
+		// or cancellation error (if context times out during chunked writing)
+		err := writeFileWithContext(ctx, testFile, largeData, 0644)
+		if err != nil {
+			// If there's an error, it should be a cancellation error
+			assert.Contains(t, err.Error(), "cancelled")
+		}
+		// If no error, the operation completed before timeout - this is also valid
+	})
+
+	t.Run("context cancellation error wrapping", func(t *testing.T) {
+		testFile := filepath.Join(tmpDir, "error_wrapping.txt")
+
+		// Test that context.DeadlineExceeded is properly wrapped
+		ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(-time.Hour))
+		defer cancel()
+
+		err := writeFileWithContext(ctx, testFile, []byte("test"), 0644)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "operation cancelled")
+		assert.Contains(t, err.Error(), "deadline exceeded")
 	})
 }
 
