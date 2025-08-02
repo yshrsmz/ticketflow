@@ -22,6 +22,8 @@ tickets:
         Write the overview and tasks for this ticket here.
 
         ## Tasks
+        Make sure to update task status when you finish it. Also, always create a commit for each task you finished.
+
         - [ ] task1
         - [ ] task2
         - [ ] task3
