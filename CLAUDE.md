@@ -98,11 +98,23 @@ These are displayed in `ticketflow version` command.
 5. Run tests: `make test`
 6. Run linters: `make fmt vet lint`
 7. Commit and push changes
-8. **Close the ticket FROM THE WORKTREE**: `ticketflow close`
-9. Push the branch with the close commit: `git push`
-10. After PR merge: `ticketflow cleanup <ticket-id>`
+8. Create PR: `git push -u origin <branch>` and `gh pr create`
+9. **IMPORTANT: Wait for developer approval before closing the ticket**
+   - Check if the ticket contains approval requirements (e.g., "Get developer approval before closing")
+   - If approval is required, DO NOT close the ticket until explicitly approved
+   - Developer will review the PR and provide feedback or approval
+10. **Only after approval, close the ticket FROM THE WORKTREE**: `ticketflow close`
+11. Push the branch with the close commit: `git push`
+12. After PR merge: `ticketflow cleanup <ticket-id>`
 
 ## Ticket Lifecycle Management
+
+### CRITICAL: Always Read Ticket Requirements
+Before closing any ticket, ALWAYS:
+1. Read the ticket content for any specific requirements or approval steps
+2. Look for phrases like "Get developer approval before closing" or "Requires review"
+3. If approval is required, complete the implementation and create PR, but DO NOT close until approved
+4. The developer will indicate approval through PR comments or direct communication
 
 ### IMPORTANT: Closing Tickets with Worktrees
 When using worktrees (the default mode), you MUST close tickets from within the worktree directory, not from the main repository. This ensures the "Close ticket" commit is created on the feature branch.
