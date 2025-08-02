@@ -987,7 +987,9 @@ func (app *App) createAndSetupWorktree(ctx context.Context, t *ticket.Ticket) (s
 
 	if err := app.Git.AddWorktree(ctx, worktreePath, t.ID); err != nil {
 		// Rollback: reset to previous commit
-		_, _ = app.Git.Exec(ctx, "reset", "--hard", "HEAD^")
+		if _, rollbackErr := app.Git.Exec(ctx, "reset", "--hard", "HEAD^"); rollbackErr != nil {
+			fmt.Fprintf(os.Stderr, "Warning: failed to rollback after worktree creation failure: %v\n", rollbackErr)
+		}
 		return "", fmt.Errorf("failed to create worktree at %s for branch %s: %w", worktreePath, t.ID, err)
 	}
 
