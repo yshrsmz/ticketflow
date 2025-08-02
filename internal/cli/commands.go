@@ -42,9 +42,9 @@ func WithTicketManager(manager ticket.TicketManager) AppOption {
 }
 
 // NewAppWithOptions creates a new CLI application with custom options
-func NewAppWithOptions(opts ...AppOption) (*App, error) {
+func NewAppWithOptions(ctx context.Context, opts ...AppOption) (*App, error) {
 	// Find project root (with .git directory)
-	projectRoot, err := git.FindProjectRoot(context.Background(), ".")
+	projectRoot, err := git.FindProjectRoot(ctx, ".")
 	if err != nil {
 		return nil, NewError(ErrNotGitRepo, "Not in a git repository", "",
 			[]string{
@@ -85,9 +85,9 @@ func NewAppWithOptions(opts ...AppOption) (*App, error) {
 }
 
 // NewApp creates a new CLI application
-func NewApp() (*App, error) {
+func NewApp(ctx context.Context) (*App, error) {
 	// Find project root (with .git directory)
-	projectRoot, err := git.FindProjectRoot(context.Background(), ".")
+	projectRoot, err := git.FindProjectRoot(ctx, ".")
 	if err != nil {
 		return nil, NewError(ErrNotGitRepo, "Not in a git repository", "",
 			[]string{
@@ -118,8 +118,8 @@ func NewApp() (*App, error) {
 }
 
 // InitCommand initializes the ticket system (doesn't require existing config)
-func InitCommand() error {
-	projectRoot, err := git.FindProjectRoot(context.Background(), ".")
+func InitCommand(ctx context.Context) error {
+	projectRoot, err := git.FindProjectRoot(ctx, ".")
 	if err != nil {
 		return NewError(ErrNotGitRepo, "Not in a git repository", "", nil)
 	}

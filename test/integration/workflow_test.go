@@ -62,7 +62,7 @@ func TestCompleteWorkflow(t *testing.T) {
 	require.NoError(t, err)
 
 	// 1. Initialize ticketflow
-	err = cli.InitCommand()
+	err = cli.InitCommand(context.Background())
 	require.NoError(t, err)
 
 	// Verify config exists
@@ -76,7 +76,7 @@ func TestCompleteWorkflow(t *testing.T) {
 	require.NoError(t, err)
 
 	// Disable worktrees for this test
-	app, err := cli.NewApp()
+	app, err := cli.NewApp(context.Background())
 	require.NoError(t, err)
 	app.Config.Worktree.Enabled = false
 
@@ -171,11 +171,11 @@ func TestRestoreWorkflow(t *testing.T) {
 	require.NoError(t, err)
 
 	// Initialize and create ticket
-	err = cli.InitCommand()
+	err = cli.InitCommand(context.Background())
 	require.NoError(t, err)
 
 	// Disable worktrees for this test
-	app, err := cli.NewApp()
+	app, err := cli.NewApp(context.Background())
 	require.NoError(t, err)
 	app.Config.Worktree.Enabled = false
 

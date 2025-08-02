@@ -27,11 +27,11 @@ func TestAutoCleanupStaleBranchesIntegration(t *testing.T) {
 	require.NoError(t, err)
 
 	// Initialize ticketflow
-	err = cli.InitCommand()
+	err = cli.InitCommand(context.Background())
 	require.NoError(t, err)
 
 	// Create the app
-	app, err := cli.NewApp()
+	app, err := cli.NewApp(context.Background())
 	require.NoError(t, err)
 
 	// Create multiple tickets
@@ -130,11 +130,11 @@ func TestAutoCleanupDryRun(t *testing.T) {
 	require.NoError(t, err)
 
 	// Initialize ticketflow
-	err = cli.InitCommand()
+	err = cli.InitCommand(context.Background())
 	require.NoError(t, err)
 
 	// Create the app
-	app, err := cli.NewApp()
+	app, err := cli.NewApp(context.Background())
 	require.NoError(t, err)
 
 	// Create a ticket

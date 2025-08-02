@@ -6,7 +6,9 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -25,6 +27,10 @@ var (
 )
 
 func main() {
+	// Set up signal handling with context
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
 	// No arguments = TUI mode
 	if len(os.Args) == 1 {
 		runTUI()
@@ -32,7 +38,12 @@ func main() {
 	}
 
 	// CLI mode
-	if err := runCLI(); err != nil {
+	if err := runCLI(ctx); err != nil {
+		// Check if the error is due to context cancellation
+		if ctx.Err() != nil {
+			fmt.Fprintf(os.Stderr, "\nOperation cancelled\n")
+			os.Exit(130) // Standard exit code for SIGINT
+		}
 		cli.HandleError(err)
 		os.Exit(1)
 	}
@@ -71,7 +82,7 @@ func runTUI() {
 	}
 }
 
-func runCLI() error {
+func runCLI(ctx context.Context) error {
 	// Define subcommands
 	initCmd := flag.NewFlagSet("init", flag.ExitOnError)
 
@@ -116,7 +127,7 @@ func runCLI() error {
 		if err := initCmd.Parse(os.Args[2:]); err != nil {
 			return err
 		}
-		return handleInit()
+		return handleInit(ctx)
 
 	case "new":
 		if err := newCmd.Parse(os.Args[2:]); err != nil {
@@ -125,13 +136,13 @@ func runCLI() error {
 		if newCmd.NArg() < 1 {
 			return fmt.Errorf("missing slug argument")
 		}
-		return handleNew(newCmd.Arg(0), *listFormat)
+		return handleNew(ctx, newCmd.Arg(0), *listFormat)
 
 	case "list":
 		if err := listCmd.Parse(os.Args[2:]); err != nil {
 			return err
 		}
-		return handleList(*listStatus, *listCount, *listFormat)
+		return handleList(ctx, *listStatus, *listCount, *listFormat)
 
 	case "show":
 		if err := showCmd.Parse(os.Args[2:]); err != nil {
@@ -140,7 +151,7 @@ func runCLI() error {
 		if showCmd.NArg() < 1 {
 			return fmt.Errorf("missing ticket argument")
 		}
-		return handleShow(showCmd.Arg(0), *showFormat)
+		return handleShow(ctx, showCmd.Arg(0), *showFormat)
 
 	case "start":
 		if err := startCmd.Parse(os.Args[2:]); err != nil {
@@ -149,26 +160,26 @@ func runCLI() error {
 		if startCmd.NArg() < 1 {
 			return fmt.Errorf("missing ticket argument")
 		}
-		return handleStart(startCmd.Arg(0), false)
+		return handleStart(ctx, startCmd.Arg(0), false)
 
 	case "close":
 		if err := closeCmd.Parse(os.Args[2:]); err != nil {
 			return err
 		}
 		force := *closeForce || *closeForceShort
-		return handleClose(false, force)
+		return handleClose(ctx, false, force)
 
 	case "restore":
 		if err := restoreCmd.Parse(os.Args[2:]); err != nil {
 			return err
 		}
-		return handleRestore()
+		return handleRestore(ctx)
 
 	case "status":
 		if err := statusCmd.Parse(os.Args[2:]); err != nil {
 			return err
 		}
-		return handleStatus(*statusFormat)
+		return handleStatus(ctx, *statusFormat)
 
 	case "worktree":
 		if len(os.Args) < 3 {
@@ -178,7 +189,7 @@ func runCLI() error {
 		if err := worktreeCmd.Parse(os.Args[3:]); err != nil {
 			return err
 		}
-		return handleWorktree(os.Args[2], worktreeCmd.Args())
+		return handleWorktree(ctx, os.Args[2], worktreeCmd.Args())
 
 	case "cleanup":
 		if err := cleanupCmd.Parse(os.Args[2:]); err != nil {
@@ -186,16 +197,16 @@ func runCLI() error {
 		}
 		if cleanupCmd.NArg() > 0 {
 			// New cleanup command with ticket ID
-			return handleCleanupTicket(cleanupCmd.Arg(0), *cleanupForce)
+			return handleCleanupTicket(ctx, cleanupCmd.Arg(0), *cleanupForce)
 		}
 		// Old auto-cleanup command
-		return handleCleanup(*cleanupDryRun)
+		return handleCleanup(ctx, *cleanupDryRun)
 
 	case "migrate":
 		if err := migrateCmd.Parse(os.Args[2:]); err != nil {
 			return err
 		}
-		return handleMigrateDates(*migrateDryRun)
+		return handleMigrateDates(ctx, *migrateDryRun)
 
 	case "help", "-h", "--help":
 		printUsage()
@@ -214,25 +225,24 @@ func runCLI() error {
 	}
 }
 
-func handleInit() error {
+func handleInit(ctx context.Context) error {
 	// Special case: init doesn't require existing config
-	return cli.InitCommand()
+	return cli.InitCommand(ctx)
 }
 
-func handleNew(slug, format string) error {
-	app, err := cli.NewApp()
+func handleNew(ctx context.Context, slug, format string) error {
+	app, err := cli.NewApp(ctx)
 	if err != nil {
 		return err
 	}
 
 	outputFormat := cli.ParseOutputFormat(format)
 	cli.GlobalOutputFormat = outputFormat
-	ctx := context.Background()
 	return app.NewTicket(ctx, slug, outputFormat)
 }
 
-func handleList(status string, count int, format string) error {
-	app, err := cli.NewApp()
+func handleList(ctx context.Context, status string, count int, format string) error {
+	app, err := cli.NewApp(ctx)
 	if err != nil {
 		return err
 	}
@@ -247,18 +257,16 @@ func handleList(status string, count int, format string) error {
 
 	outputFormat := cli.ParseOutputFormat(format)
 	cli.GlobalOutputFormat = outputFormat
-	ctx := context.Background()
 	return app.ListTickets(ctx, ticketStatus, count, outputFormat)
 }
 
-func handleShow(ticketID, format string) error {
-	app, err := cli.NewApp()
+func handleShow(ctx context.Context, ticketID, format string) error {
+	app, err := cli.NewApp(ctx)
 	if err != nil {
 		return err
 	}
 
 	// Get the ticket
-	ctx := context.Background()
 	t, err := app.Manager.Get(ctx, ticketID)
 	if err != nil {
 		return err
@@ -308,50 +316,46 @@ func handleShow(ticketID, format string) error {
 	return nil
 }
 
-func handleStart(ticketID string, noPush bool) error {
-	app, err := cli.NewApp()
+func handleStart(ctx context.Context, ticketID string, noPush bool) error {
+	app, err := cli.NewApp(ctx)
 	if err != nil {
 		return err
 	}
 
-	ctx := context.Background()
 	return app.StartTicket(ctx, ticketID)
 }
 
-func handleClose(noPush, force bool) error {
-	app, err := cli.NewApp()
+func handleClose(ctx context.Context, noPush, force bool) error {
+	app, err := cli.NewApp(ctx)
 	if err != nil {
 		return err
 	}
 
-	ctx := context.Background()
 	return app.CloseTicket(ctx, force)
 }
 
-func handleRestore() error {
-	app, err := cli.NewApp()
+func handleRestore(ctx context.Context) error {
+	app, err := cli.NewApp(ctx)
 	if err != nil {
 		return err
 	}
 
-	ctx := context.Background()
 	return app.RestoreCurrentTicket(ctx)
 }
 
-func handleStatus(format string) error {
-	app, err := cli.NewApp()
+func handleStatus(ctx context.Context, format string) error {
+	app, err := cli.NewApp(ctx)
 	if err != nil {
 		return err
 	}
 
 	outputFormat := cli.ParseOutputFormat(format)
 	cli.GlobalOutputFormat = outputFormat
-	ctx := context.Background()
 	return app.Status(ctx, outputFormat)
 }
 
-func handleWorktree(subcommand string, args []string) error {
-	app, err := cli.NewApp()
+func handleWorktree(ctx context.Context, subcommand string, args []string) error {
+	app, err := cli.NewApp(ctx)
 	if err != nil {
 		return err
 	}
@@ -364,11 +368,9 @@ func handleWorktree(subcommand string, args []string) error {
 		}
 		outputFormat := cli.ParseOutputFormat(format)
 		cli.GlobalOutputFormat = outputFormat
-		ctx := context.Background()
 		return app.ListWorktrees(ctx, outputFormat)
 
 	case "clean":
-		ctx := context.Background()
 		return app.CleanWorktrees(ctx)
 
 	default:
@@ -501,13 +503,12 @@ EXAMPLES:
   ticketflow worktree clean`)
 }
 
-func handleCleanup(dryRun bool) error {
-	app, err := cli.NewApp()
+func handleCleanup(ctx context.Context, dryRun bool) error {
+	app, err := cli.NewApp(ctx)
 	if err != nil {
 		return err
 	}
 
-	ctx := context.Background()
 	if dryRun {
 		// Show cleanup statistics first
 		if err := app.CleanupStats(ctx); err != nil {
@@ -520,22 +521,20 @@ func handleCleanup(dryRun bool) error {
 	return err
 }
 
-func handleCleanupTicket(ticketID string, force bool) error {
-	app, err := cli.NewApp()
+func handleCleanupTicket(ctx context.Context, ticketID string, force bool) error {
+	app, err := cli.NewApp(ctx)
 	if err != nil {
 		return err
 	}
 
-	ctx := context.Background()
 	return app.CleanupTicket(ctx, ticketID, force)
 }
 
-func handleMigrateDates(dryRun bool) error {
-	app, err := cli.NewApp()
+func handleMigrateDates(ctx context.Context, dryRun bool) error {
+	app, err := cli.NewApp(ctx)
 	if err != nil {
 		return err
 	}
 
-	ctx := context.Background()
 	return app.MigrateDates(ctx, dryRun)
 }
