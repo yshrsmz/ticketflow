@@ -84,7 +84,7 @@ func TestHandleNew(t *testing.T) {
 				setupTestRepo(t, tmpDir)
 			},
 			expectedError: true,
-			errorContains: "invalid slug",
+			errorContains: "Invalid slug format",
 		},
 		{
 			name:          "no config",
@@ -108,24 +108,35 @@ func TestHandleNew(t *testing.T) {
 
 			tt.setupFunc(t, tmpDir)
 
+			ctx := context.Background()
+
 			// Capture output for JSON format
-			var buf bytes.Buffer
 			if tt.format == "json" {
 				oldStdout := os.Stdout
 				r, w, _ := os.Pipe()
 				os.Stdout = w
-				defer func() {
-					w.Close()
-					os.Stdout = oldStdout
-				}()
 
-				go func() {
-					_, _ = io.Copy(&buf, r)
-				}()
+				// Run the command
+				err = handleNew(ctx, tt.slug, tt.format)
+				
+				// Restore stdout and read output
+				w.Close()
+				os.Stdout = oldStdout
+				
+				var buf bytes.Buffer
+				_, _ = io.Copy(&buf, r)
+				r.Close()
+
+				// For JSON format, verify output structure
+				if !tt.expectedError {
+					var result map[string]interface{}
+					err2 := json.Unmarshal(buf.Bytes(), &result)
+					assert.NoError(t, err2)
+					assert.Contains(t, result, "ticket")
+				}
+			} else {
+				err = handleNew(ctx, tt.slug, tt.format)
 			}
-
-			ctx := context.Background()
-			err = handleNew(ctx, tt.slug, tt.format)
 
 			if tt.expectedError {
 				assert.Error(t, err)
@@ -139,14 +150,6 @@ func TestHandleNew(t *testing.T) {
 				files, err := os.ReadDir(filepath.Join(tmpDir, "tickets", "todo"))
 				require.NoError(t, err)
 				assert.NotEmpty(t, files)
-
-				// For JSON format, verify output structure
-				if tt.format == "json" {
-					var result map[string]interface{}
-					err = json.Unmarshal(buf.Bytes(), &result)
-					assert.NoError(t, err)
-					assert.Contains(t, result, "ticket")
-				}
 			}
 		})
 	}
@@ -395,7 +398,7 @@ func TestHandleClose(t *testing.T) {
 				setupTestRepo(t, tmpDir)
 			},
 			expectedError: true,
-			errorContains: "no current ticket",
+			errorContains: "No active ticket",
 		},
 	}
 
@@ -509,21 +512,19 @@ func setupTestRepo(t *testing.T, tmpDir string) {
 	cfg.Worktree.Enabled = false
 	
 	// Create config YAML content
-	configContent := fmt.Sprintf(`# TicketFlow Configuration
-git:
-  defaultBranch: main
-  timeout: 5m
-
+	configContent := `git:
+  default_branch: main
 worktree:
   enabled: false
-  baseDir: ../ticketflow.worktrees
-
+  base_dir: ../ticketflow.worktrees
 tickets:
   dir: tickets
-  todoDir: tickets/todo
-  doingDir: tickets/doing
-  doneDir: tickets/done
-`)
+  todo_dir: todo
+  doing_dir: doing
+  done_dir: done
+output:
+  default_format: text
+`
 	
 	err = os.WriteFile(filepath.Join(tmpDir, ".ticketflow.yaml"), []byte(configContent), 0644)
 	require.NoError(t, err)
@@ -538,15 +539,16 @@ tickets:
 	err = os.WriteFile(filepath.Join(tmpDir, "tickets", ".current"), []byte(""), 0644)
 	require.NoError(t, err)
 
-	// Create initial commit
-	cmd = exec.Command("git", "add", ".")
-	err = cmd.Run()
-	require.NoError(t, err)
-
+	// Configure git
 	cmd = exec.Command("git", "config", "user.name", "Test User")
 	cmd.Run()
 	cmd = exec.Command("git", "config", "user.email", "test@example.com")
 	cmd.Run()
+
+	// Create initial commit
+	cmd = exec.Command("git", "add", ".")
+	err = cmd.Run()
+	require.NoError(t, err)
 
 	cmd = exec.Command("git", "commit", "-m", "Initial commit")
 	err = cmd.Run()
@@ -568,8 +570,10 @@ func setupTestRepoWithTickets(t *testing.T, tmpDir string) {
 	}
 
 	for _, tc := range tickets {
-		content := fmt.Sprintf(`---
-id: %s
+		var content string
+		switch tc.status {
+		case "todo":
+			content = fmt.Sprintf(`---
 priority: 2
 created_at: 2025-01-01T12:00:00Z
 ---
@@ -577,20 +581,52 @@ created_at: 2025-01-01T12:00:00Z
 # Test Ticket %s
 
 This is a test ticket.
-`, tc.id, tc.id)
+`, tc.id)
+		case "doing":
+			content = fmt.Sprintf(`---
+priority: 2
+created_at: 2025-01-01T12:00:00Z
+started_at: 2025-01-01T13:00:00Z
+---
+
+# Test Ticket %s
+
+This is a test ticket in progress.
+`, tc.id)
+		case "done":
+			content = fmt.Sprintf(`---
+priority: 2
+created_at: 2025-01-01T12:00:00Z
+started_at: 2025-01-01T13:00:00Z
+closed_at: 2025-01-01T14:00:00Z
+---
+
+# Test Ticket %s
+
+This is a completed test ticket.
+`, tc.id)
+		}
 
 		path := filepath.Join(tmpDir, "tickets", tc.status, tc.id+".md")
 		err := os.WriteFile(path, []byte(content), 0644)
 		require.NoError(t, err)
 	}
+
+	// Commit all tickets
+	cmd := exec.Command("git", "add", ".")
+	err := cmd.Run()
+	require.NoError(t, err)
+
+	cmd = exec.Command("git", "commit", "-m", "Add test tickets")
+	err = cmd.Run()
+	require.NoError(t, err)
 }
 
 func setupTestRepoWithTicket(t *testing.T, tmpDir string) string {
 	setupTestRepo(t, tmpDir)
 
 	ticketID := "250101-120000-test-feature"
-	content := fmt.Sprintf(`---
-id: %s
+	content := `---
 priority: 2
 created_at: 2025-01-01T12:00:00Z
 ---
@@ -598,27 +634,37 @@ created_at: 2025-01-01T12:00:00Z
 # Test Feature
 
 This is a test ticket for testing show command.
-`, ticketID)
+`
 
 	path := filepath.Join(tmpDir, "tickets", "todo", ticketID+".md")
 	err := os.WriteFile(path, []byte(content), 0644)
+	require.NoError(t, err)
+
+	// Commit the ticket
+	cmd := exec.Command("git", "add", path)
+	err = cmd.Run()
+	require.NoError(t, err)
+
+	cmd = exec.Command("git", "commit", "-m", "Add test ticket")
+	err = cmd.Run()
 	require.NoError(t, err)
 
 	return ticketID
 }
 
 func setupTestRepoWithStartedTicket(t *testing.T, tmpDir string) string {
-	ticketID := setupTestRepoWithTicket(t, tmpDir)
+	// Start fresh without calling setupTestRepoWithTicket to avoid conflicts
+	setupTestRepo(t, tmpDir)
 
-	// Move ticket to doing
-	oldPath := filepath.Join(tmpDir, "tickets", "todo", ticketID+".md")
-	newPath := filepath.Join(tmpDir, "tickets", "doing", ticketID+".md")
-	err := os.Rename(oldPath, newPath)
+	ticketID := "250101-120000-test-feature"
+	
+	// Create and checkout the feature branch
+	cmd := exec.Command("git", "checkout", "-b", ticketID)
+	err := cmd.Run()
 	require.NoError(t, err)
-
-	// Update ticket with started_at
-	content := fmt.Sprintf(`---
-id: %s
+	
+	// Create ticket directly in doing status
+	content := `---
 priority: 2
 created_at: 2025-01-01T12:00:00Z
 started_at: 2025-01-01T13:00:00Z
@@ -627,14 +673,25 @@ started_at: 2025-01-01T13:00:00Z
 # Test Feature
 
 This is a test ticket that has been started.
-`, ticketID)
+`
 
-	err = os.WriteFile(newPath, []byte(content), 0644)
+	path := filepath.Join(tmpDir, "tickets", "doing", ticketID+".md")
+	err = os.WriteFile(path, []byte(content), 0644)
 	require.NoError(t, err)
 
-	// Set as current ticket
-	currentPath := filepath.Join(tmpDir, "tickets", ".current")
-	err = os.WriteFile(currentPath, []byte(ticketID), 0644)
+	// Set as current ticket - create symlink
+	linkPath := filepath.Join(tmpDir, "current-ticket.md")
+	targetPath := filepath.Join("tickets", "doing", ticketID+".md")
+	err = os.Symlink(targetPath, linkPath)
+	require.NoError(t, err)
+
+	// Commit the changes
+	cmd = exec.Command("git", "add", ".")
+	err = cmd.Run()
+	require.NoError(t, err)
+
+	cmd = exec.Command("git", "commit", "-m", "Add started ticket")
+	err = cmd.Run()
 	require.NoError(t, err)
 
 	return ticketID
