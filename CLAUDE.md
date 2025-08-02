@@ -150,3 +150,18 @@ ticketflow close           # This creates commit on wrong branch!
 ## AI Integration Guidelines
 - **ALWAYS use `--format json` when running ticketflow commands** to get structured output for better parsing and analysis
 - JSON output provides comprehensive ticket information including metadata, relationships, and timestamps
+
+## Testing Guidelines
+
+### Git Configuration in Tests
+- **NEVER use `git config --global` in tests** - This modifies the user's git configuration and can cause commits with wrong authors
+- Always configure git locally within test directories: `cmd.Dir = tmpDir` before running git commands
+- When writing test helpers that use git, add warning comments about not using `--global`
+- Example of correct test git configuration:
+  ```go
+  // Configure git locally in the test repo (not globally)
+  cmd := exec.Command("git", "config", "user.name", "Test User")
+  cmd.Dir = tmpDir  // Critical: sets the working directory
+  cmd.Run()
+  ```
+- This issue was discovered when test code using `--global` caused subsequent commits to have wrong authors ("Test User" instead of the actual developer)

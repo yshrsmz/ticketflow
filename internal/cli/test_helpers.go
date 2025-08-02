@@ -10,6 +10,11 @@ import (
 	"github.com/yshrsmz/ticketflow/internal/ticket"
 )
 
+// IMPORTANT: When writing tests that interact with git:
+// - Always use local configuration (git config without --global)
+// - Set cmd.Dir to the test directory before running git commands
+// - Never modify the user's global git configuration
+
 // Test constants
 const (
 	testTicketID          = "250101-120000-test-feature"

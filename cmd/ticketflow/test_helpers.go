@@ -31,6 +31,8 @@ const (
 )
 
 // setupTestRepo creates a basic test repository with config and directories
+// IMPORTANT: This function configures git locally within the test directory only.
+// Never use --global flag in tests as it modifies the user's git configuration.
 func setupTestRepo(t *testing.T, tmpDir string) {
 	// Initialize git repo first
 	cmd := exec.Command("git", "init")
