@@ -90,54 +90,72 @@ func runTUI() {
 }
 
 func runCLI(ctx context.Context) error {
-	// Define subcommands
-	initCmd := flag.NewFlagSet("init", flag.ExitOnError)
-
-	newCmd := flag.NewFlagSet("new", flag.ExitOnError)
-
-	listCmd := flag.NewFlagSet("list", flag.ExitOnError)
-	listStatus := listCmd.String("status", "", "Filter by status (todo|doing|done)")
-	listCount := listCmd.Int("count", 20, "Maximum number of tickets to show")
-	listFormat := listCmd.String("format", "text", "Output format (text|json)")
-
-	showCmd := flag.NewFlagSet("show", flag.ExitOnError)
-	showFormat := showCmd.String("format", "text", "Output format (text|json)")
-
-	startCmd := flag.NewFlagSet("start", flag.ExitOnError)
-
-	closeCmd := flag.NewFlagSet("close", flag.ExitOnError)
-	closeForce := closeCmd.Bool("force", false, "Force close with uncommitted changes")
-	closeForceShort := closeCmd.Bool("f", false, "Force close (short form)")
-
-	restoreCmd := flag.NewFlagSet("restore", flag.ExitOnError)
-
-	statusCmd := flag.NewFlagSet("status", flag.ExitOnError)
-	statusFormat := statusCmd.String("format", "text", "Output format (text|json)")
-
-	worktreeCmd := flag.NewFlagSet("worktree", flag.ExitOnError)
-
-	cleanupCmd := flag.NewFlagSet("cleanup", flag.ExitOnError)
-	cleanupDryRun := cleanupCmd.Bool("dry-run", false, "Show what would be cleaned without making changes")
-	cleanupForce := cleanupCmd.Bool("force", false, "Skip confirmation prompts")
-
-	migrateCmd := flag.NewFlagSet("migrate", flag.ExitOnError)
-	migrateDryRun := migrateCmd.Bool("dry-run", false, "Show what would be updated without making changes")
-
 	// Parse command
 	if len(os.Args) < 2 {
 		printUsage()
 		return nil
 	}
 
+	// Define subcommands
+	initCmd := flag.NewFlagSet("init", flag.ExitOnError)
+	initLogging := cli.AddLoggingFlags(initCmd)
+
+	newCmd := flag.NewFlagSet("new", flag.ExitOnError)
+	newLogging := cli.AddLoggingFlags(newCmd)
+
+	listCmd := flag.NewFlagSet("list", flag.ExitOnError)
+	listStatus := listCmd.String("status", "", "Filter by status (todo|doing|done)")
+	listCount := listCmd.Int("count", 20, "Maximum number of tickets to show")
+	listFormat := listCmd.String("format", "text", "Output format (text|json)")
+	listLogging := cli.AddLoggingFlags(listCmd)
+
+	showCmd := flag.NewFlagSet("show", flag.ExitOnError)
+	showFormat := showCmd.String("format", "text", "Output format (text|json)")
+	showLogging := cli.AddLoggingFlags(showCmd)
+
+	startCmd := flag.NewFlagSet("start", flag.ExitOnError)
+	startLogging := cli.AddLoggingFlags(startCmd)
+
+	closeCmd := flag.NewFlagSet("close", flag.ExitOnError)
+	closeForce := closeCmd.Bool("force", false, "Force close with uncommitted changes")
+	closeForceShort := closeCmd.Bool("f", false, "Force close (short form)")
+	closeLogging := cli.AddLoggingFlags(closeCmd)
+
+	restoreCmd := flag.NewFlagSet("restore", flag.ExitOnError)
+	restoreLogging := cli.AddLoggingFlags(restoreCmd)
+
+	statusCmd := flag.NewFlagSet("status", flag.ExitOnError)
+	statusFormat := statusCmd.String("format", "text", "Output format (text|json)")
+	statusLogging := cli.AddLoggingFlags(statusCmd)
+
+	worktreeCmd := flag.NewFlagSet("worktree", flag.ExitOnError)
+	worktreeLogging := cli.AddLoggingFlags(worktreeCmd)
+
+	cleanupCmd := flag.NewFlagSet("cleanup", flag.ExitOnError)
+	cleanupDryRun := cleanupCmd.Bool("dry-run", false, "Show what would be cleaned without making changes")
+	cleanupForce := cleanupCmd.Bool("force", false, "Skip confirmation prompts")
+	cleanupLogging := cli.AddLoggingFlags(cleanupCmd)
+
+	migrateCmd := flag.NewFlagSet("migrate", flag.ExitOnError)
+	migrateDryRun := migrateCmd.Bool("dry-run", false, "Show what would be updated without making changes")
+	migrateLogging := cli.AddLoggingFlags(migrateCmd)
+
+	// Parse command
 	switch os.Args[1] {
 	case "init":
 		if err := initCmd.Parse(os.Args[2:]); err != nil {
+			return err
+		}
+		if err := cli.ConfigureLogging(initLogging); err != nil {
 			return err
 		}
 		return handleInit(ctx)
 
 	case "new":
 		if err := newCmd.Parse(os.Args[2:]); err != nil {
+			return err
+		}
+		if err := cli.ConfigureLogging(newLogging); err != nil {
 			return err
 		}
 		if newCmd.NArg() < 1 {
@@ -149,10 +167,16 @@ func runCLI(ctx context.Context) error {
 		if err := listCmd.Parse(os.Args[2:]); err != nil {
 			return err
 		}
+		if err := cli.ConfigureLogging(listLogging); err != nil {
+			return err
+		}
 		return handleList(ctx, *listStatus, *listCount, *listFormat)
 
 	case "show":
 		if err := showCmd.Parse(os.Args[2:]); err != nil {
+			return err
+		}
+		if err := cli.ConfigureLogging(showLogging); err != nil {
 			return err
 		}
 		if showCmd.NArg() < 1 {
@@ -164,6 +188,9 @@ func runCLI(ctx context.Context) error {
 		if err := startCmd.Parse(os.Args[2:]); err != nil {
 			return err
 		}
+		if err := cli.ConfigureLogging(startLogging); err != nil {
+			return err
+		}
 		if startCmd.NArg() < 1 {
 			return fmt.Errorf("missing ticket argument")
 		}
@@ -173,6 +200,9 @@ func runCLI(ctx context.Context) error {
 		if err := closeCmd.Parse(os.Args[2:]); err != nil {
 			return err
 		}
+		if err := cli.ConfigureLogging(closeLogging); err != nil {
+			return err
+		}
 		force := *closeForce || *closeForceShort
 		return handleClose(ctx, false, force)
 
@@ -180,10 +210,16 @@ func runCLI(ctx context.Context) error {
 		if err := restoreCmd.Parse(os.Args[2:]); err != nil {
 			return err
 		}
+		if err := cli.ConfigureLogging(restoreLogging); err != nil {
+			return err
+		}
 		return handleRestore(ctx)
 
 	case "status":
 		if err := statusCmd.Parse(os.Args[2:]); err != nil {
+			return err
+		}
+		if err := cli.ConfigureLogging(statusLogging); err != nil {
 			return err
 		}
 		return handleStatus(ctx, *statusFormat)
@@ -196,10 +232,16 @@ func runCLI(ctx context.Context) error {
 		if err := worktreeCmd.Parse(os.Args[3:]); err != nil {
 			return err
 		}
+		if err := cli.ConfigureLogging(worktreeLogging); err != nil {
+			return err
+		}
 		return handleWorktree(ctx, os.Args[2], worktreeCmd.Args())
 
 	case "cleanup":
 		if err := cleanupCmd.Parse(os.Args[2:]); err != nil {
+			return err
+		}
+		if err := cli.ConfigureLogging(cleanupLogging); err != nil {
 			return err
 		}
 		if cleanupCmd.NArg() > 0 {
@@ -211,6 +253,9 @@ func runCLI(ctx context.Context) error {
 
 	case "migrate":
 		if err := migrateCmd.Parse(os.Args[2:]); err != nil {
+			return err
+		}
+		if err := cli.ConfigureLogging(migrateLogging); err != nil {
 			return err
 		}
 		return handleMigrateDates(ctx, *migrateDryRun)
@@ -416,6 +461,11 @@ USAGE:
   ticketflow version                  Show version
 
 OPTIONS:
+  All commands support logging options:
+    --log-level LEVEL   Log level (debug, info, warn, error)
+    --log-format FORMAT Log format (text, json)
+    --log-output OUTPUT Log output (stderr, stdout, or file path)
+
   list:
     --status STATUS    Filter by status (todo|doing|done)
     --count N          Maximum number of tickets to show (default: 20)
@@ -425,7 +475,7 @@ OPTIONS:
     --format FORMAT    Output format: text|json (default: text)
 
   start:
-    (no options)
+    (no specific options)
 
   close:
     --force, -f        Force close with uncommitted changes
