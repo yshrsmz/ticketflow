@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"log/slog"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -43,6 +44,15 @@ func TestNew(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name: "invalid log level",
+			config: Config{
+				Level:  "invalid-level",
+				Format: "text",
+				Output: "stderr",
+			},
+			wantErr: true,
+		},
 	}
 
 	for _, tt := range tests {
@@ -63,9 +73,10 @@ func TestLoggerWithMethods(t *testing.T) {
 	var buf bytes.Buffer
 
 	logger := &Logger{
-		slog.New(slog.NewJSONHandler(&buf, &slog.HandlerOptions{
+		Logger: slog.New(slog.NewJSONHandler(&buf, &slog.HandlerOptions{
 			Level: slog.LevelDebug,
 		})),
+		closer: nil,
 	}
 
 	// Test WithTicket
@@ -96,28 +107,37 @@ func TestLoggerWithMethods(t *testing.T) {
 
 	err = json.Unmarshal(buf.Bytes(), &logEntry)
 	require.NoError(t, err)
-	assert.Equal(t, testErr.Error(), logEntry["error"])
+	// The error is now stored as an object, not just a string
+	assert.NotNil(t, logEntry["error"])
 	assert.Equal(t, "operation failed", logEntry["msg"])
 }
 
 func TestParseLevel(t *testing.T) {
 	tests := []struct {
-		input    string
-		expected slog.Level
+		input     string
+		expected  slog.Level
+		wantError bool
 	}{
-		{"debug", slog.LevelDebug},
-		{"info", slog.LevelInfo},
-		{"warn", slog.LevelWarn},
-		{"warning", slog.LevelWarn},
-		{"error", slog.LevelError},
-		{"invalid", slog.LevelInfo}, // default
-		{"", slog.LevelInfo},        // default
+		{"debug", slog.LevelDebug, false},
+		{"info", slog.LevelInfo, false},
+		{"warn", slog.LevelWarn, false},
+		{"warning", slog.LevelWarn, false},
+		{"error", slog.LevelError, false},
+		{"", slog.LevelInfo, false}, // empty is allowed
+		{"invalid", slog.LevelInfo, true},
+		{"unknown-level", slog.LevelInfo, true},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {
-			level := parseLevel(tt.input)
-			assert.Equal(t, tt.expected, level)
+			level, err := parseLevel(tt.input)
+			if tt.wantError {
+				assert.Error(t, err)
+				assert.Contains(t, err.Error(), "invalid log level")
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.expected, level)
+			}
 		})
 	}
 }
@@ -126,9 +146,10 @@ func TestTextFormat(t *testing.T) {
 	var buf bytes.Buffer
 
 	logger := &Logger{
-		slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{
+		Logger: slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{
 			Level: slog.LevelInfo,
 		})),
+		closer: nil,
 	}
 
 	logger.Info("test message", slog.String("key", "value"))
@@ -142,9 +163,10 @@ func TestLogLevels(t *testing.T) {
 	var buf bytes.Buffer
 
 	logger := &Logger{
-		slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{
+		Logger: slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{
 			Level: slog.LevelInfo,
 		})),
+		closer: nil,
 	}
 
 	// Debug should not appear (below info level)
@@ -173,9 +195,10 @@ func TestGlobalLogger(t *testing.T) {
 	// Test setting global logger
 	var buf bytes.Buffer
 	customLogger := &Logger{
-		slog.New(slog.NewJSONHandler(&buf, &slog.HandlerOptions{
+		Logger: slog.New(slog.NewJSONHandler(&buf, &slog.HandlerOptions{
 			Level: slog.LevelDebug,
 		})),
+		closer: nil,
 	}
 
 	SetGlobal(customLogger)
@@ -188,4 +211,33 @@ func TestGlobalLogger(t *testing.T) {
 	assert.Contains(t, output, "global info")
 	assert.Contains(t, output, "test")
 	assert.Contains(t, output, "value")
+}
+
+func TestClose(t *testing.T) {
+	// Test Close with no closer (stdout/stderr)
+	logger := &Logger{
+		Logger: slog.New(slog.NewTextHandler(os.Stdout, nil)),
+		closer: nil,
+	}
+	err := logger.Close()
+	assert.NoError(t, err)
+
+	// Test Close with a mock closer
+	mockCloser := &mockCloser{closed: false}
+	logger = &Logger{
+		Logger: slog.New(slog.NewTextHandler(os.Stdout, nil)),
+		closer: mockCloser,
+	}
+	err = logger.Close()
+	assert.NoError(t, err)
+	assert.True(t, mockCloser.closed)
+}
+
+type mockCloser struct {
+	closed bool
+}
+
+func (m *mockCloser) Close() error {
+	m.closed = true
+	return nil
 }

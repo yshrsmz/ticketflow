@@ -2,7 +2,7 @@
 package log
 
 import (
-	"context"
+	"fmt"
 	"io"
 	"log/slog"
 	"os"
@@ -11,6 +11,7 @@ import (
 // Logger wraps slog.Logger to provide application-specific logging methods.
 type Logger struct {
 	*slog.Logger
+	closer io.Closer // For closing file outputs
 }
 
 // Config holds logging configuration.
@@ -31,9 +32,13 @@ func DefaultConfig() Config {
 
 // New creates a new logger with the given configuration.
 func New(cfg Config) (*Logger, error) {
-	level := parseLevel(cfg.Level)
+	level, err := parseLevel(cfg.Level)
+	if err != nil {
+		return nil, err
+	}
 
 	var output io.Writer
+	var closer io.Closer
 	switch cfg.Output {
 	case "stdout":
 		output = os.Stdout
@@ -46,6 +51,7 @@ func New(cfg Config) (*Logger, error) {
 			return nil, err
 		}
 		output = file
+		closer = file
 	}
 
 	opts := &slog.HandlerOptions{
@@ -64,6 +70,7 @@ func New(cfg Config) (*Logger, error) {
 
 	return &Logger{
 		Logger: slog.New(handler),
+		closer: closer,
 	}, nil
 }
 
@@ -83,17 +90,19 @@ func NewNoOp() *Logger {
 	}
 }
 
-// WithContext returns a logger with context values.
-func (l *Logger) WithContext(ctx context.Context) *Logger {
-	return &Logger{
-		Logger: l.Logger,
+// Close closes the logger's output if it's a file.
+func (l *Logger) Close() error {
+	if l.closer != nil {
+		return l.closer.Close()
 	}
+	return nil
 }
 
 // WithTicket returns a logger with ticket information.
 func (l *Logger) WithTicket(ticketID string) *Logger {
 	return &Logger{
 		Logger: l.With(slog.String("ticket_id", ticketID)),
+		closer: l.closer,
 	}
 }
 
@@ -101,28 +110,32 @@ func (l *Logger) WithTicket(ticketID string) *Logger {
 func (l *Logger) WithOperation(op string) *Logger {
 	return &Logger{
 		Logger: l.With(slog.String("operation", op)),
+		closer: l.closer,
 	}
 }
 
 // WithError returns a logger with error information.
 func (l *Logger) WithError(err error) *Logger {
 	return &Logger{
-		Logger: l.With(slog.String("error", err.Error())),
+		Logger: l.With(slog.Any("error", err)),
+		closer: l.closer,
 	}
 }
 
 // parseLevel converts string level to slog.Level.
-func parseLevel(level string) slog.Level {
+func parseLevel(level string) (slog.Level, error) {
 	switch level {
 	case "debug":
-		return slog.LevelDebug
+		return slog.LevelDebug, nil
 	case "info":
-		return slog.LevelInfo
+		return slog.LevelInfo, nil
 	case "warn", "warning":
-		return slog.LevelWarn
+		return slog.LevelWarn, nil
 	case "error":
-		return slog.LevelError
+		return slog.LevelError, nil
+	case "": // Allow empty for default
+		return slog.LevelInfo, nil
 	default:
-		return slog.LevelInfo
+		return slog.LevelInfo, fmt.Errorf("invalid log level: %s", level)
 	}
 }

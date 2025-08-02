@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -184,7 +185,7 @@ func (app *App) NewTicket(ctx context.Context, slug string, format OutputFormat)
 
 	// Validate slug
 	if !ticket.IsValidSlug(slug) {
-		logger.Error("invalid slug format", "slug", slug)
+		logger.Error("invalid slug format", slog.String("slug", slug))
 		return NewError(ErrTicketInvalid, "Invalid slug format",
 			fmt.Sprintf("Slug '%s' contains invalid characters", slug),
 			[]string{
@@ -214,7 +215,7 @@ func (app *App) NewTicket(ctx context.Context, slug string, format OutputFormat)
 	// Create ticket
 	t, err := app.Manager.Create(ctx, slug)
 	if err != nil {
-		logger.WithError(err).Error("failed to create ticket")
+		logger.WithError(err).Error("failed to create ticket", slog.String("slug", slug))
 		return ConvertError(err)
 	}
 	logger.Info("created ticket", "ticket_id", t.ID, "path", t.Path)
@@ -225,7 +226,7 @@ func (app *App) NewTicket(ctx context.Context, slug string, format OutputFormat)
 		// Add parent relationship
 		t.Related = append(t.Related, fmt.Sprintf("parent:%s", parentTicketID))
 		if err := app.Manager.Update(ctx, t); err != nil {
-			logger.WithError(err).Error("failed to update ticket metadata")
+			logger.WithError(err).Error("failed to update ticket metadata", slog.String("ticket_id", t.ID), slog.String("parent", parentTicketID))
 			return fmt.Errorf("failed to update ticket metadata: %w", err)
 		}
 		logger.Info("created sub-ticket", "ticket_id", t.ID, "parent", parentTicketID)

@@ -3,6 +3,7 @@ package cli
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
 	"strings"
 
@@ -25,7 +26,7 @@ func (r *CleanupResult) HasErrors() bool {
 // AutoCleanup performs automatic cleanup of old tickets and worktrees
 func (app *App) AutoCleanup(ctx context.Context, dryRun bool) (*CleanupResult, error) {
 	logger := log.Global().WithOperation("auto_cleanup")
-	logger.Info("starting auto-cleanup", "dry_run", dryRun)
+	logger.Info("starting auto-cleanup", slog.Bool("dry_run", dryRun))
 	fmt.Println("Starting auto-cleanup...")
 
 	result := &CleanupResult{
