@@ -3,7 +3,7 @@ priority: 2
 description: Add context.Context support for cancellation and timeouts in long-running operations
 created_at: "2025-08-01T00:32:06+09:00"
 started_at: "2025-08-02T11:49:52+09:00"
-closed_at: null
+closed_at: "2025-08-02T16:14:49+09:00"
 ---
 
 # Add Context Support
