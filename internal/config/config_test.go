@@ -85,6 +85,26 @@ func TestConfigValidate(t *testing.T) {
 			},
 			wantErr: "timeouts.init_commands",
 		},
+		{
+			name: "git timeout exceeds maximum",
+			config: Config{
+				Git:      GitConfig{DefaultBranch: "main"},
+				Tickets:  TicketsConfig{Dir: "tickets"},
+				Output:   OutputConfig{DefaultFormat: "text"},
+				Timeouts: TimeoutsConfig{Git: 3601, InitCommands: 60},
+			},
+			wantErr: "timeouts.git",
+		},
+		{
+			name: "init commands timeout exceeds maximum",
+			config: Config{
+				Git:      GitConfig{DefaultBranch: "main"},
+				Tickets:  TicketsConfig{Dir: "tickets"},
+				Output:   OutputConfig{DefaultFormat: "text"},
+				Timeouts: TimeoutsConfig{Git: 30, InitCommands: 3601},
+			},
+			wantErr: "timeouts.init_commands",
+		},
 	}
 
 	for _, tt := range tests {

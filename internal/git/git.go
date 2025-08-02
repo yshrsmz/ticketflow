@@ -3,9 +3,11 @@ package git
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"os/exec"
 	"strings"
+	"sync"
 	"time"
 
 	ticketerrors "github.com/yshrsmz/ticketflow/internal/errors"
@@ -14,7 +16,9 @@ import (
 // Git provides git operations
 type Git struct {
 	repoPath string
-	Root     string        // Git repository root path
+	root     string        // Git repository root path (private)
+	rootOnce sync.Once     // Ensures root is initialized only once
+	rootErr  error         // Error from root initialization
 	timeout  time.Duration // Timeout for git operations
 }
 
@@ -34,7 +38,7 @@ func NewWithTimeout(repoPath string, timeout time.Duration) *Git {
 	}
 	return &Git{
 		repoPath: repoPath,
-		Root:     root,
+		root:     root,
 		timeout:  timeout,
 	}
 }
@@ -73,7 +77,7 @@ func (g *Git) Exec(ctx context.Context, args ...string) (string, error) {
 		}
 
 		// Check if error is due to timeout
-		if ctx.Err() == context.DeadlineExceeded {
+		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
 			gitErr := ticketerrors.NewGitError(subcommand, branch,
 				fmt.Errorf("operation timed out after %v: %w", g.timeout, err))
 			return "", gitErr
@@ -165,15 +169,23 @@ func FindProjectRoot(ctx context.Context, startPath string) (string, error) {
 	return strings.TrimSpace(stdout.String()), nil
 }
 
-// RootPath returns the git repository root path
+// RootPath returns the git repository root path (thread-safe)
 func (g *Git) RootPath() (string, error) {
-	if g.Root == "" {
-		// Use background context for lazy initialization
-		root, err := FindProjectRoot(context.Background(), g.repoPath)
-		if err != nil {
-			return "", err
+	g.rootOnce.Do(func() {
+		// Only initialize if not already set during construction
+		if g.root == "" {
+			// Use background context for lazy initialization
+			root, err := FindProjectRoot(context.Background(), g.repoPath)
+			if err != nil {
+				g.rootErr = err
+				return
+			}
+			g.root = root
 		}
-		g.Root = root
+	})
+
+	if g.rootErr != nil {
+		return "", g.rootErr
 	}
-	return g.Root, nil
+	return g.root, nil
 }

@@ -24,6 +24,7 @@ const (
 	DefaultInitCommandsTimeoutSeconds = 60
 	DefaultGitTimeout                 = DefaultGitTimeoutSeconds * time.Second
 	DefaultInitCommandsTimeout        = DefaultInitCommandsTimeoutSeconds * time.Second
+	MaxTimeoutSeconds                 = 3600 // 1 hour maximum
 )
 
 // Output format types

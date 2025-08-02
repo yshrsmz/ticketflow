@@ -69,8 +69,12 @@ output:
 
 # Timeout settings
 timeouts:
-  # Timeout for git operations in seconds
+  # Timeout for git operations in seconds (0 = use default of 30s)
+  # Prevents hanging on network issues or large operations
+  # Maximum allowed value is 3600 seconds (1 hour)
   git: 30
   
-  # Timeout for worktree init commands in seconds
+  # Timeout for worktree initialization commands in seconds (0 = use default of 60s)
+  # Allows longer timeout for potentially slow operations like npm install
+  # Maximum allowed value is 3600 seconds (1 hour)
   init_commands: 60

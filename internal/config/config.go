@@ -170,8 +170,18 @@ func (c *Config) Validate() error {
 	if c.Timeouts.Git < 0 {
 		return ticketerrors.NewConfigError("timeouts.git", fmt.Sprintf("%d", c.Timeouts.Git), ticketerrors.ErrConfigInvalid)
 	}
+	if c.Timeouts.Git > MaxTimeoutSeconds {
+		return ticketerrors.NewConfigError("timeouts.git",
+			fmt.Sprintf("%d exceeds maximum of %d seconds", c.Timeouts.Git, MaxTimeoutSeconds),
+			ticketerrors.ErrConfigInvalid)
+	}
 	if c.Timeouts.InitCommands < 0 {
 		return ticketerrors.NewConfigError("timeouts.init_commands", fmt.Sprintf("%d", c.Timeouts.InitCommands), ticketerrors.ErrConfigInvalid)
+	}
+	if c.Timeouts.InitCommands > MaxTimeoutSeconds {
+		return ticketerrors.NewConfigError("timeouts.init_commands",
+			fmt.Sprintf("%d exceeds maximum of %d seconds", c.Timeouts.InitCommands, MaxTimeoutSeconds),
+			ticketerrors.ErrConfigInvalid)
 	}
 
 	return nil

@@ -2,6 +2,7 @@ package ui
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -10,6 +11,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/mattn/go-shellwords"
 	"github.com/yshrsmz/ticketflow/internal/config"
 	"github.com/yshrsmz/ticketflow/internal/git"
 	"github.com/yshrsmz/ticketflow/internal/ticket"
@@ -538,7 +540,12 @@ func (m *Model) runWorktreeInitCommands(worktreePath string) error {
 
 	var failedCommands []string
 	for _, cmd := range m.config.Worktree.InitCommands {
-		parts := strings.Fields(cmd)
+		// Parse the command with proper shell parsing
+		parts, err := shellwords.Parse(cmd)
+		if err != nil {
+			failedCommands = append(failedCommands, fmt.Sprintf("%s (failed to parse: %v)", cmd, err))
+			continue
+		}
 		if len(parts) == 0 {
 			continue
 		}
@@ -547,7 +554,7 @@ func (m *Model) runWorktreeInitCommands(worktreePath string) error {
 		execCmd.Dir = worktreePath
 		if err := execCmd.Run(); err != nil {
 			// Check if error is due to timeout
-			if ctx.Err() == context.DeadlineExceeded {
+			if errors.Is(ctx.Err(), context.DeadlineExceeded) {
 				failedCommands = append(failedCommands, fmt.Sprintf("%s (timed out after %v)", cmd, timeout))
 			} else {
 				failedCommands = append(failedCommands, fmt.Sprintf("%s (%v)", cmd, err))

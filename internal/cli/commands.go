@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -9,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mattn/go-shellwords"
 	"github.com/yshrsmz/ticketflow/internal/config"
 	"github.com/yshrsmz/ticketflow/internal/git"
 	"github.com/yshrsmz/ticketflow/internal/ticket"
@@ -1026,8 +1028,12 @@ func (app *App) runWorktreeInitCommands(ctx context.Context, worktreePath string
 
 	for _, cmd := range app.Config.Worktree.InitCommands {
 		fmt.Printf("  $ %s\n", cmd)
-		// Parse the command
-		parts := strings.Fields(cmd)
+		// Parse the command with proper shell parsing
+		parts, err := shellwords.Parse(cmd)
+		if err != nil {
+			failedCommands = append(failedCommands, fmt.Sprintf("%s (failed to parse: %v)", cmd, err))
+			continue
+		}
 		if len(parts) == 0 {
 			continue
 		}
@@ -1038,7 +1044,7 @@ func (app *App) runWorktreeInitCommands(ctx context.Context, worktreePath string
 		output, err := execCmd.CombinedOutput()
 		if err != nil {
 			// Check if error is due to timeout
-			if ctx.Err() == context.DeadlineExceeded {
+			if errors.Is(ctx.Err(), context.DeadlineExceeded) {
 				failedCommands = append(failedCommands, fmt.Sprintf("%s (timed out after %v)", cmd, timeout))
 			} else {
 				failedCommands = append(failedCommands, fmt.Sprintf("%s (%v)", cmd, err))
