@@ -1,8 +1,8 @@
 ---
 priority: 2
-description: "Replace fmt.Printf with structured logging using log/slog for better observability"
+description: Replace fmt.Printf with structured logging using log/slog for better observability
 created_at: "2025-08-01T00:32:07+09:00"
-started_at: null
+started_at: "2025-08-02T19:30:13+09:00"
 closed_at: null
 ---
 
