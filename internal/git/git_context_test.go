@@ -455,10 +455,10 @@ func TestSimulatedSlowOperationCancellation(t *testing.T) {
 				assert.Error(t, err)
 				// Check for various cancellation error messages
 				errMsg := err.Error()
-				assert.True(t, 
+				assert.True(t,
 					strings.Contains(errMsg, "operation cancelled") ||
-					strings.Contains(errMsg, "context deadline exceeded") ||
-					strings.Contains(errMsg, "context canceled"),
+						strings.Contains(errMsg, "context deadline exceeded") ||
+						strings.Contains(errMsg, "context canceled"),
 					"Expected cancellation error, got: %s", errMsg)
 			} else {
 				assert.NoError(t, err)
