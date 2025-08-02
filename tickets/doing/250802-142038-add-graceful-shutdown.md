@@ -1,8 +1,8 @@
 ---
 priority: 2
-description: "Implement graceful shutdown with context cancellation"
+description: Implement graceful shutdown with context cancellation
 created_at: "2025-08-02T14:20:38+09:00"
-started_at: null
+started_at: "2025-08-02T18:11:57+09:00"
 closed_at: null
 related:
     - parent:250801-003206-add-context-support
