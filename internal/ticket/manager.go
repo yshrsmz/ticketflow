@@ -1,6 +1,7 @@
 package ticket
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -39,7 +40,11 @@ func NewManager(cfg *config.Config, projectRoot string) *Manager {
 }
 
 // Create creates a new ticket in the todo directory
-func (m *Manager) Create(slug string) (*Ticket, error) {
+func (m *Manager) Create(ctx context.Context, slug string) (*Ticket, error) {
+	// Check context
+	if err := ctx.Err(); err != nil {
+		return nil, fmt.Errorf("operation cancelled: %w", err)
+	}
 	// Validate slug
 	if !IsValidSlug(slug) {
 		return nil, fmt.Errorf("invalid slug format: %s", slug)
@@ -49,7 +54,7 @@ func (m *Manager) Create(slug string) (*Ticket, error) {
 	id := GenerateID(slug)
 
 	// Check if ticket already exists in any directory
-	if _, err := m.FindTicket(id); err == nil {
+	if _, err := m.FindTicket(ctx, id); err == nil {
 		return nil, ticketerrors.NewTicketError("create", id, ticketerrors.ErrTicketExists)
 	}
 
@@ -83,16 +88,25 @@ func (m *Manager) Create(slug string) (*Ticket, error) {
 }
 
 // Get retrieves a ticket by ID from any directory
-func (m *Manager) Get(id string) (*Ticket, error) {
-	ticketPath, err := m.FindTicket(id)
+func (m *Manager) Get(ctx context.Context, id string) (*Ticket, error) {
+	// Check context
+	if err := ctx.Err(); err != nil {
+		return nil, fmt.Errorf("operation cancelled: %w", err)
+	}
+
+	ticketPath, err := m.FindTicket(ctx, id)
 	if err != nil {
 		return nil, err
 	}
-	return m.loadTicket(ticketPath)
+	return m.loadTicket(ctx, ticketPath)
 }
 
 // List lists tickets with optional status filter
-func (m *Manager) List(statusFilter StatusFilter) ([]Ticket, error) {
+func (m *Manager) List(ctx context.Context, statusFilter StatusFilter) ([]Ticket, error) {
+	// Check context
+	if err := ctx.Err(); err != nil {
+		return nil, fmt.Errorf("operation cancelled: %w", err)
+	}
 	// Determine which directories to search
 	dirs := m.getDirectoriesForStatus(statusFilter)
 	if dirs == nil {
@@ -115,7 +129,11 @@ func (m *Manager) List(statusFilter StatusFilter) ([]Ticket, error) {
 			}
 
 			ticketPath := filepath.Join(dir, entry.Name())
-			ticket, err := m.loadTicket(ticketPath)
+			// Check context in loop
+			if err := ctx.Err(); err != nil {
+				return nil, fmt.Errorf("operation cancelled: %w", err)
+			}
+			ticket, err := m.loadTicket(ctx, ticketPath)
 			if err != nil {
 				// Skip invalid tickets
 				continue
@@ -163,7 +181,11 @@ func (m *Manager) getDirectoriesForStatus(statusFilter StatusFilter) []string {
 }
 
 // Update updates a ticket
-func (m *Manager) Update(ticket *Ticket) error {
+func (m *Manager) Update(ctx context.Context, ticket *Ticket) error {
+	// Check context
+	if err := ctx.Err(); err != nil {
+		return fmt.Errorf("operation cancelled: %w", err)
+	}
 	if ticket.Path == "" {
 		return ticketerrors.NewTicketError("update", ticket.ID, ticketerrors.ErrTicketInvalid)
 	}
@@ -181,7 +203,11 @@ func (m *Manager) Update(ticket *Ticket) error {
 }
 
 // GetCurrentTicket gets the currently active ticket (if any)
-func (m *Manager) GetCurrentTicket() (*Ticket, error) {
+func (m *Manager) GetCurrentTicket(ctx context.Context) (*Ticket, error) {
+	// Check context
+	if err := ctx.Err(); err != nil {
+		return nil, fmt.Errorf("operation cancelled: %w", err)
+	}
 	linkPath := filepath.Join(m.projectRoot, "current-ticket.md")
 
 	// Check if symlink exists
@@ -195,11 +221,15 @@ func (m *Manager) GetCurrentTicket() (*Ticket, error) {
 
 	// Load the target ticket
 	ticketPath := filepath.Join(m.projectRoot, target)
-	return m.loadTicket(ticketPath)
+	return m.loadTicket(ctx, ticketPath)
 }
 
 // SetCurrentTicket sets the current ticket symlink
-func (m *Manager) SetCurrentTicket(ticket *Ticket) error {
+func (m *Manager) SetCurrentTicket(ctx context.Context, ticket *Ticket) error {
+	// Check context
+	if err := ctx.Err(); err != nil {
+		return fmt.Errorf("operation cancelled: %w", err)
+	}
 	linkPath := filepath.Join(m.projectRoot, "current-ticket.md")
 
 	// Remove existing link if any
@@ -224,7 +254,11 @@ func (m *Manager) SetCurrentTicket(ticket *Ticket) error {
 }
 
 // loadTicket loads a ticket from file
-func (m *Manager) loadTicket(path string) (*Ticket, error) {
+func (m *Manager) loadTicket(ctx context.Context, path string) (*Ticket, error) {
+	// Check context
+	if err := ctx.Err(); err != nil {
+		return nil, fmt.Errorf("operation cancelled: %w", err)
+	}
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, ticketerrors.NewTicketError("read", filepath.Base(path), fmt.Errorf("failed to read ticket file: %w", err))
@@ -250,8 +284,13 @@ func (m *Manager) loadTicket(path string) (*Ticket, error) {
 }
 
 // ReadContent reads the content portion of a ticket (without frontmatter)
-func (m *Manager) ReadContent(id string) (string, error) {
-	ticket, err := m.Get(id)
+func (m *Manager) ReadContent(ctx context.Context, id string) (string, error) {
+	// Check context
+	if err := ctx.Err(); err != nil {
+		return "", fmt.Errorf("operation cancelled: %w", err)
+	}
+
+	ticket, err := m.Get(ctx, id)
 	if err != nil {
 		return "", err
 	}
@@ -259,14 +298,19 @@ func (m *Manager) ReadContent(id string) (string, error) {
 }
 
 // WriteContent writes the content portion of a ticket
-func (m *Manager) WriteContent(id string, content string) error {
-	ticket, err := m.Get(id)
+func (m *Manager) WriteContent(ctx context.Context, id string, content string) error {
+	// Check context
+	if err := ctx.Err(); err != nil {
+		return fmt.Errorf("operation cancelled: %w", err)
+	}
+
+	ticket, err := m.Get(ctx, id)
 	if err != nil {
 		return err
 	}
 
 	ticket.Content = content
-	return m.Update(ticket)
+	return m.Update(ctx, ticket)
 }
 
 // findTicketInDir searches for a ticket in a specific directory
@@ -309,7 +353,11 @@ func (m *Manager) findTicketInDir(ticketID, dir string) (string, error) {
 }
 
 // FindTicket searches for a ticket across all directories
-func (m *Manager) FindTicket(ticketID string) (string, error) {
+func (m *Manager) FindTicket(ctx context.Context, ticketID string) (string, error) {
+	// Check context
+	if err := ctx.Err(); err != nil {
+		return "", fmt.Errorf("operation cancelled: %w", err)
+	}
 	// Search in todo -> doing -> done order
 	dirs := []string{
 		m.config.GetTodoPath(m.projectRoot),
@@ -319,6 +367,10 @@ func (m *Manager) FindTicket(ticketID string) (string, error) {
 
 	var lastErr error
 	for _, dir := range dirs {
+		// Check context in loop
+		if err := ctx.Err(); err != nil {
+			return "", fmt.Errorf("operation cancelled: %w", err)
+		}
 		path, err := m.findTicketInDir(ticketID, dir)
 		if err == nil {
 			return path, nil

@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -381,7 +382,7 @@ func (m *Model) startTicket(t *ticket.Ticket) tea.Cmd {
 		}
 
 		// Get current branch
-		currentBranch, err := m.git.CurrentBranch()
+		currentBranch, err := m.git.CurrentBranch(context.Background())
 		if err != nil {
 			return fmt.Errorf("failed to get current branch: %w", err)
 		}
@@ -455,7 +456,7 @@ func (m *Model) editTicket(t *ticket.Ticket) tea.Cmd {
 		}
 
 		// Reload ticket to get updated content
-		updated, reloadErr := m.manager.Get(t.ID)
+		updated, reloadErr := m.manager.Get(context.Background(), t.ID)
 		if reloadErr != nil {
 			return fmt.Errorf("failed to reload ticket: %w", reloadErr)
 		}
@@ -478,7 +479,7 @@ func (m *Model) validateTicketForStart(t *ticket.Ticket) error {
 func (m *Model) checkWorkspaceForStart() error {
 	// Check for uncommitted changes (only if not using worktrees)
 	if !m.config.Worktree.Enabled {
-		dirty, err := m.git.HasUncommittedChanges()
+		dirty, err := m.git.HasUncommittedChanges(context.Background())
 		if err != nil {
 			return fmt.Errorf("failed to check git status: %w", err)
 		}
@@ -495,7 +496,7 @@ func (m *Model) setupTicketBranchOrWorktree(t *ticket.Ticket) (string, error) {
 
 	if m.config.Worktree.Enabled {
 		// Check if worktree already exists
-		if exists, err := m.git.HasWorktree(t.ID); err != nil {
+		if exists, err := m.git.HasWorktree(context.Background(), t.ID); err != nil {
 			return "", fmt.Errorf("failed to check worktree: %w", err)
 		} else if exists {
 			return "", fmt.Errorf("worktree for ticket %s already exists", t.ID)
@@ -505,7 +506,7 @@ func (m *Model) setupTicketBranchOrWorktree(t *ticket.Ticket) (string, error) {
 		baseDir := m.config.GetWorktreePath(m.projectRoot)
 		worktreePath = filepath.Join(baseDir, t.ID)
 
-		if err := m.git.AddWorktree(worktreePath, t.ID); err != nil {
+		if err := m.git.AddWorktree(context.Background(), worktreePath, t.ID); err != nil {
 			return "", fmt.Errorf("failed to create worktree: %w", err)
 		}
 
@@ -516,7 +517,7 @@ func (m *Model) setupTicketBranchOrWorktree(t *ticket.Ticket) (string, error) {
 		}
 	} else {
 		// Original behavior: create and checkout branch
-		if err := m.git.CreateBranch(t.ID); err != nil {
+		if err := m.git.CreateBranch(context.Background(), t.ID); err != nil {
 			return "", fmt.Errorf("failed to create branch: %w", err)
 		}
 	}
@@ -573,7 +574,7 @@ func (m *Model) moveTicketToDoingAndCommit(t *ticket.Ticket, worktreePath, curre
 
 	// Update ticket data with new path
 	t.Path = newPath
-	if err := m.manager.Update(t); err != nil {
+	if err := m.manager.Update(context.Background(), t); err != nil {
 		// Rollback file move
 		_ = os.Rename(newPath, oldPath)
 		m.rollbackTicketStart(worktreePath, currentBranch)
@@ -581,17 +582,17 @@ func (m *Model) moveTicketToDoingAndCommit(t *ticket.Ticket, worktreePath, curre
 	}
 
 	// Git add both old and new paths
-	if err := m.git.Add(oldPath, newPath); err != nil {
+	if err := m.git.Add(context.Background(), oldPath, newPath); err != nil {
 		return fmt.Errorf("failed to stage ticket move: %w", err)
 	}
 
 	// Commit the move
-	if err := m.git.Commit(fmt.Sprintf("Start ticket: %s", t.ID)); err != nil {
+	if err := m.git.Commit(context.Background(), fmt.Sprintf("Start ticket: %s", t.ID)); err != nil {
 		return fmt.Errorf("failed to commit ticket move: %w", err)
 	}
 
 	// Set current ticket
-	if err := m.manager.SetCurrentTicket(t); err != nil {
+	if err := m.manager.SetCurrentTicket(context.Background(), t); err != nil {
 		return fmt.Errorf("failed to set current ticket: %w", err)
 	}
 
@@ -601,16 +602,16 @@ func (m *Model) moveTicketToDoingAndCommit(t *ticket.Ticket, worktreePath, curre
 // rollbackTicketStart rolls back changes made during ticket start
 func (m *Model) rollbackTicketStart(worktreePath, currentBranch string) {
 	if m.config.Worktree.Enabled && worktreePath != "" {
-		_ = m.git.RemoveWorktree(worktreePath)
+		_ = m.git.RemoveWorktree(context.Background(), worktreePath)
 	} else {
-		_ = m.git.Checkout(currentBranch)
+		_ = m.git.Checkout(context.Background(), currentBranch)
 	}
 }
 
 // validateTicketForClose validates that a ticket can be closed
 func (m *Model) validateTicketForClose(t *ticket.Ticket) error {
 	// Get current ticket
-	current, err := m.manager.GetCurrentTicket()
+	current, err := m.manager.GetCurrentTicket(context.Background())
 	if err != nil {
 		return fmt.Errorf("failed to get current ticket: %w", err)
 	}
@@ -627,7 +628,7 @@ func (m *Model) checkWorkspaceForClose(t *ticket.Ticket) (string, bool, error) {
 
 	if m.config.Worktree.Enabled {
 		// Check if a worktree exists for this ticket
-		wt, err := m.git.FindWorktreeByBranch(t.ID)
+		wt, err := m.git.FindWorktreeByBranch(context.Background(), t.ID)
 		if err != nil {
 			return "", false, fmt.Errorf("failed to find worktree: %w", err)
 		}
@@ -637,7 +638,7 @@ func (m *Model) checkWorkspaceForClose(t *ticket.Ticket) (string, bool, error) {
 
 			// Check for uncommitted changes in worktree
 			wtGit := git.New(worktreePath)
-			dirty, err := wtGit.HasUncommittedChanges()
+			dirty, err := wtGit.HasUncommittedChanges(context.Background())
 			if err != nil {
 				return "", false, fmt.Errorf("failed to check worktree status: %w", err)
 			}
@@ -649,7 +650,7 @@ func (m *Model) checkWorkspaceForClose(t *ticket.Ticket) (string, bool, error) {
 
 	if !isWorktree {
 		// Check for uncommitted changes
-		dirty, err := m.git.HasUncommittedChanges()
+		dirty, err := m.git.HasUncommittedChanges(context.Background())
 		if err != nil {
 			return "", false, fmt.Errorf("failed to check git status: %w", err)
 		}
@@ -658,7 +659,7 @@ func (m *Model) checkWorkspaceForClose(t *ticket.Ticket) (string, bool, error) {
 		}
 
 		// Get current branch
-		currentBranch, err := m.git.CurrentBranch()
+		currentBranch, err := m.git.CurrentBranch(context.Background())
 		if err != nil {
 			return "", false, fmt.Errorf("failed to get current branch: %w", err)
 		}
@@ -691,24 +692,24 @@ func (m *Model) moveTicketToDoneAndCommit(t *ticket.Ticket) error {
 
 	// Update ticket data with new path
 	t.Path = newPath
-	if err := m.manager.Update(t); err != nil {
+	if err := m.manager.Update(context.Background(), t); err != nil {
 		// Rollback file move
 		_ = os.Rename(newPath, oldPath)
 		return fmt.Errorf("failed to update ticket: %w", err)
 	}
 
 	// Git add both old and new paths
-	if err := m.git.Add(oldPath, newPath); err != nil {
+	if err := m.git.Add(context.Background(), oldPath, newPath); err != nil {
 		return fmt.Errorf("failed to stage ticket move: %w", err)
 	}
 
 	// Commit the move
-	if err := m.git.Commit(fmt.Sprintf("Close ticket: %s", t.ID)); err != nil {
+	if err := m.git.Commit(context.Background(), fmt.Sprintf("Close ticket: %s", t.ID)); err != nil {
 		return fmt.Errorf("failed to commit ticket move: %w", err)
 	}
 
 	// Remove current ticket link
-	if err := m.manager.SetCurrentTicket(nil); err != nil {
+	if err := m.manager.SetCurrentTicket(context.Background(), nil); err != nil {
 		return fmt.Errorf("failed to remove current ticket link: %w", err)
 	}
 

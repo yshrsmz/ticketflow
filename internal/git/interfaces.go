@@ -1,17 +1,19 @@
 package git
 
+import "context"
+
 // BasicGitClient defines the interface for basic git operations
 type BasicGitClient interface {
 	// Core git operations
-	Exec(args ...string) (string, error)
-	CurrentBranch() (string, error)
-	CreateBranch(name string) error
-	HasUncommittedChanges() (bool, error)
-	Add(files ...string) error
-	Commit(message string) error
-	Checkout(branch string) error
-	MergeSquash(branch string) error
-	Push(remote, branch string, setUpstream bool) error
+	Exec(ctx context.Context, args ...string) (string, error)
+	CurrentBranch(ctx context.Context) (string, error)
+	CreateBranch(ctx context.Context, name string) error
+	HasUncommittedChanges(ctx context.Context) (bool, error)
+	Add(ctx context.Context, files ...string) error
+	Commit(ctx context.Context, message string) error
+	Checkout(ctx context.Context, branch string) error
+	MergeSquash(ctx context.Context, branch string) error
+	Push(ctx context.Context, remote, branch string, setUpstream bool) error
 	RootPath() (string, error)
 }
 
@@ -20,13 +22,13 @@ type WorktreeClient interface {
 	BasicGitClient
 
 	// Worktree-specific operations
-	ListWorktrees() ([]WorktreeInfo, error)
-	AddWorktree(path, branch string) error
-	RemoveWorktree(path string) error
-	PruneWorktrees() error
-	FindWorktreeByBranch(branch string) (*WorktreeInfo, error)
-	HasWorktree(branch string) (bool, error)
-	RunInWorktree(worktreePath string, args ...string) (string, error)
+	ListWorktrees(ctx context.Context) ([]WorktreeInfo, error)
+	AddWorktree(ctx context.Context, path, branch string) error
+	RemoveWorktree(ctx context.Context, path string) error
+	PruneWorktrees(ctx context.Context) error
+	FindWorktreeByBranch(ctx context.Context, branch string) (*WorktreeInfo, error)
+	HasWorktree(ctx context.Context, branch string) (bool, error)
+	RunInWorktree(ctx context.Context, worktreePath string, args ...string) (string, error)
 }
 
 // GitClient is the complete interface combining basic and worktree operations

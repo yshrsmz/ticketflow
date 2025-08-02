@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -40,9 +41,9 @@ func TestStartTicket_WorktreeCreatedAfterCommit(t *testing.T) {
 
 	// Commit config
 	gitCmd := git.New(repoPath)
-	_, err = gitCmd.Exec("add", ".ticketflow.yaml", ".gitignore")
+	_, err = gitCmd.Exec(context.Background(), "add", ".ticketflow.yaml", ".gitignore")
 	require.NoError(t, err)
-	_, err = gitCmd.Exec("commit", "-m", "Initialize ticketflow with worktrees")
+	_, err = gitCmd.Exec(context.Background(), "commit", "-m", "Initialize ticketflow with worktrees")
 	require.NoError(t, err)
 
 	// Create app instance
@@ -50,23 +51,23 @@ func TestStartTicket_WorktreeCreatedAfterCommit(t *testing.T) {
 	require.NoError(t, err)
 
 	// 1. Create a ticket
-	err = app.NewTicket("commit-first-test", cli.FormatText)
+	err = app.NewTicket(context.Background(), "commit-first-test", cli.FormatText)
 	require.NoError(t, err)
 
 	// Commit the ticket
-	_, err = gitCmd.Exec("add", "tickets/")
+	_, err = gitCmd.Exec(context.Background(), "add", "tickets/")
 	require.NoError(t, err)
-	_, err = gitCmd.Exec("commit", "-m", "Add test ticket")
+	_, err = gitCmd.Exec(context.Background(), "commit", "-m", "Add test ticket")
 	require.NoError(t, err)
 
 	// Get ticket ID
-	tickets, err := app.Manager.List(ticket.StatusFilterActive)
+	tickets, err := app.Manager.List(context.Background(), ticket.StatusFilterActive)
 	require.NoError(t, err)
 	require.Len(t, tickets, 1)
 	ticketID := tickets[0].ID
 
 	// 2. Start work on ticket
-	err = app.StartTicket(ticketID)
+	err = app.StartTicket(context.Background(), ticketID)
 	require.NoError(t, err)
 
 	// 3. Verify parent branch state
@@ -81,7 +82,7 @@ func TestStartTicket_WorktreeCreatedAfterCommit(t *testing.T) {
 	assert.True(t, os.IsNotExist(err), "ticket should not exist in parent branch todo directory")
 
 	// 4. Find the worktree
-	worktrees, err := app.Git.ListWorktrees()
+	worktrees, err := app.Git.ListWorktrees(context.Background())
 	require.NoError(t, err)
 
 	var ticketWorktree *git.WorktreeInfo
@@ -118,7 +119,7 @@ func TestStartTicket_WorktreeCreatedAfterCommit(t *testing.T) {
 
 	// 7. Verify worktree has clean status (no uncommitted changes)
 	wtGit := git.New(ticketWorktree.Path)
-	dirty, err := wtGit.HasUncommittedChanges()
+	dirty, err := wtGit.HasUncommittedChanges(context.Background())
 	require.NoError(t, err)
 	assert.False(t, dirty, "worktree should have clean status with no uncommitted changes")
 }

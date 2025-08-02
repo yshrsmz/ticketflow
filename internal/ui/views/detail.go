@@ -1,6 +1,7 @@
 package views
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -327,7 +328,7 @@ func (m TicketDetailModel) loadContent() tea.Cmd {
 			return contentLoadedMsg{err: fmt.Errorf("no ticket selected")}
 		}
 
-		content, err := m.manager.ReadContent(m.ticket.ID)
+		content, err := m.manager.ReadContent(context.Background(), m.ticket.ID)
 		return contentLoadedMsg{
 			content: content,
 			err:     err,

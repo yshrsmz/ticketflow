@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -28,7 +29,7 @@ func TestApp_NewTicket(t *testing.T) {
 			outputFormat: FormatText,
 			setupMocks: func(m *mocks.MockTicketManager, g *mocks.MockGitClient) {
 				// Git mocks for parent detection
-				g.On("CurrentBranch").Return("main", nil)
+				g.On("CurrentBranch", mock.Anything).Return("main", nil)
 
 				// Manager mocks
 				newTicket := &ticket.Ticket{
@@ -37,7 +38,7 @@ func TestApp_NewTicket(t *testing.T) {
 					Priority:    2,
 					Description: "",
 				}
-				m.On("Create", "test-feature").Return(newTicket, nil)
+				m.On("Create", mock.Anything, "test-feature").Return(newTicket, nil)
 			},
 			expectedError: false,
 		},
@@ -56,8 +57,8 @@ func TestApp_NewTicket(t *testing.T) {
 			slug:         "existing-feature",
 			outputFormat: FormatText,
 			setupMocks: func(m *mocks.MockTicketManager, g *mocks.MockGitClient) {
-				g.On("CurrentBranch").Return("main", nil)
-				m.On("Create", "existing-feature").Return(nil, assert.AnError)
+				g.On("CurrentBranch", mock.Anything).Return("main", nil)
+				m.On("Create", mock.Anything, "existing-feature").Return(nil, assert.AnError)
 			},
 			expectedError: true,
 		},
@@ -81,7 +82,8 @@ func TestApp_NewTicket(t *testing.T) {
 			}
 
 			// Execute
-			err := app.NewTicket(tt.slug, tt.outputFormat)
+			ctx := context.Background()
+			err := app.NewTicket(ctx, tt.slug, tt.outputFormat)
 
 			// Assert
 			if tt.expectedError {
@@ -119,7 +121,7 @@ func TestApp_ListTickets(t *testing.T) {
 					{ID: "ticket1", Priority: 1},
 					{ID: "ticket2", Priority: 2},
 				}
-				m.On("List", ticket.StatusFilterActive).Return(tickets, nil)
+				m.On("List", mock.Anything, ticket.StatusFilterActive).Return(tickets, nil)
 			},
 			expectedError: false,
 		},
@@ -132,9 +134,9 @@ func TestApp_ListTickets(t *testing.T) {
 				tickets := []ticket.Ticket{
 					{ID: "todo1", Priority: 1},
 				}
-				m.On("List", ticket.StatusFilterTodo).Return(tickets, nil)
+				m.On("List", mock.Anything, ticket.StatusFilterTodo).Return(tickets, nil)
 				// JSON format also fetches all tickets for summary
-				m.On("List", ticket.StatusFilterAll).Return(tickets, nil)
+				m.On("List", mock.Anything, ticket.StatusFilterAll).Return(tickets, nil)
 			},
 			expectedError: false,
 		},
@@ -144,7 +146,7 @@ func TestApp_ListTickets(t *testing.T) {
 			count:        10,
 			outputFormat: FormatText,
 			setupMocks: func(m *mocks.MockTicketManager) {
-				m.On("List", ticket.StatusFilterDoing).Return(nil, assert.AnError)
+				m.On("List", mock.Anything, ticket.StatusFilterDoing).Return(nil, assert.AnError)
 			},
 			expectedError: true,
 		},
@@ -166,7 +168,7 @@ func TestApp_ListTickets(t *testing.T) {
 			}
 
 			// Execute
-			err := app.ListTickets(tt.status, tt.count, tt.outputFormat)
+			err := app.ListTickets(context.Background(), tt.status, tt.count, tt.outputFormat)
 
 			// Assert
 			if tt.expectedError {
@@ -218,14 +220,14 @@ func TestApp_StartTicket_WithMocks(t *testing.T) {
 				}
 
 				// validateTicketForStart calls
-				tm.On("Get", "250131-120000-test").Return(testTicket, nil)
-				tm.On("GetCurrentTicket").Return(nil, nil).Maybe() // No current ticket - Maybe() allows 0 or more calls
+				tm.On("Get", mock.Anything, "250131-120000-test").Return(testTicket, nil)
+				tm.On("GetCurrentTicket", mock.Anything).Return(nil, nil).Maybe() // No current ticket - Maybe() allows 0 or more calls
 
 				// checkWorkspaceForStart calls
 				// HasUncommittedChanges is NOT called when worktree is enabled
 
 				// detectParentBranch calls
-				gc.On("CurrentBranch").Return("main", nil)
+				gc.On("CurrentBranch", mock.Anything).Return("main", nil)
 				// No Manager.Get("main") call because we skip when currentBranch == defaultBranch
 
 				// setupTicketBranch calls (worktree is enabled in the test config)
@@ -234,25 +236,25 @@ func TestApp_StartTicket_WithMocks(t *testing.T) {
 				// moveTicketToDoing calls
 				newPath := filepath.Join(tmpDir, "tickets", "doing", "250131-120000-test.md")
 				// Update is called after Start() to save the started timestamp
-				tm.On("Update", mock.MatchedBy(func(t *ticket.Ticket) bool {
+				tm.On("Update", mock.Anything, mock.MatchedBy(func(t *ticket.Ticket) bool {
 					return t.ID == "250131-120000-test" && t.Path == newPath && t.StartedAt.Time != nil
 				})).Return(nil)
 				// Git add with -A flag to handle rename
 				todoDir := filepath.Join(tmpDir, "tickets", "todo")
 				doingDir := filepath.Join(tmpDir, "tickets", "doing")
-				gc.On("Add", "-A", todoDir, doingDir).Return(nil)
-				gc.On("Commit", "Start ticket: 250131-120000-test").Return(nil)
-				tm.On("SetCurrentTicket", mock.MatchedBy(func(t *ticket.Ticket) bool {
+				gc.On("Add", mock.Anything, "-A", todoDir, doingDir).Return(nil)
+				gc.On("Commit", mock.Anything, "Start ticket: 250131-120000-test").Return(nil)
+				tm.On("SetCurrentTicket", mock.Anything, mock.MatchedBy(func(t *ticket.Ticket) bool {
 					return t.ID == "250131-120000-test" && t.Path == newPath
 				})).Return(nil)
 
 				// For worktree mode, we need these additional calls
-				gc.On("HasWorktree", "250131-120000-test").Return(false, nil)
-				gc.On("Checkout", "main").Return(nil)
+				gc.On("HasWorktree", mock.Anything, "250131-120000-test").Return(false, nil)
+				gc.On("Checkout", mock.Anything, "main").Return(nil)
 
 				// AddWorktree should create the directory
 				worktreePath := filepath.Join(tmpDir, ".worktrees", "250131-120000-test")
-				gc.On("AddWorktree", mock.MatchedBy(func(path string) bool {
+				gc.On("AddWorktree", mock.Anything, mock.MatchedBy(func(path string) bool {
 					// Create the worktree directory when this is called
 					err := os.MkdirAll(path, 0755)
 					require.NoError(t, err)
@@ -269,7 +271,7 @@ func TestApp_StartTicket_WithMocks(t *testing.T) {
 			name:     "ticket not found",
 			ticketID: "nonexistent",
 			setupMocks: func(tm *mocks.MockTicketManager, gc *mocks.MockGitClient, tmpDir string) {
-				tm.On("Get", "nonexistent").Return(nil, assert.AnError)
+				tm.On("Get", mock.Anything, "nonexistent").Return(nil, assert.AnError)
 			},
 			expectedError: true,
 		},
@@ -301,7 +303,7 @@ func TestApp_StartTicket_WithMocks(t *testing.T) {
 			}
 
 			// Execute
-			err := app.StartTicket(tt.ticketID)
+			err := app.StartTicket(context.Background(), tt.ticketID)
 
 			// Assert
 			if tt.expectedError {

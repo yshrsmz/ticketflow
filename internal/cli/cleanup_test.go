@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"strings"
@@ -31,25 +32,25 @@ func TestAutoCleanupStaleBranches(t *testing.T) {
 
 	// Initialize git repo
 	gitOps := &git.Git{}
-	_, err = gitOps.Exec("init")
+	_, err = gitOps.Exec(context.Background(), "init")
 	require.NoError(t, err)
-	_, err = gitOps.Exec("config", "user.email", "test@example.com")
+	_, err = gitOps.Exec(context.Background(), "config", "user.email", "test@example.com")
 	require.NoError(t, err)
-	_, err = gitOps.Exec("config", "user.name", "Test User")
+	_, err = gitOps.Exec(context.Background(), "config", "user.name", "Test User")
 	require.NoError(t, err)
 
 	// Create initial commit
 	require.NoError(t, os.WriteFile("README.md", []byte("Test repo"), 0644))
-	_, err = gitOps.Exec("add", ".")
+	_, err = gitOps.Exec(context.Background(), "add", ".")
 	require.NoError(t, err)
-	_, err = gitOps.Exec("commit", "-m", "Initial commit")
+	_, err = gitOps.Exec(context.Background(), "commit", "-m", "Initial commit")
 	require.NoError(t, err)
 
 	// Create config
 	cfg := config.Default()
 
 	// Check what the default branch actually is
-	defaultBranch, err := gitOps.Exec("rev-parse", "--abbrev-ref", "HEAD")
+	defaultBranch, err := gitOps.Exec(context.Background(), "rev-parse", "--abbrev-ref", "HEAD")
 	require.NoError(t, err)
 	defaultBranch = strings.TrimSpace(defaultBranch)
 	cfg.Git.DefaultBranch = defaultBranch
@@ -108,14 +109,14 @@ func TestAutoCleanupStaleBranches(t *testing.T) {
 		require.NoError(t, os.WriteFile(tkt.Path, data, 0644))
 
 		// Create branch for the ticket
-		_, err = gitOps.Exec("checkout", "-b", tc.id)
+		_, err = gitOps.Exec(context.Background(), "checkout", "-b", tc.id)
 		require.NoError(t, err)
-		_, err = gitOps.Exec("checkout", defaultBranch)
+		_, err = gitOps.Exec(context.Background(), "checkout", defaultBranch)
 		require.NoError(t, err)
 	}
 
 	// Verify branches exist
-	output, err := gitOps.Exec("branch", "--format=%(refname:short)")
+	output, err := gitOps.Exec(context.Background(), "branch", "--format=%(refname:short)")
 	require.NoError(t, err)
 	branches := splitLines(output)
 	assert.Contains(t, branches, "ticket-1")
@@ -123,13 +124,13 @@ func TestAutoCleanupStaleBranches(t *testing.T) {
 	assert.Contains(t, branches, "ticket-3")
 
 	// Run auto cleanup with dry run
-	result, err := app.AutoCleanup(true)
+	result, err := app.AutoCleanup(context.Background(), true)
 	require.NoError(t, err)
 	assert.Equal(t, 2, result.StaleBranches, "Should detect 2 stale branches in dry run")
 	assert.Equal(t, 0, result.OrphanedWorktrees, "Should not detect orphaned worktrees (disabled)")
 
 	// Verify branches still exist (dry run)
-	output, err = gitOps.Exec("branch", "--format=%(refname:short)")
+	output, err = gitOps.Exec(context.Background(), "branch", "--format=%(refname:short)")
 	require.NoError(t, err)
 	branches = splitLines(output)
 	assert.Contains(t, branches, "ticket-1")
@@ -137,13 +138,13 @@ func TestAutoCleanupStaleBranches(t *testing.T) {
 	assert.Contains(t, branches, "ticket-3")
 
 	// Run actual cleanup
-	result, err = app.AutoCleanup(false)
+	result, err = app.AutoCleanup(context.Background(), false)
 	require.NoError(t, err)
 	assert.Equal(t, 2, result.StaleBranches, "Should clean 2 stale branches")
 	assert.Equal(t, 0, result.OrphanedWorktrees, "Should not clean orphaned worktrees (disabled)")
 
 	// Verify only done ticket branches were removed
-	output, err = gitOps.Exec("branch", "--format=%(refname:short)")
+	output, err = gitOps.Exec(context.Background(), "branch", "--format=%(refname:short)")
 	require.NoError(t, err)
 	branches = splitLines(output)
 	assert.NotContains(t, branches, "ticket-1") // Should be removed (done)
@@ -169,25 +170,25 @@ func TestCleanupStatsWithDoneTickets(t *testing.T) {
 
 	// Initialize git repo
 	gitOps := &git.Git{}
-	_, err = gitOps.Exec("init")
+	_, err = gitOps.Exec(context.Background(), "init")
 	require.NoError(t, err)
-	_, err = gitOps.Exec("config", "user.email", "test@example.com")
+	_, err = gitOps.Exec(context.Background(), "config", "user.email", "test@example.com")
 	require.NoError(t, err)
-	_, err = gitOps.Exec("config", "user.name", "Test User")
+	_, err = gitOps.Exec(context.Background(), "config", "user.name", "Test User")
 	require.NoError(t, err)
 
 	// Create initial commit
 	require.NoError(t, os.WriteFile("README.md", []byte("Test repo"), 0644))
-	_, err = gitOps.Exec("add", ".")
+	_, err = gitOps.Exec(context.Background(), "add", ".")
 	require.NoError(t, err)
-	_, err = gitOps.Exec("commit", "-m", "Initial commit")
+	_, err = gitOps.Exec(context.Background(), "commit", "-m", "Initial commit")
 	require.NoError(t, err)
 
 	// Create config
 	cfg := config.Default()
 
 	// Check what the default branch actually is
-	defaultBranch, err := gitOps.Exec("rev-parse", "--abbrev-ref", "HEAD")
+	defaultBranch, err := gitOps.Exec(context.Background(), "rev-parse", "--abbrev-ref", "HEAD")
 	require.NoError(t, err)
 	defaultBranch = strings.TrimSpace(defaultBranch)
 	cfg.Git.DefaultBranch = defaultBranch
@@ -227,9 +228,9 @@ func TestCleanupStatsWithDoneTickets(t *testing.T) {
 		require.NoError(t, os.WriteFile(tkt.Path, data, 0644))
 
 		// Create branch
-		_, err = gitOps.Exec("checkout", "-b", id)
+		_, err = gitOps.Exec(context.Background(), "checkout", "-b", id)
 		require.NoError(t, err)
-		_, err = gitOps.Exec("checkout", defaultBranch)
+		_, err = gitOps.Exec(context.Background(), "checkout", defaultBranch)
 		require.NoError(t, err)
 	}
 
@@ -251,9 +252,9 @@ func TestCleanupStatsWithDoneTickets(t *testing.T) {
 	data, err := activeTkt.ToBytes()
 	require.NoError(t, err)
 	require.NoError(t, os.WriteFile(activeTkt.Path, data, 0644))
-	_, err = gitOps.Exec("checkout", "-b", "active-1")
+	_, err = gitOps.Exec(context.Background(), "checkout", "-b", "active-1")
 	require.NoError(t, err)
-	_, err = gitOps.Exec("checkout", defaultBranch)
+	_, err = gitOps.Exec(context.Background(), "checkout", defaultBranch)
 	require.NoError(t, err)
 
 	// Run CleanupStats and verify it counts stale branches correctly
@@ -261,12 +262,12 @@ func TestCleanupStatsWithDoneTickets(t *testing.T) {
 	// But we can verify the underlying logic by checking what branches would be cleaned
 
 	// Get all branches
-	output, err := gitOps.Exec("branch", "--format=%(refname:short)")
+	output, err := gitOps.Exec(context.Background(), "branch", "--format=%(refname:short)")
 	require.NoError(t, err)
 	branches := splitLines(output)
 
 	// Get all tickets
-	allTickets, err := manager.List(ticket.StatusFilterAll)
+	allTickets, err := manager.List(context.Background(), ticket.StatusFilterAll)
 	require.NoError(t, err)
 
 	// Count stale branches manually

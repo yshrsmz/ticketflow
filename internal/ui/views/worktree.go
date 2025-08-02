@@ -1,6 +1,7 @@
 package views
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -211,7 +212,7 @@ type worktreesLoadedMsg struct {
 // loadWorktrees loads the worktree list
 func (m WorktreeListModel) loadWorktrees() tea.Cmd {
 	return func() tea.Msg {
-		worktrees, err := m.git.ListWorktrees()
+		worktrees, err := m.git.ListWorktrees(context.Background())
 		return worktreesLoadedMsg{
 			worktrees: worktrees,
 			err:       err,

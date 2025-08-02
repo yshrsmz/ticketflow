@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -36,9 +37,9 @@ func TestDirectoryAutoCreation(t *testing.T) {
 
 	// Commit initial setup
 	gitCmd := git.New(repoPath)
-	_, err = gitCmd.Exec("add", ".")
+	_, err = gitCmd.Exec(context.Background(), "add", ".")
 	require.NoError(t, err)
-	_, err = gitCmd.Exec("commit", "-m", "Initial setup")
+	_, err = gitCmd.Exec(context.Background(), "commit", "-m", "Initial setup")
 	require.NoError(t, err)
 
 	// Test 1: Remove doing directory and verify it's recreated on start
@@ -51,22 +52,22 @@ func TestDirectoryAutoCreation(t *testing.T) {
 	assert.True(t, os.IsNotExist(err), "doing directory should not exist")
 
 	// Create a ticket
-	err = app.NewTicket("test-auto-dir", cli.FormatText)
+	err = app.NewTicket(context.Background(), "test-auto-dir", cli.FormatText)
 	require.NoError(t, err)
 
 	// Get the ticket
-	tickets, err := app.Manager.List(ticket.StatusFilterActive)
+	tickets, err := app.Manager.List(context.Background(), ticket.StatusFilterActive)
 	require.NoError(t, err)
 	require.Len(t, tickets, 1)
 
 	// Commit the ticket
-	_, err = gitCmd.Exec("add", "tickets/")
+	_, err = gitCmd.Exec(context.Background(), "add", "tickets/")
 	require.NoError(t, err)
-	_, err = gitCmd.Exec("commit", "-m", "Add test ticket")
+	_, err = gitCmd.Exec(context.Background(), "commit", "-m", "Add test ticket")
 	require.NoError(t, err)
 
 	// Start the ticket (this should create the doing directory)
-	err = app.StartTicket(tickets[0].ID)
+	err = app.StartTicket(context.Background(), tickets[0].ID)
 	require.NoError(t, err)
 
 	// Verify doing directory was created
@@ -84,7 +85,7 @@ func TestDirectoryAutoCreation(t *testing.T) {
 	assert.True(t, os.IsNotExist(err), "done directory should not exist")
 
 	// Close the ticket (this should create the done directory)
-	err = app.CloseTicket(false)
+	err = app.CloseTicket(context.Background(), false)
 	require.NoError(t, err)
 
 	// Verify done directory was created
@@ -127,9 +128,9 @@ func TestDirectoryCreationWithWorktrees(t *testing.T) {
 
 	// Commit initial setup
 	gitCmd := git.New(repoPath)
-	_, err = gitCmd.Exec("add", ".")
+	_, err = gitCmd.Exec(context.Background(), "add", ".")
 	require.NoError(t, err)
-	_, err = gitCmd.Exec("commit", "-m", "Initial setup with worktrees")
+	_, err = gitCmd.Exec(context.Background(), "commit", "-m", "Initial setup with worktrees")
 	require.NoError(t, err)
 
 	// Remove doing directory
@@ -138,22 +139,22 @@ func TestDirectoryCreationWithWorktrees(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create a ticket
-	err = app.NewTicket("test-worktree-dir", cli.FormatText)
+	err = app.NewTicket(context.Background(), "test-worktree-dir", cli.FormatText)
 	require.NoError(t, err)
 
 	// Get the ticket
-	tickets, err := app.Manager.List(ticket.StatusFilterActive)
+	tickets, err := app.Manager.List(context.Background(), ticket.StatusFilterActive)
 	require.NoError(t, err)
 	require.Len(t, tickets, 1)
 
 	// Commit the ticket
-	_, err = gitCmd.Exec("add", "tickets/")
+	_, err = gitCmd.Exec(context.Background(), "add", "tickets/")
 	require.NoError(t, err)
-	_, err = gitCmd.Exec("commit", "-m", "Add test ticket")
+	_, err = gitCmd.Exec(context.Background(), "commit", "-m", "Add test ticket")
 	require.NoError(t, err)
 
 	// Start the ticket (this should create the doing directory even with worktrees)
-	err = app.StartTicket(tickets[0].ID)
+	err = app.StartTicket(context.Background(), tickets[0].ID)
 	require.NoError(t, err)
 
 	// Verify doing directory was created
