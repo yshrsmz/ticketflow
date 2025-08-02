@@ -26,7 +26,7 @@ func New(repoPath string) *Git {
 
 // Exec executes a git command
 func (g *Git) Exec(args ...string) (string, error) {
-	cmd := exec.Command("git", args...)
+	cmd := exec.Command(GitCmd, args...)
 	cmd.Dir = g.repoPath
 
 	var stdout, stderr bytes.Buffer
@@ -41,7 +41,7 @@ func (g *Git) Exec(args ...string) (string, error) {
 			subcommand = args[0]
 		}
 		// For branch-related commands, try to extract branch name
-		if len(args) > 1 && (subcommand == "checkout" || subcommand == "push" || subcommand == "pull" || subcommand == "merge") {
+		if len(args) > 1 && (subcommand == SubcmdCheckout || subcommand == SubcmdPush || subcommand == SubcmdPull || subcommand == SubcmdMerge) {
 			branch = args[len(args)-1]
 		}
 
@@ -55,18 +55,18 @@ func (g *Git) Exec(args ...string) (string, error) {
 
 // CurrentBranch returns the current branch name
 func (g *Git) CurrentBranch() (string, error) {
-	return g.Exec("rev-parse", "--abbrev-ref", "HEAD")
+	return g.Exec(SubcmdRevParse, FlagAbbrevRef, RefHEAD)
 }
 
 // CreateBranch creates and checks out a new branch
 func (g *Git) CreateBranch(name string) error {
-	_, err := g.Exec("checkout", "-b", name)
+	_, err := g.Exec(SubcmdCheckout, FlagBranch, name)
 	return err
 }
 
 // HasUncommittedChanges checks if there are uncommitted changes
 func (g *Git) HasUncommittedChanges() (bool, error) {
-	output, err := g.Exec("status", "--porcelain")
+	output, err := g.Exec(SubcmdStatus, FlagPorcelain)
 	if err != nil {
 		return false, err
 	}
@@ -75,34 +75,34 @@ func (g *Git) HasUncommittedChanges() (bool, error) {
 
 // Add stages files
 func (g *Git) Add(files ...string) error {
-	args := append([]string{"add"}, files...)
+	args := append([]string{SubcmdAdd}, files...)
 	_, err := g.Exec(args...)
 	return err
 }
 
 // Commit creates a commit
 func (g *Git) Commit(message string) error {
-	_, err := g.Exec("commit", "-m", message)
+	_, err := g.Exec(SubcmdCommit, FlagMessage, message)
 	return err
 }
 
 // Checkout switches to a branch
 func (g *Git) Checkout(branch string) error {
-	_, err := g.Exec("checkout", branch)
+	_, err := g.Exec(SubcmdCheckout, branch)
 	return err
 }
 
 // MergeSquash performs a squash merge
 func (g *Git) MergeSquash(branch string) error {
-	_, err := g.Exec("merge", "--squash", branch)
+	_, err := g.Exec(SubcmdMerge, FlagSquash, branch)
 	return err
 }
 
 // Push pushes a branch to remote
 func (g *Git) Push(remote, branch string, setUpstream bool) error {
-	args := []string{"push"}
+	args := []string{SubcmdPush}
 	if setUpstream {
-		args = append(args, "-u")
+		args = append(args, FlagUpstream)
 	}
 	args = append(args, remote, branch)
 	_, err := g.Exec(args...)
@@ -111,14 +111,14 @@ func (g *Git) Push(remote, branch string, setUpstream bool) error {
 
 // IsGitRepo checks if the path is a git repository
 func IsGitRepo(path string) bool {
-	cmd := exec.Command("git", "rev-parse", "--git-dir")
+	cmd := exec.Command(GitCmd, SubcmdRevParse, FlagGitDir)
 	cmd.Dir = path
 	return cmd.Run() == nil
 }
 
 // FindProjectRoot finds the git project root from current directory
 func FindProjectRoot(startPath string) (string, error) {
-	cmd := exec.Command("git", "rev-parse", "--show-toplevel")
+	cmd := exec.Command(GitCmd, SubcmdRevParse, FlagShowToplevel)
 	cmd.Dir = startPath
 
 	var stdout bytes.Buffer
