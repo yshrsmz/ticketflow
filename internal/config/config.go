@@ -92,8 +92,8 @@ func Default() *Config {
 			JSONPretty:    true,
 		},
 		Timeouts: TimeoutsConfig{
-			Git:          30, // 30 seconds default for git operations
-			InitCommands: 60, // 60 seconds default for init commands
+			Git:          DefaultGitTimeoutSeconds,
+			InitCommands: DefaultInitCommandsTimeoutSeconds,
 		},
 	}
 }
@@ -211,7 +211,7 @@ func (c *Config) GetWorktreePath(projectRoot string) string {
 // GetGitTimeout returns the timeout duration for git operations
 func (c *Config) GetGitTimeout() time.Duration {
 	if c.Timeouts.Git <= 0 {
-		return 30 * time.Second // Default fallback
+		return DefaultGitTimeout
 	}
 	return time.Duration(c.Timeouts.Git) * time.Second
 }
@@ -219,7 +219,7 @@ func (c *Config) GetGitTimeout() time.Duration {
 // GetInitCommandsTimeout returns the timeout duration for init commands
 func (c *Config) GetInitCommandsTimeout() time.Duration {
 	if c.Timeouts.InitCommands <= 0 {
-		return 60 * time.Second // Default fallback
+		return DefaultInitCommandsTimeout
 	}
 	return time.Duration(c.Timeouts.InitCommands) * time.Second
 }

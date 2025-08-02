@@ -1,5 +1,7 @@
 package config
 
+import "time"
+
 // Configuration file names
 const (
 	ConfigFileName = ".ticketflow.yaml"
@@ -14,6 +16,14 @@ const (
 	DefaultDoingDir     = "doing"
 	DefaultDoneDir      = "done"
 	DefaultOutputFormat = "text"
+)
+
+// Default timeout values
+const (
+	DefaultGitTimeoutSeconds          = 30
+	DefaultInitCommandsTimeoutSeconds = 60
+	DefaultGitTimeout                 = DefaultGitTimeoutSeconds * time.Second
+	DefaultInitCommandsTimeout        = DefaultInitCommandsTimeoutSeconds * time.Second
 )
 
 // Output format types

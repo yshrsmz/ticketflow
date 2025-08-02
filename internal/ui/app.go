@@ -546,7 +546,12 @@ func (m *Model) runWorktreeInitCommands(worktreePath string) error {
 		execCmd := exec.CommandContext(ctx, parts[0], parts[1:]...)
 		execCmd.Dir = worktreePath
 		if err := execCmd.Run(); err != nil {
-			failedCommands = append(failedCommands, fmt.Sprintf("%s (%v)", cmd, err))
+			// Check if error is due to timeout
+			if ctx.Err() == context.DeadlineExceeded {
+				failedCommands = append(failedCommands, fmt.Sprintf("%s (timed out after %v)", cmd, timeout))
+			} else {
+				failedCommands = append(failedCommands, fmt.Sprintf("%s (%v)", cmd, err))
+			}
 		}
 	}
 

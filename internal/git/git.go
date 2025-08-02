@@ -20,7 +20,7 @@ type Git struct {
 
 // New creates a new Git instance with default timeout
 func New(repoPath string) *Git {
-	return NewWithTimeout(repoPath, 30*time.Second)
+	return NewWithTimeout(repoPath, 30*time.Second) // 30 seconds default
 }
 
 // NewWithTimeout creates a new Git instance with custom timeout
@@ -70,6 +70,13 @@ func (g *Git) Exec(ctx context.Context, args ...string) (string, error) {
 		// For branch-related commands, try to extract branch name
 		if len(args) > 1 && (subcommand == SubcmdCheckout || subcommand == SubcmdPush || subcommand == SubcmdPull || subcommand == SubcmdMerge) {
 			branch = args[len(args)-1]
+		}
+
+		// Check if error is due to timeout
+		if ctx.Err() == context.DeadlineExceeded {
+			gitErr := ticketerrors.NewGitError(subcommand, branch,
+				fmt.Errorf("operation timed out after %v: %w", g.timeout, err))
+			return "", gitErr
 		}
 
 		gitErr := ticketerrors.NewGitError(subcommand, branch,

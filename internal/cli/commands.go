@@ -1037,7 +1037,12 @@ func (app *App) runWorktreeInitCommands(ctx context.Context, worktreePath string
 		execCmd.Dir = worktreePath
 		output, err := execCmd.CombinedOutput()
 		if err != nil {
-			failedCommands = append(failedCommands, fmt.Sprintf("%s (%v)", cmd, err))
+			// Check if error is due to timeout
+			if ctx.Err() == context.DeadlineExceeded {
+				failedCommands = append(failedCommands, fmt.Sprintf("%s (timed out after %v)", cmd, timeout))
+			} else {
+				failedCommands = append(failedCommands, fmt.Sprintf("%s (%v)", cmd, err))
+			}
 			if len(output) > 0 {
 				fmt.Printf("    Output: %s\n", strings.TrimSpace(string(output)))
 			}
