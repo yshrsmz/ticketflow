@@ -17,13 +17,13 @@ const (
 	testDefaultBranch = "main"
 	testTicketSlug    = "test-feature"
 	testTimeout       = 5 // seconds for test operations
-	
+
 	// Test ticket IDs
 	testTicket1ID = "250101-120000-test-1"
 	testTicket2ID = "250102-120000-test-2"
 	testTicket3ID = "250103-120000-test-3"
 	testTicket4ID = "250104-120000-test-4"
-	
+
 	// Test timestamps
 	testCreatedTime = "2025-01-01T12:00:00Z"
 	testStartedTime = "2025-01-01T13:00:00Z"
@@ -32,17 +32,33 @@ const (
 
 // setupTestRepo creates a basic test repository with config and directories
 func setupTestRepo(t *testing.T, tmpDir string) {
-	// Initialize git repo
+	// Initialize git repo first
 	cmd := exec.Command("git", "init")
 	cmd.Dir = tmpDir
 	output, err := cmd.CombinedOutput()
 	require.NoError(t, err, "Failed to init git repo: %s", string(output))
 
+	// Configure git locally in the test repo (not globally)
+	cmd = exec.Command("git", "config", "user.name", "Test User")
+	cmd.Dir = tmpDir
+	err = cmd.Run()
+	require.NoError(t, err)
+	
+	cmd = exec.Command("git", "config", "user.email", "test@example.com")
+	cmd.Dir = tmpDir
+	err = cmd.Run()
+	require.NoError(t, err)
+	
+	cmd = exec.Command("git", "config", "init.defaultBranch", "main")
+	cmd.Dir = tmpDir
+	err = cmd.Run()
+	require.NoError(t, err)
+
 	// Create config file
 	cfg := config.Default()
 	cfg.Git.DefaultBranch = "main"
 	cfg.Worktree.Enabled = false
-	
+
 	// Create config YAML content
 	configContent := `git:
   default_branch: main
@@ -57,7 +73,7 @@ tickets:
 output:
   default_format: text
 `
-	
+
 	err = os.WriteFile(filepath.Join(tmpDir, ".ticketflow.yaml"), []byte(configContent), 0644)
 	require.NoError(t, err)
 
@@ -70,14 +86,6 @@ output:
 	// Create empty .current file
 	err = os.WriteFile(filepath.Join(tmpDir, "tickets", ".current"), []byte(""), 0644)
 	require.NoError(t, err)
-
-	// Configure git
-	cmd = exec.Command("git", "config", "user.name", "Test User")
-	cmd.Dir = tmpDir
-	cmd.Run()
-	cmd = exec.Command("git", "config", "user.email", "test@example.com")
-	cmd.Dir = tmpDir
-	cmd.Run()
 
 	// Create initial commit
 	cmd = exec.Command("git", "add", ".")
@@ -200,13 +208,13 @@ func setupTestRepoWithStartedTicket(t *testing.T, tmpDir string) string {
 	setupTestRepo(t, tmpDir)
 
 	ticketID := testTicketID
-	
+
 	// Create and checkout the feature branch
 	cmd := exec.Command("git", "checkout", "-b", ticketID)
 	cmd.Dir = tmpDir
 	err := cmd.Run()
 	require.NoError(t, err)
-	
+
 	// Create ticket directly in doing status
 	content := fmt.Sprintf(`---
 priority: 2

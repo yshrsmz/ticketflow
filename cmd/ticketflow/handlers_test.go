@@ -17,8 +17,8 @@ import (
 )
 
 func TestHandleInit(t *testing.T) {
-	t.Parallel() // Safe since each test uses its own temp directory
-	
+	// Cannot run in parallel due to os.Chdir
+
 	// Create a temporary directory for the test
 	tmpDir := t.TempDir()
 	oldDir, err := os.Getwd()
@@ -50,8 +50,8 @@ func TestHandleInit(t *testing.T) {
 }
 
 func TestHandleNew(t *testing.T) {
-	t.Parallel()
-	
+	// Cannot run in parallel due to os.Chdir
+
 	tests := []struct {
 		name          string
 		slug          string
@@ -125,10 +125,10 @@ func TestHandleNew(t *testing.T) {
 
 				// Run the command
 				err = handleNew(ctx, tt.slug, tt.format)
-				
+
 				// Close write end and read output
 				w.Close()
-				
+
 				var buf bytes.Buffer
 				_, _ = io.Copy(&buf, r)
 
@@ -161,8 +161,8 @@ func TestHandleNew(t *testing.T) {
 }
 
 func TestHandleList(t *testing.T) {
-	t.Parallel()
-	
+	// Cannot run in parallel due to os.Chdir
+
 	tests := []struct {
 		name          string
 		status        string
@@ -233,8 +233,8 @@ func TestHandleList(t *testing.T) {
 }
 
 func TestHandleShow(t *testing.T) {
-	t.Parallel()
-	
+	// Cannot run in parallel due to os.Chdir
+
 	tests := []struct {
 		name          string
 		ticketID      string
@@ -244,15 +244,15 @@ func TestHandleShow(t *testing.T) {
 		errorContains string
 	}{
 		{
-			name:     "show existing ticket text format",
-			format:   "text",
-			setupFunc: setupTestRepoWithTicket,
+			name:          "show existing ticket text format",
+			format:        "text",
+			setupFunc:     setupTestRepoWithTicket,
 			expectedError: false,
 		},
 		{
-			name:     "show existing ticket json format",
-			format:   "json",
-			setupFunc: setupTestRepoWithTicket,
+			name:          "show existing ticket json format",
+			format:        "json",
+			setupFunc:     setupTestRepoWithTicket,
 			expectedError: false,
 		},
 		{
@@ -292,12 +292,12 @@ func TestHandleShow(t *testing.T) {
 				r.Close()
 			}()
 			os.Stdout = w
-			
+
 			ctx := context.Background()
 			err = handleShow(ctx, ticketID, tt.format)
-			
+
 			w.Close()
-			
+
 			var buf bytes.Buffer
 			_, _ = io.Copy(&buf, r)
 			output := buf.String()
@@ -309,7 +309,7 @@ func TestHandleShow(t *testing.T) {
 				}
 			} else {
 				assert.NoError(t, err)
-				
+
 				if tt.format == "json" {
 					// Verify JSON structure
 					var result map[string]interface{}
@@ -328,8 +328,8 @@ func TestHandleShow(t *testing.T) {
 }
 
 func TestHandleStart(t *testing.T) {
-	t.Parallel()
-	
+	// Cannot run in parallel due to os.Chdir
+
 	tests := []struct {
 		name          string
 		ticketID      string
@@ -339,9 +339,9 @@ func TestHandleStart(t *testing.T) {
 		errorContains string
 	}{
 		{
-			name:     "start valid ticket",
-			noPush:   true,
-			setupFunc: setupTestRepoWithTicket,
+			name:          "start valid ticket",
+			noPush:        true,
+			setupFunc:     setupTestRepoWithTicket,
 			expectedError: false,
 		},
 		{
@@ -388,8 +388,8 @@ func TestHandleStart(t *testing.T) {
 }
 
 func TestHandleClose(t *testing.T) {
-	t.Parallel()
-	
+	// Cannot run in parallel due to os.Chdir
+
 	tests := []struct {
 		name          string
 		noPush        bool
@@ -448,7 +448,7 @@ func TestHandleClose(t *testing.T) {
 
 func TestIsValidStatus(t *testing.T) {
 	t.Parallel()
-	
+
 	tests := []struct {
 		status   ticket.Status
 		expected bool
@@ -471,7 +471,7 @@ func TestIsValidStatus(t *testing.T) {
 
 func TestOutputJSON(t *testing.T) {
 	t.Parallel()
-	
+
 	tests := []struct {
 		name     string
 		data     interface{}
@@ -509,17 +509,16 @@ func TestOutputJSON(t *testing.T) {
 			os.Stdout = w
 
 			err = outputJSON(tt.data)
-			
+
 			w.Close()
-			
+
 			assert.NoError(t, err)
-			
+
 			var buf bytes.Buffer
 			_, _ = io.Copy(&buf, r)
 			output := strings.TrimSpace(buf.String())
-			
+
 			assert.JSONEq(t, tt.expected, output)
 		})
 	}
 }
-
