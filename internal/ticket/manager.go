@@ -272,7 +272,7 @@ func (m *Manager) WriteContent(id string, content string) error {
 // findTicketInDir searches for a ticket in a specific directory
 func (m *Manager) findTicketInDir(ticketID, dir string) (string, error) {
 	// Try exact match first
-	ticketPath := filepath.Join(dir, ticketID+".md")
+	ticketPath := filepath.Join(dir, ticketID+FileExtension)
 	if _, err := os.Stat(ticketPath); err == nil {
 		return ticketPath, nil
 	}

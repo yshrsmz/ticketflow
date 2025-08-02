@@ -150,7 +150,7 @@ func InitCommand() error {
 	}
 
 	// Update .gitignore
-	gitignorePath := filepath.Join(projectRoot, ".gitignore")
+	gitignorePath := filepath.Join(projectRoot, GitignoreFile)
 	if err := updateGitignore(gitignorePath); err != nil {
 		return fmt.Errorf("failed to update .gitignore: %w", err)
 	}
@@ -252,7 +252,7 @@ func (app *App) ListTickets(status ticket.Status, count int, format OutputFormat
 		statusFilter = ticket.StatusFilterDoing
 	case ticket.StatusDone:
 		statusFilter = ticket.StatusFilterDone
-	case "all":
+	case StatusAll:
 		statusFilter = ticket.StatusFilterAll
 	default:
 		return fmt.Errorf("invalid status filter: %s", status)

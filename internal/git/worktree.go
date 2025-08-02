@@ -18,7 +18,7 @@ type WorktreeInfo struct {
 
 // ListWorktrees lists all worktrees
 func (g *Git) ListWorktrees() ([]WorktreeInfo, error) {
-	output, err := g.Exec("worktree", "list", "--porcelain")
+	output, err := g.Exec(SubcmdWorktree, WorktreeList, FlagPorcelain)
 	if err != nil {
 		return nil, err
 	}
@@ -65,19 +65,19 @@ func (g *Git) AddWorktree(path, branch string) error {
 		return ticketerrors.NewWorktreeError("create", path, fmt.Errorf("failed to create worktree directory: %w", err))
 	}
 
-	_, err := g.Exec("worktree", "add", path, "-b", branch)
+	_, err := g.Exec(SubcmdWorktree, WorktreeAdd, path, FlagBranch, branch)
 	return err
 }
 
 // RemoveWorktree removes a worktree
 func (g *Git) RemoveWorktree(path string) error {
-	_, err := g.Exec("worktree", "remove", path, "--force")
+	_, err := g.Exec(SubcmdWorktree, WorktreeRemove, path, FlagForce)
 	return err
 }
 
 // PruneWorktrees removes worktree information for deleted directories
 func (g *Git) PruneWorktrees() error {
-	_, err := g.Exec("worktree", "prune")
+	_, err := g.Exec(SubcmdWorktree, WorktreePrune)
 	return err
 }
 
