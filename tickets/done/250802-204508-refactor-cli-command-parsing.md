@@ -3,7 +3,7 @@ priority: 2
 description: Refactor repetitive CLI command parsing logic to reduce code duplication
 created_at: "2025-08-02T20:45:08+09:00"
 started_at: "2025-08-02T20:56:57+09:00"
-closed_at: null
+closed_at: "2025-08-02T23:21:19+09:00"
 related:
     - parent:250801-003207-implement-structured-logging
 ---
