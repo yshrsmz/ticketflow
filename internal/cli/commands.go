@@ -13,6 +13,7 @@ import (
 	"github.com/mattn/go-shellwords"
 	"github.com/yshrsmz/ticketflow/internal/config"
 	"github.com/yshrsmz/ticketflow/internal/git"
+	"github.com/yshrsmz/ticketflow/internal/log"
 	"github.com/yshrsmz/ticketflow/internal/ticket"
 )
 
@@ -119,10 +120,14 @@ func NewApp(ctx context.Context) (*App, error) {
 
 // InitCommand initializes the ticket system (doesn't require existing config)
 func InitCommand(ctx context.Context) error {
+	logger := log.Global().WithOperation("init")
+
 	projectRoot, err := git.FindProjectRoot(ctx, ".")
 	if err != nil {
+		logger.WithError(err).Error("not in a git repository")
 		return NewError(ErrNotGitRepo, "Not in a git repository", "", nil)
 	}
+	logger.Debug("found project root", "path", projectRoot)
 
 	// Create default config
 	cfg := config.Default()
@@ -130,14 +135,17 @@ func InitCommand(ctx context.Context) error {
 
 	// Check if already exists
 	if _, err := os.Stat(configPath); err == nil {
+		logger.Info("ticket system already initialized")
 		fmt.Println("Ticket system already initialized")
 		return nil
 	}
 
 	// Save config
 	if err := cfg.Save(configPath); err != nil {
+		logger.WithError(err).Error("failed to save config")
 		return fmt.Errorf("failed to save config: %w", err)
 	}
+	logger.Info("saved configuration", "path", configPath)
 
 	// Create directory structure
 	ticketsDir := filepath.Join(projectRoot, cfg.Tickets.Dir)
@@ -148,16 +156,21 @@ func InitCommand(ctx context.Context) error {
 	// Create all directories
 	for _, dir := range []string{ticketsDir, todoDir, doingDir, doneDir} {
 		if err := os.MkdirAll(dir, 0755); err != nil {
+			logger.WithError(err).Error("failed to create directory", "dir", dir)
 			return fmt.Errorf("failed to create directory %s: %w", dir, err)
 		}
+		logger.Debug("created directory", "dir", dir)
 	}
 
 	// Update .gitignore
 	gitignorePath := filepath.Join(projectRoot, GitignoreFile)
 	if err := updateGitignore(gitignorePath); err != nil {
+		logger.WithError(err).Error("failed to update .gitignore")
 		return fmt.Errorf("failed to update .gitignore: %w", err)
 	}
+	logger.Info("updated .gitignore")
 
+	logger.Info("ticket system initialized successfully")
 	fmt.Println("Initialized ticket system successfully")
 	fmt.Printf("Configuration saved to: %s\n", configPath)
 	fmt.Printf("Tickets directory: %s\n", ticketsDir)
@@ -167,8 +180,11 @@ func InitCommand(ctx context.Context) error {
 
 // NewTicket creates a new ticket
 func (app *App) NewTicket(ctx context.Context, slug string, format OutputFormat) error {
+	logger := log.Global().WithOperation("new_ticket")
+
 	// Validate slug
 	if !ticket.IsValidSlug(slug) {
+		logger.Error("invalid slug format", "slug", slug)
 		return NewError(ErrTicketInvalid, "Invalid slug format",
 			fmt.Sprintf("Slug '%s' contains invalid characters", slug),
 			[]string{
@@ -177,6 +193,7 @@ func (app *App) NewTicket(ctx context.Context, slug string, format OutputFormat)
 				"Use only hyphens (-) for separation",
 			})
 	}
+	logger.Debug("creating new ticket", "slug", slug)
 
 	// Auto-detect parent ticket from current branch
 	var parentTicketID string
@@ -197,16 +214,21 @@ func (app *App) NewTicket(ctx context.Context, slug string, format OutputFormat)
 	// Create ticket
 	t, err := app.Manager.Create(ctx, slug)
 	if err != nil {
+		logger.WithError(err).Error("failed to create ticket")
 		return ConvertError(err)
 	}
+	logger.Info("created ticket", "ticket_id", t.ID, "path", t.Path)
 
 	// If this is a sub-ticket, update its metadata
 	if parentTicketID != "" {
+		logger.Debug("creating sub-ticket", "parent", parentTicketID)
 		// Add parent relationship
 		t.Related = append(t.Related, fmt.Sprintf("parent:%s", parentTicketID))
 		if err := app.Manager.Update(ctx, t); err != nil {
+			logger.WithError(err).Error("failed to update ticket metadata")
 			return fmt.Errorf("failed to update ticket metadata: %w", err)
 		}
+		logger.Info("created sub-ticket", "ticket_id", t.ID, "parent", parentTicketID)
 	}
 
 	if format == FormatJSON {
@@ -286,9 +308,13 @@ func (app *App) ListTickets(ctx context.Context, status ticket.Status, count int
 
 // StartTicket starts working on a ticket
 func (app *App) StartTicket(ctx context.Context, ticketID string) error {
+	logger := log.Global().WithOperation("start_ticket").WithTicket(ticketID)
+	logger.Info("starting ticket")
+
 	// Get and validate the ticket
 	t, err := app.validateTicketForStart(ctx, ticketID)
 	if err != nil {
+		logger.WithError(err).Error("failed to validate ticket")
 		return err
 	}
 
@@ -337,11 +363,17 @@ func (app *App) StartTicket(ctx context.Context, ticketID string) error {
 
 // CloseTicket closes the current ticket
 func (app *App) CloseTicket(ctx context.Context, force bool) error {
+	logger := log.Global().WithOperation("close_ticket")
+
 	// Validate current ticket for close
 	current, worktreePath, err := app.validateTicketForClose(ctx, force)
 	if err != nil {
+		logger.WithError(err).Error("failed to validate ticket for close")
 		return err
 	}
+
+	logger = logger.WithTicket(current.ID)
+	logger.Info("closing ticket")
 
 	// Update ticket status
 	if err := current.Close(); err != nil {
@@ -362,6 +394,7 @@ func (app *App) CloseTicket(ctx context.Context, force bool) error {
 	// Print success message with next steps
 	app.printCloseSuccessMessage(current, duration, parentTicketID, worktreePath)
 
+	logger.Info("ticket closed successfully", "duration", duration)
 	return nil
 }
 
@@ -583,6 +616,8 @@ func (app *App) CleanWorktrees(ctx context.Context) error {
 		if !activeMap[wt.Branch] {
 			fmt.Printf("Removing orphaned worktree: %s (branch: %s)\n", wt.Path, wt.Branch)
 			if err := app.Git.RemoveWorktree(ctx, wt.Path); err != nil {
+				logger := log.Global()
+				logger.WithError(err).Warn("failed to remove worktree", "path", wt.Path)
 				fmt.Printf("Warning: Failed to remove worktree: %v\n", err)
 			} else {
 				cleaned++
@@ -998,6 +1033,8 @@ func (app *App) createAndSetupWorktree(ctx context.Context, t *ticket.Ticket) (s
 	// Run init commands if configured
 	if err := app.runWorktreeInitCommands(ctx, worktreePath); err != nil {
 		// Non-fatal: just log the error
+		logger := log.Global().WithError(err)
+		logger.Warn("failed to run init commands")
 		fmt.Printf("Warning: Failed to run init commands: %v\n", err)
 	}
 
