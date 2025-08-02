@@ -140,3 +140,55 @@ Successfully implemented standardized error handling across the entire codebase:
 4. **Updated all tests** to use proper error assertions instead of string matching
 
 All tests pass and the codebase now has consistent, maintainable error handling that follows Go best practices.
+
+## Key Insights from Implementation
+
+### 1. **Error Wrapping vs Custom Types Trade-off**
+Initially considered using only error wrapping with `fmt.Errorf`, but custom error types proved more valuable for:
+- Type-safe error checking with `errors.As()`
+- Structured data (e.g., TicketID, Branch, Path) accessible to callers
+- Clear domain boundaries between different error categories
+
+### 2. **Sentinel Errors are Still Valuable**
+Despite having custom types, sentinel errors (like `ErrTicketNotFound`) remain the best choice for:
+- Well-known conditions that multiple packages need to check
+- Simple boolean checks with `errors.Is()`
+- Maintaining backward compatibility with existing error handling patterns
+
+### 3. **Error Context Chains**
+Added context chain support to TicketError for complex operations:
+```go
+NewTicketErrorWithContext("create", ticketID, err, "worktree", "init")
+// Output: "worktree > init > create ticket 123: underlying error"
+```
+This helps trace errors through multiple layers without losing information.
+
+### 4. **Validation in Constructors**
+Added validation to error constructors to catch programming errors early:
+- Empty operation names return an error immediately
+- Nil underlying errors are rejected
+- This prevents malformed errors from propagating through the system
+
+### 5. **CLI Error Conversion Pattern**
+The error converter bridges internal and external error representations:
+- Internal errors focus on technical accuracy
+- CLI errors focus on user experience with actionable suggestions
+- This separation allows changing user messages without touching business logic
+
+### 6. **Test Update Strategy**
+Updating tests revealed how tightly coupled they were to error strings:
+- Changed from exact string matching to semantic error checking
+- Tests now verify error behavior, not implementation details
+- This makes tests more resilient to error message changes
+
+### 7. **Error Formatting Consistency**
+Established clear patterns for error messages:
+- Operations: lowercase, verb form ("create", "remove", "push")
+- Context included when available (ticket ID, branch name, file path)
+- Underlying errors preserved with `%w` for full stack traces
+
+### 8. **Future Considerations**
+- Consider adding error codes for programmatic handling
+- Structured logging integration would benefit from error types
+- Error metrics/monitoring could use error type information
+- Consider i18n support for user-facing error messages
