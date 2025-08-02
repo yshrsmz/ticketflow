@@ -18,15 +18,15 @@ While we've added context support to all operations, we haven't yet added tests 
 
 ## Tasks
 
-- [ ] Add test helper for creating cancelled contexts
-- [ ] Test git operations cancel properly when context is cancelled
-- [ ] Test that cancelled operations return context.Canceled error
-- [ ] Test that long-running operations check context periodically
-- [ ] Add tests for timeout scenarios
-- [ ] Test proper cleanup when operations are cancelled
-- [ ] Add benchmarks to ensure context checks don't impact performance
-- [ ] Run `make test` to run the tests
-- [ ] Run `make vet`, `make fmt` and `make lint`
+- [x] Add test helper for creating cancelled contexts
+- [x] Test git operations cancel properly when context is cancelled
+- [x] Test that cancelled operations return context.Canceled error
+- [x] Test that long-running operations check context periodically
+- [x] Add tests for timeout scenarios
+- [x] Test proper cleanup when operations are cancelled
+- [x] Add benchmarks to ensure context checks don't impact performance
+- [x] Run `make test` to run the tests
+- [x] Run `make vet`, `make fmt` and `make lint`
 - [ ] Update documentation with cancellation examples
 
 ## Test Scenarios
@@ -40,9 +40,39 @@ While we've added context support to all operations, we haven't yet added tests 
 ## Dependencies
 
 - Requires completion of parent ticket: 250801-003206-add-context-support
-- [ ] Update the ticket with insights from resolving this ticket
+- [x] Update the ticket with insights from resolving this ticket
 - [ ] Get developer approval before closing
 
-## Notes
+## Implementation Insights
 
-Additional notes or requirements.
+### Test Coverage Added
+
+1. **Git Package Tests** (`internal/git/git_context_test.go`):
+   - Tests for all git operations (Exec, CurrentBranch, CreateBranch, etc.) with cancelled contexts
+   - Test for context timeout scenarios
+   - Test for long-running operations being cancelled mid-execution
+   - Benchmarks to measure context checking overhead
+
+2. **Worktree Tests** (`internal/git/worktree_context_test.go`):
+   - Tests for all worktree operations with cancelled contexts
+   - Ensures proper error propagation when context is cancelled
+
+3. **Ticket Manager Tests** (`internal/ticket/manager_context_test.go`):
+   - Tests for all ticket operations (Create, Get, List, Update, etc.) with cancelled contexts
+   - Tests for file I/O operations with context cancellation
+   - Helper function tests for readFileWithContext and writeFileWithContext
+   - Benchmarks for context overhead in ticket operations
+
+### Key Findings
+
+1. **Signal Handling**: When a git command is cancelled via context, it may show "signal: killed" instead of "operation cancelled" depending on timing. Tests handle both cases.
+
+2. **Performance Impact**: Benchmarks show minimal overhead from context checking, confirming that adding context support doesn't significantly impact performance.
+
+3. **Proper Error Propagation**: All functions properly check context at the beginning and propagate cancellation errors up the call stack.
+
+4. **UI Components**: The UI components don't use context as they are event-driven rather than long-running operations, so no tests were needed there.
+
+### Test Results
+
+All tests pass successfully with proper context cancellation behavior verified across the codebase.
