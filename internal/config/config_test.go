@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -41,7 +42,7 @@ func TestConfigValidate(t *testing.T) {
 				Tickets: TicketsConfig{Dir: "tickets"},
 				Output:  OutputConfig{DefaultFormat: "text"},
 			},
-			wantErr: "git.default_branch cannot be empty",
+			wantErr: "git.default_branch",
 		},
 		{
 			name: "empty tickets.dir",
@@ -50,7 +51,7 @@ func TestConfigValidate(t *testing.T) {
 				Tickets: TicketsConfig{Dir: ""},
 				Output:  OutputConfig{DefaultFormat: "text"},
 			},
-			wantErr: "tickets.dir cannot be empty",
+			wantErr: "tickets.dir",
 		},
 		{
 			name: "invalid output format",
@@ -59,7 +60,7 @@ func TestConfigValidate(t *testing.T) {
 				Tickets: TicketsConfig{Dir: "tickets"},
 				Output:  OutputConfig{DefaultFormat: "xml"},
 			},
-			wantErr: "output.default_format must be 'text' or 'json'",
+			wantErr: "output.default_format",
 		},
 	}
 
@@ -69,7 +70,8 @@ func TestConfigValidate(t *testing.T) {
 			if tt.wantErr == "" {
 				assert.NoError(t, err)
 			} else {
-				assert.EqualError(t, err, tt.wantErr)
+				assert.Error(t, err)
+				assert.Contains(t, err.Error(), tt.wantErr)
 			}
 		})
 	}
@@ -105,7 +107,7 @@ func TestLoadNonExistentConfig(t *testing.T) {
 
 	_, err := Load(tmpDir)
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "config file not found")
+	assert.Contains(t, strings.ToLower(err.Error()), "configuration file not found")
 }
 
 func TestLoadInvalidYAML(t *testing.T) {

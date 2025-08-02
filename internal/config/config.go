@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	ticketerrors "github.com/yshrsmz/ticketflow/internal/errors"
 	"gopkg.in/yaml.v3"
 )
 
@@ -91,24 +92,24 @@ func Load(projectRoot string) (*Config, error) {
 
 	// Check if config file exists
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
-		return nil, fmt.Errorf("config file not found: %s", configPath)
+		return nil, ticketerrors.ErrConfigNotFound
 	}
 
 	// Read config file
 	data, err := os.ReadFile(configPath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read config file: %w", err)
+		return nil, ticketerrors.NewConfigError("file", configPath, fmt.Errorf("failed to read config file: %w", err))
 	}
 
 	// Parse YAML
 	var config Config
 	if err := yaml.Unmarshal(data, &config); err != nil {
-		return nil, fmt.Errorf("failed to parse config file: %w", err)
+		return nil, ticketerrors.NewConfigError("format", "yaml", fmt.Errorf("failed to parse config file: %w", err))
 	}
 
 	// Validate configuration
 	if err := config.Validate(); err != nil {
-		return nil, fmt.Errorf("invalid configuration: %w", err)
+		return nil, ticketerrors.NewConfigError("validation", "", fmt.Errorf("invalid configuration: %w", err))
 	}
 
 	return &config, nil
@@ -140,17 +141,17 @@ func (c *Config) Save(path string) error {
 func (c *Config) Validate() error {
 	// Validate Git config
 	if c.Git.DefaultBranch == "" {
-		return fmt.Errorf("git.default_branch cannot be empty")
+		return ticketerrors.NewConfigError("git.default_branch", "", ticketerrors.ErrConfigInvalid)
 	}
 
 	// Validate Tickets config
 	if c.Tickets.Dir == "" {
-		return fmt.Errorf("tickets.dir cannot be empty")
+		return ticketerrors.NewConfigError("tickets.dir", "", ticketerrors.ErrConfigInvalid)
 	}
 
 	// Validate Output config
 	if c.Output.DefaultFormat != "text" && c.Output.DefaultFormat != "json" {
-		return fmt.Errorf("output.default_format must be 'text' or 'json'")
+		return ticketerrors.NewConfigError("output.default_format", c.Output.DefaultFormat, ticketerrors.ErrConfigInvalid)
 	}
 
 	return nil

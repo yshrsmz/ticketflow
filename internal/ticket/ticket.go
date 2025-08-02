@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	ticketerrors "github.com/yshrsmz/ticketflow/internal/errors"
 	"gopkg.in/yaml.v3"
 )
 
@@ -153,10 +154,10 @@ func New(slug, description string) *Ticket {
 // Start marks the ticket as started
 func (t *Ticket) Start() error {
 	if t.StartedAt.Time != nil {
-		return fmt.Errorf("ticket already started")
+		return ticketerrors.ErrTicketAlreadyStarted
 	}
 	if t.ClosedAt.Time != nil {
-		return fmt.Errorf("ticket already closed")
+		return ticketerrors.ErrTicketAlreadyClosed
 	}
 
 	now := time.Now()
@@ -167,10 +168,10 @@ func (t *Ticket) Start() error {
 // Close marks the ticket as closed
 func (t *Ticket) Close() error {
 	if t.StartedAt.Time == nil {
-		return fmt.Errorf("ticket not started")
+		return ticketerrors.ErrTicketNotStarted
 	}
 	if t.ClosedAt.Time != nil {
-		return fmt.Errorf("ticket already closed")
+		return ticketerrors.ErrTicketAlreadyClosed
 	}
 
 	now := time.Now()
