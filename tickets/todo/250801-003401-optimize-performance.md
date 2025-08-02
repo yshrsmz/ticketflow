@@ -4,7 +4,8 @@ description: "Profile and optimize performance bottlenecks with caching and algo
 created_at: "2025-08-01T00:34:01+09:00"
 started_at: null
 closed_at: null
-parent: 250801-003207-optimize-io-operations
+related:
+  - parent:250801-003207-optimize-io-operations
 ---
 
 # Optimize Performance

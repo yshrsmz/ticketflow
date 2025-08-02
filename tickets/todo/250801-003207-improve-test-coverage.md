@@ -4,7 +4,8 @@ description: "Improve test coverage with comprehensive unit tests, table-driven 
 created_at: "2025-08-01T00:32:07+09:00"
 started_at: null
 closed_at: null
-parent: 250801-002917-extract-interfaces-for-testability
+related:
+  - parent:250801-002917-extract-interfaces-for-testability
 ---
 
 # Improve Test Coverage

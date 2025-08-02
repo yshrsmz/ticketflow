@@ -4,7 +4,8 @@ description: "Add safe concurrency for independent git operations and parallel f
 created_at: "2025-08-01T00:34:01+09:00"
 started_at: null
 closed_at: null
-parent: 250801-003206-add-context-support
+related:
+  - parent:250801-003206-add-context-support
 ---
 
 # Add Concurrency Support
