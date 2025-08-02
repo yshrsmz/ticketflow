@@ -12,8 +12,8 @@ import (
 
 // Test constants
 const (
-	testTicketID        = "250101-120000-test-feature"
-	testDefaultBranch   = "main"
+	testTicketID          = "250101-120000-test-feature"
+	testDefaultBranch     = "main"
 	orphanedWorktreeCount = 1
 	staleBranchCount      = 2
 )
@@ -66,16 +66,16 @@ type testFixture struct {
 func newTestFixture(t *testing.T) *testFixture {
 	mockGit := new(mocks.MockGitClient)
 	mockManager := new(mocks.MockTicketManager)
-	
+
 	cfg := config.Default()
 	cfg.Git.DefaultBranch = testDefaultBranch
-	
+
 	app := &App{
 		Config:  cfg,
 		Git:     mockGit,
 		Manager: mockManager,
 	}
-	
+
 	return &testFixture{
 		app:         app,
 		mockGit:     mockGit,

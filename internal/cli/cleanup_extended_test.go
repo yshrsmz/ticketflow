@@ -53,16 +53,16 @@ func TestCleanupResult_HasErrors(t *testing.T) {
 
 func TestAutoCleanup(t *testing.T) {
 	tests := []struct {
-		name           string
-		dryRun         bool
+		name            string
+		dryRun          bool
 		worktreeEnabled bool
-		setupMocks     func(*mocks.MockGitClient, *mocks.MockTicketManager)
-		expectedResult *CleanupResult
-		expectedError  bool
+		setupMocks      func(*mocks.MockGitClient, *mocks.MockTicketManager)
+		expectedResult  *CleanupResult
+		expectedError   bool
 	}{
 		{
-			name:           "successful cleanup with worktrees enabled",
-			dryRun:         false,
+			name:            "successful cleanup with worktrees enabled",
+			dryRun:          false,
 			worktreeEnabled: true,
 			setupMocks: func(g *mocks.MockGitClient, m *mocks.MockTicketManager) {
 				// Mock git operations for orphaned worktree cleanup
@@ -88,7 +88,7 @@ func TestAutoCleanup(t *testing.T) {
 				doneTicket1 := createDoneTicket("250101-120000-old-feature", testTime(t, "2025-01-01T14:00:00Z"))
 				doneTicket3 := createDoneTicket("250103-120000-done-ticket", testTime(t, "2025-01-01T15:00:00Z"))
 				activeTicket := createDoingTicket("250102-120000-active-feature", testTime(t, "2025-01-01T13:00:00Z"))
-				
+
 				m.On("List", mock.Anything, ticket.StatusFilterAll).Return([]ticket.Ticket{
 					doneTicket1,
 					activeTicket,
@@ -98,15 +98,15 @@ func TestAutoCleanup(t *testing.T) {
 				g.On("Exec", mock.Anything, "branch", "-D", "250103-120000-done-ticket").Return("", nil)
 			},
 			expectedResult: &CleanupResult{
-				OrphanedWorktrees: orphanedWorktreeCount,  // Only old-feature worktree is orphaned (not in doing status)
-				StaleBranches:     staleBranchCount,  // Two done tickets will have their branches removed
+				OrphanedWorktrees: orphanedWorktreeCount, // Only old-feature worktree is orphaned (not in doing status)
+				StaleBranches:     staleBranchCount,      // Two done tickets will have their branches removed
 				Errors:            []string{},
 			},
 			expectedError: false,
 		},
 		{
-			name:           "dry run mode",
-			dryRun:         true,
+			name:            "dry run mode",
+			dryRun:          true,
 			worktreeEnabled: true,
 			setupMocks: func(g *mocks.MockGitClient, m *mocks.MockTicketManager) {
 				g.On("ListWorktrees", mock.Anything).Return([]git.WorktreeInfo{
@@ -124,15 +124,15 @@ func TestAutoCleanup(t *testing.T) {
 				// In dry run, no actual deletion should happen
 			},
 			expectedResult: &CleanupResult{
-				OrphanedWorktrees: 1,  // orphaned worktree would be removed
-				StaleBranches:     1,  // done ticket branch would be removed
+				OrphanedWorktrees: 1, // orphaned worktree would be removed
+				StaleBranches:     1, // done ticket branch would be removed
 				Errors:            []string{},
 			},
 			expectedError: false,
 		},
 		{
-			name:           "worktrees disabled",
-			dryRun:         false,
+			name:            "worktrees disabled",
+			dryRun:          false,
 			worktreeEnabled: false,
 			setupMocks: func(g *mocks.MockGitClient, m *mocks.MockTicketManager) {
 				// Only stale branch cleanup should run
@@ -152,13 +152,13 @@ func TestAutoCleanup(t *testing.T) {
 			expectedError: false,
 		},
 		{
-			name:           "with errors",
-			dryRun:         false,
+			name:            "with errors",
+			dryRun:          false,
 			worktreeEnabled: true,
 			setupMocks: func(g *mocks.MockGitClient, m *mocks.MockTicketManager) {
 				// Worktree list fails
 				g.On("ListWorktrees", mock.Anything).Return(nil, fmt.Errorf("git error"))
-				g.On("PruneWorktrees", mock.Anything).Return(nil)  // This still gets called
+				g.On("PruneWorktrees", mock.Anything).Return(nil) // This still gets called
 
 				// Branch cleanup continues
 				g.On("Exec", mock.Anything, "branch", "--format=%(refname:short)").Return("", fmt.Errorf("branch list failed"))
@@ -175,7 +175,7 @@ func TestAutoCleanup(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
-			
+
 			fixture := newTestFixture(t)
 			fixture.config.Worktree.Enabled = tt.worktreeEnabled
 
@@ -199,12 +199,12 @@ func TestAutoCleanup(t *testing.T) {
 
 func TestCleanOrphanedWorktrees(t *testing.T) {
 	tests := []struct {
-		name           string
-		dryRun         bool
-		worktrees      []git.WorktreeInfo
-		activeTickets  []ticket.Ticket // Tickets in doing status
-		expectedCount  int
-		expectedError  bool
+		name          string
+		dryRun        bool
+		worktrees     []git.WorktreeInfo
+		activeTickets []ticket.Ticket // Tickets in doing status
+		expectedCount int
+		expectedError bool
 	}{
 		{
 			name:   "remove orphaned worktree",
@@ -260,7 +260,7 @@ func TestCleanOrphanedWorktrees(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
-			
+
 			fixture := newTestFixture(t)
 
 			// Setup mocks
@@ -275,10 +275,10 @@ func TestCleanOrphanedWorktrees(t *testing.T) {
 				for _, t := range tt.activeTickets {
 					activeMap[t.ID] = true
 				}
-				
+
 				// Default branch from config
 				defaultBranch := fixture.config.Git.DefaultBranch
-				
+
 				for _, wt := range tt.worktrees {
 					// Skip empty or default branch (matches the actual logic)
 					if wt.Branch == "" || wt.Branch == defaultBranch {
@@ -382,11 +382,11 @@ func TestCleanupStats(t *testing.T) {
 			setupMocks: func(g *mocks.MockGitClient, m *mocks.MockTicketManager) {
 				// Mock done tickets succeeds
 				m.On("List", mock.Anything, ticket.StatusFilterDone).Return([]ticket.Ticket{}, nil)
-				
+
 				// Mock worktree stats fails, but it still tries to get doing tickets
 				g.On("ListWorktrees", mock.Anything).Return(nil, fmt.Errorf("git error"))
 				m.On("List", mock.Anything, ticket.StatusFilterDoing).Return([]ticket.Ticket{}, nil)
-				
+
 				// Branch stats continues despite error
 				g.On("Exec", mock.Anything, "branch", "--format=%(refname:short)").Return("main", nil)
 				m.On("List", mock.Anything, ticket.StatusFilterAll).Return([]ticket.Ticket{}, nil)
@@ -398,7 +398,7 @@ func TestCleanupStats(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
-			
+
 			mockGit := new(mocks.MockGitClient)
 			mockManager := new(mocks.MockTicketManager)
 
@@ -430,7 +430,7 @@ func TestCleanupStats(t *testing.T) {
 // Test error scenarios
 func TestAutoCleanup_ErrorHandling(t *testing.T) {
 	ctx := context.Background()
-	
+
 	mockGit := new(mocks.MockGitClient)
 	mockManager := new(mocks.MockTicketManager)
 

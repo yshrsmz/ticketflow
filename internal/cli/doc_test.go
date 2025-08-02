@@ -1,7 +1,7 @@
 // Package cli_test provides comprehensive testing for the CLI package.
 // Tests are organized into:
 // - Unit tests for individual functions
-// - Integration tests for command workflows  
+// - Integration tests for command workflows
 // - Benchmarks for performance-critical paths
 //
 // Test files are organized by functionality:

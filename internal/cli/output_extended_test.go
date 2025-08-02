@@ -110,7 +110,7 @@ func TestTicketToJSON(t *testing.T) {
 			for key, expectedValue := range tt.expected {
 				actualValue, ok := actual[key]
 				assert.True(t, ok, "Missing key: %s", key)
-				
+
 				// Special handling for time values
 				if key == "created_at" || key == "started_at" || key == "closed_at" {
 					if expectedValue != nil {
@@ -123,7 +123,7 @@ func TestTicketToJSON(t *testing.T) {
 						}
 					}
 				}
-				
+
 				assert.Equal(t, expectedValue, actualValue, "Mismatch for key: %s", key)
 			}
 		})
@@ -287,7 +287,7 @@ func BenchmarkFormatDuration(b *testing.B) {
 func BenchmarkTicketToJSON(b *testing.B) {
 	now := time.Now()
 	startTime := now.Add(-1 * time.Hour)
-	
+
 	testTicket := &ticket.Ticket{
 		ID:          "250101-120000-benchmark",
 		Path:        "/tickets/doing/250101-120000-benchmark.md",
