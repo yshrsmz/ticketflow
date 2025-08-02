@@ -89,6 +89,35 @@ func runTUI() {
 	}
 }
 
+// Define flag structures for commands that need them
+type listFlags struct {
+	status string
+	count  int
+	format string
+}
+
+type showFlags struct {
+	format string
+}
+
+type closeFlags struct {
+	force      bool
+	forceShort bool
+}
+
+type statusFlags struct {
+	format string
+}
+
+type cleanupFlags struct {
+	dryRun bool
+	force  bool
+}
+
+type migrateFlags struct {
+	dryRun bool
+}
+
 func runCLI(ctx context.Context) error {
 	// Parse command
 	if len(os.Args) < 2 {
@@ -96,169 +125,166 @@ func runCLI(ctx context.Context) error {
 		return nil
 	}
 
-	// Define subcommands
-	initCmd := flag.NewFlagSet("init", flag.ExitOnError)
-	initLogging := cli.AddLoggingFlags(initCmd)
-
-	newCmd := flag.NewFlagSet("new", flag.ExitOnError)
-	newLogging := cli.AddLoggingFlags(newCmd)
-
-	listCmd := flag.NewFlagSet("list", flag.ExitOnError)
-	listStatus := listCmd.String("status", "", "Filter by status (todo|doing|done)")
-	listCount := listCmd.Int("count", 20, "Maximum number of tickets to show")
-	listFormat := listCmd.String("format", "text", "Output format (text|json)")
-	listLogging := cli.AddLoggingFlags(listCmd)
-
-	showCmd := flag.NewFlagSet("show", flag.ExitOnError)
-	showFormat := showCmd.String("format", "text", "Output format (text|json)")
-	showLogging := cli.AddLoggingFlags(showCmd)
-
-	startCmd := flag.NewFlagSet("start", flag.ExitOnError)
-	startLogging := cli.AddLoggingFlags(startCmd)
-
-	closeCmd := flag.NewFlagSet("close", flag.ExitOnError)
-	closeForce := closeCmd.Bool("force", false, "Force close with uncommitted changes")
-	closeForceShort := closeCmd.Bool("f", false, "Force close (short form)")
-	closeLogging := cli.AddLoggingFlags(closeCmd)
-
-	restoreCmd := flag.NewFlagSet("restore", flag.ExitOnError)
-	restoreLogging := cli.AddLoggingFlags(restoreCmd)
-
-	statusCmd := flag.NewFlagSet("status", flag.ExitOnError)
-	statusFormat := statusCmd.String("format", "text", "Output format (text|json)")
-	statusLogging := cli.AddLoggingFlags(statusCmd)
-
-	worktreeCmd := flag.NewFlagSet("worktree", flag.ExitOnError)
-	worktreeLogging := cli.AddLoggingFlags(worktreeCmd)
-
-	cleanupCmd := flag.NewFlagSet("cleanup", flag.ExitOnError)
-	cleanupDryRun := cleanupCmd.Bool("dry-run", false, "Show what would be cleaned without making changes")
-	cleanupForce := cleanupCmd.Bool("force", false, "Skip confirmation prompts")
-	cleanupLogging := cli.AddLoggingFlags(cleanupCmd)
-
-	migrateCmd := flag.NewFlagSet("migrate", flag.ExitOnError)
-	migrateDryRun := migrateCmd.Bool("dry-run", false, "Show what would be updated without making changes")
-	migrateLogging := cli.AddLoggingFlags(migrateCmd)
-
 	// Parse command
 	switch os.Args[1] {
 	case "init":
-		if err := initCmd.Parse(os.Args[2:]); err != nil {
-			return err
-		}
-		if err := cli.ConfigureLogging(initLogging); err != nil {
-			return err
-		}
-		return handleInit(ctx)
+		return parseAndExecute(ctx, Command{
+			Name: "init",
+			Execute: func(ctx context.Context, fs *flag.FlagSet, flags interface{}) error {
+				return handleInit(ctx)
+			},
+		}, os.Args[2:])
 
 	case "new":
-		if err := newCmd.Parse(os.Args[2:]); err != nil {
-			return err
-		}
-		if err := cli.ConfigureLogging(newLogging); err != nil {
-			return err
-		}
-		if newCmd.NArg() < 1 {
-			return fmt.Errorf("missing slug argument")
-		}
-		return handleNew(ctx, newCmd.Arg(0), *listFormat)
+		return parseAndExecute(ctx, Command{
+			Name:    "new",
+			MinArgs: 1,
+			Validate: func(fs *flag.FlagSet, flags interface{}) error {
+				if fs.NArg() < 1 {
+					return fmt.Errorf("missing slug argument")
+				}
+				return nil
+			},
+			Execute: func(ctx context.Context, fs *flag.FlagSet, flags interface{}) error {
+				return handleNew(ctx, fs.Arg(0), "text")
+			},
+		}, os.Args[2:])
 
 	case "list":
-		if err := listCmd.Parse(os.Args[2:]); err != nil {
-			return err
-		}
-		if err := cli.ConfigureLogging(listLogging); err != nil {
-			return err
-		}
-		return handleList(ctx, *listStatus, *listCount, *listFormat)
+		return parseAndExecute(ctx, Command{
+			Name: "list",
+			SetupFlags: func(fs *flag.FlagSet) interface{} {
+				flags := &listFlags{}
+				fs.StringVar(&flags.status, "status", "", "Filter by status (todo|doing|done)")
+				fs.IntVar(&flags.count, "count", 20, "Maximum number of tickets to show")
+				fs.StringVar(&flags.format, "format", "text", "Output format (text|json)")
+				return flags
+			},
+			Execute: func(ctx context.Context, fs *flag.FlagSet, cmdFlags interface{}) error {
+				flags := cmdFlags.(*listFlags)
+				return handleList(ctx, flags.status, flags.count, flags.format)
+			},
+		}, os.Args[2:])
 
 	case "show":
-		if err := showCmd.Parse(os.Args[2:]); err != nil {
-			return err
-		}
-		if err := cli.ConfigureLogging(showLogging); err != nil {
-			return err
-		}
-		if showCmd.NArg() < 1 {
-			return fmt.Errorf("missing ticket argument")
-		}
-		return handleShow(ctx, showCmd.Arg(0), *showFormat)
+		return parseAndExecute(ctx, Command{
+			Name:    "show",
+			MinArgs: 1,
+			SetupFlags: func(fs *flag.FlagSet) interface{} {
+				flags := &showFlags{}
+				fs.StringVar(&flags.format, "format", "text", "Output format (text|json)")
+				return flags
+			},
+			Validate: func(fs *flag.FlagSet, flags interface{}) error {
+				if fs.NArg() < 1 {
+					return fmt.Errorf("missing ticket argument")
+				}
+				return nil
+			},
+			Execute: func(ctx context.Context, fs *flag.FlagSet, cmdFlags interface{}) error {
+				flags := cmdFlags.(*showFlags)
+				return handleShow(ctx, fs.Arg(0), flags.format)
+			},
+		}, os.Args[2:])
 
 	case "start":
-		if err := startCmd.Parse(os.Args[2:]); err != nil {
-			return err
-		}
-		if err := cli.ConfigureLogging(startLogging); err != nil {
-			return err
-		}
-		if startCmd.NArg() < 1 {
-			return fmt.Errorf("missing ticket argument")
-		}
-		return handleStart(ctx, startCmd.Arg(0), false)
+		return parseAndExecute(ctx, Command{
+			Name:    "start",
+			MinArgs: 1,
+			Validate: func(fs *flag.FlagSet, flags interface{}) error {
+				if fs.NArg() < 1 {
+					return fmt.Errorf("missing ticket argument")
+				}
+				return nil
+			},
+			Execute: func(ctx context.Context, fs *flag.FlagSet, flags interface{}) error {
+				return handleStart(ctx, fs.Arg(0), false)
+			},
+		}, os.Args[2:])
 
 	case "close":
-		if err := closeCmd.Parse(os.Args[2:]); err != nil {
-			return err
-		}
-		if err := cli.ConfigureLogging(closeLogging); err != nil {
-			return err
-		}
-		force := *closeForce || *closeForceShort
-		return handleClose(ctx, false, force)
+		return parseAndExecute(ctx, Command{
+			Name: "close",
+			SetupFlags: func(fs *flag.FlagSet) interface{} {
+				flags := &closeFlags{}
+				fs.BoolVar(&flags.force, "force", false, "Force close with uncommitted changes")
+				fs.BoolVar(&flags.forceShort, "f", false, "Force close (short form)")
+				return flags
+			},
+			Execute: func(ctx context.Context, fs *flag.FlagSet, cmdFlags interface{}) error {
+				flags := cmdFlags.(*closeFlags)
+				force := flags.force || flags.forceShort
+				return handleClose(ctx, false, force)
+			},
+		}, os.Args[2:])
 
 	case "restore":
-		if err := restoreCmd.Parse(os.Args[2:]); err != nil {
-			return err
-		}
-		if err := cli.ConfigureLogging(restoreLogging); err != nil {
-			return err
-		}
-		return handleRestore(ctx)
+		return parseAndExecute(ctx, Command{
+			Name: "restore",
+			Execute: func(ctx context.Context, fs *flag.FlagSet, flags interface{}) error {
+				return handleRestore(ctx)
+			},
+		}, os.Args[2:])
 
 	case "status":
-		if err := statusCmd.Parse(os.Args[2:]); err != nil {
-			return err
-		}
-		if err := cli.ConfigureLogging(statusLogging); err != nil {
-			return err
-		}
-		return handleStatus(ctx, *statusFormat)
+		return parseAndExecute(ctx, Command{
+			Name: "status",
+			SetupFlags: func(fs *flag.FlagSet) interface{} {
+				flags := &statusFlags{}
+				fs.StringVar(&flags.format, "format", "text", "Output format (text|json)")
+				return flags
+			},
+			Execute: func(ctx context.Context, fs *flag.FlagSet, cmdFlags interface{}) error {
+				flags := cmdFlags.(*statusFlags)
+				return handleStatus(ctx, flags.format)
+			},
+		}, os.Args[2:])
 
 	case "worktree":
 		if len(os.Args) < 3 {
 			printWorktreeUsage()
 			return nil
 		}
-		if err := worktreeCmd.Parse(os.Args[3:]); err != nil {
-			return err
-		}
-		if err := cli.ConfigureLogging(worktreeLogging); err != nil {
-			return err
-		}
-		return handleWorktree(ctx, os.Args[2], worktreeCmd.Args())
+		return parseAndExecute(ctx, Command{
+			Name: "worktree",
+			Execute: func(ctx context.Context, fs *flag.FlagSet, flags interface{}) error {
+				return handleWorktree(ctx, os.Args[2], fs.Args())
+			},
+		}, os.Args[3:])
 
 	case "cleanup":
-		if err := cleanupCmd.Parse(os.Args[2:]); err != nil {
-			return err
-		}
-		if err := cli.ConfigureLogging(cleanupLogging); err != nil {
-			return err
-		}
-		if cleanupCmd.NArg() > 0 {
-			// New cleanup command with ticket ID
-			return handleCleanupTicket(ctx, cleanupCmd.Arg(0), *cleanupForce)
-		}
-		// Old auto-cleanup command
-		return handleCleanup(ctx, *cleanupDryRun)
+		return parseAndExecute(ctx, Command{
+			Name: "cleanup",
+			SetupFlags: func(fs *flag.FlagSet) interface{} {
+				flags := &cleanupFlags{}
+				fs.BoolVar(&flags.dryRun, "dry-run", false, "Show what would be cleaned without making changes")
+				fs.BoolVar(&flags.force, "force", false, "Skip confirmation prompts")
+				return flags
+			},
+			Execute: func(ctx context.Context, fs *flag.FlagSet, cmdFlags interface{}) error {
+				flags := cmdFlags.(*cleanupFlags)
+				if fs.NArg() > 0 {
+					// New cleanup command with ticket ID
+					return handleCleanupTicket(ctx, fs.Arg(0), flags.force)
+				}
+				// Old auto-cleanup command
+				return handleCleanup(ctx, flags.dryRun)
+			},
+		}, os.Args[2:])
 
 	case "migrate":
-		if err := migrateCmd.Parse(os.Args[2:]); err != nil {
-			return err
-		}
-		if err := cli.ConfigureLogging(migrateLogging); err != nil {
-			return err
-		}
-		return handleMigrateDates(ctx, *migrateDryRun)
+		return parseAndExecute(ctx, Command{
+			Name: "migrate",
+			SetupFlags: func(fs *flag.FlagSet) interface{} {
+				flags := &migrateFlags{}
+				fs.BoolVar(&flags.dryRun, "dry-run", false, "Show what would be updated without making changes")
+				return flags
+			},
+			Execute: func(ctx context.Context, fs *flag.FlagSet, cmdFlags interface{}) error {
+				flags := cmdFlags.(*migrateFlags)
+				return handleMigrateDates(ctx, flags.dryRun)
+			},
+		}, os.Args[2:])
 
 	case "help", "-h", "--help":
 		printUsage()
