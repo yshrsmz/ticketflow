@@ -34,19 +34,19 @@ Adding context support will:
 
 ### Implementation
 - [x] Implement context cancellation for git operations
-- [ ] Add context support to file I/O operations
-- [ ] Implement timeout handling for external commands
+- [ ] Add context support to file I/O operations → See ticket: 250802-141140-add-context-file-io
+- [ ] Implement timeout handling for external commands → See ticket: 250802-141219-add-timeout-configuration
 - [ ] Add graceful shutdown handling
 
 ### Specific Updates
-- [x] Update `exec.Command` calls to use `CommandContext` (mostly done, see review)
+- [x] Update `exec.Command` calls to use `CommandContext`
 - [ ] Add context to long-running loops
 - [x] Implement proper context propagation
-- [ ] Add timeout configuration options
+- [ ] Add timeout configuration options → See ticket: 250802-141219-add-timeout-configuration
 
 ### Quality Assurance
-- [ ] Add tests for cancellation behavior
-- [ ] Test timeout functionality
+- [ ] Add tests for cancellation behavior → See ticket: 250802-141200-add-context-cancellation-tests
+- [ ] Test timeout functionality → See ticket: 250802-141200-add-context-cancellation-tests
 - [ ] Verify graceful shutdown works correctly
 - [x] Run `make test` to run the tests
 - [x] Run `make vet`, `make fmt` and `make lint`
@@ -60,8 +60,8 @@ Adding context support will:
 - [x] Consistent patterns across the codebase
 - [x] Fix utility functions still using exec.Command (IsGitRepo, FindProjectRoot) - COMPLETED
 - [x] Update editor and init commands to use exec.CommandContext - COMPLETED (except editor which needs terminal handling)
-- [ ] Add timeout configuration support
-- [ ] Add context support to file I/O operations
+- [ ] Add timeout configuration support → See ticket: 250802-141219-add-timeout-configuration
+- [ ] Add context support to file I/O operations → See ticket: 250802-141140-add-context-file-io
 
 ## Implementation Guidelines
 
@@ -119,7 +119,12 @@ defer cancel()
 - Main context implementation complete with all review findings addressed
 - All tests passing, code quality checks pass
 - Foundation ready for cancellation and timeout support
-- Remaining work: file I/O context support, cancellation tests, timeout configuration
+- Remaining work delegated to child tickets
+
+### Child Tickets Created
+- **250802-141140-add-context-file-io**: Add context support to file I/O operations
+- **250802-141200-add-context-cancellation-tests**: Add comprehensive tests for cancellation behavior
+- **250802-141219-add-timeout-configuration**: Add timeout configuration support
 
 ## Notes
 
