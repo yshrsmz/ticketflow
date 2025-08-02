@@ -410,6 +410,12 @@ func readFileWithContext(ctx context.Context, path string) ([]byte, error) {
 		return nil, err
 	}
 
+	// Validate file size (50MB limit for ticket files)
+	const maxTicketSize = 50 * 1024 * 1024 // 50MB
+	if info.Size() > maxTicketSize {
+		return nil, fmt.Errorf("file too large: %d bytes exceeds %d bytes limit", info.Size(), maxTicketSize)
+	}
+
 	// For small files (< 1MB), read all at once
 	if info.Size() < 1024*1024 {
 		// Check context one more time before reading
@@ -484,6 +490,11 @@ func writeFileWithContext(ctx context.Context, path string, data []byte, perm os
 		if err != nil {
 			return err
 		}
+	}
+
+	// Ensure data is persisted to disk
+	if err := file.Sync(); err != nil {
+		return fmt.Errorf("failed to sync file: %w", err)
 	}
 
 	return nil

@@ -294,6 +294,29 @@ func TestReadFileWithContext(t *testing.T) {
 			assert.Contains(t, err.Error(), "cancelled")
 		}
 	})
+
+	t.Run("file size validation", func(t *testing.T) {
+		// Create a file that exceeds size limit (>50MB)
+		hugeFile := filepath.Join(tmpDir, "huge.txt")
+		// Create a sparse file to avoid actually writing 51MB
+		file, err := os.Create(hugeFile)
+		require.NoError(t, err)
+
+		// Seek to 51MB position and write a byte to create a sparse file
+		_, err = file.Seek(51*1024*1024, 0)
+		require.NoError(t, err)
+		_, err = file.Write([]byte{0})
+		require.NoError(t, err)
+		file.Close()
+
+		// Try to read the file - should fail with size error
+		ctx := context.Background()
+		_, err = readFileWithContext(ctx, hugeFile)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "file too large")
+		assert.Contains(t, err.Error(), "exceeds")
+		assert.Contains(t, err.Error(), "limit")
+	})
 }
 
 func TestWriteFileWithContext(t *testing.T) {
@@ -342,6 +365,26 @@ func TestWriteFileWithContext(t *testing.T) {
 		data, err := os.ReadFile(testFile)
 		require.NoError(t, err)
 		assert.Equal(t, largeData, data)
+	})
+
+	t.Run("file sync verification", func(t *testing.T) {
+		ctx := context.Background()
+		testFile := filepath.Join(tmpDir, "sync_test.txt")
+		testContent := []byte("test data that needs to be synced")
+
+		// Write file with context (which includes sync)
+		err := writeFileWithContext(ctx, testFile, testContent, 0644)
+		require.NoError(t, err)
+
+		// Verify file exists and has correct content
+		// The sync ensures data is persisted even if system crashes
+		info, err := os.Stat(testFile)
+		require.NoError(t, err)
+		assert.Equal(t, int64(len(testContent)), info.Size())
+
+		data, err := os.ReadFile(testFile)
+		require.NoError(t, err)
+		assert.Equal(t, testContent, data)
 	})
 
 	t.Run("write with timeout", func(t *testing.T) {
