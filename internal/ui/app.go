@@ -2,6 +2,7 @@ package ui
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -10,6 +11,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/mattn/go-shellwords"
 	"github.com/yshrsmz/ticketflow/internal/config"
 	"github.com/yshrsmz/ticketflow/internal/git"
 	"github.com/yshrsmz/ticketflow/internal/ticket"
@@ -531,17 +533,32 @@ func (m *Model) runWorktreeInitCommands(worktreePath string) error {
 		return nil
 	}
 
+	// Create context with timeout
+	timeout := m.config.GetInitCommandsTimeout()
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
 	var failedCommands []string
 	for _, cmd := range m.config.Worktree.InitCommands {
-		parts := strings.Fields(cmd)
+		// Parse the command with proper shell parsing
+		parts, err := shellwords.Parse(cmd)
+		if err != nil {
+			failedCommands = append(failedCommands, fmt.Sprintf("%s (failed to parse: %v)", cmd, err))
+			continue
+		}
 		if len(parts) == 0 {
 			continue
 		}
 
-		execCmd := exec.CommandContext(context.Background(), parts[0], parts[1:]...)
+		execCmd := exec.CommandContext(ctx, parts[0], parts[1:]...)
 		execCmd.Dir = worktreePath
 		if err := execCmd.Run(); err != nil {
-			failedCommands = append(failedCommands, fmt.Sprintf("%s (%v)", cmd, err))
+			// Check if error is due to timeout
+			if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+				failedCommands = append(failedCommands, fmt.Sprintf("%s (timed out after %v)", cmd, timeout))
+			} else {
+				failedCommands = append(failedCommands, fmt.Sprintf("%s (%v)", cmd, err))
+			}
 		}
 	}
 
@@ -637,7 +654,7 @@ func (m *Model) checkWorkspaceForClose(t *ticket.Ticket) (string, bool, error) {
 			worktreePath = wt.Path
 
 			// Check for uncommitted changes in worktree
-			wtGit := git.New(worktreePath)
+			wtGit := git.NewWithTimeout(worktreePath, m.config.GetGitTimeout())
 			dirty, err := wtGit.HasUncommittedChanges(context.Background())
 			if err != nil {
 				return "", false, fmt.Errorf("failed to check worktree status: %w", err)

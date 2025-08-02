@@ -285,6 +285,11 @@ tickets:
 output:
   default_format: "text"
   json_pretty: true
+
+# Timeout settings
+timeouts:
+  git: 30          # Timeout for git operations in seconds (max: 3600)
+  init_commands: 60 # Timeout for worktree init commands in seconds (max: 3600)
 ```
 
 ## Sub-ticket Workflow

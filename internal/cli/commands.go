@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -9,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mattn/go-shellwords"
 	"github.com/yshrsmz/ticketflow/internal/config"
 	"github.com/yshrsmz/ticketflow/internal/git"
 	"github.com/yshrsmz/ticketflow/internal/ticket"
@@ -73,7 +75,7 @@ func NewAppWithOptions(opts ...AppOption) (*App, error) {
 
 	// Set defaults if not provided
 	if app.Git == nil {
-		app.Git = git.New(projectRoot)
+		app.Git = git.NewWithTimeout(projectRoot, app.Config.GetGitTimeout())
 	}
 	if app.Manager == nil {
 		app.Manager = ticket.NewManager(cfg, projectRoot)
@@ -104,7 +106,7 @@ func NewApp() (*App, error) {
 			})
 	}
 
-	gitClient := git.New(projectRoot)
+	gitClient := git.NewWithTimeout(projectRoot, cfg.GetGitTimeout())
 	manager := ticket.NewManager(cfg, projectRoot)
 
 	return &App{
@@ -864,7 +866,7 @@ func (app *App) validateTicketForClose(ctx context.Context, force bool) (*ticket
 
 			// Check for uncommitted changes in worktree
 			if !force {
-				wtGit := git.New(worktreePath)
+				wtGit := git.NewWithTimeout(worktreePath, app.Config.GetGitTimeout())
 				dirty, err := wtGit.HasUncommittedChanges(ctx)
 				if err != nil {
 					return nil, "", fmt.Errorf("failed to check worktree status: %w", err)
@@ -1015,10 +1017,23 @@ func (app *App) runWorktreeInitCommands(ctx context.Context, worktreePath string
 
 	fmt.Println("Running initialization commands...")
 	var failedCommands []string
+
+	// Apply timeout if not already set
+	timeout := app.Config.GetInitCommandsTimeout()
+	if _, hasDeadline := ctx.Deadline(); !hasDeadline && timeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, timeout)
+		defer cancel()
+	}
+
 	for _, cmd := range app.Config.Worktree.InitCommands {
 		fmt.Printf("  $ %s\n", cmd)
-		// Parse the command
-		parts := strings.Fields(cmd)
+		// Parse the command with proper shell parsing
+		parts, err := shellwords.Parse(cmd)
+		if err != nil {
+			failedCommands = append(failedCommands, fmt.Sprintf("%s (failed to parse: %v)", cmd, err))
+			continue
+		}
 		if len(parts) == 0 {
 			continue
 		}
@@ -1028,7 +1043,12 @@ func (app *App) runWorktreeInitCommands(ctx context.Context, worktreePath string
 		execCmd.Dir = worktreePath
 		output, err := execCmd.CombinedOutput()
 		if err != nil {
-			failedCommands = append(failedCommands, fmt.Sprintf("%s (%v)", cmd, err))
+			// Check if error is due to timeout
+			if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+				failedCommands = append(failedCommands, fmt.Sprintf("%s (timed out after %v)", cmd, timeout))
+			} else {
+				failedCommands = append(failedCommands, fmt.Sprintf("%s (%v)", cmd, err))
+			}
 			if len(output) > 0 {
 				fmt.Printf("    Output: %s\n", strings.TrimSpace(string(output)))
 			}

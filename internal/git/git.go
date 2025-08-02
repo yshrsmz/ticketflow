@@ -3,9 +3,12 @@ package git
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"os/exec"
 	"strings"
+	"sync"
+	"time"
 
 	ticketerrors "github.com/yshrsmz/ticketflow/internal/errors"
 )
@@ -13,21 +16,22 @@ import (
 // Git provides git operations
 type Git struct {
 	repoPath string
-	Root     string // Git repository root path
+	root     string        // Git repository root path (private)
+	rootOnce sync.Once     // Ensures root is initialized only once
+	rootErr  error         // Error from root initialization
+	timeout  time.Duration // Timeout for git operations
 }
 
-// New creates a new Git instance
+// New creates a new Git instance with default timeout
 func New(repoPath string) *Git {
-	// Use background context for initialization
-	root, err := FindProjectRoot(context.Background(), repoPath)
-	if err != nil {
-		// Not in a git repo or other error - Root will be empty
-		// and lazy initialization will be attempted in RootPath()
-		root = ""
-	}
+	return NewWithTimeout(repoPath, 30*time.Second) // 30 seconds default
+}
+
+// NewWithTimeout creates a new Git instance with custom timeout
+func NewWithTimeout(repoPath string, timeout time.Duration) *Git {
 	return &Git{
 		repoPath: repoPath,
-		Root:     root,
+		timeout:  timeout,
 	}
 }
 
@@ -36,6 +40,13 @@ func (g *Git) Exec(ctx context.Context, args ...string) (string, error) {
 	// Check context
 	if err := ctx.Err(); err != nil {
 		return "", fmt.Errorf("operation cancelled: %w", err)
+	}
+
+	// Apply timeout if not already set
+	if _, hasDeadline := ctx.Deadline(); !hasDeadline && g.timeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, g.timeout)
+		defer cancel()
 	}
 
 	cmd := exec.CommandContext(ctx, GitCmd, args...)
@@ -55,6 +66,13 @@ func (g *Git) Exec(ctx context.Context, args ...string) (string, error) {
 		// For branch-related commands, try to extract branch name
 		if len(args) > 1 && (subcommand == SubcmdCheckout || subcommand == SubcmdPush || subcommand == SubcmdPull || subcommand == SubcmdMerge) {
 			branch = args[len(args)-1]
+		}
+
+		// Check if error is due to timeout
+		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+			gitErr := ticketerrors.NewGitError(subcommand, branch,
+				fmt.Errorf("operation timed out after %v: %w", g.timeout, err))
+			return "", gitErr
 		}
 
 		gitErr := ticketerrors.NewGitError(subcommand, branch,
@@ -143,15 +161,20 @@ func FindProjectRoot(ctx context.Context, startPath string) (string, error) {
 	return strings.TrimSpace(stdout.String()), nil
 }
 
-// RootPath returns the git repository root path
+// RootPath returns the git repository root path (thread-safe)
 func (g *Git) RootPath() (string, error) {
-	if g.Root == "" {
+	g.rootOnce.Do(func() {
 		// Use background context for lazy initialization
 		root, err := FindProjectRoot(context.Background(), g.repoPath)
 		if err != nil {
-			return "", err
+			g.rootErr = err
+			return
 		}
-		g.Root = root
+		g.root = root
+	})
+
+	if g.rootErr != nil {
+		return "", g.rootErr
 	}
-	return g.Root, nil
+	return g.root, nil
 }
