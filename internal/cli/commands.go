@@ -582,6 +582,8 @@ func (app *App) ListWorktrees(ctx context.Context, format OutputFormat) error {
 
 // CleanWorktrees removes orphaned worktrees
 func (app *App) CleanWorktrees(ctx context.Context) error {
+	logger := log.Global()
+
 	// First prune to clean up git's internal state
 	if err := app.Git.PruneWorktrees(ctx); err != nil {
 		return fmt.Errorf("failed to prune worktrees: %w", err)
@@ -617,7 +619,6 @@ func (app *App) CleanWorktrees(ctx context.Context) error {
 		if !activeMap[wt.Branch] {
 			fmt.Printf("Removing orphaned worktree: %s (branch: %s)\n", wt.Path, wt.Branch)
 			if err := app.Git.RemoveWorktree(ctx, wt.Path); err != nil {
-				logger := log.Global()
 				logger.WithError(err).Warn("failed to remove worktree", "path", wt.Path)
 				fmt.Printf("Warning: Failed to remove worktree: %v\n", err)
 			} else {
@@ -1015,6 +1016,8 @@ func (app *App) checkExistingWorktree(ctx context.Context, t *ticket.Ticket) err
 
 // createAndSetupWorktree creates a worktree and runs initialization commands
 func (app *App) createAndSetupWorktree(ctx context.Context, t *ticket.Ticket) (string, error) {
+	logger := log.Global()
+
 	if !app.Config.Worktree.Enabled {
 		return "", nil
 	}
@@ -1034,8 +1037,7 @@ func (app *App) createAndSetupWorktree(ctx context.Context, t *ticket.Ticket) (s
 	// Run init commands if configured
 	if err := app.runWorktreeInitCommands(ctx, worktreePath); err != nil {
 		// Non-fatal: just log the error
-		logger := log.Global().WithError(err)
-		logger.Warn("failed to run init commands")
+		logger.WithError(err).Warn("failed to run init commands")
 		fmt.Printf("Warning: Failed to run init commands: %v\n", err)
 	}
 

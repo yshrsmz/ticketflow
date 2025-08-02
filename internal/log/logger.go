@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"math"
 	"os"
 )
 
@@ -83,7 +84,7 @@ func Default() *Logger {
 func NewNoOp() *Logger {
 	// Use io.Discard to throw away all log output
 	handler := slog.NewTextHandler(io.Discard, &slog.HandlerOptions{
-		Level: slog.Level(1000), // Set an impossibly high level so nothing gets logged
+		Level: slog.Level(math.MaxInt), // Set an impossibly high level so nothing gets logged
 	})
 	return &Logger{
 		Logger: slog.New(handler),
