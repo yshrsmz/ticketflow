@@ -18,7 +18,8 @@ type Git struct {
 
 // New creates a new Git instance
 func New(repoPath string) *Git {
-	root, _ := FindProjectRoot(repoPath)
+	// Use background context for initialization
+	root, _ := FindProjectRoot(context.Background(), repoPath)
 	return &Git{
 		repoPath: repoPath,
 		Root:     root,
@@ -116,15 +117,15 @@ func (g *Git) Push(ctx context.Context, remote, branch string, setUpstream bool)
 }
 
 // IsGitRepo checks if the path is a git repository
-func IsGitRepo(path string) bool {
-	cmd := exec.Command(GitCmd, SubcmdRevParse, FlagGitDir)
+func IsGitRepo(ctx context.Context, path string) bool {
+	cmd := exec.CommandContext(ctx, GitCmd, SubcmdRevParse, FlagGitDir)
 	cmd.Dir = path
 	return cmd.Run() == nil
 }
 
 // FindProjectRoot finds the git project root from current directory
-func FindProjectRoot(startPath string) (string, error) {
-	cmd := exec.Command(GitCmd, SubcmdRevParse, FlagShowToplevel)
+func FindProjectRoot(ctx context.Context, startPath string) (string, error) {
+	cmd := exec.CommandContext(ctx, GitCmd, SubcmdRevParse, FlagShowToplevel)
 	cmd.Dir = startPath
 
 	var stdout bytes.Buffer
@@ -140,7 +141,8 @@ func FindProjectRoot(startPath string) (string, error) {
 // RootPath returns the git repository root path
 func (g *Git) RootPath() (string, error) {
 	if g.Root == "" {
-		root, err := FindProjectRoot(g.repoPath)
+		// Use background context for lazy initialization
+		root, err := FindProjectRoot(context.Background(), g.repoPath)
 		if err != nil {
 			return "", err
 		}

@@ -42,7 +42,7 @@ func WithTicketManager(manager ticket.TicketManager) AppOption {
 // NewAppWithOptions creates a new CLI application with custom options
 func NewAppWithOptions(opts ...AppOption) (*App, error) {
 	// Find project root (with .git directory)
-	projectRoot, err := git.FindProjectRoot(".")
+	projectRoot, err := git.FindProjectRoot(context.Background(), ".")
 	if err != nil {
 		return nil, NewError(ErrNotGitRepo, "Not in a git repository", "",
 			[]string{
@@ -85,7 +85,7 @@ func NewAppWithOptions(opts ...AppOption) (*App, error) {
 // NewApp creates a new CLI application
 func NewApp() (*App, error) {
 	// Find project root (with .git directory)
-	projectRoot, err := git.FindProjectRoot(".")
+	projectRoot, err := git.FindProjectRoot(context.Background(), ".")
 	if err != nil {
 		return nil, NewError(ErrNotGitRepo, "Not in a git repository", "",
 			[]string{
@@ -117,7 +117,7 @@ func NewApp() (*App, error) {
 
 // InitCommand initializes the ticket system (doesn't require existing config)
 func InitCommand() error {
-	projectRoot, err := git.FindProjectRoot(".")
+	projectRoot, err := git.FindProjectRoot(context.Background(), ".")
 	if err != nil {
 		return NewError(ErrNotGitRepo, "Not in a git repository", "", nil)
 	}
@@ -992,7 +992,7 @@ func (app *App) createAndSetupWorktree(ctx context.Context, t *ticket.Ticket) (s
 	}
 
 	// Run init commands if configured
-	if err := app.runWorktreeInitCommands(worktreePath); err != nil {
+	if err := app.runWorktreeInitCommands(ctx, worktreePath); err != nil {
 		// Non-fatal: just log the error
 		fmt.Printf("Warning: Failed to run init commands: %v\n", err)
 	}
@@ -1006,7 +1006,7 @@ func (app *App) createAndSetupWorktree(ctx context.Context, t *ticket.Ticket) (s
 }
 
 // runWorktreeInitCommands runs the configured initialization commands in the worktree
-func (app *App) runWorktreeInitCommands(worktreePath string) error {
+func (app *App) runWorktreeInitCommands(ctx context.Context, worktreePath string) error {
 	if len(app.Config.Worktree.InitCommands) == 0 {
 		return nil
 	}
@@ -1022,7 +1022,7 @@ func (app *App) runWorktreeInitCommands(worktreePath string) error {
 		}
 
 		// Execute in worktree directory
-		execCmd := exec.Command(parts[0], parts[1:]...)
+		execCmd := exec.CommandContext(ctx, parts[0], parts[1:]...)
 		execCmd.Dir = worktreePath
 		output, err := execCmd.CombinedOutput()
 		if err != nil {

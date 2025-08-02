@@ -538,7 +538,7 @@ func (m *Model) runWorktreeInitCommands(worktreePath string) error {
 			continue
 		}
 
-		execCmd := exec.Command(parts[0], parts[1:]...)
+		execCmd := exec.CommandContext(context.Background(), parts[0], parts[1:]...)
 		execCmd.Dir = worktreePath
 		if err := execCmd.Run(); err != nil {
 			failedCommands = append(failedCommands, fmt.Sprintf("%s (%v)", cmd, err))
