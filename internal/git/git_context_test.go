@@ -209,7 +209,7 @@ func TestContextWithValues(t *testing.T) {
 // TestConcurrentCancellation tests concurrent operations with shared context
 func TestConcurrentCancellation(t *testing.T) {
 	git, _ := setupTestGitRepo(t)
-	
+
 	// Create a channel to coordinate goroutines
 	startChan := make(chan struct{})
 	ctx, cancel := context.WithCancel(context.Background())
@@ -222,10 +222,10 @@ func TestConcurrentCancellation(t *testing.T) {
 		wg.Add(1)
 		go func(id int) {
 			defer wg.Done()
-			
+
 			// Wait for signal to start
 			<-startChan
-			
+
 			_, err := git.CurrentBranch(ctx)
 			if err != nil {
 				errChan <- err
@@ -235,10 +235,10 @@ func TestConcurrentCancellation(t *testing.T) {
 
 	// Give goroutines time to block on channel
 	time.Sleep(10 * time.Millisecond)
-	
+
 	// Cancel context first
 	cancel()
-	
+
 	// Then signal all goroutines to start
 	close(startChan)
 
@@ -254,7 +254,7 @@ func TestConcurrentCancellation(t *testing.T) {
 			assert.Contains(t, err.Error(), "operation cancelled")
 		}
 	}
-	
+
 	// All operations should have been cancelled since context was cancelled before they started
 	assert.Equal(t, 20, errorCount, "All operations should fail with cancelled context")
 }

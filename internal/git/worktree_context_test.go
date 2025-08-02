@@ -159,7 +159,7 @@ func TestWorktreeOperationsWithTimeout(t *testing.T) {
 // TestConcurrentWorktreeOperations tests concurrent worktree operations
 func TestConcurrentWorktreeOperations(t *testing.T) {
 	git, tmpDir := setupTestGitRepo(t)
-	
+
 	// Create some worktrees first
 	for i := 0; i < 3; i++ {
 		branch := fmt.Sprintf("test-branch-%d", i)
@@ -212,10 +212,10 @@ func TestConcurrentWorktreeOperations(t *testing.T) {
 
 	// Give goroutines time to block
 	time.Sleep(10 * time.Millisecond)
-	
+
 	// Cancel context first
 	cancel()
-	
+
 	// Then start all operations
 	close(startChan)
 

@@ -226,10 +226,10 @@ func TestConcurrentManagerOperations(t *testing.T) {
 
 	// Give goroutines time to block
 	time.Sleep(10 * time.Millisecond)
-	
+
 	// Cancel context first
 	cancel()
-	
+
 	// Then start all operations
 	close(startChan)
 
