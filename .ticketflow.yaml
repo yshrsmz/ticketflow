@@ -5,6 +5,7 @@ worktree:
     base_dir: ../ticketflow.worktrees
     init_commands:
         - git status
+        - make init-worktree
         - if command -v mise >/dev/null 2>&1; then mise trust; fi
         - cursor .
     auto_operations:

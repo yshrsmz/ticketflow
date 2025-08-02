@@ -23,7 +23,7 @@ LDFLAGS=-ldflags "-X main.Version=$(VERSION) -X 'main.BuildTime=$(BUILD_TIME)' -
 CURRENT_OS := $(shell go env GOOS)
 CURRENT_ARCH := $(shell go env GOARCH)
 
-.PHONY: all build test clean install run run-tui build-current build-linux build-mac build-all release-archives
+.PHONY: all build test clean install run run-tui build-current build-linux build-mac build-all release-archives init-worktree
 
 # Default target
 all: test build
@@ -104,6 +104,10 @@ run-cli: build
 # Development watch mode (requires entr)
 watch:
 	find . -name '*.go' | entr -r make run
+
+# Initialize worktree (symlink Claude settings)
+init-worktree:
+	@bash scripts/init-worktree.sh
 
 # Build for Linux platforms
 build-linux:
@@ -191,6 +195,7 @@ help:
 	@echo "  make deps          - Download dependencies"
 	@echo "  make fmt           - Format Go code"
 	@echo "  make lint          - Run linter"
+	@echo "  make init-worktree - Initialize worktree with Claude settings"
 	@echo "  make version       - Show version information"
 	@echo "  make release       - Create a new release tag (TAG=v0.1.0)"
 	@echo "  make release-build - Build release binaries for all platforms"
