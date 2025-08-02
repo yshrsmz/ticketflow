@@ -35,6 +35,9 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
+	// TUI mode does not use the cancellable context created above,
+	// because the Bubble Tea framework manages its own signal handling
+	// and shutdown logic internally.
 	// No arguments = TUI mode
 	if len(os.Args) == 1 {
 		runTUI()
