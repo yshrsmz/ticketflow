@@ -307,7 +307,8 @@ func TestReadFileWithContext(t *testing.T) {
 		require.NoError(t, err)
 		_, err = file.Write([]byte{0})
 		require.NoError(t, err)
-		file.Close()
+		err = file.Close()
+		require.NoError(t, err)
 
 		// Try to read the file - should fail with size error
 		ctx := context.Background()
@@ -475,5 +476,5 @@ func TestManagerWithContextCancellation(t *testing.T) {
 	})
 
 	// Clean up
-	os.RemoveAll(tmpDir)
+	_ = os.RemoveAll(tmpDir)
 }

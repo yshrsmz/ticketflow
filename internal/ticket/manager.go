@@ -402,7 +402,9 @@ func readFileWithContext(ctx context.Context, path string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
+	defer func() {
+		_ = file.Close() // Ignore close error for read operations
+	}()
 
 	// Get file info
 	info, err := file.Stat()
@@ -452,7 +454,7 @@ func readFileWithContext(ctx context.Context, path string) ([]byte, error) {
 }
 
 // writeFileWithContext writes a file with context support
-func writeFileWithContext(ctx context.Context, path string, data []byte, perm os.FileMode) error {
+func writeFileWithContext(ctx context.Context, path string, data []byte, perm os.FileMode) (err error) {
 	// Check context before starting
 	if err := ctx.Err(); err != nil {
 		return fmt.Errorf("operation cancelled: %w", err)
@@ -472,7 +474,11 @@ func writeFileWithContext(ctx context.Context, path string, data []byte, perm os
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer func() {
+		if cerr := file.Close(); cerr != nil && err == nil {
+			err = fmt.Errorf("failed to close file: %w", cerr)
+		}
+	}()
 
 	const chunkSize = 64 * 1024 // 64KB chunks
 	for i := 0; i < len(data); i += chunkSize {
