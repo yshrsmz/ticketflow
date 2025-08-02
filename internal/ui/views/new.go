@@ -1,6 +1,7 @@
 package views
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -328,7 +329,7 @@ func (m NewTicketModel) createTicket() tea.Cmd {
 		}
 
 		// Create ticket
-		t, err := m.manager.Create(slug)
+		t, err := m.manager.Create(context.Background(), slug)
 		if err != nil {
 			return ticketCreatedMsg{err: err}
 		}
@@ -338,14 +339,14 @@ func (m NewTicketModel) createTicket() tea.Cmd {
 		t.Description = strings.TrimSpace(m.descArea.Value())
 
 		// Save ticket
-		err = m.manager.Update(t)
+		err = m.manager.Update(context.Background(), t)
 		if err != nil {
 			return ticketCreatedMsg{err: err}
 		}
 
 		// Save content if provided
 		if content := strings.TrimSpace(m.contentArea.Value()); content != "" {
-			err = m.manager.WriteContent(t.ID, content)
+			err = m.manager.WriteContent(context.Background(), t.ID, content)
 			if err != nil {
 				return ticketCreatedMsg{err: err}
 			}

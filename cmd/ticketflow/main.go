@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -223,7 +224,8 @@ func handleNew(slug, format string) error {
 
 	outputFormat := cli.ParseOutputFormat(format)
 	cli.GlobalOutputFormat = outputFormat
-	return app.NewTicket(slug, outputFormat)
+	ctx := context.Background()
+	return app.NewTicket(ctx, slug, outputFormat)
 }
 
 func handleList(status string, count int, format string) error {
@@ -242,7 +244,8 @@ func handleList(status string, count int, format string) error {
 
 	outputFormat := cli.ParseOutputFormat(format)
 	cli.GlobalOutputFormat = outputFormat
-	return app.ListTickets(ticketStatus, count, outputFormat)
+	ctx := context.Background()
+	return app.ListTickets(ctx, ticketStatus, count, outputFormat)
 }
 
 func handleShow(ticketID, format string) error {
@@ -252,7 +255,8 @@ func handleShow(ticketID, format string) error {
 	}
 
 	// Get the ticket
-	t, err := app.Manager.Get(ticketID)
+	ctx := context.Background()
+	t, err := app.Manager.Get(ctx, ticketID)
 	if err != nil {
 		return err
 	}
@@ -307,7 +311,8 @@ func handleStart(ticketID string, noPush bool) error {
 		return err
 	}
 
-	return app.StartTicket(ticketID)
+	ctx := context.Background()
+	return app.StartTicket(ctx, ticketID)
 }
 
 func handleClose(noPush, force bool) error {
@@ -316,7 +321,8 @@ func handleClose(noPush, force bool) error {
 		return err
 	}
 
-	return app.CloseTicket(force)
+	ctx := context.Background()
+	return app.CloseTicket(ctx, force)
 }
 
 func handleRestore() error {
@@ -325,7 +331,8 @@ func handleRestore() error {
 		return err
 	}
 
-	return app.RestoreCurrentTicket()
+	ctx := context.Background()
+	return app.RestoreCurrentTicket(ctx)
 }
 
 func handleStatus(format string) error {
@@ -336,7 +343,8 @@ func handleStatus(format string) error {
 
 	outputFormat := cli.ParseOutputFormat(format)
 	cli.GlobalOutputFormat = outputFormat
-	return app.Status(outputFormat)
+	ctx := context.Background()
+	return app.Status(ctx, outputFormat)
 }
 
 func handleWorktree(subcommand string, args []string) error {
@@ -353,10 +361,12 @@ func handleWorktree(subcommand string, args []string) error {
 		}
 		outputFormat := cli.ParseOutputFormat(format)
 		cli.GlobalOutputFormat = outputFormat
-		return app.ListWorktrees(outputFormat)
+		ctx := context.Background()
+		return app.ListWorktrees(ctx, outputFormat)
 
 	case "clean":
-		return app.CleanWorktrees()
+		ctx := context.Background()
+		return app.CleanWorktrees(ctx)
 
 	default:
 		printWorktreeUsage()
@@ -494,15 +504,16 @@ func handleCleanup(dryRun bool) error {
 		return err
 	}
 
+	ctx := context.Background()
 	if dryRun {
 		// Show cleanup statistics first
-		if err := app.CleanupStats(); err != nil {
+		if err := app.CleanupStats(ctx); err != nil {
 			return err
 		}
 		fmt.Println("\nDry-run mode: No changes will be made.")
 	}
 
-	_, err = app.AutoCleanup(dryRun)
+	_, err = app.AutoCleanup(ctx, dryRun)
 	return err
 }
 
@@ -512,7 +523,8 @@ func handleCleanupTicket(ticketID string, force bool) error {
 		return err
 	}
 
-	return app.CleanupTicket(ticketID, force)
+	ctx := context.Background()
+	return app.CleanupTicket(ctx, ticketID, force)
 }
 
 func handleMigrateDates(dryRun bool) error {
@@ -521,5 +533,6 @@ func handleMigrateDates(dryRun bool) error {
 		return err
 	}
 
-	return app.MigrateDates(dryRun)
+	ctx := context.Background()
+	return app.MigrateDates(ctx, dryRun)
 }

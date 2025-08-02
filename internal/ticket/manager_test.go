@@ -1,6 +1,7 @@
 package ticket
 
 import (
+	"context"
 	"errors"
 	"os"
 	"path/filepath"
@@ -26,9 +27,10 @@ func setupTestManager(t *testing.T) (*Manager, string) {
 
 func TestManagerCreate(t *testing.T) {
 	manager, _ := setupTestManager(t)
+	ctx := context.Background()
 
 	// Create ticket
-	ticket, err := manager.Create("test-ticket")
+	ticket, err := manager.Create(ctx, "test-ticket")
 	require.NoError(t, err)
 
 	assert.NotEmpty(t, ticket.ID)
@@ -42,12 +44,13 @@ func TestManagerCreate(t *testing.T) {
 
 	// Test duplicate creation (should fail due to timing)
 	time.Sleep(time.Second) // Ensure different timestamp
-	_, err = manager.Create("test-ticket")
+	_, err = manager.Create(ctx, "test-ticket")
 	require.NoError(t, err) // Different timestamp means different ID
 }
 
 func TestManagerCreateInvalidSlug(t *testing.T) {
 	manager, _ := setupTestManager(t)
+	ctx := context.Background()
 
 	tests := []string{
 		"Test-Ticket", // uppercase
@@ -58,7 +61,7 @@ func TestManagerCreateInvalidSlug(t *testing.T) {
 
 	for _, slug := range tests {
 		t.Run(slug, func(t *testing.T) {
-			_, err := manager.Create(slug)
+			_, err := manager.Create(ctx, slug)
 			assert.Error(t, err)
 			assert.Contains(t, err.Error(), "invalid slug format")
 		})
@@ -67,13 +70,14 @@ func TestManagerCreateInvalidSlug(t *testing.T) {
 
 func TestManagerGet(t *testing.T) {
 	manager, _ := setupTestManager(t)
+	ctx := context.Background()
 
 	// Create ticket
-	created, err := manager.Create("test-ticket")
+	created, err := manager.Create(ctx, "test-ticket")
 	require.NoError(t, err)
 
 	// Get by full ID
-	retrieved, err := manager.Get(created.ID)
+	retrieved, err := manager.Get(ctx, created.ID)
 	require.NoError(t, err)
 
 	assert.Equal(t, created.ID, retrieved.ID)
@@ -83,14 +87,15 @@ func TestManagerGet(t *testing.T) {
 
 func TestManagerGetByPrefix(t *testing.T) {
 	manager, _ := setupTestManager(t)
+	ctx := context.Background()
 
 	// Create ticket
-	created, err := manager.Create("test-ticket")
+	created, err := manager.Create(ctx, "test-ticket")
 	require.NoError(t, err)
 
 	// Get by prefix (first 6 chars of ID)
 	prefix := created.ID[:6]
-	retrieved, err := manager.Get(prefix)
+	retrieved, err := manager.Get(ctx, prefix)
 	require.NoError(t, err)
 
 	assert.Equal(t, created.ID, retrieved.ID)
@@ -98,14 +103,16 @@ func TestManagerGetByPrefix(t *testing.T) {
 
 func TestManagerGetNotFound(t *testing.T) {
 	manager, _ := setupTestManager(t)
+	ctx := context.Background()
 
-	_, err := manager.Get("nonexistent")
+	_, err := manager.Get(ctx, "nonexistent")
 	assert.Error(t, err)
 	assert.True(t, errors.Is(err, ticketerrors.ErrTicketNotFound))
 }
 
 func TestManagerGetAmbiguous(t *testing.T) {
 	manager, tmpDir := setupTestManager(t)
+	ctx := context.Background()
 
 	// Create two tickets with similar IDs manually
 	todoPath := filepath.Join(tmpDir, "tickets", "todo")
@@ -122,20 +129,21 @@ func TestManagerGetAmbiguous(t *testing.T) {
 	require.NoError(t, os.WriteFile(filepath.Join(todoPath, "250124-150001-test2.md"), data2, 0644))
 
 	// Try to get with ambiguous prefix
-	_, err := manager.Get("250124")
+	_, err := manager.Get(ctx, "250124")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "ambiguous ticket ID")
 }
 
 func TestManagerList(t *testing.T) {
 	manager, tmpDir := setupTestManager(t)
+	ctx := context.Background()
 
 	// Create multiple tickets
-	ticket1, err := manager.Create("ticket-1")
+	ticket1, err := manager.Create(ctx, "ticket-1")
 	require.NoError(t, err)
 
 	time.Sleep(time.Second)
-	ticket2, err := manager.Create("ticket-2")
+	ticket2, err := manager.Create(ctx, "ticket-2")
 	require.NoError(t, err)
 
 	// Start ticket2 - simulate moving to doing directory
@@ -151,21 +159,21 @@ func TestManagerList(t *testing.T) {
 	err = os.Rename(oldPath, newPath)
 	require.NoError(t, err)
 	ticket2.Path = newPath
-	err = manager.Update(ticket2)
+	err = manager.Update(ctx, ticket2)
 	require.NoError(t, err)
 
 	// List all tickets
-	tickets, err := manager.List(StatusFilterActive)
+	tickets, err := manager.List(ctx, StatusFilterActive)
 	require.NoError(t, err)
 	assert.Len(t, tickets, 2)
 
 	// List by status
-	todoTickets, err := manager.List(StatusFilterTodo)
+	todoTickets, err := manager.List(ctx, StatusFilterTodo)
 	require.NoError(t, err)
 	assert.Len(t, todoTickets, 1)
 	assert.Equal(t, ticket1.ID, todoTickets[0].ID)
 
-	doingTickets, err := manager.List(StatusFilterDoing)
+	doingTickets, err := manager.List(ctx, StatusFilterDoing)
 	require.NoError(t, err)
 	assert.Len(t, doingTickets, 1)
 	assert.Equal(t, ticket2.ID, doingTickets[0].ID)
@@ -173,19 +181,20 @@ func TestManagerList(t *testing.T) {
 
 func TestManagerUpdate(t *testing.T) {
 	manager, _ := setupTestManager(t)
+	ctx := context.Background()
 
 	// Create ticket
-	ticket, err := manager.Create("test-ticket")
+	ticket, err := manager.Create(ctx, "test-ticket")
 	require.NoError(t, err)
 
 	// Update ticket
 	ticket.Description = "Updated description"
 	ticket.Priority = 1
-	err = manager.Update(ticket)
+	err = manager.Update(ctx, ticket)
 	require.NoError(t, err)
 
 	// Reload and verify
-	retrieved, err := manager.Get(ticket.ID)
+	retrieved, err := manager.Get(ctx, ticket.ID)
 	require.NoError(t, err)
 
 	assert.Equal(t, "Updated description", retrieved.Description)
@@ -194,17 +203,18 @@ func TestManagerUpdate(t *testing.T) {
 
 func TestManagerCurrentTicket(t *testing.T) {
 	manager, tmpDir := setupTestManager(t)
+	ctx := context.Background()
 
 	// Initially no current ticket
-	current, err := manager.GetCurrentTicket()
+	current, err := manager.GetCurrentTicket(ctx)
 	require.NoError(t, err)
 	assert.Nil(t, current)
 
 	// Create and set current ticket
-	ticket, err := manager.Create("test-ticket")
+	ticket, err := manager.Create(ctx, "test-ticket")
 	require.NoError(t, err)
 
-	err = manager.SetCurrentTicket(ticket)
+	err = manager.SetCurrentTicket(ctx, ticket)
 	require.NoError(t, err)
 
 	// Verify symlink exists
@@ -213,13 +223,13 @@ func TestManagerCurrentTicket(t *testing.T) {
 	require.NoError(t, err)
 
 	// Get current ticket
-	current, err = manager.GetCurrentTicket()
+	current, err = manager.GetCurrentTicket(ctx)
 	require.NoError(t, err)
 	require.NotNil(t, current)
 	assert.Equal(t, ticket.ID, current.ID)
 
 	// Clear current ticket
-	err = manager.SetCurrentTicket(nil)
+	err = manager.SetCurrentTicket(ctx, nil)
 	require.NoError(t, err)
 
 	// Verify symlink removed

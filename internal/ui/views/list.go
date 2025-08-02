@@ -1,6 +1,7 @@
 package views
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -394,7 +395,7 @@ type ticketsLoadedMsg struct {
 // loadTickets loads tickets from the manager
 func (m TicketListModel) loadTickets() tea.Cmd {
 	return func() tea.Msg {
-		tickets, err := m.manager.List(m.statusFilter)
+		tickets, err := m.manager.List(context.Background(), m.statusFilter)
 		return ticketsLoadedMsg{
 			tickets: tickets,
 			err:     err,

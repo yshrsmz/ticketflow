@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"context"
 	"os"
 	"testing"
 
@@ -31,11 +32,11 @@ func TestCleanupTicketWithForceFlag(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create a ticket
-	err = app.NewTicket("test-cleanup-force", cli.FormatText)
+	err = app.NewTicket(context.Background(), "test-cleanup-force", cli.FormatText)
 	require.NoError(t, err)
 
 	// List tickets to get the actual ID
-	tickets, err := app.Manager.List(ticket.StatusFilterTodo)
+	tickets, err := app.Manager.List(context.Background(), ticket.StatusFilterTodo)
 	require.NoError(t, err)
 	require.NotEmpty(t, tickets)
 
@@ -50,35 +51,35 @@ func TestCleanupTicketWithForceFlag(t *testing.T) {
 	require.NotEmpty(t, ticketID, "Could not find created ticket")
 
 	// Start the ticket (creates worktree)
-	err = app.StartTicket(ticketID)
+	err = app.StartTicket(context.Background(), ticketID)
 	require.NoError(t, err)
 
 	// Get the ticket to verify it exists
-	tkt, err := app.Manager.Get(ticketID)
+	tkt, err := app.Manager.Get(context.Background(), ticketID)
 	require.NoError(t, err)
 	assert.Equal(t, ticket.StatusDoing, tkt.Status())
 
 	// Close the ticket to move it to done status
-	err = app.CloseTicket(true) // force close to skip uncommitted changes check
+	err = app.CloseTicket(context.Background(), true) // force close to skip uncommitted changes check
 	require.NoError(t, err)
 
 	// Verify ticket is now done
-	tkt, err = app.Manager.Get(ticketID)
+	tkt, err = app.Manager.Get(context.Background(), ticketID)
 	require.NoError(t, err)
 	assert.Equal(t, ticket.StatusDone, tkt.Status())
 
 	// Test cleanup with force flag - should NOT prompt for confirmation
 	// Note: In the actual CLI, the flag order matters: ticketflow cleanup --force <ticket-id>
-	err = app.CleanupTicket(ticketID, true)
+	err = app.CleanupTicket(context.Background(), ticketID, true)
 	require.NoError(t, err)
 
 	// Verify worktree was removed
-	wt, err := app.Git.FindWorktreeByBranch(ticketID)
+	wt, err := app.Git.FindWorktreeByBranch(context.Background(), ticketID)
 	assert.NoError(t, err)
 	assert.Nil(t, wt)
 
 	// Verify branch was deleted
-	branches, err := app.Git.Exec("branch", "--list", ticketID)
+	branches, err := app.Git.Exec(context.Background(), "branch", "--list", ticketID)
 	assert.NoError(t, err)
 	assert.Empty(t, branches)
 }

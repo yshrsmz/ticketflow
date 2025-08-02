@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -41,9 +42,9 @@ func TestWorktreeWorkflow(t *testing.T) {
 
 	// Commit config
 	gitCmd := git.New(repoPath)
-	_, err = gitCmd.Exec("add", ".ticketflow.yaml", ".gitignore")
+	_, err = gitCmd.Exec(context.Background(), "add", ".ticketflow.yaml", ".gitignore")
 	require.NoError(t, err)
-	_, err = gitCmd.Exec("commit", "-m", "Initialize ticketflow with worktrees")
+	_, err = gitCmd.Exec(context.Background(), "commit", "-m", "Initialize ticketflow with worktrees")
 	require.NoError(t, err)
 
 	// Create app instance
@@ -51,26 +52,26 @@ func TestWorktreeWorkflow(t *testing.T) {
 	require.NoError(t, err)
 
 	// 1. Create a ticket
-	err = app.NewTicket("worktree-test", cli.FormatText)
+	err = app.NewTicket(context.Background(), "worktree-test", cli.FormatText)
 	require.NoError(t, err)
 
 	// Commit the ticket
-	_, err = gitCmd.Exec("add", "tickets/")
+	_, err = gitCmd.Exec(context.Background(), "add", "tickets/")
 	require.NoError(t, err)
-	_, err = gitCmd.Exec("commit", "-m", "Add test ticket")
+	_, err = gitCmd.Exec(context.Background(), "commit", "-m", "Add test ticket")
 	require.NoError(t, err)
 
 	// 2. Start work on ticket (should create worktree)
-	tickets, err := app.Manager.List(ticket.StatusFilterActive)
+	tickets, err := app.Manager.List(context.Background(), ticket.StatusFilterActive)
 	require.NoError(t, err)
 	require.Len(t, tickets, 1)
 
 	ticketID := tickets[0].ID
-	err = app.StartTicket(ticketID)
+	err = app.StartTicket(context.Background(), ticketID)
 	require.NoError(t, err)
 
 	// Verify worktree was created
-	worktrees, err := app.Git.ListWorktrees()
+	worktrees, err := app.Git.ListWorktrees(context.Background())
 	require.NoError(t, err)
 	assert.Len(t, worktrees, 2) // main + ticket worktree
 
@@ -102,17 +103,17 @@ func TestWorktreeWorkflow(t *testing.T) {
 	err = os.WriteFile(testFile, []byte("test content from worktree\n"), 0644)
 	require.NoError(t, err)
 
-	_, err = wtGit.Exec("add", "worktree-test.txt")
+	_, err = wtGit.Exec(context.Background(), "add", "worktree-test.txt")
 	require.NoError(t, err)
-	_, err = wtGit.Exec("commit", "-m", "Add test file in worktree")
+	_, err = wtGit.Exec(context.Background(), "commit", "-m", "Add test file in worktree")
 	require.NoError(t, err)
 
 	// 4. Close ticket (worktree should NOT be removed automatically)
-	err = app.CloseTicket(false)
+	err = app.CloseTicket(context.Background(), false)
 	require.NoError(t, err)
 
 	// Verify worktree still exists
-	worktrees, err = app.Git.ListWorktrees()
+	worktrees, err = app.Git.ListWorktrees(context.Background())
 	require.NoError(t, err)
 	assert.Len(t, worktrees, 2) // main + ticket worktree
 
@@ -121,7 +122,7 @@ func TestWorktreeWorkflow(t *testing.T) {
 	require.NoError(t, err)
 
 	// We should still be on main branch (test was run from main repo)
-	currentBranch, err := app.Git.CurrentBranch()
+	currentBranch, err := app.Git.CurrentBranch(context.Background())
 	require.NoError(t, err)
 	assert.Equal(t, "main", currentBranch)
 }
@@ -150,9 +151,9 @@ func TestWorktreeCleanCommand(t *testing.T) {
 	require.NoError(t, err)
 
 	gitCmd := git.New(repoPath)
-	_, err = gitCmd.Exec("add", ".ticketflow.yaml", ".gitignore")
+	_, err = gitCmd.Exec(context.Background(), "add", ".ticketflow.yaml", ".gitignore")
 	require.NoError(t, err)
-	_, err = gitCmd.Exec("commit", "-m", "Initialize ticketflow")
+	_, err = gitCmd.Exec(context.Background(), "commit", "-m", "Initialize ticketflow")
 	require.NoError(t, err)
 
 	app, err := cli.NewApp()
@@ -161,28 +162,28 @@ func TestWorktreeCleanCommand(t *testing.T) {
 	// Create multiple tickets
 	for i := 1; i <= 3; i++ {
 		slug := fmt.Sprintf("ticket-%d", i)
-		err = app.NewTicket(slug, cli.FormatText)
+		err = app.NewTicket(context.Background(), slug, cli.FormatText)
 		require.NoError(t, err)
 	}
 
-	_, err = gitCmd.Exec("add", "tickets/")
+	_, err = gitCmd.Exec(context.Background(), "add", "tickets/")
 	require.NoError(t, err)
-	_, err = gitCmd.Exec("commit", "-m", "Add test tickets")
+	_, err = gitCmd.Exec(context.Background(), "commit", "-m", "Add test tickets")
 	require.NoError(t, err)
 
-	tickets, err := app.Manager.List(ticket.StatusFilterActive)
+	tickets, err := app.Manager.List(context.Background(), ticket.StatusFilterActive)
 	require.NoError(t, err)
 	require.Len(t, tickets, 3)
 
 	// Start work on first two tickets
-	err = app.StartTicket(tickets[0].ID)
+	err = app.StartTicket(context.Background(), tickets[0].ID)
 	require.NoError(t, err)
-	err = app.StartTicket(tickets[1].ID)
+	err = app.StartTicket(context.Background(), tickets[1].ID)
 	require.NoError(t, err)
 
 	// Manually close the first ticket without removing worktree
 	// (simulating orphaned worktree)
-	ticket1, err := app.Manager.Get(tickets[0].ID)
+	ticket1, err := app.Manager.Get(context.Background(), tickets[0].ID)
 	require.NoError(t, err)
 
 	// Manually move the ticket to done directory
@@ -198,20 +199,20 @@ func TestWorktreeCleanCommand(t *testing.T) {
 	ticket1.Path = newPath
 	err = ticket1.Close()
 	require.NoError(t, err)
-	err = app.Manager.Update(ticket1)
+	err = app.Manager.Update(context.Background(), ticket1)
 	require.NoError(t, err)
 
 	// Verify we have 3 worktrees (main + 2 ticket worktrees)
-	worktrees, err := app.Git.ListWorktrees()
+	worktrees, err := app.Git.ListWorktrees(context.Background())
 	require.NoError(t, err)
 	assert.Len(t, worktrees, 3)
 
 	// Run clean command
-	err = app.CleanWorktrees()
+	err = app.CleanWorktrees(context.Background())
 	require.NoError(t, err)
 
 	// Should have removed the orphaned worktree
-	worktrees, err = app.Git.ListWorktrees()
+	worktrees, err = app.Git.ListWorktrees(context.Background())
 	require.NoError(t, err)
 	assert.Len(t, worktrees, 2) // main + ticket2 (still active)
 
@@ -247,30 +248,30 @@ func TestWorktreeListCommand(t *testing.T) {
 	require.NoError(t, err)
 
 	gitCmd := git.New(repoPath)
-	_, err = gitCmd.Exec("add", ".ticketflow.yaml", ".gitignore")
+	_, err = gitCmd.Exec(context.Background(), "add", ".ticketflow.yaml", ".gitignore")
 	require.NoError(t, err)
-	_, err = gitCmd.Exec("commit", "-m", "Initialize")
+	_, err = gitCmd.Exec(context.Background(), "commit", "-m", "Initialize")
 	require.NoError(t, err)
 
 	app, err := cli.NewApp()
 	require.NoError(t, err)
 
 	// Create and start a ticket
-	err = app.NewTicket("list-test", cli.FormatText)
+	err = app.NewTicket(context.Background(), "list-test", cli.FormatText)
 	require.NoError(t, err)
 
-	_, err = gitCmd.Exec("add", "tickets/")
+	_, err = gitCmd.Exec(context.Background(), "add", "tickets/")
 	require.NoError(t, err)
-	_, err = gitCmd.Exec("commit", "-m", "Add ticket")
+	_, err = gitCmd.Exec(context.Background(), "commit", "-m", "Add ticket")
 	require.NoError(t, err)
 
-	tickets, err := app.Manager.List(ticket.StatusFilterActive)
+	tickets, err := app.Manager.List(context.Background(), ticket.StatusFilterActive)
 	require.NoError(t, err)
-	err = app.StartTicket(tickets[0].ID)
+	err = app.StartTicket(context.Background(), tickets[0].ID)
 	require.NoError(t, err)
 
 	// Test listing worktrees
-	worktrees, err := app.Git.ListWorktrees()
+	worktrees, err := app.Git.ListWorktrees(context.Background())
 	require.NoError(t, err)
 	assert.Len(t, worktrees, 2)
 

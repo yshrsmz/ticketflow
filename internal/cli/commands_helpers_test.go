@@ -1,10 +1,12 @@
 package cli
 
 import (
+	"context"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/yshrsmz/ticketflow/internal/config"
 	"github.com/yshrsmz/ticketflow/internal/mocks"
 	"github.com/yshrsmz/ticketflow/internal/ticket"
@@ -221,10 +223,10 @@ func TestCheckExistingWorktree(t *testing.T) {
 			testTicket := &ticket.Ticket{ID: "test-ticket"}
 
 			if tt.worktreeEnabled {
-				mockGit.On("HasWorktree", "test-ticket").Return(tt.hasWorktree, tt.checkError)
+				mockGit.On("HasWorktree", mock.Anything, "test-ticket").Return(tt.hasWorktree, tt.checkError)
 			}
 
-			err := app.checkExistingWorktree(testTicket)
+			err := app.checkExistingWorktree(context.Background(), testTicket)
 
 			if tt.wantErr {
 				assert.Error(t, err)

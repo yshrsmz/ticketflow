@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -21,7 +22,7 @@ func (r *CleanupResult) HasErrors() bool {
 }
 
 // AutoCleanup performs automatic cleanup of old tickets and worktrees
-func (app *App) AutoCleanup(dryRun bool) (*CleanupResult, error) {
+func (app *App) AutoCleanup(ctx context.Context, dryRun bool) (*CleanupResult, error) {
 	fmt.Println("Starting auto-cleanup...")
 
 	result := &CleanupResult{
@@ -30,7 +31,7 @@ func (app *App) AutoCleanup(dryRun bool) (*CleanupResult, error) {
 
 	// 1. Clean orphaned worktrees
 	if app.Config.Worktree.Enabled {
-		cleaned, err := app.cleanOrphanedWorktrees(dryRun)
+		cleaned, err := app.cleanOrphanedWorktrees(ctx, dryRun)
 		if err != nil {
 			fmt.Printf("Warning: Failed to clean worktrees: %v\n", err)
 			result.Errors = append(result.Errors, fmt.Sprintf("worktrees: %v", err))
@@ -43,7 +44,7 @@ func (app *App) AutoCleanup(dryRun bool) (*CleanupResult, error) {
 	// For now, done tickets stay in done/ directory permanently
 
 	// 3. Clean up stale branches (done tickets without worktrees)
-	cleaned, err := app.cleanStaleBranches(dryRun)
+	cleaned, err := app.cleanStaleBranches(ctx, dryRun)
 	if err != nil {
 		fmt.Printf("Warning: Failed to clean branches: %v\n", err)
 		result.Errors = append(result.Errors, fmt.Sprintf("branches: %v", err))
@@ -56,7 +57,7 @@ func (app *App) AutoCleanup(dryRun bool) (*CleanupResult, error) {
 }
 
 // cleanOrphanedWorktrees removes worktrees without active tickets
-func (app *App) cleanOrphanedWorktrees(dryRun bool) (int, error) {
+func (app *App) cleanOrphanedWorktrees(ctx context.Context, dryRun bool) (int, error) {
 	if !app.Config.Worktree.Enabled {
 		return 0, nil
 	}
@@ -65,19 +66,19 @@ func (app *App) cleanOrphanedWorktrees(dryRun bool) (int, error) {
 
 	// First prune to clean up git's internal state
 	if !dryRun {
-		if err := app.Git.PruneWorktrees(); err != nil {
+		if err := app.Git.PruneWorktrees(ctx); err != nil {
 			return 0, fmt.Errorf("failed to prune worktrees: %w", err)
 		}
 	}
 
 	// Get all worktrees
-	worktrees, err := app.Git.ListWorktrees()
+	worktrees, err := app.Git.ListWorktrees(ctx)
 	if err != nil {
 		return 0, fmt.Errorf("failed to list worktrees: %w", err)
 	}
 
 	// Get all active tickets
-	activeTickets, err := app.Manager.List(ticket.StatusFilterDoing)
+	activeTickets, err := app.Manager.List(ctx, ticket.StatusFilterDoing)
 	if err != nil {
 		return 0, fmt.Errorf("failed to list active tickets: %w", err)
 	}
@@ -100,7 +101,7 @@ func (app *App) cleanOrphanedWorktrees(dryRun bool) (int, error) {
 			fmt.Printf("  Removing orphaned worktree: %s (branch: %s)\n", wt.Path, wt.Branch)
 
 			if !dryRun {
-				if err := app.Git.RemoveWorktree(wt.Path); err != nil {
+				if err := app.Git.RemoveWorktree(ctx, wt.Path); err != nil {
 					fmt.Printf("  Warning: Failed to remove worktree %s: %v\n", wt.Path, err)
 				} else {
 					cleaned++
@@ -116,11 +117,11 @@ func (app *App) cleanOrphanedWorktrees(dryRun bool) (int, error) {
 }
 
 // cleanStaleBranches removes branches for done tickets
-func (app *App) cleanStaleBranches(dryRun bool) (int, error) {
+func (app *App) cleanStaleBranches(ctx context.Context, dryRun bool) (int, error) {
 	fmt.Println("\nCleaning stale branches...")
 
 	// Get all branches
-	output, err := app.Git.Exec("branch", "--format=%(refname:short)")
+	output, err := app.Git.Exec(ctx, "branch", "--format=%(refname:short)")
 	if err != nil {
 		return 0, fmt.Errorf("failed to list branches: %w", err)
 	}
@@ -129,7 +130,7 @@ func (app *App) cleanStaleBranches(dryRun bool) (int, error) {
 
 	// Get all tickets (including done ones)
 	// Pass StatusFilterAll to include done tickets
-	allTickets, err := app.Manager.List(ticket.StatusFilterAll)
+	allTickets, err := app.Manager.List(ctx, ticket.StatusFilterAll)
 	if err != nil {
 		return 0, fmt.Errorf("failed to list tickets: %w", err)
 	}
@@ -155,7 +156,7 @@ func (app *App) cleanStaleBranches(dryRun bool) (int, error) {
 
 				if !dryRun {
 					// Delete local branch (force delete to avoid warnings)
-					if _, err := app.Git.Exec("branch", "-D", branch); err != nil {
+					if _, err := app.Git.Exec(ctx, "branch", "-D", branch); err != nil {
 						fmt.Printf("  Warning: Failed to delete branch %s: %v\n", branch, err)
 					} else {
 						cleaned++
@@ -172,20 +173,20 @@ func (app *App) cleanStaleBranches(dryRun bool) (int, error) {
 }
 
 // CleanupStats shows what would be cleaned up
-func (app *App) CleanupStats() error {
+func (app *App) CleanupStats(ctx context.Context) error {
 	fmt.Println("Cleanup Statistics:")
 	fmt.Println("==================")
 
 	// Done tickets statistics
-	doneTickets, err := app.Manager.List(ticket.StatusFilterDone)
+	doneTickets, err := app.Manager.List(ctx, ticket.StatusFilterDone)
 	if err == nil {
 		fmt.Printf("\nDone tickets: %d\n", len(doneTickets))
 	}
 
 	// Worktree statistics
 	if app.Config.Worktree.Enabled {
-		worktrees, err := app.Git.ListWorktrees()
-		activeTickets, _ := app.Manager.List(ticket.StatusFilterDoing)
+		worktrees, err := app.Git.ListWorktrees(ctx)
+		activeTickets, _ := app.Manager.List(ctx, ticket.StatusFilterDoing)
 
 		if err == nil {
 			activeMap := make(map[string]bool)
@@ -204,10 +205,10 @@ func (app *App) CleanupStats() error {
 	}
 
 	// Branch statistics
-	output, err := app.Git.Exec("branch", "--format=%(refname:short)")
+	output, err := app.Git.Exec(ctx, "branch", "--format=%(refname:short)")
 	if err == nil {
 		branches := splitLines(output)
-		allTickets, _ := app.Manager.List(ticket.StatusFilterAll)
+		allTickets, _ := app.Manager.List(ctx, ticket.StatusFilterAll)
 
 		ticketStatus := make(map[string]ticket.Status)
 		for _, t := range allTickets {

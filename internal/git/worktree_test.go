@@ -1,6 +1,7 @@
 package git
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -13,15 +14,16 @@ import (
 func setupTestGitRepo(t *testing.T) (*Git, string) {
 	tmpDir := t.TempDir()
 	git := New(tmpDir)
+	ctx := context.Background()
 
 	// Initialize repo
-	_, err := git.Exec("init")
+	_, err := git.Exec(ctx, "init")
 	require.NoError(t, err)
 
 	// Set git config
-	_, err = git.Exec("config", "user.name", "Test User")
+	_, err = git.Exec(ctx, "config", "user.name", "Test User")
 	require.NoError(t, err)
-	_, err = git.Exec("config", "user.email", "test@example.com")
+	_, err = git.Exec(ctx, "config", "user.email", "test@example.com")
 	require.NoError(t, err)
 
 	// Create initial commit
@@ -29,9 +31,9 @@ func setupTestGitRepo(t *testing.T) (*Git, string) {
 	err = os.WriteFile(readmePath, []byte("# Test\n"), 0644)
 	require.NoError(t, err)
 
-	_, err = git.Exec("add", "README.md")
+	_, err = git.Exec(ctx, "add", "README.md")
 	require.NoError(t, err)
-	_, err = git.Exec("commit", "-m", "Initial commit")
+	_, err = git.Exec(ctx, "commit", "-m", "Initial commit")
 	require.NoError(t, err)
 
 	return git, tmpDir
@@ -39,10 +41,11 @@ func setupTestGitRepo(t *testing.T) (*Git, string) {
 
 func TestAddWorktree(t *testing.T) {
 	git, tmpDir := setupTestGitRepo(t)
+	ctx := context.Background()
 
 	// Add a worktree
 	worktreePath := filepath.Join(tmpDir, ".worktrees", "test-branch")
-	err := git.AddWorktree(worktreePath, "test-branch")
+	err := git.AddWorktree(ctx, worktreePath, "test-branch")
 	require.NoError(t, err)
 
 	// Verify worktree exists
@@ -50,7 +53,7 @@ func TestAddWorktree(t *testing.T) {
 	require.NoError(t, err)
 
 	// Verify worktree is in list
-	worktrees, err := git.ListWorktrees()
+	worktrees, err := git.ListWorktrees(ctx)
 	require.NoError(t, err)
 	assert.Len(t, worktrees, 2) // main + new worktree
 
@@ -73,9 +76,10 @@ func TestAddWorktree(t *testing.T) {
 
 func TestListWorktrees(t *testing.T) {
 	git, tmpDir := setupTestGitRepo(t)
+	ctx := context.Background()
 
 	// Initially should have just the main worktree
-	worktrees, err := git.ListWorktrees()
+	worktrees, err := git.ListWorktrees(ctx)
 	require.NoError(t, err)
 	assert.Len(t, worktrees, 1)
 	// Resolve symlinks before comparing paths (macOS compatibility)
@@ -89,35 +93,36 @@ func TestListWorktrees(t *testing.T) {
 	for i := 1; i <= 3; i++ {
 		branch := fmt.Sprintf("feature-%d", i)
 		path := filepath.Join(tmpDir, ".worktrees", branch)
-		err := git.AddWorktree(path, branch)
+		err := git.AddWorktree(ctx, path, branch)
 		require.NoError(t, err)
 	}
 
 	// Should now have 4 worktrees
-	worktrees, err = git.ListWorktrees()
+	worktrees, err = git.ListWorktrees(ctx)
 	require.NoError(t, err)
 	assert.Len(t, worktrees, 4)
 }
 
 func TestRemoveWorktree(t *testing.T) {
 	git, tmpDir := setupTestGitRepo(t)
+	ctx := context.Background()
 
 	// Add a worktree
 	worktreePath := filepath.Join(tmpDir, ".worktrees", "temp-branch")
-	err := git.AddWorktree(worktreePath, "temp-branch")
+	err := git.AddWorktree(ctx, worktreePath, "temp-branch")
 	require.NoError(t, err)
 
 	// Verify it exists
-	worktrees, err := git.ListWorktrees()
+	worktrees, err := git.ListWorktrees(ctx)
 	require.NoError(t, err)
 	assert.Len(t, worktrees, 2)
 
 	// Remove the worktree
-	err = git.RemoveWorktree(worktreePath)
+	err = git.RemoveWorktree(ctx, worktreePath)
 	require.NoError(t, err)
 
 	// Verify it's gone
-	worktrees, err = git.ListWorktrees()
+	worktrees, err = git.ListWorktrees(ctx)
 	require.NoError(t, err)
 	assert.Len(t, worktrees, 1)
 
@@ -128,15 +133,16 @@ func TestRemoveWorktree(t *testing.T) {
 
 func TestFindWorktreeByBranch(t *testing.T) {
 	git, tmpDir := setupTestGitRepo(t)
+	ctx := context.Background()
 
 	// Add a worktree
 	branch := "find-me"
 	worktreePath := filepath.Join(tmpDir, ".worktrees", branch)
-	err := git.AddWorktree(worktreePath, branch)
+	err := git.AddWorktree(ctx, worktreePath, branch)
 	require.NoError(t, err)
 
 	// Find it by branch
-	wt, err := git.FindWorktreeByBranch(branch)
+	wt, err := git.FindWorktreeByBranch(ctx, branch)
 	require.NoError(t, err)
 	require.NotNil(t, wt)
 	assert.Equal(t, branch, wt.Branch)
@@ -148,37 +154,39 @@ func TestFindWorktreeByBranch(t *testing.T) {
 	assert.Equal(t, expectedPath, actualPath)
 
 	// Try to find non-existent branch
-	wt, err = git.FindWorktreeByBranch("non-existent")
+	wt, err = git.FindWorktreeByBranch(ctx, "non-existent")
 	require.NoError(t, err)
 	assert.Nil(t, wt)
 }
 
 func TestHasWorktree(t *testing.T) {
 	git, tmpDir := setupTestGitRepo(t)
+	ctx := context.Background()
 
 	// Initially no worktree for branch
-	has, err := git.HasWorktree("test-branch")
+	has, err := git.HasWorktree(ctx, "test-branch")
 	require.NoError(t, err)
 	assert.False(t, has)
 
 	// Add worktree
 	worktreePath := filepath.Join(tmpDir, ".worktrees", "test-branch")
-	err = git.AddWorktree(worktreePath, "test-branch")
+	err = git.AddWorktree(ctx, worktreePath, "test-branch")
 	require.NoError(t, err)
 
 	// Now should have worktree
-	has, err = git.HasWorktree("test-branch")
+	has, err = git.HasWorktree(ctx, "test-branch")
 	require.NoError(t, err)
 	assert.True(t, has)
 }
 
 func TestRunInWorktree(t *testing.T) {
 	git, tmpDir := setupTestGitRepo(t)
+	ctx := context.Background()
 
 	// Add a worktree
 	branch := "work-branch"
 	worktreePath := filepath.Join(tmpDir, ".worktrees", branch)
-	err := git.AddWorktree(worktreePath, branch)
+	err := git.AddWorktree(ctx, worktreePath, branch)
 	require.NoError(t, err)
 
 	// Create a file in the worktree
@@ -187,28 +195,29 @@ func TestRunInWorktree(t *testing.T) {
 	require.NoError(t, err)
 
 	// Run git status in the worktree
-	output, err := git.RunInWorktree(worktreePath, "status", "--porcelain")
+	output, err := git.RunInWorktree(ctx, worktreePath, "status", "--porcelain")
 	require.NoError(t, err)
 	assert.Contains(t, output, "test.txt")
 
 	// Add and commit in the worktree
-	_, err = git.RunInWorktree(worktreePath, "add", "test.txt")
+	_, err = git.RunInWorktree(ctx, worktreePath, "add", "test.txt")
 	require.NoError(t, err)
-	_, err = git.RunInWorktree(worktreePath, "commit", "-m", "Add test file")
+	_, err = git.RunInWorktree(ctx, worktreePath, "commit", "-m", "Add test file")
 	require.NoError(t, err)
 
 	// Verify the commit
-	output, err = git.RunInWorktree(worktreePath, "log", "--oneline", "-1")
+	output, err = git.RunInWorktree(ctx, worktreePath, "log", "--oneline", "-1")
 	require.NoError(t, err)
 	assert.Contains(t, output, "Add test file")
 }
 
 func TestPruneWorktrees(t *testing.T) {
 	git, tmpDir := setupTestGitRepo(t)
+	ctx := context.Background()
 
 	// Add a worktree
 	worktreePath := filepath.Join(tmpDir, ".worktrees", "prune-test")
-	err := git.AddWorktree(worktreePath, "prune-test")
+	err := git.AddWorktree(ctx, worktreePath, "prune-test")
 	require.NoError(t, err)
 
 	// Manually delete the worktree directory (simulating external deletion)
@@ -216,11 +225,11 @@ func TestPruneWorktrees(t *testing.T) {
 	require.NoError(t, err)
 
 	// Prune should clean up the stale reference
-	err = git.PruneWorktrees()
+	err = git.PruneWorktrees(ctx)
 	require.NoError(t, err)
 
 	// List should not include the deleted worktree
-	worktrees, err := git.ListWorktrees()
+	worktrees, err := git.ListWorktrees(ctx)
 	require.NoError(t, err)
 	for _, wt := range worktrees {
 		assert.NotEqual(t, "prune-test", wt.Branch)

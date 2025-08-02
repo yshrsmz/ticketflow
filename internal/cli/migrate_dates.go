@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -14,9 +15,9 @@ import (
 var rfc3339NanoRegex = regexp.MustCompile(`\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+`)
 
 // MigrateDates updates all ticket files to use standardized date format
-func (app *App) MigrateDates(dryRun bool) error {
+func (app *App) MigrateDates(ctx context.Context, dryRun bool) error {
 	// Get all tickets
-	tickets, err := app.Manager.List(ticket.StatusFilterAll)
+	tickets, err := app.Manager.List(ctx, ticket.StatusFilterAll)
 	if err != nil {
 		return fmt.Errorf("failed to list tickets: %w", err)
 	}

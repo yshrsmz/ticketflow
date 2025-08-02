@@ -91,6 +91,8 @@ These are displayed in `ticketflow version` command.
 
 1. Create a feature ticket: `ticketflow new my-feature`
 2. Start work (creates worktree): `ticketflow start <ticket-id>`
+   - You don't need to actually start work. just execute ticketflow command.
+   - Actual work is done by another Coding Agent by launching new editor
 3. Navigate to the worktree: `cd ../ticketflow.worktrees/<ticket-id>`
 4. Make changes in the worktree
 5. Run tests: `make test`

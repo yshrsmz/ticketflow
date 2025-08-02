@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/yshrsmz/ticketflow/internal/config"
 	"github.com/yshrsmz/ticketflow/internal/mocks"
 	"github.com/yshrsmz/ticketflow/internal/ticket"
@@ -117,7 +118,7 @@ func TestCheckWorkspaceForStart(t *testing.T) {
 			}
 
 			if !tt.worktreeEnabled {
-				mockGit.On("HasUncommittedChanges").Return(tt.hasUncommitted, tt.checkError)
+				mockGit.On("HasUncommittedChanges", mock.Anything).Return(tt.hasUncommitted, tt.checkError)
 			}
 
 			err := m.checkWorkspaceForStart()
@@ -191,7 +192,7 @@ func TestValidateTicketForClose(t *testing.T) {
 				manager: mockManager,
 			}
 
-			mockManager.On("GetCurrentTicket").Return(tt.currentTicket, tt.getError)
+			mockManager.On("GetCurrentTicket", mock.Anything).Return(tt.currentTicket, tt.getError)
 
 			err := m.validateTicketForClose(tt.targetTicket)
 
