@@ -28,14 +28,14 @@ This was identified by Copilot during PR #29 review:
 ## Tasks
 Make sure to update task status when you finish it. Also, always create a commit for each task you finished.
 
-- [ ] Analyze the current command parsing patterns in `runCLI()`
-- [ ] Design a command registration system or helper functions
-- [ ] Extract common flag parsing and logging configuration logic
-- [ ] Refactor each command to use the new pattern
-- [ ] Ensure backward compatibility with existing CLI interface
-- [ ] Run `make test` to run the tests
-- [ ] Run `make vet`, `make fmt` and `make lint`
-- [ ] Update documentation if necessary
+- [x] Analyze the current command parsing patterns in `runCLI()`
+- [x] Design a command registration system or helper functions
+- [x] Extract common flag parsing and logging configuration logic
+- [x] Refactor each command to use the new pattern
+- [x] Ensure backward compatibility with existing CLI interface
+- [x] Run `make test` to run the tests
+- [x] Run `make vet`, `make fmt` and `make lint`
+- [x] Update documentation if necessary
 - [ ] Get developer approval before closing
 
 ## Proposed Approach
