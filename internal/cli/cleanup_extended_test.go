@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -86,16 +85,9 @@ func TestAutoCleanup(t *testing.T) {
 				g.On("Exec", mock.Anything, "branch", "--format=%(refname:short)").Return("main\n250101-120000-old-feature\n250102-120000-active-feature\n250103-120000-done-ticket", nil)
 				// cleanStaleBranches calls List with "all" to get all tickets
 				// Create tickets with proper Status() method
-				doneTime1, _ := time.Parse(time.RFC3339, "2025-01-01T14:00:00Z")
-				doneTime3, _ := time.Parse(time.RFC3339, "2025-01-01T15:00:00Z")
-				startTime, _ := time.Parse(time.RFC3339, "2025-01-01T13:00:00Z")
-				
-				doneTicket1 := ticket.Ticket{ID: "250101-120000-old-feature"}
-				doneTicket1.ClosedAt = ticket.RFC3339TimePtr{Time: &doneTime1}
-				doneTicket3 := ticket.Ticket{ID: "250103-120000-done-ticket"}
-				doneTicket3.ClosedAt = ticket.RFC3339TimePtr{Time: &doneTime3}
-				activeTicket := ticket.Ticket{ID: "250102-120000-active-feature"}
-				activeTicket.StartedAt = ticket.RFC3339TimePtr{Time: &startTime}
+				doneTicket1 := createDoneTicket("250101-120000-old-feature", testTime(t, "2025-01-01T14:00:00Z"))
+				doneTicket3 := createDoneTicket("250103-120000-done-ticket", testTime(t, "2025-01-01T15:00:00Z"))
+				activeTicket := createDoingTicket("250102-120000-active-feature", testTime(t, "2025-01-01T13:00:00Z"))
 				
 				m.On("List", mock.Anything, ticket.StatusFilterAll).Return([]ticket.Ticket{
 					doneTicket1,
@@ -106,8 +98,8 @@ func TestAutoCleanup(t *testing.T) {
 				g.On("Exec", mock.Anything, "branch", "-D", "250103-120000-done-ticket").Return("", nil)
 			},
 			expectedResult: &CleanupResult{
-				OrphanedWorktrees: 1,  // Only old-feature worktree is orphaned (not in doing status)
-				StaleBranches:     2,  // Two done tickets will have their branches removed
+				OrphanedWorktrees: orphanedWorktreeCount,  // Only old-feature worktree is orphaned (not in doing status)
+				StaleBranches:     staleBranchCount,  // Two done tickets will have their branches removed
 				Errors:            []string{},
 			},
 			expectedError: false,
@@ -124,9 +116,7 @@ func TestAutoCleanup(t *testing.T) {
 
 				g.On("Exec", mock.Anything, "branch", "--format=%(refname:short)").Return("main\n250101-120000-orphaned\n250102-120000-done-ticket", nil)
 				// Create a done ticket for branch cleanup
-				doneTime, _ := time.Parse(time.RFC3339, "2025-01-01T14:00:00Z")
-				doneTicket := ticket.Ticket{ID: "250102-120000-done-ticket"}
-				doneTicket.ClosedAt = ticket.RFC3339TimePtr{Time: &doneTime}
+				doneTicket := createDoneTicket("250102-120000-done-ticket", testTime(t, "2025-01-01T14:00:00Z"))
 				m.On("List", mock.Anything, ticket.StatusFilterAll).Return([]ticket.Ticket{
 					doneTicket,
 				}, nil)
@@ -148,9 +138,7 @@ func TestAutoCleanup(t *testing.T) {
 				// Only stale branch cleanup should run
 				g.On("Exec", mock.Anything, "branch", "--format=%(refname:short)").Return("main\n250101-120000-done-ticket", nil)
 				// Create a done ticket for branch cleanup
-				doneTime, _ := time.Parse(time.RFC3339, "2025-01-01T14:00:00Z")
-				doneTicket := ticket.Ticket{ID: "250101-120000-done-ticket"}
-				doneTicket.ClosedAt = ticket.RFC3339TimePtr{Time: &doneTime}
+				doneTicket := createDoneTicket("250101-120000-done-ticket", testTime(t, "2025-01-01T14:00:00Z"))
 				m.On("List", mock.Anything, ticket.StatusFilterAll).Return([]ticket.Ticket{
 					doneTicket,
 				}, nil)
@@ -188,21 +176,12 @@ func TestAutoCleanup(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
 			
-			mockGit := new(mocks.MockGitClient)
-			mockManager := new(mocks.MockTicketManager)
+			fixture := newTestFixture(t)
+			fixture.config.Worktree.Enabled = tt.worktreeEnabled
 
-			cfg := config.Default()
-			cfg.Worktree.Enabled = tt.worktreeEnabled
+			tt.setupMocks(fixture.mockGit, fixture.mockManager)
 
-			app := &App{
-				Config:  cfg,
-				Git:     mockGit,
-				Manager: mockManager,
-			}
-
-			tt.setupMocks(mockGit, mockManager)
-
-			result, err := app.AutoCleanup(ctx, tt.dryRun)
+			result, err := fixture.app.AutoCleanup(ctx, tt.dryRun)
 
 			if tt.expectedError {
 				assert.Error(t, err)
@@ -213,8 +192,7 @@ func TestAutoCleanup(t *testing.T) {
 				assert.Equal(t, len(tt.expectedResult.Errors), len(result.Errors))
 			}
 
-			mockGit.AssertExpectations(t)
-			mockManager.AssertExpectations(t)
+			fixture.assertMocks(t)
 		})
 	}
 }
@@ -283,19 +261,12 @@ func TestCleanOrphanedWorktrees(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
 			
-			mockGit := new(mocks.MockGitClient)
-			mockManager := new(mocks.MockTicketManager)
-
-			app := &App{
-				Config:  config.Default(),
-				Git:     mockGit,
-				Manager: mockManager,
-			}
+			fixture := newTestFixture(t)
 
 			// Setup mocks
-			mockGit.On("ListWorktrees", mock.Anything).Return(tt.worktrees, nil)
-			mockGit.On("PruneWorktrees", mock.Anything).Return(nil)
-			mockManager.On("List", mock.Anything, ticket.StatusFilterDoing).Return(tt.activeTickets, nil)
+			fixture.mockGit.On("ListWorktrees", mock.Anything).Return(tt.worktrees, nil)
+			fixture.mockGit.On("PruneWorktrees", mock.Anything).Return(nil)
+			fixture.mockManager.On("List", mock.Anything, ticket.StatusFilterDoing).Return(tt.activeTickets, nil)
 
 			// Setup removal mocks for orphaned worktrees
 			if !tt.dryRun {
@@ -306,7 +277,7 @@ func TestCleanOrphanedWorktrees(t *testing.T) {
 				}
 				
 				// Default branch from config
-				defaultBranch := app.Config.Git.DefaultBranch
+				defaultBranch := fixture.config.Git.DefaultBranch
 				
 				for _, wt := range tt.worktrees {
 					// Skip empty or default branch (matches the actual logic)
@@ -315,12 +286,12 @@ func TestCleanOrphanedWorktrees(t *testing.T) {
 					}
 					// If not in active map, it will be removed
 					if !activeMap[wt.Branch] {
-						mockGit.On("RemoveWorktree", mock.Anything, wt.Path).Return(nil)
+						fixture.mockGit.On("RemoveWorktree", mock.Anything, wt.Path).Return(nil)
 					}
 				}
 			}
 
-			count, err := app.cleanOrphanedWorktrees(ctx, tt.dryRun)
+			count, err := fixture.app.cleanOrphanedWorktrees(ctx, tt.dryRun)
 
 			if tt.expectedError {
 				assert.Error(t, err)
@@ -329,8 +300,7 @@ func TestCleanOrphanedWorktrees(t *testing.T) {
 				assert.Equal(t, tt.expectedCount, count)
 			}
 
-			mockGit.AssertExpectations(t)
-			mockManager.AssertExpectations(t)
+			fixture.assertMocks(t)
 		})
 	}
 }
@@ -391,9 +361,7 @@ func TestCleanupStats(t *testing.T) {
 			name: "display cleanup stats",
 			setupMocks: func(g *mocks.MockGitClient, m *mocks.MockTicketManager) {
 				// Mock done tickets
-				doneTime, _ := time.Parse(time.RFC3339, "2025-01-01T14:00:00Z")
-				doneTicket := ticket.Ticket{ID: "250101-120000-done-ticket"}
-				doneTicket.ClosedAt = ticket.RFC3339TimePtr{Time: &doneTime}
+				doneTicket := createDoneTicket("250101-120000-done-ticket", testTime(t, "2025-01-01T14:00:00Z"))
 				m.On("List", mock.Anything, ticket.StatusFilterDone).Return([]ticket.Ticket{doneTicket}, nil)
 
 				// Mock worktree stats

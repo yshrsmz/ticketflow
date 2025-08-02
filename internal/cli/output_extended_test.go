@@ -275,6 +275,7 @@ func BenchmarkFormatDuration(b *testing.B) {
 		73*time.Hour + 45*time.Minute,
 	}
 
+	b.ReportAllocs() // Report memory allocations
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		for _, d := range durations {
@@ -298,6 +299,7 @@ func BenchmarkTicketToJSON(b *testing.B) {
 		Content:     "# Benchmark Test\n\nThis is a longer content to simulate real ticket data.\n\n## Tasks\n- [ ] Task 1\n- [ ] Task 2",
 	}
 
+	b.ReportAllocs() // Report memory allocations
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_ = ticketToJSON(testTicket, "")
@@ -307,6 +309,7 @@ func BenchmarkTicketToJSON(b *testing.B) {
 func BenchmarkParseOutputFormat(b *testing.B) {
 	formats := []string{"json", "JSON", "text", "TEXT", "", "invalid", "yaml"}
 
+	b.ReportAllocs() // Report memory allocations
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		for _, format := range formats {

@@ -92,21 +92,24 @@ func TestHandleError(t *testing.T) {
 
 func TestHandleCLIError_EnvironmentVariable(t *testing.T) {
 	// Test that environment variable overrides format
-	err := NewError(
+	testErr := NewError(
 		ErrConfigNotFound,
 		"Configuration not found",
 		"",
 		nil,
 	)
 
-	// Set environment variable
-	oldEnv := os.Getenv("TICKETFLOW_OUTPUT_FORMAT")
-	os.Setenv("TICKETFLOW_OUTPUT_FORMAT", "json")
-	defer os.Setenv("TICKETFLOW_OUTPUT_FORMAT", oldEnv)
+	// Set environment variable using t.Setenv for automatic cleanup
+	t.Setenv("TICKETFLOW_OUTPUT_FORMAT", "json")
 
 	// Capture stderr
 	oldStderr := os.Stderr
-	r, w, _ := os.Pipe()
+	r, w, err := os.Pipe()
+	require.NoError(t, err)
+	defer func() {
+		os.Stderr = oldStderr
+		r.Close()
+	}()
 	os.Stderr = w
 
 	// Ensure global format is text (to test env override)
@@ -114,7 +117,7 @@ func TestHandleCLIError_EnvironmentVariable(t *testing.T) {
 	GlobalOutputFormat = FormatText
 	defer func() { GlobalOutputFormat = oldFormat }()
 
-	handleCLIError(err)
+	handleCLIError(testErr)
 
 	w.Close()
 	os.Stderr = oldStderr

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -14,11 +13,12 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/yshrsmz/ticketflow/internal/config"
 	"github.com/yshrsmz/ticketflow/internal/ticket"
 )
 
 func TestHandleInit(t *testing.T) {
+	t.Parallel() // Safe since each test uses its own temp directory
+	
 	// Create a temporary directory for the test
 	tmpDir := t.TempDir()
 	oldDir, err := os.Getwd()
@@ -50,6 +50,8 @@ func TestHandleInit(t *testing.T) {
 }
 
 func TestHandleNew(t *testing.T) {
+	t.Parallel()
+	
 	tests := []struct {
 		name          string
 		slug          string
@@ -113,19 +115,22 @@ func TestHandleNew(t *testing.T) {
 			// Capture output for JSON format
 			if tt.format == "json" {
 				oldStdout := os.Stdout
-				r, w, _ := os.Pipe()
+				r, w, err := os.Pipe()
+				require.NoError(t, err)
+				defer func() {
+					os.Stdout = oldStdout
+					r.Close()
+				}()
 				os.Stdout = w
 
 				// Run the command
 				err = handleNew(ctx, tt.slug, tt.format)
 				
-				// Restore stdout and read output
+				// Close write end and read output
 				w.Close()
-				os.Stdout = oldStdout
 				
 				var buf bytes.Buffer
 				_, _ = io.Copy(&buf, r)
-				r.Close()
 
 				// For JSON format, verify output structure
 				if !tt.expectedError {
@@ -156,6 +161,8 @@ func TestHandleNew(t *testing.T) {
 }
 
 func TestHandleList(t *testing.T) {
+	t.Parallel()
+	
 	tests := []struct {
 		name          string
 		status        string
@@ -226,6 +233,8 @@ func TestHandleList(t *testing.T) {
 }
 
 func TestHandleShow(t *testing.T) {
+	t.Parallel()
+	
 	tests := []struct {
 		name          string
 		ticketID      string
@@ -276,14 +285,18 @@ func TestHandleShow(t *testing.T) {
 
 			// Capture output
 			oldStdout := os.Stdout
-			r, w, _ := os.Pipe()
+			r, w, err := os.Pipe()
+			require.NoError(t, err)
+			defer func() {
+				os.Stdout = oldStdout
+				r.Close()
+			}()
 			os.Stdout = w
 			
 			ctx := context.Background()
 			err = handleShow(ctx, ticketID, tt.format)
 			
 			w.Close()
-			os.Stdout = oldStdout
 			
 			var buf bytes.Buffer
 			_, _ = io.Copy(&buf, r)
@@ -315,6 +328,8 @@ func TestHandleShow(t *testing.T) {
 }
 
 func TestHandleStart(t *testing.T) {
+	t.Parallel()
+	
 	tests := []struct {
 		name          string
 		ticketID      string
@@ -373,6 +388,8 @@ func TestHandleStart(t *testing.T) {
 }
 
 func TestHandleClose(t *testing.T) {
+	t.Parallel()
+	
 	tests := []struct {
 		name          string
 		noPush        bool
@@ -430,6 +447,8 @@ func TestHandleClose(t *testing.T) {
 }
 
 func TestIsValidStatus(t *testing.T) {
+	t.Parallel()
+	
 	tests := []struct {
 		status   ticket.Status
 		expected bool
@@ -451,6 +470,8 @@ func TestIsValidStatus(t *testing.T) {
 }
 
 func TestOutputJSON(t *testing.T) {
+	t.Parallel()
+	
 	tests := []struct {
 		name     string
 		data     interface{}
@@ -479,13 +500,17 @@ func TestOutputJSON(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Capture stdout
 			oldStdout := os.Stdout
-			r, w, _ := os.Pipe()
+			r, w, err := os.Pipe()
+			require.NoError(t, err)
+			defer func() {
+				os.Stdout = oldStdout
+				r.Close()
+			}()
 			os.Stdout = w
 
-			err := outputJSON(tt.data)
+			err = outputJSON(tt.data)
 			
 			w.Close()
-			os.Stdout = oldStdout
 			
 			assert.NoError(t, err)
 			
@@ -498,201 +523,3 @@ func TestOutputJSON(t *testing.T) {
 	}
 }
 
-// Helper functions for test setup
-
-func setupTestRepo(t *testing.T, tmpDir string) {
-	// Initialize git repo
-	cmd := exec.Command("git", "init")
-	err := cmd.Run()
-	require.NoError(t, err)
-
-	// Create config file
-	cfg := config.Default()
-	cfg.Git.DefaultBranch = "main"
-	cfg.Worktree.Enabled = false
-	
-	// Create config YAML content
-	configContent := `git:
-  default_branch: main
-worktree:
-  enabled: false
-  base_dir: ../ticketflow.worktrees
-tickets:
-  dir: tickets
-  todo_dir: todo
-  doing_dir: doing
-  done_dir: done
-output:
-  default_format: text
-`
-	
-	err = os.WriteFile(filepath.Join(tmpDir, ".ticketflow.yaml"), []byte(configContent), 0644)
-	require.NoError(t, err)
-
-	// Create directories
-	for _, dir := range []string{"tickets/todo", "tickets/doing", "tickets/done"} {
-		err = os.MkdirAll(filepath.Join(tmpDir, dir), 0755)
-		require.NoError(t, err)
-	}
-
-	// Create empty .current file
-	err = os.WriteFile(filepath.Join(tmpDir, "tickets", ".current"), []byte(""), 0644)
-	require.NoError(t, err)
-
-	// Configure git
-	cmd = exec.Command("git", "config", "user.name", "Test User")
-	cmd.Run()
-	cmd = exec.Command("git", "config", "user.email", "test@example.com")
-	cmd.Run()
-
-	// Create initial commit
-	cmd = exec.Command("git", "add", ".")
-	err = cmd.Run()
-	require.NoError(t, err)
-
-	cmd = exec.Command("git", "commit", "-m", "Initial commit")
-	err = cmd.Run()
-	require.NoError(t, err)
-}
-
-func setupTestRepoWithTickets(t *testing.T, tmpDir string) {
-	setupTestRepo(t, tmpDir)
-
-	// Create some test tickets
-	tickets := []struct {
-		id     string
-		status string
-	}{
-		{"250101-120000-test-1", "todo"},
-		{"250102-120000-test-2", "todo"},
-		{"250103-120000-test-3", "doing"},
-		{"250104-120000-test-4", "done"},
-	}
-
-	for _, tc := range tickets {
-		var content string
-		switch tc.status {
-		case "todo":
-			content = fmt.Sprintf(`---
-priority: 2
-created_at: 2025-01-01T12:00:00Z
----
-
-# Test Ticket %s
-
-This is a test ticket.
-`, tc.id)
-		case "doing":
-			content = fmt.Sprintf(`---
-priority: 2
-created_at: 2025-01-01T12:00:00Z
-started_at: 2025-01-01T13:00:00Z
----
-
-# Test Ticket %s
-
-This is a test ticket in progress.
-`, tc.id)
-		case "done":
-			content = fmt.Sprintf(`---
-priority: 2
-created_at: 2025-01-01T12:00:00Z
-started_at: 2025-01-01T13:00:00Z
-closed_at: 2025-01-01T14:00:00Z
----
-
-# Test Ticket %s
-
-This is a completed test ticket.
-`, tc.id)
-		}
-
-		path := filepath.Join(tmpDir, "tickets", tc.status, tc.id+".md")
-		err := os.WriteFile(path, []byte(content), 0644)
-		require.NoError(t, err)
-	}
-
-	// Commit all tickets
-	cmd := exec.Command("git", "add", ".")
-	err := cmd.Run()
-	require.NoError(t, err)
-
-	cmd = exec.Command("git", "commit", "-m", "Add test tickets")
-	err = cmd.Run()
-	require.NoError(t, err)
-}
-
-func setupTestRepoWithTicket(t *testing.T, tmpDir string) string {
-	setupTestRepo(t, tmpDir)
-
-	ticketID := "250101-120000-test-feature"
-	content := `---
-priority: 2
-created_at: 2025-01-01T12:00:00Z
----
-
-# Test Feature
-
-This is a test ticket for testing show command.
-`
-
-	path := filepath.Join(tmpDir, "tickets", "todo", ticketID+".md")
-	err := os.WriteFile(path, []byte(content), 0644)
-	require.NoError(t, err)
-
-	// Commit the ticket
-	cmd := exec.Command("git", "add", path)
-	err = cmd.Run()
-	require.NoError(t, err)
-
-	cmd = exec.Command("git", "commit", "-m", "Add test ticket")
-	err = cmd.Run()
-	require.NoError(t, err)
-
-	return ticketID
-}
-
-func setupTestRepoWithStartedTicket(t *testing.T, tmpDir string) string {
-	// Start fresh without calling setupTestRepoWithTicket to avoid conflicts
-	setupTestRepo(t, tmpDir)
-
-	ticketID := "250101-120000-test-feature"
-	
-	// Create and checkout the feature branch
-	cmd := exec.Command("git", "checkout", "-b", ticketID)
-	err := cmd.Run()
-	require.NoError(t, err)
-	
-	// Create ticket directly in doing status
-	content := `---
-priority: 2
-created_at: 2025-01-01T12:00:00Z
-started_at: 2025-01-01T13:00:00Z
----
-
-# Test Feature
-
-This is a test ticket that has been started.
-`
-
-	path := filepath.Join(tmpDir, "tickets", "doing", ticketID+".md")
-	err = os.WriteFile(path, []byte(content), 0644)
-	require.NoError(t, err)
-
-	// Set as current ticket - create symlink
-	linkPath := filepath.Join(tmpDir, "current-ticket.md")
-	targetPath := filepath.Join("tickets", "doing", ticketID+".md")
-	err = os.Symlink(targetPath, linkPath)
-	require.NoError(t, err)
-
-	// Commit the changes
-	cmd = exec.Command("git", "add", ".")
-	err = cmd.Run()
-	require.NoError(t, err)
-
-	cmd = exec.Command("git", "commit", "-m", "Add started ticket")
-	err = cmd.Run()
-	require.NoError(t, err)
-
-	return ticketID
-}
