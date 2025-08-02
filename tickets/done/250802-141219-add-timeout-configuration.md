@@ -3,7 +3,7 @@ priority: 2
 description: Implement configurable timeouts for operations
 created_at: "2025-08-02T14:12:19+09:00"
 started_at: "2025-08-02T17:20:34+09:00"
-closed_at: null
+closed_at: "2025-08-02T18:09:19+09:00"
 related:
     - parent:250801-003206-add-context-support
 ---
