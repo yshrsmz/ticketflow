@@ -27,7 +27,11 @@ var (
 )
 
 func main() {
-	// Set up signal handling with context
+	// Set up graceful shutdown handling:
+	// - Catches SIGINT (Ctrl+C) and SIGTERM signals
+	// - Context cancellation propagates through all operations
+	// - Git operations using exec.CommandContext will be terminated
+	// - Returns exit code 130 (standard for SIGINT) on interruption
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
