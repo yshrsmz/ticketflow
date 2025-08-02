@@ -60,7 +60,11 @@ jobs:
         
         # Generate detailed coverage by package
         echo "COVERAGE_DETAILS<<EOF" >> $GITHUB_ENV
-        go tool cover -func=coverage.out | grep -v "total:" | awk -F'\t' '{gsub(/\t+/, "\t"); if(NF >= 3) printf "| %-80s | %7s |\n", $$1" "$$2, $$3}' | sort >> $GITHUB_ENV
+        go tool cover -func=coverage.out | grep -v "total:" | while IFS=$'\t' read -r file func coverage; do
+          if [[ -n "$coverage" ]]; then
+            printf "| %-80s %-20s | %7s |\n" "$file" "$func" "$coverage"
+          fi
+        done | sort >> $GITHUB_ENV
         echo "EOF" >> $GITHUB_ENV
 
     - name: Post coverage comment
