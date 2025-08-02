@@ -1,11 +1,11 @@
 ---
 priority: 2
-description: "Improve test coverage with comprehensive unit tests, table-driven tests, and benchmarks"
+description: Improve test coverage with comprehensive unit tests, table-driven tests, and benchmarks
 created_at: "2025-08-01T00:32:07+09:00"
-started_at: null
+started_at: "2025-08-02T23:45:43+09:00"
 closed_at: null
 related:
-  - parent:250801-002917-extract-interfaces-for-testability
+    - parent:250801-002917-extract-interfaces-for-testability
 ---
 
 # Improve Test Coverage
