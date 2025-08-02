@@ -352,6 +352,49 @@ Check version and build info:
 ticketflow version
 ```
 
+## Implementation Details
+
+### Graceful Shutdown
+
+TicketFlow implements proper signal handling for graceful shutdown:
+
+**Signal Handling:**
+- Catches SIGINT (Ctrl+C) and SIGTERM signals using `signal.NotifyContext`
+- Propagates context cancellation through all operations
+- Returns exit code 130 (standard for SIGINT) when interrupted
+- Displays "Operation cancelled" message to user
+
+**Implementation Pattern:**
+```go
+// In main.go
+ctx, stop := signal.NotifyContext(context.Background(), 
+    syscall.SIGINT, syscall.SIGTERM)
+defer stop()
+
+// Context flows through all operations
+if err := runCLI(ctx); err != nil {
+    if ctx.Err() != nil {
+        fmt.Fprintf(os.Stderr, "\nOperation cancelled\n")
+        os.Exit(130) // Standard exit code for SIGINT
+    }
+    // handle other errors
+}
+```
+
+**Behavior:**
+- All git operations use `exec.CommandContext` for proper cancellation
+- Long-running operations (like `init_commands`) respect context timeout
+- TUI mode has its own signal handling (Bubble Tea framework)
+- Most operations complete quickly, making interruption rarely needed
+
+### Context Propagation
+
+All CLI commands follow Go conventions for context handling:
+- Context is the first parameter in all functions
+- Proper error checking distinguishes cancellation from other errors
+- Git operations automatically terminate on context cancellation
+- Test functions use `context.Background()` for consistency
+
 ## Development
 
 ```bash
