@@ -36,18 +36,18 @@ Adding context support will:
 - [x] Implement context cancellation for git operations
 - [ ] Add context support to file I/O operations → See ticket: 250802-141140-add-context-file-io
 - [ ] Implement timeout handling for external commands → See ticket: 250802-141219-add-timeout-configuration
-- [ ] Add graceful shutdown handling
+- [ ] Add graceful shutdown handling → See ticket: 250802-142038-add-graceful-shutdown
 
 ### Specific Updates
 - [x] Update `exec.Command` calls to use `CommandContext`
-- [ ] Add context to long-running loops
+- [ ] Add context to long-running loops → See ticket: 250802-142038-add-graceful-shutdown
 - [x] Implement proper context propagation
 - [ ] Add timeout configuration options → See ticket: 250802-141219-add-timeout-configuration
 
 ### Quality Assurance
 - [ ] Add tests for cancellation behavior → See ticket: 250802-141200-add-context-cancellation-tests
 - [ ] Test timeout functionality → See ticket: 250802-141200-add-context-cancellation-tests
-- [ ] Verify graceful shutdown works correctly
+- [ ] Verify graceful shutdown works correctly → See ticket: 250802-142038-add-graceful-shutdown
 - [x] Run `make test` to run the tests
 - [x] Run `make vet`, `make fmt` and `make lint`
 - [ ] Update documentation if necessary
@@ -125,6 +125,7 @@ defer cancel()
 - **250802-141140-add-context-file-io**: Add context support to file I/O operations
 - **250802-141200-add-context-cancellation-tests**: Add comprehensive tests for cancellation behavior
 - **250802-141219-add-timeout-configuration**: Add timeout configuration support
+- **250802-142038-add-graceful-shutdown**: Implement graceful shutdown with signal handling
 
 ## Notes
 
