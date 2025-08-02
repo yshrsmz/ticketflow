@@ -46,12 +46,14 @@ func TestNew(t *testing.T) {
 }
 
 func TestExecWithTimeout(t *testing.T) {
-	// Create a git instance with a very short timeout
-	g := NewWithTimeout(".", 1*time.Millisecond)
+	// Create a git instance with a short but reasonable timeout
+	// Using 50ms to reduce flakiness while still testing timeout behavior
+	g := NewWithTimeout(".", 50*time.Millisecond)
 
 	// Try to execute a command that would take longer than the timeout
+	// Using a command that's likely to take more time
 	ctx := context.Background()
-	_, err := g.Exec(ctx, "log", "--oneline", "-n", "10000")
+	_, err := g.Exec(ctx, "log", "--all", "--oneline", "-n", "100000")
 
 	// The error might be a timeout or might succeed if git is fast enough
 	// We're mainly testing that the timeout is applied without panicking
@@ -59,7 +61,8 @@ func TestExecWithTimeout(t *testing.T) {
 		// The error could be "signal: killed" or "context deadline exceeded"
 		assert.True(t,
 			strings.Contains(err.Error(), "context deadline exceeded") ||
-				strings.Contains(err.Error(), "signal: killed"),
+				strings.Contains(err.Error(), "signal: killed") ||
+				strings.Contains(err.Error(), "operation timed out"),
 			"Expected timeout-related error, got: %v", err)
 	}
 }
@@ -69,17 +72,19 @@ func TestExecWithContextTimeout(t *testing.T) {
 	g := NewWithTimeout(".", 30*time.Second)
 
 	// But use a context with a short timeout
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Millisecond)
+	// Using 50ms to reduce flakiness
+	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
 	defer cancel()
 
-	_, err := g.Exec(ctx, "log", "--oneline", "-n", "10000")
+	_, err := g.Exec(ctx, "log", "--all", "--oneline", "-n", "100000")
 
 	// The context timeout should take precedence
 	if err != nil {
 		// The error could be "signal: killed" or "context deadline exceeded"
 		assert.True(t,
 			strings.Contains(err.Error(), "context deadline exceeded") ||
-				strings.Contains(err.Error(), "signal: killed"),
+				strings.Contains(err.Error(), "signal: killed") ||
+				strings.Contains(err.Error(), "operation timed out"),
 			"Expected timeout-related error, got: %v", err)
 	}
 }

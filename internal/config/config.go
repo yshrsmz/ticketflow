@@ -167,21 +167,11 @@ func (c *Config) Validate() error {
 	}
 
 	// Validate Timeouts config
-	if c.Timeouts.Git < 0 {
-		return ticketerrors.NewConfigError("timeouts.git", fmt.Sprintf("%d", c.Timeouts.Git), ticketerrors.ErrConfigInvalid)
+	if err := validateTimeout(c.Timeouts.Git, "timeouts.git"); err != nil {
+		return err
 	}
-	if c.Timeouts.Git > MaxTimeoutSeconds {
-		return ticketerrors.NewConfigError("timeouts.git",
-			fmt.Sprintf("%d exceeds maximum of %d seconds", c.Timeouts.Git, MaxTimeoutSeconds),
-			ticketerrors.ErrConfigInvalid)
-	}
-	if c.Timeouts.InitCommands < 0 {
-		return ticketerrors.NewConfigError("timeouts.init_commands", fmt.Sprintf("%d", c.Timeouts.InitCommands), ticketerrors.ErrConfigInvalid)
-	}
-	if c.Timeouts.InitCommands > MaxTimeoutSeconds {
-		return ticketerrors.NewConfigError("timeouts.init_commands",
-			fmt.Sprintf("%d exceeds maximum of %d seconds", c.Timeouts.InitCommands, MaxTimeoutSeconds),
-			ticketerrors.ErrConfigInvalid)
+	if err := validateTimeout(c.Timeouts.InitCommands, "timeouts.init_commands"); err != nil {
+		return err
 	}
 
 	return nil
@@ -232,4 +222,17 @@ func (c *Config) GetInitCommandsTimeout() time.Duration {
 		return DefaultInitCommandsTimeout
 	}
 	return time.Duration(c.Timeouts.InitCommands) * time.Second
+}
+
+// validateTimeout validates a timeout value is within acceptable range
+func validateTimeout(value int, fieldName string) error {
+	if value < 0 {
+		return ticketerrors.NewConfigError(fieldName, fmt.Sprintf("%d", value), ticketerrors.ErrConfigInvalid)
+	}
+	if value > MaxTimeoutSeconds {
+		return ticketerrors.NewConfigError(fieldName,
+			fmt.Sprintf("%d exceeds maximum of %d seconds", value, MaxTimeoutSeconds),
+			ticketerrors.ErrConfigInvalid)
+	}
+	return nil
 }

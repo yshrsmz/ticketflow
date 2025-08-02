@@ -29,16 +29,8 @@ func New(repoPath string) *Git {
 
 // NewWithTimeout creates a new Git instance with custom timeout
 func NewWithTimeout(repoPath string, timeout time.Duration) *Git {
-	// Use background context for initialization
-	root, err := FindProjectRoot(context.Background(), repoPath)
-	if err != nil {
-		// Not in a git repo or other error - Root will be empty
-		// and lazy initialization will be attempted in RootPath()
-		root = ""
-	}
 	return &Git{
 		repoPath: repoPath,
-		root:     root,
 		timeout:  timeout,
 	}
 }
@@ -172,16 +164,13 @@ func FindProjectRoot(ctx context.Context, startPath string) (string, error) {
 // RootPath returns the git repository root path (thread-safe)
 func (g *Git) RootPath() (string, error) {
 	g.rootOnce.Do(func() {
-		// Only initialize if not already set during construction
-		if g.root == "" {
-			// Use background context for lazy initialization
-			root, err := FindProjectRoot(context.Background(), g.repoPath)
-			if err != nil {
-				g.rootErr = err
-				return
-			}
-			g.root = root
+		// Use background context for lazy initialization
+		root, err := FindProjectRoot(context.Background(), g.repoPath)
+		if err != nil {
+			g.rootErr = err
+			return
 		}
+		g.root = root
 	})
 
 	if g.rootErr != nil {
