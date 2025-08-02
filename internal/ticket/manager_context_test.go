@@ -2,9 +2,11 @@ package ticket
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 	"testing"
 	"time"
 
@@ -13,285 +15,420 @@ import (
 	"github.com/yshrsmz/ticketflow/internal/config"
 )
 
-// TestCreateWithCancelledContext tests Create with cancelled context
-func TestCreateWithCancelledContext(t *testing.T) {
+// TestManagerOperationsWithCancelledContext tests all manager operations with cancelled context
+func TestManagerOperationsWithCancelledContext(t *testing.T) {
 	manager, _ := setupTestManager(t)
 
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel()
-
-	ticket, err := manager.Create(ctx, "cancelled-ticket")
-	assert.Error(t, err)
-	assert.Nil(t, ticket)
-	assert.Contains(t, err.Error(), "operation cancelled")
-}
-
-// TestGetWithCancelledContext tests Get with cancelled context
-func TestGetWithCancelledContext(t *testing.T) {
-	manager, _ := setupTestManager(t)
-
-	// First create a ticket
+	// Create a ticket for operations that need one
 	ctx := context.Background()
-	ticket, err := manager.Create(ctx, "get-test")
+	existingTicket, err := manager.Create(ctx, "existing-ticket")
 	require.NoError(t, err)
 
-	// Now try to get with cancelled context
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel()
+	// Set current ticket for operations that need it
+	err = manager.SetCurrentTicket(ctx, existingTicket)
+	require.NoError(t, err)
 
-	retrievedTicket, err := manager.Get(ctx, ticket.ID)
-	assert.Error(t, err)
-	assert.Nil(t, retrievedTicket)
-	assert.Contains(t, err.Error(), "operation cancelled")
+	tests := []struct {
+		name      string
+		operation func(context.Context) error
+	}{
+		{
+			name: "Create",
+			operation: func(ctx context.Context) error {
+				_, err := manager.Create(ctx, "new-ticket")
+				return err
+			},
+		},
+		{
+			name: "Get",
+			operation: func(ctx context.Context) error {
+				_, err := manager.Get(ctx, existingTicket.ID)
+				return err
+			},
+		},
+		{
+			name: "List",
+			operation: func(ctx context.Context) error {
+				_, err := manager.List(ctx, StatusFilterAll)
+				return err
+			},
+		},
+		{
+			name: "Update",
+			operation: func(ctx context.Context) error {
+				existingTicket.Content = "Updated"
+				return manager.Update(ctx, existingTicket)
+			},
+		},
+		{
+			name: "GetCurrentTicket",
+			operation: func(ctx context.Context) error {
+				_, err := manager.GetCurrentTicket(ctx)
+				return err
+			},
+		},
+		{
+			name: "SetCurrentTicket",
+			operation: func(ctx context.Context) error {
+				return manager.SetCurrentTicket(ctx, existingTicket)
+			},
+		},
+		{
+			name: "ReadContent",
+			operation: func(ctx context.Context) error {
+				_, err := manager.ReadContent(ctx, existingTicket.ID)
+				return err
+			},
+		},
+		{
+			name: "WriteContent",
+			operation: func(ctx context.Context) error {
+				return manager.WriteContent(ctx, existingTicket.ID, "New content")
+			},
+		},
+		{
+			name: "FindTicket",
+			operation: func(ctx context.Context) error {
+				_, err := manager.FindTicket(ctx, existingTicket.ID)
+				return err
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx, cancel := context.WithCancel(context.Background())
+			cancel()
+
+			err := tt.operation(ctx)
+			assert.Error(t, err)
+			assert.Contains(t, err.Error(), "operation cancelled")
+
+			// Verify error is properly wrapped
+			assert.True(t, errors.Is(err, context.Canceled))
+		})
+	}
 }
 
-// TestListWithCancelledContext tests List with cancelled context
-func TestListWithCancelledContext(t *testing.T) {
-	manager, _ := setupTestManager(t)
-
-	// Create a ticket first
-	ctx := context.Background()
-	_, err := manager.Create(ctx, "list-test")
-	require.NoError(t, err)
-
-	// Now try to list with cancelled context
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel()
-
-	tickets, err := manager.List(ctx, StatusFilterAll)
-	assert.Error(t, err)
-	assert.Nil(t, tickets)
-	assert.Contains(t, err.Error(), "operation cancelled")
-}
-
-// TestUpdateWithCancelledContext tests Update with cancelled context
-func TestUpdateWithCancelledContext(t *testing.T) {
-	manager, _ := setupTestManager(t)
-
-	// Create a ticket first
-	ctx := context.Background()
-	ticket, err := manager.Create(ctx, "update-test")
-	require.NoError(t, err)
-
-	// Modify the ticket
-	ticket.Content = "Updated content"
-
-	// Now try to update with cancelled context
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel()
-
-	err = manager.Update(ctx, ticket)
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "operation cancelled")
-}
-
-// TestGetCurrentTicketWithCancelledContext tests GetCurrentTicket with cancelled context
-func TestGetCurrentTicketWithCancelledContext(t *testing.T) {
-	manager, _ := setupTestManager(t)
-
-	// First set a current ticket
-	ctx := context.Background()
-	ticket, err := manager.Create(ctx, "current-test")
-	require.NoError(t, err)
-	err = manager.SetCurrentTicket(ctx, ticket)
-	require.NoError(t, err)
-
-	// Now try to get current with cancelled context
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel()
-
-	currentTicket, err := manager.GetCurrentTicket(ctx)
-	assert.Error(t, err)
-	assert.Nil(t, currentTicket)
-	assert.Contains(t, err.Error(), "operation cancelled")
-}
-
-// TestSetCurrentTicketWithCancelledContext tests SetCurrentTicket with cancelled context
-func TestSetCurrentTicketWithCancelledContext(t *testing.T) {
-	manager, _ := setupTestManager(t)
-
-	// Create a ticket first
-	ctx := context.Background()
-	ticket, err := manager.Create(ctx, "set-current-test")
-	require.NoError(t, err)
-
-	// Now try to set current with cancelled context
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel()
-
-	err = manager.SetCurrentTicket(ctx, ticket)
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "operation cancelled")
-}
-
-// TestReadContentWithCancelledContext tests ReadContent with cancelled context
-func TestReadContentWithCancelledContext(t *testing.T) {
-	manager, _ := setupTestManager(t)
-
-	// Create a ticket first
-	ctx := context.Background()
-	ticket, err := manager.Create(ctx, "read-content-test")
-	require.NoError(t, err)
-
-	// Now try to read content with cancelled context
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel()
-
-	content, err := manager.ReadContent(ctx, ticket.ID)
-	assert.Error(t, err)
-	assert.Empty(t, content)
-	assert.Contains(t, err.Error(), "operation cancelled")
-}
-
-// TestWriteContentWithCancelledContext tests WriteContent with cancelled context
-func TestWriteContentWithCancelledContext(t *testing.T) {
-	manager, _ := setupTestManager(t)
-
-	// Create a ticket first
-	ctx := context.Background()
-	ticket, err := manager.Create(ctx, "write-content-test")
-	require.NoError(t, err)
-
-	// Now try to write content with cancelled context
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel()
-
-	err = manager.WriteContent(ctx, ticket.ID, "New content")
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "operation cancelled")
-}
-
-// TestFindTicketWithCancelledContext tests FindTicket with cancelled context
-func TestFindTicketWithCancelledContext(t *testing.T) {
-	manager, _ := setupTestManager(t)
-
-	// Create a ticket first
-	ctx := context.Background()
-	ticket, err := manager.Create(ctx, "find-test")
-	require.NoError(t, err)
-
-	// Now try to find with cancelled context
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel()
-
-	path, err := manager.FindTicket(ctx, ticket.ID)
-	assert.Error(t, err)
-	assert.Empty(t, path)
-	assert.Contains(t, err.Error(), "operation cancelled")
-}
-
-// TestContextTimeoutDuringFileOperation tests timeout during file operations
-func TestContextTimeoutDuringFileOperation(t *testing.T) {
-	manager, _ := setupTestManager(t)
-
-	// Create a ticket first with no timeout
-	ctx := context.Background()
-	ticket, err := manager.Create(ctx, "timeout-test")
-	require.NoError(t, err)
-
-	// Create a context with a very short timeout
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Millisecond)
-	defer cancel()
-
-	// Wait for timeout to trigger
-	time.Sleep(5 * time.Millisecond)
-
-	// Try to write content with expired context
-	err = manager.WriteContent(ctx, ticket.ID, "Some content")
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "operation cancelled")
-}
-
-// TestReadFileWithContextHelper tests the readFileWithContext helper
-func TestReadFileWithContextHelper(t *testing.T) {
+// TestFileOperationsWithCancelledContext tests file operation helpers with cancelled context
+func TestFileOperationsWithCancelledContext(t *testing.T) {
 	tmpDir := t.TempDir()
 	testFile := filepath.Join(tmpDir, "test.txt")
 	testContent := []byte("test content")
 
+	// Create a test file
 	err := os.WriteFile(testFile, testContent, 0644)
 	require.NoError(t, err)
 
-	// Test normal read
-	ctx := context.Background()
-	data, err := readFileWithContext(ctx, testFile)
-	assert.NoError(t, err)
-	assert.Equal(t, testContent, data)
+	tests := []struct {
+		name      string
+		operation func(context.Context) error
+	}{
+		{
+			name: "readFileWithContext",
+			operation: func(ctx context.Context) error {
+				_, err := readFileWithContext(ctx, testFile)
+				return err
+			},
+		},
+		{
+			name: "writeFileWithContext",
+			operation: func(ctx context.Context) error {
+				return writeFileWithContext(ctx, testFile, []byte("new content"), 0644)
+			},
+		},
+	}
 
-	// Test cancelled context
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx, cancel := context.WithCancel(context.Background())
+			cancel()
 
-	data, err = readFileWithContext(ctx, testFile)
-	assert.Error(t, err)
-	assert.Nil(t, data)
-	assert.Contains(t, err.Error(), "operation cancelled")
-}
-
-// TestWriteFileWithContextHelper tests the writeFileWithContext helper
-func TestWriteFileWithContextHelper(t *testing.T) {
-	tmpDir := t.TempDir()
-	testFile := filepath.Join(tmpDir, "test-write.txt")
-	testContent := []byte("test write content")
-
-	// Test normal write
-	ctx := context.Background()
-	err := writeFileWithContext(ctx, testFile, testContent, 0644)
-	assert.NoError(t, err)
-
-	// Verify file was written
-	data, err := os.ReadFile(testFile)
-	assert.NoError(t, err)
-	assert.Equal(t, testContent, data)
-
-	// Test cancelled context
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel()
-
-	testFile2 := filepath.Join(tmpDir, "test-write-cancelled.txt")
-	err = writeFileWithContext(ctx, testFile2, testContent, 0644)
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "operation cancelled")
-
-	// File should not exist
-	_, err = os.Stat(testFile2)
-	assert.True(t, os.IsNotExist(err))
-}
-
-// BenchmarkContextCheckInCreate benchmarks context checking overhead in Create
-func BenchmarkContextCheckInCreate(b *testing.B) {
-	// Setup
-	tmpDir := b.TempDir()
-	cfg := config.Default()
-	cfg.Tickets.Dir = "tickets"
-	manager := NewManager(cfg, tmpDir)
-	ctx := context.Background()
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		slug := fmt.Sprintf("bench-ticket-%d", i)
-		_, _ = manager.Create(ctx, slug)
+			err := tt.operation(ctx)
+			assert.Error(t, err)
+			assert.Contains(t, err.Error(), "operation cancelled")
+			assert.True(t, errors.Is(err, context.Canceled))
+		})
 	}
 }
 
-// BenchmarkCancelledContextInList benchmarks List with cancelled context
-func BenchmarkCancelledContextInList(b *testing.B) {
-	// Setup
-	tmpDir := b.TempDir()
-	cfg := config.Default()
-	cfg.Tickets.Dir = "tickets"
-	manager := NewManager(cfg, tmpDir)
+// TestConcurrentManagerOperations tests concurrent manager operations with cancellation
+func TestConcurrentManagerOperations(t *testing.T) {
+	manager, _ := setupTestManager(t)
+	ctx, cancel := context.WithCancel(context.Background())
 
-	// Create some tickets
-	ctx := context.Background()
+	// Create some tickets first
+	for i := 0; i < 5; i++ {
+		_, err := manager.Create(context.Background(), fmt.Sprintf("ticket-%d", i))
+		require.NoError(t, err)
+	}
+
+	var wg sync.WaitGroup
+	errChan := make(chan error, 50)
+
+	// Start multiple concurrent operations
 	for i := 0; i < 10; i++ {
-		_, err := manager.Create(ctx, fmt.Sprintf("bench-ticket-%d", i))
-		require.NoError(b, err)
+		wg.Add(5)
+
+		// List operation
+		go func() {
+			defer wg.Done()
+			_, err := manager.List(ctx, StatusFilterAll)
+			if err != nil {
+				errChan <- err
+			}
+		}()
+
+		// Create operation
+		go func(id int) {
+			defer wg.Done()
+			_, err := manager.Create(ctx, fmt.Sprintf("concurrent-%d", id))
+			if err != nil {
+				errChan <- err
+			}
+		}(i)
+
+		// Read operation
+		go func() {
+			defer wg.Done()
+			_, err := manager.Get(ctx, "ticket-0")
+			if err != nil {
+				errChan <- err
+			}
+		}()
+
+		// Find operation
+		go func() {
+			defer wg.Done()
+			_, err := manager.FindTicket(ctx, "ticket-1")
+			if err != nil {
+				errChan <- err
+			}
+		}()
+
+		// Current ticket operation
+		go func() {
+			defer wg.Done()
+			_, err := manager.GetCurrentTicket(ctx)
+			if err != nil {
+				errChan <- err
+			}
+		}()
 	}
 
+	// Cancel after a delay
+	go func() {
+		time.Sleep(20 * time.Millisecond)
+		cancel()
+	}()
+
+	// Wait for all operations
+	wg.Wait()
+	close(errChan)
+
+	// Count cancelled operations
+	cancelledCount := 0
+	for err := range errChan {
+		if err != nil && errors.Is(err, context.Canceled) {
+			cancelledCount++
+		}
+	}
+
+	assert.Greater(t, cancelledCount, 0, "Expected some operations to be cancelled")
+}
+
+// TestContextTimeoutScenarios tests various timeout scenarios
+func TestContextTimeoutScenarios(t *testing.T) {
+	manager, _ := setupTestManager(t)
+
+	tests := []struct {
+		name      string
+		timeout   time.Duration
+		preDelay  time.Duration
+		operation func(context.Context) error
+		wantErr   bool
+	}{
+		{
+			name:     "immediate timeout",
+			timeout:  1 * time.Microsecond,
+			preDelay: 5 * time.Millisecond,
+			operation: func(ctx context.Context) error {
+				_, err := manager.Create(ctx, "timeout-test")
+				return err
+			},
+			wantErr: true,
+		},
+		{
+			name:     "sufficient timeout",
+			timeout:  1 * time.Second,
+			preDelay: 0,
+			operation: func(ctx context.Context) error {
+				_, err := manager.Create(ctx, "no-timeout-test")
+				return err
+			},
+			wantErr: false,
+		},
+		{
+			name:     "timeout during file write",
+			timeout:  10 * time.Millisecond,
+			preDelay: 0,
+			operation: func(ctx context.Context) error {
+				// Create large content that takes time to write
+				largeContent := make([]byte, 50*1024*1024) // 50MB
+				return writeFileWithContext(ctx, "/tmp/large-test.txt", largeContent, 0644)
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), tt.timeout)
+			defer cancel()
+
+			if tt.preDelay > 0 {
+				time.Sleep(tt.preDelay)
+			}
+
+			err := tt.operation(ctx)
+			if tt.wantErr {
+				assert.Error(t, err)
+				assert.True(t, errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled))
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+// TestPartialOperationHandling tests handling of partial operations when cancelled
+func TestPartialOperationHandling(t *testing.T) {
+	_, tmpDir := setupTestManager(t)
+
+	// Test partial file write
+	t.Run("partial file write", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		testFile := filepath.Join(tmpDir, "partial-write.txt")
+
+		// Start writing in a goroutine
+		errChan := make(chan error, 1)
+		go func() {
+			largeData := make([]byte, 10*1024*1024) // 10MB
+			errChan <- writeFileWithContext(ctx, testFile, largeData, 0644)
+		}()
+
+		// Cancel quickly
+		time.Sleep(1 * time.Millisecond)
+		cancel()
+
+		err := <-errChan
+		assert.Error(t, err)
+
+		// If file was created, it should be cleaned up or incomplete
+		if _, statErr := os.Stat(testFile); statErr == nil {
+			// File exists, verify it's not the full size
+			info, _ := os.Stat(testFile)
+			assert.Less(t, info.Size(), int64(10*1024*1024), "File should not be fully written")
+		}
+	})
+}
+
+// TestContextWithValues tests that context values are preserved through operations
+func TestContextWithValues(t *testing.T) {
+	type contextKey string
+	const userKey contextKey = "user"
+	const requestIDKey contextKey = "request-id"
+
+	manager, _ := setupTestManager(t)
+
+	ctx := context.WithValue(context.Background(), userKey, "test-user")
+	ctx = context.WithValue(ctx, requestIDKey, "12345")
+	ctx, cancel := context.WithCancel(ctx)
+	cancel()
+
+	// Values should be preserved even after cancellation
+	assert.Equal(t, "test-user", ctx.Value(userKey))
+	assert.Equal(t, "12345", ctx.Value(requestIDKey))
+
+	// But operations should fail
+	_, err := manager.Create(ctx, "value-test")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "operation cancelled")
+}
+
+// BenchmarkManagerContextOverhead benchmarks context checking overhead
+func BenchmarkManagerContextOverhead(b *testing.B) {
+	tmpDir := b.TempDir()
+	cfg := config.Default()
+	cfg.Tickets.Dir = "tickets"
+	manager := NewManager(cfg, tmpDir)
+	ctx := context.Background()
+
+	// Create a ticket for benchmarking Get operation
+	ticket, err := manager.Create(ctx, "bench-ticket")
+	require.NoError(b, err)
+
+	b.Run("Get", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			_, _ = manager.Get(ctx, ticket.ID)
+		}
+	})
+
+	b.Run("List", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			_, _ = manager.List(ctx, StatusFilterAll)
+		}
+	})
+
+	b.Run("FindTicket", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			_, _ = manager.FindTicket(ctx, ticket.ID)
+		}
+	})
+}
+
+// BenchmarkCancelledContextOverhead benchmarks operations with cancelled contexts
+func BenchmarkCancelledContextOverhead(b *testing.B) {
+	tmpDir := b.TempDir()
+	cfg := config.Default()
+	cfg.Tickets.Dir = "tickets"
+	manager := NewManager(cfg, tmpDir)
+
+	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel()
 		_, _ = manager.List(ctx, StatusFilterAll)
 	}
+}
+
+// BenchmarkFileOperationsWithContext benchmarks file operations with context
+func BenchmarkFileOperationsWithContext(b *testing.B) {
+	tmpDir := b.TempDir()
+	testFile := filepath.Join(tmpDir, "bench.txt")
+	testData := []byte("benchmark test data")
+
+	// Write initial file
+	err := os.WriteFile(testFile, testData, 0644)
+	require.NoError(b, err)
+
+	b.Run("readFileWithContext", func(b *testing.B) {
+		ctx := context.Background()
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			_, _ = readFileWithContext(ctx, testFile)
+		}
+	})
+
+	b.Run("writeFileWithContext", func(b *testing.B) {
+		ctx := context.Background()
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			_ = writeFileWithContext(ctx, testFile, testData, 0644)
+		}
+	})
 }

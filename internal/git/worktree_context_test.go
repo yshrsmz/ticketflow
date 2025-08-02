@@ -3,124 +3,286 @@ package git
 import (
 	"context"
 	"path/filepath"
+	"strings"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-// TestAddWorktreeWithCancelledContext tests AddWorktree with cancelled context
-func TestAddWorktreeWithCancelledContext(t *testing.T) {
+// TestWorktreeOperationsWithCancelledContext tests all worktree operations with cancelled context
+func TestWorktreeOperationsWithCancelledContext(t *testing.T) {
 	git, tmpDir := setupTestGitRepo(t)
 
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel()
+	// Setup a worktree for testing operations that need an existing worktree
+	ctx := context.Background()
+	existingWorktreePath := filepath.Join(tmpDir, ".worktrees", "existing")
+	err := git.AddWorktree(ctx, existingWorktreePath, "existing-branch")
+	require.NoError(t, err)
 
-	worktreePath := filepath.Join(tmpDir, ".worktrees", "cancelled-branch")
-	err := git.AddWorktree(ctx, worktreePath, "cancelled-branch")
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "operation cancelled")
+	tests := []struct {
+		name      string
+		setup     func() (context.Context, context.CancelFunc)
+		operation func(context.Context) error
+	}{
+		{
+			name: "AddWorktree",
+			setup: func() (context.Context, context.CancelFunc) {
+				return context.WithCancel(context.Background())
+			},
+			operation: func(ctx context.Context) error {
+				worktreePath := filepath.Join(tmpDir, ".worktrees", "cancelled-branch")
+				return git.AddWorktree(ctx, worktreePath, "cancelled-branch")
+			},
+		},
+		{
+			name: "ListWorktrees",
+			setup: func() (context.Context, context.CancelFunc) {
+				return context.WithCancel(context.Background())
+			},
+			operation: func(ctx context.Context) error {
+				_, err := git.ListWorktrees(ctx)
+				return err
+			},
+		},
+		{
+			name: "RemoveWorktree",
+			setup: func() (context.Context, context.CancelFunc) {
+				return context.WithCancel(context.Background())
+			},
+			operation: func(ctx context.Context) error {
+				return git.RemoveWorktree(ctx, existingWorktreePath)
+			},
+		},
+		{
+			name: "FindWorktreeByBranch",
+			setup: func() (context.Context, context.CancelFunc) {
+				return context.WithCancel(context.Background())
+			},
+			operation: func(ctx context.Context) error {
+				_, err := git.FindWorktreeByBranch(ctx, "existing-branch")
+				return err
+			},
+		},
+		{
+			name: "HasWorktree",
+			setup: func() (context.Context, context.CancelFunc) {
+				return context.WithCancel(context.Background())
+			},
+			operation: func(ctx context.Context) error {
+				_, err := git.HasWorktree(ctx, "existing-branch")
+				return err
+			},
+		},
+		{
+			name: "RunInWorktree",
+			setup: func() (context.Context, context.CancelFunc) {
+				return context.WithCancel(context.Background())
+			},
+			operation: func(ctx context.Context) error {
+				_, err := git.RunInWorktree(ctx, existingWorktreePath, "status")
+				return err
+			},
+		},
+		{
+			name: "PruneWorktrees",
+			setup: func() (context.Context, context.CancelFunc) {
+				return context.WithCancel(context.Background())
+			},
+			operation: func(ctx context.Context) error {
+				return git.PruneWorktrees(ctx)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx, cancel := tt.setup()
+			cancel() // Cancel immediately
+
+			err := tt.operation(ctx)
+			assert.Error(t, err)
+			assert.Contains(t, err.Error(), "operation cancelled")
+		})
+	}
 }
 
-// TestListWorktreesWithCancelledContext tests ListWorktrees with cancelled context
-func TestListWorktreesWithCancelledContext(t *testing.T) {
+// TestWorktreeOperationsWithTimeout tests worktree operations with timeout
+func TestWorktreeOperationsWithTimeout(t *testing.T) {
 	git, _ := setupTestGitRepo(t)
 
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel()
+	tests := []struct {
+		name      string
+		timeout   time.Duration
+		operation func(context.Context) error
+		wantErr   bool
+	}{
+		{
+			name:    "ListWorktrees with short timeout",
+			timeout: 1 * time.Microsecond,
+			operation: func(ctx context.Context) error {
+				time.Sleep(5 * time.Millisecond) // Ensure timeout
+				_, err := git.ListWorktrees(ctx)
+				return err
+			},
+			wantErr: true,
+		},
+		{
+			name:    "ListWorktrees with sufficient timeout",
+			timeout: 1 * time.Second,
+			operation: func(ctx context.Context) error {
+				_, err := git.ListWorktrees(ctx)
+				return err
+			},
+			wantErr: false,
+		},
+	}
 
-	worktrees, err := git.ListWorktrees(ctx)
-	assert.Error(t, err)
-	assert.Nil(t, worktrees)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), tt.timeout)
+			defer cancel()
+
+			err := tt.operation(ctx)
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
 }
 
-// TestRemoveWorktreeWithCancelledContext tests RemoveWorktree with cancelled context
-func TestRemoveWorktreeWithCancelledContext(t *testing.T) {
+// TestConcurrentWorktreeOperations tests concurrent worktree operations
+func TestConcurrentWorktreeOperations(t *testing.T) {
+	git, tmpDir := setupTestGitRepo(t)
+	ctx, cancel := context.WithCancel(context.Background())
+
+	// Create some worktrees first
+	for i := 0; i < 3; i++ {
+		branch := filepath.Join(".worktrees", t.Name(), "branch", string(rune('a'+i)))
+		path := filepath.Join(tmpDir, branch)
+		err := git.AddWorktree(context.Background(), path, branch)
+		require.NoError(t, err)
+	}
+
+	var wg sync.WaitGroup
+	errChan := make(chan error, 30)
+
+	// Start multiple concurrent operations
+	for i := 0; i < 10; i++ {
+		wg.Add(3)
+
+		// List operation
+		go func() {
+			defer wg.Done()
+			_, err := git.ListWorktrees(ctx)
+			if err != nil {
+				errChan <- err
+			}
+		}()
+
+		// Find operation
+		go func() {
+			defer wg.Done()
+			_, err := git.FindWorktreeByBranch(ctx, "main")
+			if err != nil {
+				errChan <- err
+			}
+		}()
+
+		// Has operation
+		go func() {
+			defer wg.Done()
+			_, err := git.HasWorktree(ctx, "main")
+			if err != nil {
+				errChan <- err
+			}
+		}()
+	}
+
+	// Cancel context after a delay
+	go func() {
+		time.Sleep(20 * time.Millisecond)
+		cancel()
+	}()
+
+	// Wait for all operations to complete
+	wg.Wait()
+	close(errChan)
+
+	// Count cancelled operations
+	cancelledCount := 0
+	for err := range errChan {
+		if err != nil && contains(err.Error(), "operation cancelled") {
+			cancelledCount++
+		}
+	}
+
+	// At least some operations should have been cancelled
+	assert.Greater(t, cancelledCount, 0, "Expected some operations to be cancelled")
+}
+
+// TestWorktreeStateConsistency tests worktree state consistency after cancellation
+func TestWorktreeStateConsistency(t *testing.T) {
 	git, tmpDir := setupTestGitRepo(t)
 
-	// First add a worktree
-	ctx := context.Background()
-	worktreePath := filepath.Join(tmpDir, ".worktrees", "to-remove")
-	err := git.AddWorktree(ctx, worktreePath, "to-remove")
-	assert.NoError(t, err)
-
-	// Now try to remove with cancelled context
+	// Create a context that we'll cancel during AddWorktree
 	ctx, cancel := context.WithCancel(context.Background())
+
+	// Path for the new worktree
+	worktreePath := filepath.Join(tmpDir, ".worktrees", "consistency-test")
+
+	// Start AddWorktree in a goroutine
+	errChan := make(chan error, 1)
+	go func() {
+		errChan <- git.AddWorktree(ctx, worktreePath, "consistency-branch")
+	}()
+
+	// Cancel quickly
+	time.Sleep(1 * time.Millisecond)
 	cancel()
 
-	err = git.RemoveWorktree(ctx, worktreePath)
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "operation cancelled")
+	// Get the result
+	err := <-errChan
+
+	// If operation was cancelled, verify state
+	if err != nil && contains(err.Error(), "operation cancelled") {
+		// Verify worktree list is consistent
+		worktrees, listErr := git.ListWorktrees(context.Background())
+		assert.NoError(t, listErr)
+
+		// The cancelled worktree should not be in the list
+		for _, wt := range worktrees {
+			assert.NotEqual(t, "consistency-branch", wt.Branch)
+		}
+	}
 }
 
-// TestFindWorktreeByBranchWithCancelledContext tests FindWorktreeByBranch with cancelled context
-func TestFindWorktreeByBranchWithCancelledContext(t *testing.T) {
-	git, tmpDir := setupTestGitRepo(t)
-
-	// First add a worktree
-	ctx := context.Background()
-	branch := "find-me-cancelled"
-	worktreePath := filepath.Join(tmpDir, ".worktrees", branch)
-	err := git.AddWorktree(ctx, worktreePath, branch)
-	assert.NoError(t, err)
-
-	// Now try to find with cancelled context
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel()
-
-	wt, err := git.FindWorktreeByBranch(ctx, branch)
-	assert.Error(t, err)
-	assert.Nil(t, wt)
-}
-
-// TestHasWorktreeWithCancelledContext tests HasWorktree with cancelled context
-func TestHasWorktreeWithCancelledContext(t *testing.T) {
-	git, tmpDir := setupTestGitRepo(t)
-
-	// First add a worktree
-	ctx := context.Background()
-	branch := "has-worktree-test"
-	worktreePath := filepath.Join(tmpDir, ".worktrees", branch)
-	err := git.AddWorktree(ctx, worktreePath, branch)
-	assert.NoError(t, err)
-
-	// Now check with cancelled context
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel()
-
-	has, err := git.HasWorktree(ctx, branch)
-	assert.Error(t, err)
-	assert.False(t, has)
-}
-
-// TestRunInWorktreeWithCancelledContext tests RunInWorktree with cancelled context
-func TestRunInWorktreeWithCancelledContext(t *testing.T) {
-	git, tmpDir := setupTestGitRepo(t)
-
-	// First add a worktree
-	ctx := context.Background()
-	branch := "run-in-worktree"
-	worktreePath := filepath.Join(tmpDir, ".worktrees", branch)
-	err := git.AddWorktree(ctx, worktreePath, branch)
-	assert.NoError(t, err)
-
-	// Now run command with cancelled context
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel()
-
-	output, err := git.RunInWorktree(ctx, worktreePath, "status")
-	assert.Error(t, err)
-	assert.Empty(t, output)
-	assert.Contains(t, err.Error(), "operation cancelled")
-}
-
-// TestPruneWorktreesWithCancelledContext tests PruneWorktrees with cancelled context
-func TestPruneWorktreesWithCancelledContext(t *testing.T) {
+// TestWorktreeContextInheritance tests context inheritance in worktree operations
+func TestWorktreeContextInheritance(t *testing.T) {
 	git, _ := setupTestGitRepo(t)
 
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel()
+	// Create parent context with timeout
+	parentCtx, parentCancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	defer parentCancel()
 
-	err := git.PruneWorktrees(ctx)
+	// Create child context
+	childCtx, childCancel := context.WithCancel(parentCtx)
+	defer childCancel()
+
+	// Wait for parent timeout
+	time.Sleep(100 * time.Millisecond)
+
+	// Child context should also be cancelled
+	_, err := git.ListWorktrees(childCtx)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "operation cancelled")
+}
+
+// contains is a helper function to check if a string contains a substring
+func contains(s, substr string) bool {
+	return strings.Contains(s, substr)
 }

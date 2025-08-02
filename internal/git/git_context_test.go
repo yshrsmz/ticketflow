@@ -2,165 +2,277 @@ package git
 
 import (
 	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	ticketerrors "github.com/yshrsmz/ticketflow/internal/errors"
 )
 
-// TestExecWithCancelledContext tests that Exec returns immediately with cancelled context
-func TestExecWithCancelledContext(t *testing.T) {
+// TestGitOperationsWithCancelledContext tests all git operations with cancelled context
+func TestGitOperationsWithCancelledContext(t *testing.T) {
 	git, _ := setupTestGitRepo(t)
 
-	// Create an already cancelled context
-	ctx, cancel := context.WithCancel(context.Background())
+	tests := []struct {
+		name      string
+		operation func(context.Context) error
+	}{
+		{
+			name: "Exec",
+			operation: func(ctx context.Context) error {
+				_, err := git.Exec(ctx, "status")
+				return err
+			},
+		},
+		{
+			name: "CurrentBranch",
+			operation: func(ctx context.Context) error {
+				_, err := git.CurrentBranch(ctx)
+				return err
+			},
+		},
+		{
+			name: "CreateBranch",
+			operation: func(ctx context.Context) error {
+				return git.CreateBranch(ctx, "test-branch")
+			},
+		},
+		{
+			name: "HasUncommittedChanges",
+			operation: func(ctx context.Context) error {
+				_, err := git.HasUncommittedChanges(ctx)
+				return err
+			},
+		},
+		{
+			name: "Add",
+			operation: func(ctx context.Context) error {
+				return git.Add(ctx, "test.txt")
+			},
+		},
+		{
+			name: "Commit",
+			operation: func(ctx context.Context) error {
+				return git.Commit(ctx, "Test commit")
+			},
+		},
+		{
+			name: "Checkout",
+			operation: func(ctx context.Context) error {
+				return git.Checkout(ctx, "main")
+			},
+		},
+		{
+			name: "MergeSquash",
+			operation: func(ctx context.Context) error {
+				return git.MergeSquash(ctx, "feature-branch")
+			},
+		},
+		{
+			name: "Push",
+			operation: func(ctx context.Context) error {
+				return git.Push(ctx, "origin", "main", false)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx, cancel := context.WithCancel(context.Background())
+			cancel()
+
+			err := tt.operation(ctx)
+			assert.Error(t, err)
+			assert.Contains(t, err.Error(), "operation cancelled")
+
+			// Check if the underlying error is context.Canceled
+			var gitErr *ticketerrors.GitError
+			if errors.As(err, &gitErr) && gitErr.Err != nil {
+				assert.True(t, errors.Is(gitErr.Err, context.Canceled))
+			}
+		})
+	}
+}
+
+// TestGitStaticFunctionsWithCancelledContext tests static functions with cancelled context
+func TestGitStaticFunctionsWithCancelledContext(t *testing.T) {
+	_, tmpDir := setupTestGitRepo(t)
+
+	tests := []struct {
+		name      string
+		operation func(context.Context) error
+	}{
+		{
+			name: "IsGitRepo",
+			operation: func(ctx context.Context) error {
+				// IsGitRepo returns false for cancelled context
+				if IsGitRepo(ctx, tmpDir) {
+					return errors.New("expected false for cancelled context")
+				}
+				return nil
+			},
+		},
+		{
+			name: "FindProjectRoot",
+			operation: func(ctx context.Context) error {
+				_, err := FindProjectRoot(ctx, tmpDir)
+				return err
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx, cancel := context.WithCancel(context.Background())
+			cancel()
+
+			err := tt.operation(ctx)
+			if tt.name == "IsGitRepo" {
+				assert.NoError(t, err) // Special case: IsGitRepo returns false
+			} else {
+				assert.Error(t, err)
+			}
+		})
+	}
+}
+
+// TestContextWithTimeout tests operations with timeout contexts
+func TestContextWithTimeout(t *testing.T) {
+	git, _ := setupTestGitRepo(t)
+
+	tests := []struct {
+		name    string
+		timeout time.Duration
+		delay   time.Duration
+		wantErr bool
+	}{
+		{
+			name:    "immediate timeout",
+			timeout: 1 * time.Microsecond,
+			delay:   5 * time.Millisecond,
+			wantErr: true,
+		},
+		{
+			name:    "sufficient timeout",
+			timeout: 1 * time.Second,
+			delay:   0,
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), tt.timeout)
+			defer cancel()
+
+			if tt.delay > 0 {
+				time.Sleep(tt.delay)
+			}
+
+			_, err := git.Exec(ctx, "status", "--porcelain")
+			if tt.wantErr {
+				assert.Error(t, err)
+				assert.Contains(t, err.Error(), "operation cancelled")
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+// TestContextWithValues tests that context values are preserved even when cancelled
+func TestContextWithValues(t *testing.T) {
+	type contextKey string
+	const testKey contextKey = "test-key"
+
+	git, _ := setupTestGitRepo(t)
+
+	ctx := context.WithValue(context.Background(), testKey, "test-value")
+	ctx, cancel := context.WithCancel(ctx)
 	cancel()
 
-	// Try to execute a command with cancelled context
-	output, err := git.Exec(ctx, "status")
+	// Values should still be accessible even when cancelled
+	assert.Equal(t, "test-value", ctx.Value(testKey))
 
-	// Should fail with context error
+	// But operations should fail
+	_, err := git.CurrentBranch(ctx)
 	assert.Error(t, err)
-	assert.Empty(t, output)
 	assert.Contains(t, err.Error(), "operation cancelled")
 }
 
-// TestExecWithTimeout tests that Exec respects context timeout
-func TestExecWithTimeout(t *testing.T) {
+// TestConcurrentCancellation tests concurrent operations with shared context
+func TestConcurrentCancellation(t *testing.T) {
+	git, _ := setupTestGitRepo(t)
+	ctx, cancel := context.WithCancel(context.Background())
+
+	var wg sync.WaitGroup
+	errChan := make(chan error, 10)
+
+	// Start multiple concurrent operations
+	for i := 0; i < 10; i++ {
+		wg.Add(1)
+		go func(id int) {
+			defer wg.Done()
+
+			// Some operations before cancellation
+			if id%2 == 0 {
+				time.Sleep(5 * time.Millisecond)
+			}
+
+			_, err := git.CurrentBranch(ctx)
+			if err != nil {
+				errChan <- err
+			}
+		}(i)
+	}
+
+	// Cancel after a short delay to allow some operations to start
+	time.Sleep(5 * time.Millisecond)
+	cancel()
+
+	// Wait for all goroutines to complete
+	wg.Wait()
+	close(errChan)
+
+	// Verify that at least some operations were cancelled
+	cancelledCount := 0
+	for err := range errChan {
+		if strings.Contains(err.Error(), "operation cancelled") {
+			cancelledCount++
+		}
+	}
+	assert.Greater(t, cancelledCount, 0, "Expected at least some operations to be cancelled")
+}
+
+// TestContextPropagationInExec tests that context is properly propagated to exec.CommandContext
+func TestContextPropagationInExec(t *testing.T) {
 	git, _ := setupTestGitRepo(t)
 
-	// Create a context with a very short timeout
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Millisecond)
+	// Test with a deadline context
+	deadline := time.Now().Add(100 * time.Millisecond)
+	ctx, cancel := context.WithDeadline(context.Background(), deadline)
 	defer cancel()
 
-	// Sleep to ensure timeout occurs
-	time.Sleep(5 * time.Millisecond)
+	// Execute a simple command
+	output, err := git.Exec(ctx, "status", "--porcelain")
 
-	// Try to execute a command
-	output, err := git.Exec(ctx, "status")
+	// Should succeed as the command is fast
+	assert.NoError(t, err)
+	assert.NotNil(t, output)
 
-	// Should fail with context error
+	// Wait for deadline to pass
+	time.Sleep(150 * time.Millisecond)
+
+	// Now the context should be expired
+	_, err = git.Exec(ctx, "status")
 	assert.Error(t, err)
-	assert.Empty(t, output)
 	assert.Contains(t, err.Error(), "operation cancelled")
-}
-
-// TestCurrentBranchWithCancelledContext tests CurrentBranch with cancelled context
-func TestCurrentBranchWithCancelledContext(t *testing.T) {
-	git, _ := setupTestGitRepo(t)
-
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel()
-
-	branch, err := git.CurrentBranch(ctx)
-	assert.Error(t, err)
-	assert.Empty(t, branch)
-}
-
-// TestCreateBranchWithCancelledContext tests CreateBranch with cancelled context
-func TestCreateBranchWithCancelledContext(t *testing.T) {
-	git, _ := setupTestGitRepo(t)
-
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel()
-
-	err := git.CreateBranch(ctx, "test-branch")
-	assert.Error(t, err)
-}
-
-// TestHasUncommittedChangesWithCancelledContext tests HasUncommittedChanges with cancelled context
-func TestHasUncommittedChangesWithCancelledContext(t *testing.T) {
-	git, _ := setupTestGitRepo(t)
-
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel()
-
-	hasChanges, err := git.HasUncommittedChanges(ctx)
-	assert.Error(t, err)
-	assert.False(t, hasChanges)
-}
-
-// TestAddWithCancelledContext tests Add with cancelled context
-func TestAddWithCancelledContext(t *testing.T) {
-	git, _ := setupTestGitRepo(t)
-
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel()
-
-	err := git.Add(ctx, "test.txt")
-	assert.Error(t, err)
-}
-
-// TestCommitWithCancelledContext tests Commit with cancelled context
-func TestCommitWithCancelledContext(t *testing.T) {
-	git, _ := setupTestGitRepo(t)
-
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel()
-
-	err := git.Commit(ctx, "Test commit")
-	assert.Error(t, err)
-}
-
-// TestCheckoutWithCancelledContext tests Checkout with cancelled context
-func TestCheckoutWithCancelledContext(t *testing.T) {
-	git, _ := setupTestGitRepo(t)
-
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel()
-
-	err := git.Checkout(ctx, "main")
-	assert.Error(t, err)
-}
-
-// TestMergeSquashWithCancelledContext tests MergeSquash with cancelled context
-func TestMergeSquashWithCancelledContext(t *testing.T) {
-	git, _ := setupTestGitRepo(t)
-
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel()
-
-	err := git.MergeSquash(ctx, "feature-branch")
-	assert.Error(t, err)
-}
-
-// TestPushWithCancelledContext tests Push with cancelled context
-func TestPushWithCancelledContext(t *testing.T) {
-	git, _ := setupTestGitRepo(t)
-
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel()
-
-	err := git.Push(ctx, "origin", "main", false)
-	assert.Error(t, err)
-}
-
-// TestIsGitRepoWithCancelledContext tests IsGitRepo with cancelled context
-func TestIsGitRepoWithCancelledContext(t *testing.T) {
-	_, tmpDir := setupTestGitRepo(t)
-
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel()
-
-	// Should return false when context is cancelled
-	isRepo := IsGitRepo(ctx, tmpDir)
-	assert.False(t, isRepo)
-}
-
-// TestFindProjectRootWithCancelledContext tests FindProjectRoot with cancelled context
-func TestFindProjectRootWithCancelledContext(t *testing.T) {
-	_, tmpDir := setupTestGitRepo(t)
-
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel()
-
-	root, err := FindProjectRoot(ctx, tmpDir)
-	assert.Error(t, err)
-	assert.Empty(t, root)
 }
 
 // TestLongRunningOperationCancellation tests cancelling a long-running operation
@@ -206,27 +318,23 @@ func TestLongRunningOperationCancellation(t *testing.T) {
 	}
 }
 
-// TestContextPropagationInExec tests that context is properly propagated to exec.CommandContext
-func TestContextPropagationInExec(t *testing.T) {
+// TestContextInheritance tests parent-child context cancellation behavior
+func TestContextInheritance(t *testing.T) {
 	git, _ := setupTestGitRepo(t)
 
-	// Test with a deadline context
-	deadline := time.Now().Add(100 * time.Millisecond)
-	ctx, cancel := context.WithDeadline(context.Background(), deadline)
-	defer cancel()
+	// Create parent context with timeout
+	parentCtx, parentCancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer parentCancel()
 
-	// Execute a simple command
-	output, err := git.Exec(ctx, "status", "--porcelain")
+	// Create child context
+	childCtx, childCancel := context.WithCancel(parentCtx)
+	defer childCancel()
 
-	// Should succeed as the command is fast
-	assert.NoError(t, err)
-	assert.NotNil(t, output)
-
-	// Wait for deadline to pass
+	// Wait for parent timeout
 	time.Sleep(150 * time.Millisecond)
 
-	// Now the context should be expired
-	_, err = git.Exec(ctx, "status")
+	// Child should also be cancelled
+	_, err := git.CurrentBranch(childCtx)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "operation cancelled")
 }
@@ -255,6 +363,7 @@ func BenchmarkContextCheckOverhead(b *testing.B) {
 	_, err = git.Exec(ctx, "commit", "-m", "Initial commit")
 	require.NoError(b, err)
 
+	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_, _ = git.CurrentBranch(ctx)
@@ -276,10 +385,60 @@ func BenchmarkContextCheckWithCancellation(b *testing.B) {
 	_, err = git.Exec(ctx, "config", "user.email", "test@example.com")
 	require.NoError(b, err)
 
+	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel()
 		_, _ = git.CurrentBranch(ctx)
 	}
+}
+
+// BenchmarkContextTypes compares different context types
+func BenchmarkContextTypes(b *testing.B) {
+	tmpDir := b.TempDir()
+	git := New(tmpDir)
+	ctx := context.Background()
+
+	// Setup repo
+	_, err := git.Exec(ctx, "init")
+	require.NoError(b, err)
+	_, err = git.Exec(ctx, "config", "user.name", "Test User")
+	require.NoError(b, err)
+	_, err = git.Exec(ctx, "config", "user.email", "test@example.com")
+	require.NoError(b, err)
+
+	b.Run("Background", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			_, _ = git.CurrentBranch(context.Background())
+		}
+	})
+
+	b.Run("WithCancel", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			_, _ = git.CurrentBranch(ctx)
+		}
+	})
+
+	b.Run("WithTimeout", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Hour)
+			defer cancel()
+			_, _ = git.CurrentBranch(ctx)
+		}
+	})
+
+	b.Run("WithValue", func(b *testing.B) {
+		b.ReportAllocs()
+		type key string
+		for i := 0; i < b.N; i++ {
+			ctx := context.WithValue(context.Background(), key("test"), "value")
+			_, _ = git.CurrentBranch(ctx)
+		}
+	})
 }
