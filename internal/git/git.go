@@ -19,7 +19,12 @@ type Git struct {
 // New creates a new Git instance
 func New(repoPath string) *Git {
 	// Use background context for initialization
-	root, _ := FindProjectRoot(context.Background(), repoPath)
+	root, err := FindProjectRoot(context.Background(), repoPath)
+	if err != nil {
+		// Not in a git repo or other error - Root will be empty
+		// and lazy initialization will be attempted in RootPath()
+		root = ""
+	}
 	return &Git{
 		repoPath: repoPath,
 		Root:     root,
