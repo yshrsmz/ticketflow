@@ -98,18 +98,18 @@ func Load(projectRoot string) (*Config, error) {
 	// Read config file
 	data, err := os.ReadFile(configPath)
 	if err != nil {
-		return nil, ticketerrors.NewConfigError("", "", fmt.Errorf("failed to read config file: %w", err))
+		return nil, ticketerrors.NewConfigError("file", configPath, fmt.Errorf("failed to read config file: %w", err))
 	}
 
 	// Parse YAML
 	var config Config
 	if err := yaml.Unmarshal(data, &config); err != nil {
-		return nil, ticketerrors.NewConfigError("", "", fmt.Errorf("failed to parse config file: %w", err))
+		return nil, ticketerrors.NewConfigError("format", "yaml", fmt.Errorf("failed to parse config file: %w", err))
 	}
 
 	// Validate configuration
 	if err := config.Validate(); err != nil {
-		return nil, ticketerrors.NewConfigError("", "", fmt.Errorf("invalid configuration: %w", err))
+		return nil, ticketerrors.NewConfigError("validation", "", fmt.Errorf("invalid configuration: %w", err))
 	}
 
 	return &config, nil

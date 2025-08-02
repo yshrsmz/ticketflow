@@ -101,6 +101,7 @@ type GitError struct {
 	Err    error  // Underlying error
 }
 
+// Error returns the string representation of the GitError
 func (e *GitError) Error() string {
 	if e.Branch != "" {
 		return fmt.Sprintf("git %s on branch %s: %v", e.Op, e.Branch, e.Err)
@@ -108,6 +109,7 @@ func (e *GitError) Error() string {
 	return fmt.Sprintf("git %s: %v", e.Op, e.Err)
 }
 
+// Unwrap returns the underlying error for error wrapping support
 func (e *GitError) Unwrap() error {
 	return e.Err
 }
@@ -134,6 +136,7 @@ type WorktreeError struct {
 	Err  error  // Underlying error
 }
 
+// Error returns the string representation of the WorktreeError
 func (e *WorktreeError) Error() string {
 	if e.Path != "" {
 		return fmt.Sprintf("worktree %s at %s: %v", e.Op, e.Path, e.Err)
@@ -141,6 +144,7 @@ func (e *WorktreeError) Error() string {
 	return fmt.Sprintf("worktree %s: %v", e.Op, e.Err)
 }
 
+// Unwrap returns the underlying error for error wrapping support
 func (e *WorktreeError) Unwrap() error {
 	return e.Err
 }
@@ -167,6 +171,7 @@ type ConfigError struct {
 	Err   error  // Underlying error
 }
 
+// Error returns the string representation of the ConfigError
 func (e *ConfigError) Error() string {
 	if e.Field != "" && e.Value != "" {
 		return fmt.Sprintf("config field %s with value %q: %v", e.Field, e.Value, e.Err)
@@ -176,6 +181,7 @@ func (e *ConfigError) Error() string {
 	return fmt.Sprintf("config: %v", e.Err)
 }
 
+// Unwrap returns the underlying error for error wrapping support
 func (e *ConfigError) Unwrap() error {
 	return e.Err
 }
