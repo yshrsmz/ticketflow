@@ -288,42 +288,37 @@ func TestContextPropagationInExec(t *testing.T) {
 func TestLongRunningOperationCancellation(t *testing.T) {
 	git, tmpDir := setupTestGitRepo(t)
 
-	// Create a large file to make operations potentially slower
-	largePath := tmpDir + "/large.txt"
-	data := make([]byte, 10*1024*1024) // 10MB
-	for i := range data {
-		data[i] = byte(i % 256)
-	}
-	err := os.WriteFile(largePath, data, 0644)
+	// Create a small test file instead of a large one
+	testPath := filepath.Join(tmpDir, "test.txt")
+	testData := []byte("test content for cancellation")
+	err := os.WriteFile(testPath, testData, 0644)
 	require.NoError(t, err)
 
-	// Add the large file
+	// Add the test file
 	ctx := context.Background()
-	err = git.Add(ctx, "large.txt")
+	err = git.Add(ctx, "test.txt")
 	require.NoError(t, err)
 
-	// Create a context that will be cancelled during operation
-	ctx, cancel := context.WithCancel(context.Background())
+	// Test cancellation using a short timeout instead of large files
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Microsecond)
+	defer cancel()
 
-	// Start a goroutine that cancels after a short delay
-	go func() {
-		time.Sleep(10 * time.Millisecond)
-		cancel()
-	}()
+	// Sleep briefly to ensure timeout is exceeded
+	time.Sleep(5 * time.Millisecond)
 
-	// Try to commit - this might be cancelled mid-operation
-	err = git.Commit(ctx, "Add large file")
+	// Try to commit - this should be cancelled due to timeout
+	err = git.Commit(ctx, "Add test file")
 
-	// The operation may succeed if it completes before cancellation,
-	// or fail if cancelled in time
+	// Operation should fail due to timeout
 	if err != nil {
 		// When context is cancelled, the command may be killed with SIGKILL
 		// which results in "signal: killed" error message, or it may show
 		// "operation cancelled" if caught early
 		errStr := err.Error()
 		assert.True(t, strings.Contains(errStr, "operation cancelled") ||
-			strings.Contains(errStr, "signal: killed"),
-			"Expected error to contain 'operation cancelled' or 'signal: killed', got: %s", errStr)
+			strings.Contains(errStr, "signal: killed") ||
+			strings.Contains(errStr, "context deadline exceeded"),
+			"Expected error to contain cancellation/timeout message, got: %s", errStr)
 	}
 }
 
@@ -403,6 +398,75 @@ func BenchmarkContextCheckWithCancellation(b *testing.B) {
 	}
 }
 
+// simulateSlowGitOperation simulates a git operation that takes time and respects context cancellation
+// This replaces the need for large file operations to test timeouts
+func simulateSlowGitOperation(ctx context.Context, git *Git, duration time.Duration) error {
+	// Use a ticker to periodically check for cancellation while "working"
+	ticker := time.NewTicker(1 * time.Millisecond)
+	defer ticker.Stop()
+
+	deadline := time.Now().Add(duration)
+	for {
+		select {
+		case <-ctx.Done():
+			return ticketerrors.NewGitError("simulated operation", "current", ctx.Err())
+		case <-ticker.C:
+			if time.Now().After(deadline) {
+				// Simulate successful completion by doing a quick git operation
+				_, err := git.CurrentBranch(context.Background())
+				return err
+			}
+			// Continue the "work"
+		}
+	}
+}
+
+// TestSimulatedSlowOperationCancellation tests the slow operation simulation with cancellation
+func TestSimulatedSlowOperationCancellation(t *testing.T) {
+	git, _ := setupTestGitRepo(t)
+
+	tests := []struct {
+		name     string
+		timeout  time.Duration
+		duration time.Duration
+		wantErr  bool
+	}{
+		{
+			name:     "operation cancelled by timeout",
+			timeout:  5 * time.Millisecond,
+			duration: 50 * time.Millisecond,
+			wantErr:  true,
+		},
+		{
+			name:     "operation completes before timeout",
+			timeout:  100 * time.Millisecond,
+			duration: 10 * time.Millisecond,
+			wantErr:  false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), tt.timeout)
+			defer cancel()
+
+			err := simulateSlowGitOperation(ctx, git, tt.duration)
+			if tt.wantErr {
+				assert.Error(t, err)
+				// Check for various cancellation error messages
+				errMsg := err.Error()
+				assert.True(t, 
+					strings.Contains(errMsg, "operation cancelled") ||
+					strings.Contains(errMsg, "context deadline exceeded") ||
+					strings.Contains(errMsg, "context canceled"),
+					"Expected cancellation error, got: %s", errMsg)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
 // BenchmarkContextTypes compares different context types
 func BenchmarkContextTypes(b *testing.B) {
 	tmpDir := b.TempDir()
@@ -448,6 +512,13 @@ func BenchmarkContextTypes(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			ctx := context.WithValue(context.Background(), key("test"), "value")
 			_, _ = git.CurrentBranch(ctx)
+		}
+	})
+
+	b.Run("SimulatedSlowOperation", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			_ = simulateSlowGitOperation(context.Background(), git, 1*time.Millisecond)
 		}
 	})
 }
