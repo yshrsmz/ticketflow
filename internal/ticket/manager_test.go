@@ -236,3 +236,201 @@ func TestManagerCurrentTicket(t *testing.T) {
 	_, err = os.Lstat(linkPath)
 	assert.True(t, os.IsNotExist(err))
 }
+
+func TestReadFileWithContext(t *testing.T) {
+	tmpDir := t.TempDir()
+	testFile := filepath.Join(tmpDir, "test.txt")
+	testContent := []byte("test content")
+
+	// Write test file
+	err := os.WriteFile(testFile, testContent, 0644)
+	require.NoError(t, err)
+
+	t.Run("successful read", func(t *testing.T) {
+		ctx := context.Background()
+		data, err := readFileWithContext(ctx, testFile)
+		require.NoError(t, err)
+		assert.Equal(t, testContent, data)
+	})
+
+	t.Run("cancelled context before read", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel()
+
+		_, err := readFileWithContext(ctx, testFile)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "operation cancelled")
+	})
+
+	t.Run("non-existent file", func(t *testing.T) {
+		ctx := context.Background()
+		_, err := readFileWithContext(ctx, filepath.Join(tmpDir, "nonexistent.txt"))
+		require.Error(t, err)
+		assert.True(t, os.IsNotExist(err))
+	})
+
+	t.Run("large file with context cancellation", func(t *testing.T) {
+		// Create a large file (>1MB)
+		largeFile := filepath.Join(tmpDir, "large.txt")
+		largeData := make([]byte, 2*1024*1024) // 2MB
+		for i := range largeData {
+			largeData[i] = byte(i % 256)
+		}
+		err := os.WriteFile(largeFile, largeData, 0644)
+		require.NoError(t, err)
+
+		// Test successful read
+		ctx := context.Background()
+		data, err := readFileWithContext(ctx, largeFile)
+		require.NoError(t, err)
+		assert.Equal(t, largeData, data)
+
+		// Test with timeout (might not trigger if read is too fast)
+		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Nanosecond)
+		defer cancel()
+		time.Sleep(2 * time.Millisecond) // Ensure timeout
+		_, err = readFileWithContext(ctx, largeFile)
+		if err != nil {
+			assert.Contains(t, err.Error(), "cancelled")
+		}
+	})
+}
+
+func TestWriteFileWithContext(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	t.Run("successful write", func(t *testing.T) {
+		ctx := context.Background()
+		testFile := filepath.Join(tmpDir, "write_test.txt")
+		testContent := []byte("test write content")
+
+		err := writeFileWithContext(ctx, testFile, testContent, 0644)
+		require.NoError(t, err)
+
+		// Verify file was written correctly
+		data, err := os.ReadFile(testFile)
+		require.NoError(t, err)
+		assert.Equal(t, testContent, data)
+	})
+
+	t.Run("cancelled context before write", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel()
+
+		testFile := filepath.Join(tmpDir, "cancelled_write.txt")
+		err := writeFileWithContext(ctx, testFile, []byte("should not write"), 0644)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "operation cancelled")
+
+		// Verify file was not created
+		_, err = os.Stat(testFile)
+		assert.True(t, os.IsNotExist(err))
+	})
+
+	t.Run("large file write", func(t *testing.T) {
+		ctx := context.Background()
+		testFile := filepath.Join(tmpDir, "large_write.txt")
+		largeData := make([]byte, 2*1024*1024) // 2MB
+		for i := range largeData {
+			largeData[i] = byte(i % 256)
+		}
+
+		err := writeFileWithContext(ctx, testFile, largeData, 0644)
+		require.NoError(t, err)
+
+		// Verify file was written correctly
+		data, err := os.ReadFile(testFile)
+		require.NoError(t, err)
+		assert.Equal(t, largeData, data)
+	})
+
+	t.Run("write with timeout", func(t *testing.T) {
+		testFile := filepath.Join(tmpDir, "timeout_write.txt")
+		largeData := make([]byte, 2*1024*1024) // 2MB
+
+		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Nanosecond)
+		defer cancel()
+		time.Sleep(2 * time.Millisecond) // Ensure timeout
+
+		err := writeFileWithContext(ctx, testFile, largeData, 0644)
+		if err != nil {
+			assert.Contains(t, err.Error(), "cancelled")
+		}
+	})
+}
+
+func TestManagerWithContextCancellation(t *testing.T) {
+	manager, tmpDir := setupTestManager(t)
+
+	// Create a test ticket first
+	ctx := context.Background()
+	ticket, err := manager.Create(ctx, "context-test")
+	require.NoError(t, err)
+
+	// Test Update with cancelled context
+	t.Run("Update with cancelled context", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel()
+
+		ticket.Content = "updated content"
+		err := manager.Update(ctx, ticket)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "operation cancelled")
+	})
+
+	// Test loadTicket with cancelled context
+	t.Run("loadTicket with cancelled context", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel()
+
+		_, err := manager.loadTicket(ctx, ticket.Path)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "operation cancelled")
+	})
+
+	// Test ReadContent with cancelled context
+	t.Run("ReadContent with cancelled context", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel()
+
+		_, err := manager.ReadContent(ctx, ticket.ID)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "operation cancelled")
+	})
+
+	// Test WriteContent with cancelled context
+	t.Run("WriteContent with cancelled context", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel()
+
+		err := manager.WriteContent(ctx, ticket.ID, "new content")
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "operation cancelled")
+	})
+
+	// Test Create with very large template (to trigger chunked write)
+	t.Run("Create with large template", func(t *testing.T) {
+		// Temporarily set a large template
+		originalTemplate := manager.config.Tickets.Template
+		largeTemplate := make([]byte, 2*1024*1024) // 2MB
+		for i := range largeTemplate {
+			largeTemplate[i] = 'A' + byte(i%26)
+		}
+		manager.config.Tickets.Template = string(largeTemplate)
+		defer func() {
+			manager.config.Tickets.Template = originalTemplate
+		}()
+
+		ctx := context.Background()
+		largeTicket, err := manager.Create(ctx, "large-ticket")
+		require.NoError(t, err)
+
+		// Verify the ticket was created with the large content
+		data, err := os.ReadFile(largeTicket.Path)
+		require.NoError(t, err)
+		assert.Contains(t, string(data), string(largeTemplate[:100])) // Check first 100 chars
+	})
+
+	// Clean up
+	os.RemoveAll(tmpDir)
+}

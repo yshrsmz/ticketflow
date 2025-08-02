@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"sort"
@@ -80,7 +81,7 @@ func (m *Manager) Create(ctx context.Context, slug string) (*Ticket, error) {
 		return nil, ticketerrors.NewTicketError("create", id, fmt.Errorf("failed to serialize ticket: %w", err))
 	}
 
-	if err := os.WriteFile(ticketPath, data, 0644); err != nil {
+	if err := writeFileWithContext(ctx, ticketPath, data, 0644); err != nil {
 		return nil, ticketerrors.NewTicketError("create", id, fmt.Errorf("failed to write ticket file: %w", err))
 	}
 
@@ -195,7 +196,7 @@ func (m *Manager) Update(ctx context.Context, ticket *Ticket) error {
 		return ticketerrors.NewTicketError("update", ticket.ID, fmt.Errorf("failed to serialize ticket: %w", err))
 	}
 
-	if err := os.WriteFile(ticket.Path, data, 0644); err != nil {
+	if err := writeFileWithContext(ctx, ticket.Path, data, 0644); err != nil {
 		return ticketerrors.NewTicketError("update", ticket.ID, fmt.Errorf("failed to write ticket file: %w", err))
 	}
 
@@ -259,7 +260,7 @@ func (m *Manager) loadTicket(ctx context.Context, path string) (*Ticket, error) 
 	if err := ctx.Err(); err != nil {
 		return nil, fmt.Errorf("operation cancelled: %w", err)
 	}
-	data, err := os.ReadFile(path)
+	data, err := readFileWithContext(ctx, path)
 	if err != nil {
 		return nil, ticketerrors.NewTicketError("read", filepath.Base(path), fmt.Errorf("failed to read ticket file: %w", err))
 	}
@@ -387,4 +388,103 @@ func (m *Manager) FindTicket(ctx context.Context, ticketID string) (string, erro
 	}
 
 	return "", ticketerrors.NewTicketError("find", ticketID, ticketerrors.ErrTicketNotFound)
+}
+
+// readFileWithContext reads a file with context support
+func readFileWithContext(ctx context.Context, path string) ([]byte, error) {
+	// Check context before starting
+	if err := ctx.Err(); err != nil {
+		return nil, fmt.Errorf("operation cancelled: %w", err)
+	}
+
+	// Open file
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	// Get file info
+	info, err := file.Stat()
+	if err != nil {
+		return nil, err
+	}
+
+	// For small files (< 1MB), read all at once
+	if info.Size() < 1024*1024 {
+		// Check context one more time before reading
+		if err := ctx.Err(); err != nil {
+			return nil, fmt.Errorf("operation cancelled: %w", err)
+		}
+		return os.ReadFile(path)
+	}
+
+	// For larger files, read in chunks with context checks
+	const chunkSize = 64 * 1024 // 64KB chunks
+	var result []byte
+	buffer := make([]byte, chunkSize)
+
+	for {
+		// Check context before each chunk
+		if err := ctx.Err(); err != nil {
+			return nil, fmt.Errorf("operation cancelled during read: %w", err)
+		}
+
+		n, err := file.Read(buffer)
+		if n > 0 {
+			result = append(result, buffer[:n]...)
+		}
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			return nil, err
+		}
+	}
+
+	return result, nil
+}
+
+// writeFileWithContext writes a file with context support
+func writeFileWithContext(ctx context.Context, path string, data []byte, perm os.FileMode) error {
+	// Check context before starting
+	if err := ctx.Err(); err != nil {
+		return fmt.Errorf("operation cancelled: %w", err)
+	}
+
+	// For small files (< 1MB), write all at once
+	if len(data) < 1024*1024 {
+		// Check context one more time before writing
+		if err := ctx.Err(); err != nil {
+			return fmt.Errorf("operation cancelled: %w", err)
+		}
+		return os.WriteFile(path, data, perm)
+	}
+
+	// For larger files, write in chunks with context checks
+	file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, perm)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	const chunkSize = 64 * 1024 // 64KB chunks
+	for i := 0; i < len(data); i += chunkSize {
+		// Check context before each chunk
+		if err := ctx.Err(); err != nil {
+			return fmt.Errorf("operation cancelled during write: %w", err)
+		}
+
+		end := i + chunkSize
+		if end > len(data) {
+			end = len(data)
+		}
+
+		_, err := file.Write(data[i:end])
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
