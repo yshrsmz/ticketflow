@@ -137,14 +137,9 @@ func runCLI(ctx context.Context) error {
 
 	case "new":
 		return parseAndExecute(ctx, Command{
-			Name:    "new",
-			MinArgs: 1,
-			Validate: func(fs *flag.FlagSet, flags interface{}) error {
-				if fs.NArg() < 1 {
-					return fmt.Errorf("missing slug argument")
-				}
-				return nil
-			},
+			Name:         "new",
+			MinArgs:      1,
+			MinArgsError: "missing slug argument",
 			Execute: func(ctx context.Context, fs *flag.FlagSet, flags interface{}) error {
 				return handleNew(ctx, fs.Arg(0), "text")
 			},
@@ -168,18 +163,13 @@ func runCLI(ctx context.Context) error {
 
 	case "show":
 		return parseAndExecute(ctx, Command{
-			Name:    "show",
-			MinArgs: 1,
+			Name:         "show",
+			MinArgs:      1,
+			MinArgsError: "missing ticket argument",
 			SetupFlags: func(fs *flag.FlagSet) interface{} {
 				flags := &showFlags{}
 				fs.StringVar(&flags.format, "format", "text", "Output format (text|json)")
 				return flags
-			},
-			Validate: func(fs *flag.FlagSet, flags interface{}) error {
-				if fs.NArg() < 1 {
-					return fmt.Errorf("missing ticket argument")
-				}
-				return nil
 			},
 			Execute: func(ctx context.Context, fs *flag.FlagSet, cmdFlags interface{}) error {
 				flags := cmdFlags.(*showFlags)
@@ -189,14 +179,9 @@ func runCLI(ctx context.Context) error {
 
 	case "start":
 		return parseAndExecute(ctx, Command{
-			Name:    "start",
-			MinArgs: 1,
-			Validate: func(fs *flag.FlagSet, flags interface{}) error {
-				if fs.NArg() < 1 {
-					return fmt.Errorf("missing ticket argument")
-				}
-				return nil
-			},
+			Name:         "start",
+			MinArgs:      1,
+			MinArgsError: "missing ticket argument",
 			Execute: func(ctx context.Context, fs *flag.FlagSet, flags interface{}) error {
 				return handleStart(ctx, fs.Arg(0), false)
 			},

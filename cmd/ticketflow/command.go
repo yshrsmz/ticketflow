@@ -10,11 +10,27 @@ import (
 
 // Command represents a CLI command with its configuration
 type Command struct {
-	Name       string
-	MinArgs    int
+	// Name is the command name used for the flag set
+	Name string
+
+	// MinArgs is the minimum number of positional arguments required
+	MinArgs int
+
+	// MinArgsError is an optional custom error message for missing arguments.
+	// If not provided, a generic message will be used.
+	MinArgsError string
+
+	// SetupFlags is an optional function to configure command-specific flags.
+	// It should return a pointer to a struct containing the flag values.
 	SetupFlags func(*flag.FlagSet) interface{}
-	Validate   func(*flag.FlagSet, interface{}) error
-	Execute    func(context.Context, *flag.FlagSet, interface{}) error
+
+	// Validate is an optional function for additional validation beyond MinArgs.
+	// It receives the parsed flag set and the result from SetupFlags.
+	Validate func(*flag.FlagSet, interface{}) error
+
+	// Execute is the required function that implements the command logic.
+	// It receives the context, parsed flag set, and the result from SetupFlags.
+	Execute func(context.Context, *flag.FlagSet, interface{}) error
 }
 
 // parseAndExecute handles the common pattern of parsing flags, configuring logging, and executing a command
@@ -43,6 +59,9 @@ func parseAndExecute(ctx context.Context, cmd Command, args []string) error {
 
 	// Validate arguments
 	if cmd.MinArgs > 0 && fs.NArg() < cmd.MinArgs {
+		if cmd.MinArgsError != "" {
+			return fmt.Errorf("%s", cmd.MinArgsError)
+		}
 		return fmt.Errorf("missing required arguments for %s command", cmd.Name)
 	}
 
