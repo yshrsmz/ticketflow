@@ -6,7 +6,7 @@ worktree:
     init_commands:
         - git status
         - make init-worktree
-        - if command -v mise >/dev/null 2>&1; then mise trust; fi
+        - sh -c "if command -v mise >/dev/null 2>&1; then mise trust; fi"
         - cursor .
     auto_operations:
         create_on_start: true
