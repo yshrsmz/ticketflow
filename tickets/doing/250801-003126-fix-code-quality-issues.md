@@ -1,8 +1,8 @@
 ---
 priority: 1
-description: "Fix code quality issues including naming conventions, magic strings, and Go idioms"
+description: Fix code quality issues including naming conventions, magic strings, and Go idioms
 created_at: "2025-08-01T00:31:26+09:00"
-started_at: null
+started_at: "2025-08-02T10:53:53+09:00"
 closed_at: null
 ---
 

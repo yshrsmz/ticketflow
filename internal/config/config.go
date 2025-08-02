@@ -48,20 +48,20 @@ type OutputConfig struct {
 func Default() *Config {
 	return &Config{
 		Git: GitConfig{
-			DefaultBranch: "main",
+			DefaultBranch: DefaultBranch,
 		},
 		Worktree: WorktreeConfig{
 			Enabled: true,
-			BaseDir: "../.worktrees",
+			BaseDir: DefaultWorktreeBase,
 			InitCommands: []string{
 				"git fetch origin",
 			},
 		},
 		Tickets: TicketsConfig{
-			Dir:      "tickets",
-			TodoDir:  "todo",
-			DoingDir: "doing",
-			DoneDir:  "done",
+			Dir:      DefaultTicketsDir,
+			TodoDir:  DefaultTodoDir,
+			DoingDir: DefaultDoingDir,
+			DoneDir:  DefaultDoneDir,
 			Template: `# Summary
 
 [Describe the ticket summary here]
@@ -80,7 +80,7 @@ func Default() *Config {
 [Additional notes or remarks]`,
 		},
 		Output: OutputConfig{
-			DefaultFormat: "text",
+			DefaultFormat: DefaultOutputFormat,
 			JSONPretty:    true,
 		},
 	}
@@ -88,7 +88,7 @@ func Default() *Config {
 
 // Load loads configuration from the specified project root
 func Load(projectRoot string) (*Config, error) {
-	configPath := filepath.Join(projectRoot, ".ticketflow.yaml")
+	configPath := filepath.Join(projectRoot, ConfigFileName)
 
 	// Check if config file exists
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
@@ -119,7 +119,7 @@ func Load(projectRoot string) (*Config, error) {
 func (c *Config) Save(path string) error {
 	// Ensure directory exists
 	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, DirPermission); err != nil {
 		return fmt.Errorf("failed to create config directory: %w", err)
 	}
 
@@ -130,7 +130,7 @@ func (c *Config) Save(path string) error {
 	}
 
 	// Write to file
-	if err := os.WriteFile(path, data, 0644); err != nil {
+	if err := os.WriteFile(path, data, FilePermission); err != nil {
 		return fmt.Errorf("failed to write config file: %w", err)
 	}
 
@@ -150,7 +150,7 @@ func (c *Config) Validate() error {
 	}
 
 	// Validate Output config
-	if c.Output.DefaultFormat != "text" && c.Output.DefaultFormat != "json" {
+	if c.Output.DefaultFormat != FormatText && c.Output.DefaultFormat != FormatJSON {
 		return ticketerrors.NewConfigError("output.default_format", c.Output.DefaultFormat, ticketerrors.ErrConfigInvalid)
 	}
 
