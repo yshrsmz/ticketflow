@@ -28,7 +28,7 @@ func TestWorktreeWorkflow(t *testing.T) {
 	require.NoError(t, err)
 
 	// Initialize ticketflow with worktree enabled
-	err = cli.InitCommand()
+	err = cli.InitCommand(context.Background())
 	require.NoError(t, err)
 
 	// Enable worktrees in config
@@ -48,7 +48,7 @@ func TestWorktreeWorkflow(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create app instance
-	app, err := cli.NewApp()
+	app, err := cli.NewApp(context.Background())
 	require.NoError(t, err)
 
 	// 1. Create a ticket
@@ -140,7 +140,7 @@ func TestWorktreeCleanCommand(t *testing.T) {
 	require.NoError(t, err)
 
 	// Initialize ticketflow with worktrees
-	err = cli.InitCommand()
+	err = cli.InitCommand(context.Background())
 	require.NoError(t, err)
 
 	cfg, err := config.Load(repoPath)
@@ -156,7 +156,7 @@ func TestWorktreeCleanCommand(t *testing.T) {
 	_, err = gitCmd.Exec(context.Background(), "commit", "-m", "Initialize ticketflow")
 	require.NoError(t, err)
 
-	app, err := cli.NewApp()
+	app, err := cli.NewApp(context.Background())
 	require.NoError(t, err)
 
 	// Create multiple tickets
@@ -237,7 +237,7 @@ func TestWorktreeListCommand(t *testing.T) {
 	require.NoError(t, err)
 
 	// Initialize and setup
-	err = cli.InitCommand()
+	err = cli.InitCommand(context.Background())
 	require.NoError(t, err)
 
 	cfg, err := config.Load(repoPath)
@@ -253,7 +253,7 @@ func TestWorktreeListCommand(t *testing.T) {
 	_, err = gitCmd.Exec(context.Background(), "commit", "-m", "Initialize")
 	require.NoError(t, err)
 
-	app, err := cli.NewApp()
+	app, err := cli.NewApp(context.Background())
 	require.NoError(t, err)
 
 	// Create and start a ticket

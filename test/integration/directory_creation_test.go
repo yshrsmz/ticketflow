@@ -27,11 +27,11 @@ func TestDirectoryAutoCreation(t *testing.T) {
 	require.NoError(t, err)
 
 	// Initialize ticketflow
-	err = cli.InitCommand()
+	err = cli.InitCommand(context.Background())
 	require.NoError(t, err)
 
 	// Load the app
-	app, err := cli.NewApp()
+	app, err := cli.NewApp(context.Background())
 	require.NoError(t, err)
 	app.Config.Worktree.Enabled = false
 
@@ -123,7 +123,7 @@ func TestDirectoryCreationWithWorktrees(t *testing.T) {
 	require.NoError(t, err)
 
 	// Load the app
-	app, err := cli.NewApp()
+	app, err := cli.NewApp(context.Background())
 	require.NoError(t, err)
 
 	// Commit initial setup

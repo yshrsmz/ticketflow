@@ -24,11 +24,11 @@ func TestCleanupTicketWithForceFlag(t *testing.T) {
 	require.NoError(t, err)
 
 	// Initialize ticketflow
-	err = cli.InitCommand()
+	err = cli.InitCommand(context.Background())
 	require.NoError(t, err)
 
 	// Create and test the app
-	app, err := cli.NewApp()
+	app, err := cli.NewApp(context.Background())
 	require.NoError(t, err)
 
 	// Create a ticket

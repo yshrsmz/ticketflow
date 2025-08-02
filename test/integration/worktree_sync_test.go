@@ -27,7 +27,7 @@ func TestStartTicket_WorktreeCreatedAfterCommit(t *testing.T) {
 	require.NoError(t, err)
 
 	// Initialize ticketflow with worktree enabled
-	err = cli.InitCommand()
+	err = cli.InitCommand(context.Background())
 	require.NoError(t, err)
 
 	// Enable worktrees in config
@@ -47,7 +47,7 @@ func TestStartTicket_WorktreeCreatedAfterCommit(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create app instance
-	app, err := cli.NewApp()
+	app, err := cli.NewApp(context.Background())
 	require.NoError(t, err)
 
 	// 1. Create a ticket
