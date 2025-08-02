@@ -39,7 +39,7 @@ func main() {
 }
 
 func runTUI() {
-	// Find git root
+	// Find git root using default timeout
 	g := git.New(".")
 	root, err := g.RootPath()
 	if err != nil {
@@ -54,6 +54,9 @@ func runTUI() {
 		fmt.Fprintf(os.Stderr, "Run 'ticketflow init' to initialize the ticket system\n")
 		os.Exit(1)
 	}
+
+	// Recreate git client with configured timeout
+	g = git.NewWithTimeout(".", cfg.GetGitTimeout())
 
 	// Create ticket manager
 	manager := ticket.NewManager(cfg, root)

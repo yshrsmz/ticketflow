@@ -73,7 +73,7 @@ func NewAppWithOptions(opts ...AppOption) (*App, error) {
 
 	// Set defaults if not provided
 	if app.Git == nil {
-		app.Git = git.New(projectRoot)
+		app.Git = git.NewWithTimeout(projectRoot, app.Config.GetGitTimeout())
 	}
 	if app.Manager == nil {
 		app.Manager = ticket.NewManager(cfg, projectRoot)
@@ -104,7 +104,7 @@ func NewApp() (*App, error) {
 			})
 	}
 
-	gitClient := git.New(projectRoot)
+	gitClient := git.NewWithTimeout(projectRoot, cfg.GetGitTimeout())
 	manager := ticket.NewManager(cfg, projectRoot)
 
 	return &App{
@@ -864,7 +864,7 @@ func (app *App) validateTicketForClose(ctx context.Context, force bool) (*ticket
 
 			// Check for uncommitted changes in worktree
 			if !force {
-				wtGit := git.New(worktreePath)
+				wtGit := git.NewWithTimeout(worktreePath, app.Config.GetGitTimeout())
 				dirty, err := wtGit.HasUncommittedChanges(ctx)
 				if err != nil {
 					return nil, "", fmt.Errorf("failed to check worktree status: %w", err)
@@ -1015,6 +1015,15 @@ func (app *App) runWorktreeInitCommands(ctx context.Context, worktreePath string
 
 	fmt.Println("Running initialization commands...")
 	var failedCommands []string
+
+	// Apply timeout if not already set
+	timeout := app.Config.GetInitCommandsTimeout()
+	if _, hasDeadline := ctx.Deadline(); !hasDeadline && timeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, timeout)
+		defer cancel()
+	}
+
 	for _, cmd := range app.Config.Worktree.InitCommands {
 		fmt.Printf("  $ %s\n", cmd)
 		// Parse the command

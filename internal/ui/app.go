@@ -531,6 +531,11 @@ func (m *Model) runWorktreeInitCommands(worktreePath string) error {
 		return nil
 	}
 
+	// Create context with timeout
+	timeout := m.config.GetInitCommandsTimeout()
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
 	var failedCommands []string
 	for _, cmd := range m.config.Worktree.InitCommands {
 		parts := strings.Fields(cmd)
@@ -538,7 +543,7 @@ func (m *Model) runWorktreeInitCommands(worktreePath string) error {
 			continue
 		}
 
-		execCmd := exec.CommandContext(context.Background(), parts[0], parts[1:]...)
+		execCmd := exec.CommandContext(ctx, parts[0], parts[1:]...)
 		execCmd.Dir = worktreePath
 		if err := execCmd.Run(); err != nil {
 			failedCommands = append(failedCommands, fmt.Sprintf("%s (%v)", cmd, err))
@@ -637,7 +642,7 @@ func (m *Model) checkWorkspaceForClose(t *ticket.Ticket) (string, bool, error) {
 			worktreePath = wt.Path
 
 			// Check for uncommitted changes in worktree
-			wtGit := git.New(worktreePath)
+			wtGit := git.NewWithTimeout(worktreePath, m.config.GetGitTimeout())
 			dirty, err := wtGit.HasUncommittedChanges(context.Background())
 			if err != nil {
 				return "", false, fmt.Errorf("failed to check worktree status: %w", err)

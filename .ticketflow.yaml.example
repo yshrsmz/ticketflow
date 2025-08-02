@@ -66,3 +66,11 @@ output:
   
   # Pretty print JSON output
   json_pretty: true
+
+# Timeout settings
+timeouts:
+  # Timeout for git operations in seconds
+  git: 30
+  
+  # Timeout for worktree init commands in seconds
+  init_commands: 60

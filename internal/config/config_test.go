@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -22,6 +23,8 @@ func TestDefault(t *testing.T) {
 	assert.Equal(t, "done", cfg.Tickets.DoneDir)
 	assert.Equal(t, "text", cfg.Output.DefaultFormat)
 	assert.True(t, cfg.Output.JSONPretty)
+	assert.Equal(t, 30, cfg.Timeouts.Git)
+	assert.Equal(t, 60, cfg.Timeouts.InitCommands)
 }
 
 func TestConfigValidate(t *testing.T) {
@@ -61,6 +64,26 @@ func TestConfigValidate(t *testing.T) {
 				Output:  OutputConfig{DefaultFormat: "xml"},
 			},
 			wantErr: "output.default_format",
+		},
+		{
+			name: "negative git timeout",
+			config: Config{
+				Git:      GitConfig{DefaultBranch: "main"},
+				Tickets:  TicketsConfig{Dir: "tickets"},
+				Output:   OutputConfig{DefaultFormat: "text"},
+				Timeouts: TimeoutsConfig{Git: -1, InitCommands: 60},
+			},
+			wantErr: "timeouts.git",
+		},
+		{
+			name: "negative init commands timeout",
+			config: Config{
+				Git:      GitConfig{DefaultBranch: "main"},
+				Tickets:  TicketsConfig{Dir: "tickets"},
+				Output:   OutputConfig{DefaultFormat: "text"},
+				Timeouts: TimeoutsConfig{Git: 30, InitCommands: -1},
+			},
+			wantErr: "timeouts.init_commands",
 		},
 	}
 
@@ -102,6 +125,41 @@ func TestConfigSaveAndLoad(t *testing.T) {
 	assert.Equal(t, cfg.Output.DefaultFormat, loaded.Output.DefaultFormat)
 }
 
+func TestLoadWithTimeouts(t *testing.T) {
+	tmpDir := t.TempDir()
+	configPath := filepath.Join(tmpDir, ".ticketflow.yaml")
+
+	// Create config with custom timeouts
+	configYAML := `
+git:
+  default_branch: main
+worktree:
+  enabled: true
+  base_dir: ../.worktrees
+tickets:
+  dir: tickets
+  todo_dir: todo
+  doing_dir: doing
+  done_dir: done
+output:
+  default_format: text
+timeouts:
+  git: 45
+  init_commands: 120
+`
+	err := os.WriteFile(configPath, []byte(configYAML), 0644)
+	require.NoError(t, err)
+
+	// Load and verify
+	loaded, err := Load(tmpDir)
+	require.NoError(t, err)
+
+	assert.Equal(t, 45, loaded.Timeouts.Git)
+	assert.Equal(t, 120, loaded.Timeouts.InitCommands)
+	assert.Equal(t, 45*time.Second, loaded.GetGitTimeout())
+	assert.Equal(t, 120*time.Second, loaded.GetInitCommandsTimeout())
+}
+
 func TestLoadNonExistentConfig(t *testing.T) {
 	tmpDir := t.TempDir()
 
@@ -140,4 +198,57 @@ func TestGetPaths(t *testing.T) {
 
 	assert.Equal(t, "/absolute/tickets", cfg.GetTicketsPath(projectRoot))
 	assert.Equal(t, "/absolute/worktrees", cfg.GetWorktreePath(projectRoot))
+}
+
+func TestGetTimeouts(t *testing.T) {
+	tests := []struct {
+		name               string
+		gitTimeout         int
+		initCommandTimeout int
+		wantGit            string
+		wantInit           string
+	}{
+		{
+			name:               "default timeouts",
+			gitTimeout:         30,
+			initCommandTimeout: 60,
+			wantGit:            "30s",
+			wantInit:           "1m0s",
+		},
+		{
+			name:               "zero timeouts use defaults",
+			gitTimeout:         0,
+			initCommandTimeout: 0,
+			wantGit:            "30s",
+			wantInit:           "1m0s",
+		},
+		{
+			name:               "negative timeouts use defaults",
+			gitTimeout:         -1,
+			initCommandTimeout: -5,
+			wantGit:            "30s",
+			wantInit:           "1m0s",
+		},
+		{
+			name:               "custom timeouts",
+			gitTimeout:         120,
+			initCommandTimeout: 300,
+			wantGit:            "2m0s",
+			wantInit:           "5m0s",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := &Config{
+				Timeouts: TimeoutsConfig{
+					Git:          tt.gitTimeout,
+					InitCommands: tt.initCommandTimeout,
+				},
+			}
+
+			assert.Equal(t, tt.wantGit, cfg.GetGitTimeout().String())
+			assert.Equal(t, tt.wantInit, cfg.GetInitCommandsTimeout().String())
+		})
+	}
 }

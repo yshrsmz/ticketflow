@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	ticketerrors "github.com/yshrsmz/ticketflow/internal/errors"
 	"gopkg.in/yaml.v3"
@@ -15,6 +16,7 @@ type Config struct {
 	Worktree WorktreeConfig `yaml:"worktree"`
 	Tickets  TicketsConfig  `yaml:"tickets"`
 	Output   OutputConfig   `yaml:"output"`
+	Timeouts TimeoutsConfig `yaml:"timeouts"`
 }
 
 // GitConfig represents git-related configuration
@@ -42,6 +44,12 @@ type TicketsConfig struct {
 type OutputConfig struct {
 	DefaultFormat string `yaml:"default_format"`
 	JSONPretty    bool   `yaml:"json_pretty"`
+}
+
+// TimeoutsConfig represents timeout configuration for various operations
+type TimeoutsConfig struct {
+	Git          int `yaml:"git"`           // Timeout for git operations in seconds
+	InitCommands int `yaml:"init_commands"` // Timeout for worktree init commands in seconds
 }
 
 // Default returns the default configuration
@@ -82,6 +90,10 @@ func Default() *Config {
 		Output: OutputConfig{
 			DefaultFormat: DefaultOutputFormat,
 			JSONPretty:    true,
+		},
+		Timeouts: TimeoutsConfig{
+			Git:          30, // 30 seconds default for git operations
+			InitCommands: 60, // 60 seconds default for init commands
 		},
 	}
 }
@@ -154,6 +166,14 @@ func (c *Config) Validate() error {
 		return ticketerrors.NewConfigError("output.default_format", c.Output.DefaultFormat, ticketerrors.ErrConfigInvalid)
 	}
 
+	// Validate Timeouts config
+	if c.Timeouts.Git < 0 {
+		return ticketerrors.NewConfigError("timeouts.git", fmt.Sprintf("%d", c.Timeouts.Git), ticketerrors.ErrConfigInvalid)
+	}
+	if c.Timeouts.InitCommands < 0 {
+		return ticketerrors.NewConfigError("timeouts.init_commands", fmt.Sprintf("%d", c.Timeouts.InitCommands), ticketerrors.ErrConfigInvalid)
+	}
+
 	return nil
 }
 
@@ -186,4 +206,20 @@ func (c *Config) GetWorktreePath(projectRoot string) string {
 		return c.Worktree.BaseDir
 	}
 	return filepath.Join(projectRoot, c.Worktree.BaseDir)
+}
+
+// GetGitTimeout returns the timeout duration for git operations
+func (c *Config) GetGitTimeout() time.Duration {
+	if c.Timeouts.Git <= 0 {
+		return 30 * time.Second // Default fallback
+	}
+	return time.Duration(c.Timeouts.Git) * time.Second
+}
+
+// GetInitCommandsTimeout returns the timeout duration for init commands
+func (c *Config) GetInitCommandsTimeout() time.Duration {
+	if c.Timeouts.InitCommands <= 0 {
+		return 60 * time.Second // Default fallback
+	}
+	return time.Duration(c.Timeouts.InitCommands) * time.Second
 }

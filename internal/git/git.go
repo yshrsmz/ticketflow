@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os/exec"
 	"strings"
+	"time"
 
 	ticketerrors "github.com/yshrsmz/ticketflow/internal/errors"
 )
@@ -13,11 +14,17 @@ import (
 // Git provides git operations
 type Git struct {
 	repoPath string
-	Root     string // Git repository root path
+	Root     string        // Git repository root path
+	timeout  time.Duration // Timeout for git operations
 }
 
-// New creates a new Git instance
+// New creates a new Git instance with default timeout
 func New(repoPath string) *Git {
+	return NewWithTimeout(repoPath, 30*time.Second)
+}
+
+// NewWithTimeout creates a new Git instance with custom timeout
+func NewWithTimeout(repoPath string, timeout time.Duration) *Git {
 	// Use background context for initialization
 	root, err := FindProjectRoot(context.Background(), repoPath)
 	if err != nil {
@@ -28,6 +35,7 @@ func New(repoPath string) *Git {
 	return &Git{
 		repoPath: repoPath,
 		Root:     root,
+		timeout:  timeout,
 	}
 }
 
@@ -36,6 +44,13 @@ func (g *Git) Exec(ctx context.Context, args ...string) (string, error) {
 	// Check context
 	if err := ctx.Err(); err != nil {
 		return "", fmt.Errorf("operation cancelled: %w", err)
+	}
+
+	// Apply timeout if not already set
+	if _, hasDeadline := ctx.Deadline(); !hasDeadline && g.timeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, g.timeout)
+		defer cancel()
 	}
 
 	cmd := exec.CommandContext(ctx, GitCmd, args...)

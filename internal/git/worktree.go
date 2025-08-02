@@ -109,7 +109,7 @@ func (g *Git) HasWorktree(ctx context.Context, branch string) (bool, error) {
 
 // RunInWorktree executes a command in a specific worktree
 func (g *Git) RunInWorktree(ctx context.Context, worktreePath string, args ...string) (string, error) {
-	// Create a new Git instance for the worktree
-	wtGit := New(worktreePath)
+	// Create a new Git instance for the worktree with same timeout
+	wtGit := NewWithTimeout(worktreePath, g.timeout)
 	return wtGit.Exec(ctx, args...)
 }
