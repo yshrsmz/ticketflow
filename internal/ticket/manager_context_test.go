@@ -155,13 +155,16 @@ func TestFileOperationsWithCancelledContext(t *testing.T) {
 // TestConcurrentManagerOperations tests concurrent manager operations with cancellation
 func TestConcurrentManagerOperations(t *testing.T) {
 	manager, _ := setupTestManager(t)
-	ctx, cancel := context.WithCancel(context.Background())
 
 	// Create some tickets first
 	for i := 0; i < 5; i++ {
 		_, err := manager.Create(context.Background(), fmt.Sprintf("ticket-%d", i))
 		require.NoError(t, err)
 	}
+
+	// Create coordination channel
+	startChan := make(chan struct{})
+	ctx, cancel := context.WithCancel(context.Background())
 
 	var wg sync.WaitGroup
 	errChan := make(chan error, 50)
@@ -173,6 +176,7 @@ func TestConcurrentManagerOperations(t *testing.T) {
 		// List operation
 		go func() {
 			defer wg.Done()
+			<-startChan
 			_, err := manager.List(ctx, StatusFilterAll)
 			if err != nil {
 				errChan <- err
@@ -182,6 +186,7 @@ func TestConcurrentManagerOperations(t *testing.T) {
 		// Create operation
 		go func(id int) {
 			defer wg.Done()
+			<-startChan
 			_, err := manager.Create(ctx, fmt.Sprintf("concurrent-%d", id))
 			if err != nil {
 				errChan <- err
@@ -191,6 +196,7 @@ func TestConcurrentManagerOperations(t *testing.T) {
 		// Read operation
 		go func() {
 			defer wg.Done()
+			<-startChan
 			_, err := manager.Get(ctx, "ticket-0")
 			if err != nil {
 				errChan <- err
@@ -200,6 +206,7 @@ func TestConcurrentManagerOperations(t *testing.T) {
 		// Find operation
 		go func() {
 			defer wg.Done()
+			<-startChan
 			_, err := manager.FindTicket(ctx, "ticket-1")
 			if err != nil {
 				errChan <- err
@@ -209,6 +216,7 @@ func TestConcurrentManagerOperations(t *testing.T) {
 		// Current ticket operation
 		go func() {
 			defer wg.Done()
+			<-startChan
 			_, err := manager.GetCurrentTicket(ctx)
 			if err != nil {
 				errChan <- err
@@ -216,25 +224,30 @@ func TestConcurrentManagerOperations(t *testing.T) {
 		}()
 	}
 
-	// Cancel after a delay
-	go func() {
-		time.Sleep(20 * time.Millisecond)
-		cancel()
-	}()
+	// Give goroutines time to block
+	time.Sleep(10 * time.Millisecond)
+	
+	// Cancel context first
+	cancel()
+	
+	// Then start all operations
+	close(startChan)
 
 	// Wait for all operations
 	wg.Wait()
 	close(errChan)
 
 	// Count cancelled operations
-	cancelledCount := 0
+	errorCount := 0
 	for err := range errChan {
-		if err != nil && errors.Is(err, context.Canceled) {
-			cancelledCount++
+		if err != nil {
+			errorCount++
+			assert.True(t, errors.Is(err, context.Canceled))
 		}
 	}
 
-	assert.Greater(t, cancelledCount, 0, "Expected some operations to be cancelled")
+	// All operations should have been cancelled
+	assert.Equal(t, 50, errorCount, "All operations should fail with cancelled context")
 }
 
 // TestContextTimeoutScenarios tests various timeout scenarios

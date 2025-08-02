@@ -209,22 +209,23 @@ func TestContextWithValues(t *testing.T) {
 // TestConcurrentCancellation tests concurrent operations with shared context
 func TestConcurrentCancellation(t *testing.T) {
 	git, _ := setupTestGitRepo(t)
+	
+	// Create a channel to coordinate goroutines
+	startChan := make(chan struct{})
 	ctx, cancel := context.WithCancel(context.Background())
 
 	var wg sync.WaitGroup
-	errChan := make(chan error, 10)
+	errChan := make(chan error, 20)
 
 	// Start multiple concurrent operations
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 20; i++ {
 		wg.Add(1)
 		go func(id int) {
 			defer wg.Done()
-
-			// Some operations before cancellation
-			if id%2 == 0 {
-				time.Sleep(5 * time.Millisecond)
-			}
-
+			
+			// Wait for signal to start
+			<-startChan
+			
 			_, err := git.CurrentBranch(ctx)
 			if err != nil {
 				errChan <- err
@@ -232,22 +233,30 @@ func TestConcurrentCancellation(t *testing.T) {
 		}(i)
 	}
 
-	// Cancel after a short delay to allow some operations to start
-	time.Sleep(5 * time.Millisecond)
+	// Give goroutines time to block on channel
+	time.Sleep(10 * time.Millisecond)
+	
+	// Cancel context first
 	cancel()
+	
+	// Then signal all goroutines to start
+	close(startChan)
 
 	// Wait for all goroutines to complete
 	wg.Wait()
 	close(errChan)
 
-	// Verify that at least some operations were cancelled
-	cancelledCount := 0
+	// Count errors
+	errorCount := 0
 	for err := range errChan {
-		if strings.Contains(err.Error(), "operation cancelled") {
-			cancelledCount++
+		if err != nil {
+			errorCount++
+			assert.Contains(t, err.Error(), "operation cancelled")
 		}
 	}
-	assert.Greater(t, cancelledCount, 0, "Expected at least some operations to be cancelled")
+	
+	// All operations should have been cancelled since context was cancelled before they started
+	assert.Equal(t, 20, errorCount, "All operations should fail with cancelled context")
 }
 
 // TestContextPropagationInExec tests that context is properly propagated to exec.CommandContext

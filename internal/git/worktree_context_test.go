@@ -2,6 +2,7 @@ package git
 
 import (
 	"context"
+	"fmt"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -158,15 +159,18 @@ func TestWorktreeOperationsWithTimeout(t *testing.T) {
 // TestConcurrentWorktreeOperations tests concurrent worktree operations
 func TestConcurrentWorktreeOperations(t *testing.T) {
 	git, tmpDir := setupTestGitRepo(t)
-	ctx, cancel := context.WithCancel(context.Background())
-
+	
 	// Create some worktrees first
 	for i := 0; i < 3; i++ {
-		branch := filepath.Join(".worktrees", t.Name(), "branch", string(rune('a'+i)))
-		path := filepath.Join(tmpDir, branch)
+		branch := fmt.Sprintf("test-branch-%d", i)
+		path := filepath.Join(tmpDir, ".worktrees", branch)
 		err := git.AddWorktree(context.Background(), path, branch)
 		require.NoError(t, err)
 	}
+
+	// Create coordination channel
+	startChan := make(chan struct{})
+	ctx, cancel := context.WithCancel(context.Background())
 
 	var wg sync.WaitGroup
 	errChan := make(chan error, 30)
@@ -178,6 +182,7 @@ func TestConcurrentWorktreeOperations(t *testing.T) {
 		// List operation
 		go func() {
 			defer wg.Done()
+			<-startChan
 			_, err := git.ListWorktrees(ctx)
 			if err != nil {
 				errChan <- err
@@ -187,6 +192,7 @@ func TestConcurrentWorktreeOperations(t *testing.T) {
 		// Find operation
 		go func() {
 			defer wg.Done()
+			<-startChan
 			_, err := git.FindWorktreeByBranch(ctx, "main")
 			if err != nil {
 				errChan <- err
@@ -196,6 +202,7 @@ func TestConcurrentWorktreeOperations(t *testing.T) {
 		// Has operation
 		go func() {
 			defer wg.Done()
+			<-startChan
 			_, err := git.HasWorktree(ctx, "main")
 			if err != nil {
 				errChan <- err
@@ -203,26 +210,30 @@ func TestConcurrentWorktreeOperations(t *testing.T) {
 		}()
 	}
 
-	// Cancel context after a delay
-	go func() {
-		time.Sleep(20 * time.Millisecond)
-		cancel()
-	}()
+	// Give goroutines time to block
+	time.Sleep(10 * time.Millisecond)
+	
+	// Cancel context first
+	cancel()
+	
+	// Then start all operations
+	close(startChan)
 
 	// Wait for all operations to complete
 	wg.Wait()
 	close(errChan)
 
 	// Count cancelled operations
-	cancelledCount := 0
+	errorCount := 0
 	for err := range errChan {
-		if err != nil && contains(err.Error(), "operation cancelled") {
-			cancelledCount++
+		if err != nil {
+			errorCount++
+			assert.Contains(t, err.Error(), "operation cancelled")
 		}
 	}
 
-	// At least some operations should have been cancelled
-	assert.Greater(t, cancelledCount, 0, "Expected some operations to be cancelled")
+	// All operations should have been cancelled
+	assert.Equal(t, 30, errorCount, "All operations should fail with cancelled context")
 }
 
 // TestWorktreeStateConsistency tests worktree state consistency after cancellation
