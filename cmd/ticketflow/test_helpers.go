@@ -34,10 +34,12 @@ const (
 // setupTestRepo creates a basic test repository with config and directories
 // IMPORTANT: This function configures git locally within the test directory only.
 // Never use --global flag in tests as it modifies the user's git configuration.
-// 
+//
 // BAD EXAMPLE (do NOT do this):
-//   git config --global user.name "Test User"
-//   git config --global user.email "test@example.com"
+//
+//	git config --global user.name "Test User"
+//	git config --global user.email "test@example.com"
+//
 // This would change the user's global git config and should never be used in tests.
 func setupTestRepo(t *testing.T, tmpDir string) {
 	// Initialize git repo first
