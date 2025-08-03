@@ -225,7 +225,7 @@ func TestCheckExistingWorktree(t *testing.T) {
 
 			if tt.worktreeEnabled {
 				mockGit.On("HasWorktree", mock.Anything, "test-ticket").Return(tt.hasWorktree, tt.checkError)
-				
+
 				// If worktree exists, the function will try to get the path
 				if tt.hasWorktree && tt.checkError == nil {
 					mockGit.On("FindWorktreeByBranch", mock.Anything, "test-ticket").Return(

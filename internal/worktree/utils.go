@@ -20,13 +20,13 @@ import (
 // - During error handling when we know a worktree exists but can't get its details
 func GetPath(ctx context.Context, gitClient git.GitClient, cfg *config.Config, projectRoot, ticketID string) string {
 	logger := log.Global().WithTicket(ticketID)
-	
+
 	// Try to get the actual worktree path from git
 	if wt, err := gitClient.FindWorktreeByBranch(ctx, ticketID); err == nil && wt != nil {
 		logger.Debug("found worktree path from git", "path", wt.Path)
 		return wt.Path
 	}
-	
+
 	// Fall back to calculated path based on configuration
 	// This ensures we always return a valid path even if git state is inconsistent
 	baseDir := cfg.GetWorktreePath(projectRoot)

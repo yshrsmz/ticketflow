@@ -172,11 +172,11 @@ func TestStartTicketWithExistingBranchAndWorktree(t *testing.T) {
 	// Try to start the same ticket again - should fail
 	err = app.StartTicket(ctx, ticketID)
 	require.Error(t, err)
-	
+
 	// The error is "ticket already started" which happens before worktree check
 	// This is expected behavior - the ticket status check happens first
 	assert.Contains(t, err.Error(), "already")
-	
+
 	// For CLI errors, check that it's a ticket error
 	if cliErr, ok := err.(*cli.CLIError); ok {
 		// Either TICKET_ALREADY_STARTED or WORKTREE_EXISTS are valid

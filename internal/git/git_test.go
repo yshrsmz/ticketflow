@@ -128,8 +128,8 @@ func TestBranchExists(t *testing.T) {
 		wantErr    bool
 	}{
 		{
-			name:       "master/main branch exists",
-			branch:     "master",
+			name:   "master/main branch exists",
+			branch: "master",
 			setup: func() {
 				// Try to create master branch, ignore error if it already exists
 				git.Exec(ctx, "checkout", "-b", "master")
@@ -154,8 +154,8 @@ func TestBranchExists(t *testing.T) {
 			wantErr:    false,
 		},
 		{
-			name:       "branch with special characters",
-			branch:     "feat/my-branch_v2.0",
+			name:   "branch with special characters",
+			branch: "feat/my-branch_v2.0",
 			setup: func() {
 				git.Exec(ctx, "checkout", "-b", "feat/my-branch_v2.0")
 			},
