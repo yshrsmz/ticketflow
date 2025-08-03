@@ -20,6 +20,7 @@ const (
 	SubcmdRemote   = "remote"
 	SubcmdConfig   = "config"
 	SubcmdLog      = "log"
+	SubcmdShowRef  = "show-ref"
 )
 
 // Git command flags and options
@@ -39,6 +40,8 @@ const (
 	FlagSet          = "--set"
 	FlagUnset        = "--unset"
 	FlagReplace      = "--replace-all"
+	FlagVerify       = "--verify"
+	FlagQuiet        = "--quiet"
 )
 
 // Git worktree subcommands

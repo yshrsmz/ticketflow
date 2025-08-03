@@ -1007,8 +1007,19 @@ func (app *App) checkExistingWorktree(ctx context.Context, t *ticket.Ticket) err
 	if exists, err := app.Git.HasWorktree(ctx, t.ID); err != nil {
 		return fmt.Errorf("failed to check worktree: %w", err)
 	} else if exists {
+		// Get the worktree path to include in error message
+		wt, _ := app.Git.FindWorktreeByBranch(ctx, t.ID)
+		worktreePath := ""
+		if wt != nil {
+			worktreePath = wt.Path
+		} else {
+			// If we can't find it, calculate the expected path
+			baseDir := app.Config.GetWorktreePath(app.ProjectRoot)
+			worktreePath = filepath.Join(baseDir, t.ID)
+		}
+		
 		return NewError(ErrWorktreeExists, "Worktree already exists",
-			fmt.Sprintf("Worktree for ticket %s already exists", t.ID), nil)
+			fmt.Sprintf("Worktree for ticket %s already exists at: %s", t.ID, worktreePath), nil)
 	}
 
 	return nil

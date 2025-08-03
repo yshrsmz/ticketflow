@@ -122,6 +122,24 @@ func (g *Git) Checkout(ctx context.Context, branch string) error {
 	return err
 }
 
+// BranchExists checks if a branch exists locally
+func (g *Git) BranchExists(ctx context.Context, branch string) (bool, error) {
+	// Use git show-ref --verify --quiet refs/heads/<branch>
+	// This command returns exit code 0 if branch exists, non-zero otherwise
+	_, err := g.Exec(ctx, SubcmdShowRef, FlagVerify, FlagQuiet, fmt.Sprintf("refs/heads/%s", branch))
+	if err != nil {
+		// Check if this is a git error (branch doesn't exist) vs actual error
+		if _, ok := err.(*ticketerrors.GitError); ok {
+			// The command returns non-zero when branch doesn't exist, which is expected
+			return false, nil
+		}
+		// Some other error occurred
+		return false, err
+	}
+	// Branch exists
+	return true, nil
+}
+
 // MergeSquash performs a squash merge
 func (g *Git) MergeSquash(ctx context.Context, branch string) error {
 	_, err := g.Exec(ctx, SubcmdMerge, FlagSquash, branch)

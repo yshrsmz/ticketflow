@@ -66,7 +66,20 @@ func (g *Git) AddWorktree(ctx context.Context, path, branch string) error {
 		return ticketerrors.NewWorktreeError("create", path, fmt.Errorf("failed to create worktree directory: %w", err))
 	}
 
-	_, err := g.Exec(ctx, SubcmdWorktree, WorktreeAdd, path, FlagBranch, branch)
+	// Check if branch already exists
+	branchExists, err := g.BranchExists(ctx, branch)
+	if err != nil {
+		return ticketerrors.NewWorktreeError("create", path, fmt.Errorf("failed to check if branch exists: %w", err))
+	}
+
+	// If branch exists, don't use -b flag
+	if branchExists {
+		_, err = g.Exec(ctx, SubcmdWorktree, WorktreeAdd, path, branch)
+	} else {
+		// Branch doesn't exist, create it with -b flag
+		_, err = g.Exec(ctx, SubcmdWorktree, WorktreeAdd, path, FlagBranch, branch)
+	}
+	
 	return err
 }
 

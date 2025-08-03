@@ -501,7 +501,17 @@ func (m *Model) setupTicketBranchOrWorktree(t *ticket.Ticket) (string, error) {
 		if exists, err := m.git.HasWorktree(context.Background(), t.ID); err != nil {
 			return "", fmt.Errorf("failed to check worktree: %w", err)
 		} else if exists {
-			return "", fmt.Errorf("worktree for ticket %s already exists", t.ID)
+			// Get the worktree path to include in error message
+			wt, _ := m.git.FindWorktreeByBranch(context.Background(), t.ID)
+			worktreePath := ""
+			if wt != nil {
+				worktreePath = wt.Path
+			} else {
+				// If we can't find it, calculate the expected path
+				baseDir := m.config.GetWorktreePath(m.projectRoot)
+				worktreePath = filepath.Join(baseDir, t.ID)
+			}
+			return "", fmt.Errorf("worktree for ticket %s already exists at: %s", t.ID, worktreePath)
 		}
 
 		// Create worktree

@@ -235,3 +235,61 @@ func TestPruneWorktrees(t *testing.T) {
 		assert.NotEqual(t, "prune-test", wt.Branch)
 	}
 }
+
+func TestAddWorktreeWithExistingBranch(t *testing.T) {
+	git, tmpDir := setupTestGitRepo(t)
+	ctx := context.Background()
+
+	// Create a branch first
+	err := git.CreateBranch(ctx, "existing-branch")
+	require.NoError(t, err)
+
+	// Switch back to master/main
+	_, err = git.Exec(ctx, "checkout", "master")
+	if err != nil {
+		// Try main if master doesn't exist
+		_, err = git.Exec(ctx, "checkout", "main")
+		require.NoError(t, err)
+	}
+
+	// Now add worktree for existing branch
+	worktreePath := filepath.Join(tmpDir, ".worktrees", "existing-branch")
+	err = git.AddWorktree(ctx, worktreePath, "existing-branch")
+	require.NoError(t, err)
+
+	// Verify worktree was created
+	_, err = os.Stat(worktreePath)
+	require.NoError(t, err)
+
+	// Verify it's on the correct branch
+	wtGit := New(worktreePath)
+	branch, err := wtGit.CurrentBranch(ctx)
+	require.NoError(t, err)
+	assert.Equal(t, "existing-branch", branch)
+}
+
+func TestAddWorktreeWithNewBranch(t *testing.T) {
+	git, tmpDir := setupTestGitRepo(t)
+	ctx := context.Background()
+
+	// Verify branch doesn't exist
+	exists, err := git.BranchExists(ctx, "new-branch")
+	require.NoError(t, err)
+	assert.False(t, exists)
+
+	// Add worktree with new branch
+	worktreePath := filepath.Join(tmpDir, ".worktrees", "new-branch")
+	err = git.AddWorktree(ctx, worktreePath, "new-branch")
+	require.NoError(t, err)
+
+	// Verify branch was created
+	exists, err = git.BranchExists(ctx, "new-branch")
+	require.NoError(t, err)
+	assert.True(t, exists)
+
+	// Verify worktree is on the new branch
+	wtGit := New(worktreePath)
+	branch, err := wtGit.CurrentBranch(ctx)
+	require.NoError(t, err)
+	assert.Equal(t, "new-branch", branch)
+}

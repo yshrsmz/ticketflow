@@ -99,3 +99,82 @@ func TestRunInWorktreePreservesTimeout(t *testing.T) {
 	ctx := context.Background()
 	_, _ = g.RunInWorktree(ctx, "/tmp/fake-worktree", "status")
 }
+
+func TestBranchExists(t *testing.T) {
+	// Setup test git repo
+	tmpDir := t.TempDir()
+	git := New(tmpDir)
+	ctx := context.Background()
+
+	// Initialize repo
+	_, err := git.Exec(ctx, "init")
+	assert.NoError(t, err)
+
+	// Configure git locally for test repo (not globally)
+	_, err = git.Exec(ctx, "config", "user.name", "Test User")
+	assert.NoError(t, err)
+	_, err = git.Exec(ctx, "config", "user.email", "test@example.com")
+	assert.NoError(t, err)
+
+	// Create initial commit
+	_, err = git.Exec(ctx, "commit", "--allow-empty", "-m", "Initial commit")
+	assert.NoError(t, err)
+
+	tests := []struct {
+		name       string
+		branch     string
+		setup      func()
+		wantExists bool
+		wantErr    bool
+	}{
+		{
+			name:       "master/main branch exists",
+			branch:     "master",
+			setup: func() {
+				// Try to create master branch, ignore error if it already exists
+				git.Exec(ctx, "checkout", "-b", "master")
+			},
+			wantExists: true,
+			wantErr:    false,
+		},
+		{
+			name:       "non-existent branch",
+			branch:     "feature/does-not-exist",
+			setup:      func() {},
+			wantExists: false,
+			wantErr:    false,
+		},
+		{
+			name:   "existing feature branch",
+			branch: "feature/test-branch",
+			setup: func() {
+				git.Exec(ctx, "checkout", "-b", "feature/test-branch")
+			},
+			wantExists: true,
+			wantErr:    false,
+		},
+		{
+			name:       "branch with special characters",
+			branch:     "feat/my-branch_v2.0",
+			setup: func() {
+				git.Exec(ctx, "checkout", "-b", "feat/my-branch_v2.0")
+			},
+			wantExists: true,
+			wantErr:    false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.setup()
+
+			exists, err := git.BranchExists(ctx, tt.branch)
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.wantExists, exists)
+			}
+		})
+	}
+}
