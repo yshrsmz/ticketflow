@@ -70,7 +70,9 @@ func TestHandleError(t *testing.T) {
 
 			HandleError(tt.err)
 
-			w.Close()
+			if err := w.Close(); err != nil {
+				t.Logf("Failed to close writer: %v", err)
+			}
 			os.Stderr = oldStderr
 
 			var buf bytes.Buffer
@@ -108,7 +110,9 @@ func TestHandleCLIError_EnvironmentVariable(t *testing.T) {
 	require.NoError(t, err)
 	defer func() {
 		os.Stderr = oldStderr
-		r.Close()
+		if err := r.Close(); err != nil {
+			t.Logf("Failed to close reader: %v", err)
+		}
 	}()
 	os.Stderr = w
 
@@ -119,7 +123,9 @@ func TestHandleCLIError_EnvironmentVariable(t *testing.T) {
 
 	handleCLIError(testErr)
 
-	w.Close()
+	if err := w.Close(); err != nil {
+		t.Logf("Failed to close writer: %v", err)
+	}
 	os.Stderr = oldStderr
 
 	var buf bytes.Buffer
@@ -183,7 +189,9 @@ func TestOutputJSONError(t *testing.T) {
 
 			OutputJSONError(tt.err)
 
-			w.Close()
+			if err := w.Close(); err != nil {
+				t.Logf("Failed to close writer: %v", err)
+			}
 			os.Stderr = oldStderr
 
 			var buf bytes.Buffer
@@ -331,7 +339,9 @@ func TestHandleError_EdgeCases(t *testing.T) {
 
 			HandleError(tt.err)
 
-			w.Close()
+			if err := w.Close(); err != nil {
+				t.Logf("Failed to close writer: %v", err)
+			}
 			os.Stderr = oldStderr
 
 			var buf bytes.Buffer

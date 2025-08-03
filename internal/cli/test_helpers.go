@@ -30,12 +30,6 @@ func testTime(t *testing.T, timeStr string) time.Time {
 	return parsed
 }
 
-// testTimePtr returns a pointer to a parsed time
-func testTimePtr(t *testing.T, timeStr string) *time.Time {
-	tm := testTime(t, timeStr)
-	return &tm
-}
-
 // createDoneTicket creates a ticket with closed status
 func createDoneTicket(id string, closedAt time.Time) ticket.Ticket {
 	return ticket.Ticket{
@@ -49,13 +43,6 @@ func createDoingTicket(id string, startedAt time.Time) ticket.Ticket {
 	return ticket.Ticket{
 		ID:        id,
 		StartedAt: ticket.RFC3339TimePtr{Time: &startedAt},
-	}
-}
-
-// createTodoTicket creates a ticket with todo status
-func createTodoTicket(id string) ticket.Ticket {
-	return ticket.Ticket{
-		ID: id,
 	}
 }
 

@@ -23,7 +23,11 @@ func TestHandleInit(t *testing.T) {
 	tmpDir := t.TempDir()
 	oldDir, err := os.Getwd()
 	require.NoError(t, err)
-	defer os.Chdir(oldDir)
+	defer func() {
+		if err := os.Chdir(oldDir); err != nil {
+			t.Logf("Failed to restore directory: %v", err)
+		}
+	}()
 
 	err = os.Chdir(tmpDir)
 	require.NoError(t, err)
@@ -103,7 +107,11 @@ func TestHandleNew(t *testing.T) {
 			tmpDir := t.TempDir()
 			oldDir, err := os.Getwd()
 			require.NoError(t, err)
-			defer os.Chdir(oldDir)
+			defer func() {
+				if err := os.Chdir(oldDir); err != nil {
+					t.Logf("Failed to restore directory: %v", err)
+				}
+			}()
 
 			err = os.Chdir(tmpDir)
 			require.NoError(t, err)
@@ -113,43 +121,48 @@ func TestHandleNew(t *testing.T) {
 			ctx := context.Background()
 
 			// Capture output for JSON format
+			var cmdErr error
 			if tt.format == "json" {
 				oldStdout := os.Stdout
 				r, w, err := os.Pipe()
 				require.NoError(t, err)
 				defer func() {
 					os.Stdout = oldStdout
-					r.Close()
+					if err := r.Close(); err != nil {
+						t.Logf("Failed to close reader: %v", err)
+					}
 				}()
 				os.Stdout = w
 
 				// Run the command
-				err = handleNew(ctx, tt.slug, tt.format)
+				cmdErr = handleNew(ctx, tt.slug, tt.format)
 
 				// Close write end and read output
-				w.Close()
+				if err := w.Close(); err != nil {
+					t.Logf("Failed to close writer: %v", err)
+				}
 
 				var buf bytes.Buffer
 				_, _ = io.Copy(&buf, r)
 
 				// For JSON format, verify output structure
-				if !tt.expectedError {
+				if !tt.expectedError && cmdErr == nil {
 					var result map[string]interface{}
 					err2 := json.Unmarshal(buf.Bytes(), &result)
 					assert.NoError(t, err2)
 					assert.Contains(t, result, "ticket")
 				}
 			} else {
-				err = handleNew(ctx, tt.slug, tt.format)
+				cmdErr = handleNew(ctx, tt.slug, tt.format)
 			}
 
 			if tt.expectedError {
-				assert.Error(t, err)
+				assert.Error(t, cmdErr)
 				if tt.errorContains != "" {
-					assert.Contains(t, err.Error(), tt.errorContains)
+					assert.Contains(t, cmdErr.Error(), tt.errorContains)
 				}
 			} else {
-				assert.NoError(t, err)
+				assert.NoError(t, cmdErr)
 
 				// Verify ticket was created
 				files, err := os.ReadDir(filepath.Join(tmpDir, "tickets", "todo"))
@@ -210,7 +223,11 @@ func TestHandleList(t *testing.T) {
 			tmpDir := t.TempDir()
 			oldDir, err := os.Getwd()
 			require.NoError(t, err)
-			defer os.Chdir(oldDir)
+			defer func() {
+				if err := os.Chdir(oldDir); err != nil {
+					t.Logf("Failed to restore directory: %v", err)
+				}
+			}()
 
 			err = os.Chdir(tmpDir)
 			require.NoError(t, err)
@@ -273,7 +290,11 @@ func TestHandleShow(t *testing.T) {
 			tmpDir := t.TempDir()
 			oldDir, err := os.Getwd()
 			require.NoError(t, err)
-			defer os.Chdir(oldDir)
+			defer func() {
+				if err := os.Chdir(oldDir); err != nil {
+					t.Logf("Failed to restore directory: %v", err)
+				}
+			}()
 
 			err = os.Chdir(tmpDir)
 			require.NoError(t, err)
@@ -289,7 +310,9 @@ func TestHandleShow(t *testing.T) {
 			require.NoError(t, err)
 			defer func() {
 				os.Stdout = oldStdout
-				r.Close()
+				if err := r.Close(); err != nil {
+					t.Logf("Failed to close reader: %v", err)
+				}
 			}()
 			os.Stdout = w
 
@@ -362,7 +385,11 @@ func TestHandleStart(t *testing.T) {
 			tmpDir := t.TempDir()
 			oldDir, err := os.Getwd()
 			require.NoError(t, err)
-			defer os.Chdir(oldDir)
+			defer func() {
+				if err := os.Chdir(oldDir); err != nil {
+					t.Logf("Failed to restore directory: %v", err)
+				}
+			}()
 
 			err = os.Chdir(tmpDir)
 			require.NoError(t, err)
@@ -424,7 +451,11 @@ func TestHandleClose(t *testing.T) {
 			tmpDir := t.TempDir()
 			oldDir, err := os.Getwd()
 			require.NoError(t, err)
-			defer os.Chdir(oldDir)
+			defer func() {
+				if err := os.Chdir(oldDir); err != nil {
+					t.Logf("Failed to restore directory: %v", err)
+				}
+			}()
 
 			err = os.Chdir(tmpDir)
 			require.NoError(t, err)
@@ -504,7 +535,9 @@ func TestOutputJSON(t *testing.T) {
 			require.NoError(t, err)
 			defer func() {
 				os.Stdout = oldStdout
-				r.Close()
+				if err := r.Close(); err != nil {
+					t.Logf("Failed to close reader: %v", err)
+				}
 			}()
 			os.Stdout = w
 
