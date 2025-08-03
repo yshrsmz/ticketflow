@@ -60,7 +60,7 @@ func (w *OutputWriter) PrintJSON(data interface{}) error {
 
 // Printf writes formatted text to stdout
 func (w *OutputWriter) Printf(format string, args ...interface{}) {
-	fmt.Fprintf(w.stdout, format, args...)
+	_, _ = fmt.Fprintf(w.stdout, format, args...)
 }
 
 // Println writes a line to stdout
