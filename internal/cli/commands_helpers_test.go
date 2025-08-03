@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/yshrsmz/ticketflow/internal/config"
+	"github.com/yshrsmz/ticketflow/internal/git"
 	"github.com/yshrsmz/ticketflow/internal/mocks"
 	"github.com/yshrsmz/ticketflow/internal/ticket"
 )
@@ -224,6 +225,12 @@ func TestCheckExistingWorktree(t *testing.T) {
 
 			if tt.worktreeEnabled {
 				mockGit.On("HasWorktree", mock.Anything, "test-ticket").Return(tt.hasWorktree, tt.checkError)
+
+				// If worktree exists, the function will try to get the path
+				if tt.hasWorktree && tt.checkError == nil {
+					mockGit.On("FindWorktreeByBranch", mock.Anything, "test-ticket").Return(
+						&git.WorktreeInfo{Path: "/test/worktree/path", Branch: "test-ticket"}, nil)
+				}
 			}
 
 			err := app.checkExistingWorktree(context.Background(), testTicket)

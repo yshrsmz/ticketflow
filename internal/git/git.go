@@ -22,6 +22,83 @@ type Git struct {
 	timeout  time.Duration // Timeout for git operations
 }
 
+// isValidBranchName validates a git branch name according to git-check-ref-format rules
+// This function validates branch names based on Git's ref naming rules:
+// https://git-scm.com/docs/git-check-ref-format
+func isValidBranchName(name string) bool {
+	// Rule 1: Branch name cannot be empty
+	if name == "" {
+		return false
+	}
+
+	// Rule 2: Check for invalid multi-character patterns
+	// - Cannot contain ".." (directory traversal)
+	// - Cannot contain "@{" (reflog syntax)
+	// - Cannot contain "//" (consecutive slashes)
+	if strings.Contains(name, "..") || strings.Contains(name, "@{") || strings.Contains(name, "//") {
+		return false
+	}
+
+	// Rule 3: Cannot begin or end with certain characters
+	// - Cannot start with: slash (/), dot (.), or whitespace
+	// - Cannot end with: slash (/), dot (.), or whitespace
+	if len(name) > 0 {
+		firstChar := name[0]
+		lastChar := name[len(name)-1]
+
+		// Check first character
+		if firstChar == '/' || firstChar == '.' || isWhitespace(firstChar) {
+			return false
+		}
+
+		// Check last character
+		if lastChar == '/' || lastChar == '.' || isWhitespace(lastChar) {
+			return false
+		}
+	}
+
+	// Rule 4: Validate each character in the branch name
+	// Invalid characters anywhere in the name:
+	// - Control characters (ASCII 0-31, 127)
+	// - Whitespace characters (space, tab, etc.)
+	// - Special git characters: colon (:), question mark (?), asterisk (*),
+	//   open bracket ([), backslash (\)
+	for _, ch := range name {
+		if !isValidBranchChar(ch) {
+			return false
+		}
+	}
+
+	return true
+}
+
+// isValidBranchChar checks if a character is valid in a git branch name
+func isValidBranchChar(ch rune) bool {
+	// Check for control characters (ASCII 0-31 and 127)
+	if ch <= 0x1f || ch == 0x7f {
+		return false
+	}
+
+	// Check for whitespace characters
+	// Only check ASCII whitespace since git branch names should not contain Unicode whitespace
+	if ch <= 0x7F && isWhitespace(byte(ch)) {
+		return false
+	}
+
+	// Check for forbidden special characters
+	switch ch {
+	case ':', '?', '*', '[', '\\':
+		return false
+	}
+
+	return true
+}
+
+// isWhitespace checks if a byte is a whitespace character
+func isWhitespace(b byte) bool {
+	return b == ' ' || b == '\t' || b == '\n' || b == '\r' || b == '\f' || b == '\v'
+}
+
 // New creates a new Git instance with default timeout
 func New(repoPath string) *Git {
 	return NewWithTimeout(repoPath, 30*time.Second) // 30 seconds default
@@ -120,6 +197,29 @@ func (g *Git) Commit(ctx context.Context, message string) error {
 func (g *Git) Checkout(ctx context.Context, branch string) error {
 	_, err := g.Exec(ctx, SubcmdCheckout, branch)
 	return err
+}
+
+// BranchExists checks if a branch exists locally
+func (g *Git) BranchExists(ctx context.Context, branch string) (bool, error) {
+	// Validate branch name to prevent command injection
+	if !isValidBranchName(branch) {
+		return false, fmt.Errorf("invalid branch name: %s", branch)
+	}
+
+	// Use git show-ref --verify --quiet refs/heads/<branch>
+	// This command returns exit code 0 if branch exists, non-zero otherwise
+	_, err := g.Exec(ctx, SubcmdShowRef, FlagVerify, FlagQuiet, fmt.Sprintf("refs/heads/%s", branch))
+	if err != nil {
+		// Check if this is a git error (branch doesn't exist) vs actual error
+		if _, ok := err.(*ticketerrors.GitError); ok {
+			// The command returns non-zero when branch doesn't exist, which is expected
+			return false, nil
+		}
+		// Some other error occurred
+		return false, err
+	}
+	// Branch exists
+	return true, nil
 }
 
 // MergeSquash performs a squash merge

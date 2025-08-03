@@ -16,6 +16,7 @@ import (
 	"github.com/yshrsmz/ticketflow/internal/git"
 	"github.com/yshrsmz/ticketflow/internal/log"
 	"github.com/yshrsmz/ticketflow/internal/ticket"
+	"github.com/yshrsmz/ticketflow/internal/worktree"
 )
 
 // App represents the CLI application
@@ -1007,8 +1008,9 @@ func (app *App) checkExistingWorktree(ctx context.Context, t *ticket.Ticket) err
 	if exists, err := app.Git.HasWorktree(ctx, t.ID); err != nil {
 		return fmt.Errorf("failed to check worktree: %w", err)
 	} else if exists {
+		worktreePath := worktree.GetPath(ctx, app.Git, app.Config, app.ProjectRoot, t.ID)
 		return NewError(ErrWorktreeExists, "Worktree already exists",
-			fmt.Sprintf("Worktree for ticket %s already exists", t.ID), nil)
+			fmt.Sprintf("Worktree for ticket %s already exists at: %s", t.ID, worktreePath), nil)
 	}
 
 	return nil
