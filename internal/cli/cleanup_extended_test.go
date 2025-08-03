@@ -98,8 +98,8 @@ func TestAutoCleanup(t *testing.T) {
 				g.On("Exec", mock.Anything, "branch", "-D", "250103-120000-done-ticket").Return("", nil)
 			},
 			expectedResult: &CleanupResult{
-				OrphanedWorktrees: orphanedWorktreeCount, // Only old-feature worktree is orphaned (not in doing status)
-				StaleBranches:     staleBranchCount,      // Two done tickets will have their branches removed
+				OrphanedWorktrees: expectedOrphanedWorktreeCount, // Only old-feature worktree is orphaned (not in doing status)
+				StaleBranches:     expectedStaleBranchCount,      // Two done tickets will have their branches removed
 				Errors:            []string{},
 			},
 			expectedError: false,

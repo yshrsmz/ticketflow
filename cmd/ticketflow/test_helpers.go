@@ -64,7 +64,7 @@ func setupTestRepo(t *testing.T, tmpDir string) {
 	currentBranch, err := cmd.Output()
 	require.NoError(t, err)
 	
-	// If we're not on main, rename the current branch to main
+	// If we're not on main, create and switch to main branch
 	if strings.TrimSpace(string(currentBranch)) != "main" {
 		cmd = exec.Command("git", "checkout", "-b", "main")
 		cmd.Dir = tmpDir

@@ -17,10 +17,10 @@ import (
 
 // Test constants
 const (
-	testTicketID          = "250101-120000-test-feature"
-	testDefaultBranch     = "main"
-	orphanedWorktreeCount = 1
-	staleBranchCount      = 2
+	testTicketID                  = "250101-120000-test-feature"
+	testDefaultBranch             = "main"
+	expectedOrphanedWorktreeCount = 1
+	expectedStaleBranchCount      = 2
 )
 
 // testTime parses a time string and fails the test if parsing fails
