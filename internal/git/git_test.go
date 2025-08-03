@@ -138,6 +138,12 @@ func TestIsValidBranchName(t *testing.T) {
 		{"contains tab", "feature\ttest", false},
 		{"single dot", ".", false},
 		{"single slash", "/", false},
+
+		// Unicode characters
+		{"branch with emoji", "feature-🚀", true},
+		{"branch with unicode", "feature-résumé", true},
+		{"branch with chinese", "feature-中文", true},
+		{"branch with mixed unicode", "feat/test-中文-résumé", true},
 	}
 
 	for _, tt := range tests {
