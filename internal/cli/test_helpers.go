@@ -11,7 +11,7 @@ import (
 )
 
 // IMPORTANT: When writing tests that interact with git:
-// - Always use local configuration (git config without --global)
+// - Always use local configuration (i.e., run 'git config' without --global; setting cmd.Dir to the test directory ensures this applies to the local repo)
 // - Set cmd.Dir to the test directory before running git commands
 // - Never modify the user's global git configuration
 
