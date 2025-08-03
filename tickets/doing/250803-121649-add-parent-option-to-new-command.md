@@ -1,10 +1,9 @@
 ---
 priority: 3
-description: "Add --parent flag to ticketflow new command for explicit parent relationships"
+description: Add --parent flag to ticketflow new command for explicit parent relationships
 created_at: "2025-08-03T12:16:49+09:00"
-started_at: null
+started_at: "2025-08-03T22:50:03+09:00"
 closed_at: null
-related: []
 ---
 
 # Add Parent Option to New Command
