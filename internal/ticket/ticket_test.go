@@ -10,6 +10,7 @@ import (
 )
 
 func TestTicketStatus(t *testing.T) {
+	t.Parallel()
 	now := time.Now()
 
 	tests := []struct {
@@ -51,6 +52,7 @@ func TestTicketStatus(t *testing.T) {
 }
 
 func TestTicketHasWorktree(t *testing.T) {
+	t.Parallel()
 	now := time.Now()
 
 	tests := []struct {
@@ -92,6 +94,7 @@ func TestTicketHasWorktree(t *testing.T) {
 }
 
 func TestParse(t *testing.T) {
+	t.Parallel()
 	content := `---
 priority: 1
 description: "Test ticket"
@@ -120,6 +123,7 @@ This is the ticket content.
 }
 
 func TestParseInvalidFormat(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name    string
 		content string
@@ -151,6 +155,7 @@ Content`,
 }
 
 func TestToBytes(t *testing.T) {
+	t.Parallel()
 	now := time.Now()
 	ticket := &Ticket{
 		Priority:    1,
@@ -181,6 +186,7 @@ func TestToBytes(t *testing.T) {
 }
 
 func TestGenerateID(t *testing.T) {
+	t.Parallel()
 	id := GenerateID("test-slug")
 
 	// ID should have format YYMMDD-HHMMSS-test-slug
@@ -194,6 +200,7 @@ func TestGenerateID(t *testing.T) {
 }
 
 func TestParseID(t *testing.T) {
+	t.Parallel()
 	// Generate a known ID
 	id := "250124-150000-test-slug"
 
@@ -210,6 +217,7 @@ func TestParseID(t *testing.T) {
 }
 
 func TestParseIDInvalid(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name string
 		id   string
@@ -233,6 +241,7 @@ func TestParseIDInvalid(t *testing.T) {
 }
 
 func TestIsValidSlug(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		slug  string
 		valid bool
@@ -256,6 +265,7 @@ func TestIsValidSlug(t *testing.T) {
 }
 
 func TestExtractIDFromFilename(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		filename string
 		expected string
@@ -274,6 +284,7 @@ func TestExtractIDFromFilename(t *testing.T) {
 }
 
 func TestTicketStartClose(t *testing.T) {
+	t.Parallel()
 	ticket := New("test", "Test ticket")
 
 	// Test start
@@ -298,6 +309,7 @@ func TestTicketStartClose(t *testing.T) {
 }
 
 func TestTicketCloseNotStarted(t *testing.T) {
+	t.Parallel()
 	ticket := New("test", "Test ticket")
 
 	err := ticket.Close()

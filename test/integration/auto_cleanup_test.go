@@ -16,7 +16,7 @@ import (
 
 func TestAutoCleanupStaleBranchesIntegration(t *testing.T) {
 	t.Parallel()
-	
+
 	// Setup test repository
 	repoPath := setupTestRepo(t)
 
@@ -113,7 +113,7 @@ func TestAutoCleanupStaleBranchesIntegration(t *testing.T) {
 
 func TestAutoCleanupDryRun(t *testing.T) {
 	t.Parallel()
-	
+
 	// Setup test repository
 	repoPath := setupTestRepo(t)
 

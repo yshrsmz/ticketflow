@@ -88,7 +88,7 @@ func TestAutoCleanupStaleBranches(t *testing.T) {
 			Priority:    2,
 			Description: "Test ticket",
 			CreatedAt:   ticket.NewRFC3339Time(now),
-			Path:        filepath.Join(cfg.Tickets.Dir, string(tc.status), tc.id+".md"),
+			Path:        filepath.Join(repoPath, cfg.Tickets.Dir, string(tc.status), tc.id+".md"),
 		}
 
 		// Set closed time for done tickets
@@ -200,7 +200,7 @@ func TestCleanupStatsWithDoneTickets(t *testing.T) {
 			Priority:    2,
 			Description: "Done ticket",
 			CreatedAt:   ticket.NewRFC3339Time(now),
-			Path:        filepath.Join(cfg.Tickets.Dir, "done", id+".md"),
+			Path:        filepath.Join(repoPath, cfg.Tickets.Dir, "done", id+".md"),
 		}
 
 		// Set started and closed times
@@ -228,7 +228,7 @@ func TestCleanupStatsWithDoneTickets(t *testing.T) {
 		Priority:    2,
 		Description: "Active ticket",
 		CreatedAt:   ticket.NewRFC3339Time(now),
-		Path:        filepath.Join(cfg.Tickets.Dir, "doing", "active-1.md"),
+		Path:        filepath.Join(repoPath, cfg.Tickets.Dir, "doing", "active-1.md"),
 	}
 
 	// Set started time

@@ -108,7 +108,7 @@ func TestHandleNew(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			
+
 			tmpDir := t.TempDir()
 			tt.setupFunc(t, tmpDir)
 
@@ -117,7 +117,7 @@ func TestHandleNew(t *testing.T) {
 			// Create app with working directory
 			app, err := cli.NewAppWithWorkingDir(ctx, t, tmpDir)
 			var cmdErr error
-			
+
 			if err != nil {
 				cmdErr = err
 			} else {

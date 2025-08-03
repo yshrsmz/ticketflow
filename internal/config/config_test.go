@@ -12,6 +12,7 @@ import (
 )
 
 func TestDefault(t *testing.T) {
+	t.Parallel()
 	cfg := Default()
 
 	assert.Equal(t, "main", cfg.Git.DefaultBranch)
@@ -28,6 +29,7 @@ func TestDefault(t *testing.T) {
 }
 
 func TestConfigValidate(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name    string
 		config  Config
@@ -121,6 +123,7 @@ func TestConfigValidate(t *testing.T) {
 }
 
 func TestConfigSaveAndLoad(t *testing.T) {
+	t.Parallel()
 	// Create temp directory
 	tmpDir := t.TempDir()
 	configPath := filepath.Join(tmpDir, ".ticketflow.yaml")
@@ -146,6 +149,7 @@ func TestConfigSaveAndLoad(t *testing.T) {
 }
 
 func TestLoadWithTimeouts(t *testing.T) {
+	t.Parallel()
 	tmpDir := t.TempDir()
 	configPath := filepath.Join(tmpDir, ".ticketflow.yaml")
 
@@ -181,6 +185,7 @@ timeouts:
 }
 
 func TestLoadNonExistentConfig(t *testing.T) {
+	t.Parallel()
 	tmpDir := t.TempDir()
 
 	_, err := Load(tmpDir)
@@ -189,6 +194,7 @@ func TestLoadNonExistentConfig(t *testing.T) {
 }
 
 func TestLoadInvalidYAML(t *testing.T) {
+	t.Parallel()
 	tmpDir := t.TempDir()
 	configPath := filepath.Join(tmpDir, ".ticketflow.yaml")
 
@@ -202,6 +208,7 @@ func TestLoadInvalidYAML(t *testing.T) {
 }
 
 func TestGetPaths(t *testing.T) {
+	t.Parallel()
 	cfg := Default()
 	projectRoot := "/home/user/project"
 
@@ -221,6 +228,7 @@ func TestGetPaths(t *testing.T) {
 }
 
 func TestGetTimeouts(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name               string
 		gitTimeout         int

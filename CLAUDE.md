@@ -165,3 +165,22 @@ ticketflow close           # This creates commit on wrong branch!
   cmd.Run()
   ```
 - This issue was discovered when test code using `--global` caused subsequent commits to have wrong authors ("Test User" instead of the actual developer)
+
+### Test Parallelization and os.Chdir
+- **Unit tests**: Should use `t.Parallel()` for better performance when they don't modify global state
+- **Integration tests**: Cannot use `t.Parallel()` because they use `os.Chdir` to change working directory
+- **Why os.Chdir is required**: The ticketflow application is designed to work from the project root directory (similar to git), expecting:
+  - `.ticketflow.yaml` configuration file in the current directory
+  - `tickets/` directory structure relative to the current directory
+  - Git repository in the current directory
+- **Best practices for tests using os.Chdir**:
+  ```go
+  originalWd, err := os.Getwd()
+  require.NoError(t, err)
+  defer func() {
+      err := os.Chdir(originalWd)
+      require.NoError(t, err)
+  }()
+  require.NoError(t, os.Chdir(testDir))
+  ```
+- See `test/integration/README.md` for detailed explanation of integration test requirements
