@@ -82,7 +82,7 @@ func NewError(code, message, details string, suggestions []string) *CLIError {
 }
 
 // HandleError handles errors appropriately based on output format
-// Deprecated: Use OutputWriter.Error instead for better testability and thread safety
+// Deprecated: Use OutputWriter.Error instead for better testability and thread safety. Will be removed in v2.0.0.
 func HandleError(err error) {
 	if err == nil {
 		return

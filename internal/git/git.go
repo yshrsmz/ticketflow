@@ -107,6 +107,14 @@ func isWhitespace(b byte) bool {
 	return b == ' ' || b == '\t' || b == '\n' || b == '\r' || b == '\f' || b == '\v'
 }
 
+// validateTimeout ensures the timeout is positive, defaulting to DefaultGitTimeout if not
+func validateTimeout(timeout time.Duration) time.Duration {
+	if timeout <= 0 {
+		return DefaultGitTimeout
+	}
+	return timeout
+}
+
 // New creates a new Git instance with default timeout
 func New(repoPath string) *Git {
 	if repoPath == "" {
@@ -127,14 +135,9 @@ func NewWithTimeout(repoPath string, timeout time.Duration) *Git {
 		repoPath = "."
 	}
 
-	// Ensure timeout is positive
-	if timeout <= 0 {
-		timeout = 30 * time.Second // Default timeout
-	}
-
 	return &Git{
 		repoPath: repoPath,
-		timeout:  timeout,
+		timeout:  validateTimeout(timeout),
 	}
 }
 

@@ -208,8 +208,12 @@ func (app *App) NewTicket(ctx context.Context, slug string, format OutputFormat)
 		// Verify this is a valid ticket
 		if _, err := app.Manager.Get(ctx, currentBranch); err == nil {
 			parentTicketID = currentBranch
-			app.Output.Printf("Creating ticket in branch: %s\n", currentBranch)
 		}
+	}
+	
+	// Print the message only if we successfully detected a parent ticket
+	if parentTicketID != "" {
+		app.Output.Printf("Creating ticket in branch: %s\n", currentBranch)
 	}
 
 	// Create ticket
@@ -687,6 +691,7 @@ func (app *App) CleanupTicket(ctx context.Context, ticketID string, force bool) 
 		app.Output.Printf("\nAre you sure? (y/N): ")
 
 		var response string
+		// TODO: Consider using a configurable input reader for better testability
 		_, _ = fmt.Scanln(&response)
 		if response != "y" && response != "Y" {
 			app.Output.Println("\n❌ Cleanup cancelled")
