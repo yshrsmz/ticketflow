@@ -197,13 +197,13 @@ func (app *App) NewTicket(ctx context.Context, slug string, explicitParent strin
 	logger.Debug("creating new ticket", slog.String("slug", slug), slog.String("explicit_parent", explicitParent))
 
 	var parentTicketID string
-	
+
 	// First, check current branch to see if we're in a ticket worktree
 	currentBranch, err := app.Git.CurrentBranch(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get current branch: %w", err)
 	}
-	
+
 	var implicitParent string
 	if currentBranch != app.Config.Git.DefaultBranch {
 		// Check if current branch is a ticket
@@ -211,7 +211,7 @@ func (app *App) NewTicket(ctx context.Context, slug string, explicitParent strin
 			implicitParent = currentBranch
 		}
 	}
-	
+
 	// Handle explicit parent
 	if explicitParent != "" {
 		// Prevent self-parenting (check this first before checking if parent exists)
@@ -225,7 +225,7 @@ func (app *App) NewTicket(ctx context.Context, slug string, explicitParent strin
 					"Or create a top-level ticket without --parent",
 				})
 		}
-		
+
 		// Validate that the parent ticket exists
 		if _, err := app.Manager.Get(ctx, explicitParent); err != nil {
 			logger.Error("parent ticket not found", slog.String("parent", explicitParent))
@@ -236,12 +236,12 @@ func (app *App) NewTicket(ctx context.Context, slug string, explicitParent strin
 					"Use 'ticketflow list' to see available tickets",
 				})
 		}
-		
+
 		parentTicketID = explicitParent
-		
+
 		// Show warning if we're overriding an implicit parent
 		if implicitParent != "" && implicitParent != explicitParent {
-			app.Output.Printf("Using explicit parent '%s' instead of current worktree '%s'\n", 
+			app.Output.Printf("Using explicit parent '%s' instead of current worktree '%s'\n",
 				explicitParent, implicitParent)
 		}
 		app.Output.Printf("Creating sub-ticket with parent: %s\n", parentTicketID)

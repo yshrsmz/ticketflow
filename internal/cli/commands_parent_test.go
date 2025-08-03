@@ -8,22 +8,22 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/yshrsmz/ticketflow/internal/config"
+	ticketerrors "github.com/yshrsmz/ticketflow/internal/errors"
 	"github.com/yshrsmz/ticketflow/internal/mocks"
 	"github.com/yshrsmz/ticketflow/internal/ticket"
-	ticketerrors "github.com/yshrsmz/ticketflow/internal/errors"
 )
 
 func TestApp_NewTicket_WithParent(t *testing.T) {
 	tests := []struct {
-		name              string
-		slug              string
-		explicitParent    string
-		currentBranch     string
-		setupManager      func(m *mocks.MockTicketManager)
-		expectedError     bool
-		errorMessage      string
-		expectedParent    string
-		checkOutput       func(t *testing.T, output *TestOutputCapture)
+		name           string
+		slug           string
+		explicitParent string
+		currentBranch  string
+		setupManager   func(m *mocks.MockTicketManager)
+		expectedError  bool
+		errorMessage   string
+		expectedParent string
+		checkOutput    func(t *testing.T, output *TestOutputCapture)
 	}{
 		{
 			name:           "explicit parent - valid",
@@ -40,7 +40,7 @@ func TestApp_NewTicket_WithParent(t *testing.T) {
 					CreatedAt:   ticket.RFC3339Time{Time: time.Now()},
 				}
 				m.On("Get", mock.Anything, "parent-ticket").Return(parentTicket, nil)
-				
+
 				// Create new ticket
 				newTicket := &ticket.Ticket{
 					ID:          "250802-120000-sub-feature",
@@ -51,7 +51,7 @@ func TestApp_NewTicket_WithParent(t *testing.T) {
 					CreatedAt:   ticket.RFC3339Time{Time: time.Now()},
 				}
 				m.On("Create", mock.Anything, "sub-feature").Return(newTicket, nil)
-				
+
 				// Update with parent relation
 				updatedTicket := *newTicket
 				updatedTicket.Related = []string{"parent:parent-ticket"}
@@ -103,7 +103,7 @@ func TestApp_NewTicket_WithParent(t *testing.T) {
 					CreatedAt:   ticket.RFC3339Time{Time: time.Now()},
 				}
 				m.On("Get", mock.Anything, "250802-100000-parent-ticket").Return(parentTicket, nil)
-				
+
 				// Create new ticket
 				newTicket := &ticket.Ticket{
 					ID:          "250802-120000-sub-feature",
@@ -114,7 +114,7 @@ func TestApp_NewTicket_WithParent(t *testing.T) {
 					CreatedAt:   ticket.RFC3339Time{Time: time.Now()},
 				}
 				m.On("Create", mock.Anything, "sub-feature").Return(newTicket, nil)
-				
+
 				// Update with parent relation
 				updatedTicket := *newTicket
 				updatedTicket.Related = []string{"parent:250802-100000-parent-ticket"}
@@ -139,13 +139,13 @@ func TestApp_NewTicket_WithParent(t *testing.T) {
 					ID: "implicit-parent",
 				}
 				m.On("Get", mock.Anything, "implicit-parent").Return(implicitTicket, nil)
-				
+
 				// Validate explicit parent
 				explicitTicket := &ticket.Ticket{
 					ID: "explicit-parent",
 				}
 				m.On("Get", mock.Anything, "explicit-parent").Return(explicitTicket, nil)
-				
+
 				// Create new ticket
 				newTicket := &ticket.Ticket{
 					ID:          "250802-120000-sub-feature",
@@ -156,7 +156,7 @@ func TestApp_NewTicket_WithParent(t *testing.T) {
 					CreatedAt:   ticket.RFC3339Time{Time: time.Now()},
 				}
 				m.On("Create", mock.Anything, "sub-feature").Return(newTicket, nil)
-				
+
 				// Update with explicit parent
 				updatedTicket := *newTicket
 				updatedTicket.Related = []string{"parent:explicit-parent"}

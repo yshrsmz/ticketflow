@@ -117,9 +117,11 @@ type migrateFlags struct {
 	dryRun bool
 }
 
+// newFlags holds command-line flags for the 'new' command
 type newFlags struct {
-	parent      string
-	parentShort string
+	parent      string // Parent ticket ID specified with --parent
+	parentShort string // Parent ticket ID specified with -p (short form)
+	format      string // Output format (text or json)
 }
 
 func runCLI(ctx context.Context) error {
@@ -148,6 +150,7 @@ func runCLI(ctx context.Context) error {
 				flags := &newFlags{}
 				fs.StringVar(&flags.parent, "parent", "", "Parent ticket ID")
 				fs.StringVar(&flags.parentShort, "p", "", "Parent ticket ID (short form)")
+				fs.StringVar(&flags.format, "format", "text", "Output format (text|json)")
 				return flags
 			},
 			Execute: func(ctx context.Context, fs *flag.FlagSet, cmdFlags interface{}) error {
@@ -156,10 +159,10 @@ func runCLI(ctx context.Context) error {
 				parent := flags.parent
 				if parent == "" {
 					parent = flags.parentShort
-				} else if flags.parentShort != "" && flags.parent != flags.parentShort {
+				} else if flags.parentShort != "" {
 					return fmt.Errorf("cannot specify both --parent and -p flags")
 				}
-				return handleNew(ctx, fs.Arg(0), parent, "text")
+				return handleNew(ctx, fs.Arg(0), parent, flags.format)
 			},
 		}, os.Args[2:])
 
@@ -493,6 +496,7 @@ OPTIONS:
   new:
     --parent TICKET    Specify parent ticket ID
     -p TICKET          Short form of --parent
+    --format FORMAT    Output format: text|json (default: text)
 
   list:
     --status STATUS    Filter by status (todo|doing|done)
