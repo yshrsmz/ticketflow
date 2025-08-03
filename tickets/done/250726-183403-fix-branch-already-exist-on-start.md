@@ -3,7 +3,7 @@ priority: 2
 description: ""
 created_at: "2025-07-26T18:34:03+09:00"
 started_at: "2025-08-03T12:14:44+09:00"
-closed_at: null
+closed_at: "2025-08-03T13:50:49+09:00"
 ---
 
 # 概要
