@@ -319,7 +319,9 @@ func TestHandleShow(t *testing.T) {
 			ctx := context.Background()
 			err = handleShow(ctx, ticketID, tt.format)
 
-			w.Close()
+			if err := w.Close(); err != nil {
+				t.Logf("Warning: failed to close writer: %v", err)
+			}
 
 			var buf bytes.Buffer
 			_, _ = io.Copy(&buf, r)
@@ -543,7 +545,9 @@ func TestOutputJSON(t *testing.T) {
 
 			err = outputJSON(tt.data)
 
-			w.Close()
+			if err := w.Close(); err != nil {
+				t.Logf("Warning: failed to close writer: %v", err)
+			}
 
 			assert.NoError(t, err)
 

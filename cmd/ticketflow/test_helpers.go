@@ -46,12 +46,12 @@ func setupTestRepo(t *testing.T, tmpDir string) {
 	cmd.Dir = tmpDir
 	err = cmd.Run()
 	require.NoError(t, err)
-	
+
 	cmd = exec.Command("git", "config", "user.email", "test@example.com")
 	cmd.Dir = tmpDir
 	err = cmd.Run()
 	require.NoError(t, err)
-	
+
 	cmd = exec.Command("git", "config", "init.defaultBranch", "main")
 	cmd.Dir = tmpDir
 	err = cmd.Run()
@@ -63,7 +63,7 @@ func setupTestRepo(t *testing.T, tmpDir string) {
 	cmd.Dir = tmpDir
 	currentBranch, err := cmd.Output()
 	require.NoError(t, err)
-	
+
 	// If we're not on main, create and switch to main branch
 	if strings.TrimSpace(string(currentBranch)) != "main" {
 		cmd = exec.Command("git", "checkout", "-b", "main")
