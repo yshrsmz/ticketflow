@@ -2,7 +2,6 @@ package integration
 
 import (
 	"context"
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -12,23 +11,17 @@ import (
 )
 
 func TestCleanupTicketWithForceFlag(t *testing.T) {
+	t.Parallel()
+
 	// Setup test repository
 	repoPath := setupTestRepo(t)
-	originalWd, err := os.Getwd()
-	require.NoError(t, err)
-	defer func() {
-		err := os.Chdir(originalWd)
-		require.NoError(t, err)
-	}()
-	err = os.Chdir(repoPath)
-	require.NoError(t, err)
 
 	// Initialize ticketflow
-	err = cli.InitCommand(context.Background())
+	err := cli.InitCommandWithWorkingDir(context.Background(), repoPath)
 	require.NoError(t, err)
 
 	// Create and test the app
-	app, err := cli.NewApp(context.Background())
+	app, err := cli.NewAppWithWorkingDir(context.Background(), t, repoPath)
 	require.NoError(t, err)
 
 	// Create a ticket
