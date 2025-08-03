@@ -492,6 +492,18 @@ func (m *Model) checkWorkspaceForStart() error {
 	return nil
 }
 
+// getWorktreePath attempts to get the actual worktree path or falls back to calculated path
+func (m *Model) getWorktreePath(ctx context.Context, ticketID string) string {
+	// Try to get the actual worktree path
+	if wt, err := m.git.FindWorktreeByBranch(ctx, ticketID); err == nil && wt != nil {
+		return wt.Path
+	}
+	
+	// Fall back to calculated path
+	baseDir := m.config.GetWorktreePath(m.projectRoot)
+	return filepath.Join(baseDir, ticketID)
+}
+
 // setupTicketBranchOrWorktree creates a branch or worktree for the ticket
 func (m *Model) setupTicketBranchOrWorktree(t *ticket.Ticket) (string, error) {
 	var worktreePath string
@@ -501,16 +513,7 @@ func (m *Model) setupTicketBranchOrWorktree(t *ticket.Ticket) (string, error) {
 		if exists, err := m.git.HasWorktree(context.Background(), t.ID); err != nil {
 			return "", fmt.Errorf("failed to check worktree: %w", err)
 		} else if exists {
-			// Get the worktree path to include in error message
-			wt, _ := m.git.FindWorktreeByBranch(context.Background(), t.ID)
-			worktreePath := ""
-			if wt != nil {
-				worktreePath = wt.Path
-			} else {
-				// If we can't find it, calculate the expected path
-				baseDir := m.config.GetWorktreePath(m.projectRoot)
-				worktreePath = filepath.Join(baseDir, t.ID)
-			}
+			worktreePath := m.getWorktreePath(context.Background(), t.ID)
 			return "", fmt.Errorf("worktree for ticket %s already exists at: %s", t.ID, worktreePath)
 		}
 

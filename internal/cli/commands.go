@@ -998,6 +998,23 @@ func (app *App) moveTicketToDone(ctx context.Context, current *ticket.Ticket) er
 	return nil
 }
 
+// getWorktreePath attempts to get the actual worktree path or falls back to calculated path
+func (app *App) getWorktreePath(ctx context.Context, ticketID string) string {
+	logger := log.Global().WithTicket(ticketID)
+	
+	// Try to get the actual worktree path
+	if wt, err := app.Git.FindWorktreeByBranch(ctx, ticketID); err == nil && wt != nil {
+		logger.Debug("found worktree path", "path", wt.Path)
+		return wt.Path
+	}
+	
+	// Fall back to calculated path
+	baseDir := app.Config.GetWorktreePath(app.ProjectRoot)
+	calculatedPath := filepath.Join(baseDir, ticketID)
+	logger.Debug("using calculated worktree path", "path", calculatedPath)
+	return calculatedPath
+}
+
 // checkExistingWorktree checks if a worktree already exists for the ticket
 func (app *App) checkExistingWorktree(ctx context.Context, t *ticket.Ticket) error {
 	if !app.Config.Worktree.Enabled {
@@ -1007,17 +1024,7 @@ func (app *App) checkExistingWorktree(ctx context.Context, t *ticket.Ticket) err
 	if exists, err := app.Git.HasWorktree(ctx, t.ID); err != nil {
 		return fmt.Errorf("failed to check worktree: %w", err)
 	} else if exists {
-		// Get the worktree path to include in error message
-		wt, _ := app.Git.FindWorktreeByBranch(ctx, t.ID)
-		worktreePath := ""
-		if wt != nil {
-			worktreePath = wt.Path
-		} else {
-			// If we can't find it, calculate the expected path
-			baseDir := app.Config.GetWorktreePath(app.ProjectRoot)
-			worktreePath = filepath.Join(baseDir, t.ID)
-		}
-		
+		worktreePath := app.getWorktreePath(ctx, t.ID)
 		return NewError(ErrWorktreeExists, "Worktree already exists",
 			fmt.Sprintf("Worktree for ticket %s already exists at: %s", t.ID, worktreePath), nil)
 	}
