@@ -202,7 +202,7 @@ func TestOutputJSONError(t *testing.T) {
 			output := buf.String()
 
 			var result map[string]interface{}
-			err := json.Unmarshal([]byte(output), &result)
+			err = json.Unmarshal([]byte(output), &result)
 			require.NoError(t, err)
 
 			// Compare JSON structures
