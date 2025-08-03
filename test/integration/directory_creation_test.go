@@ -46,7 +46,7 @@ func TestDirectoryAutoCreation(t *testing.T) {
 	assert.True(t, os.IsNotExist(err), "doing directory should not exist")
 
 	// Create a ticket
-	err = app.NewTicket(context.Background(), "test-auto-dir", cli.FormatText)
+	err = app.NewTicket(context.Background(), "test-auto-dir", "", cli.FormatText)
 	require.NoError(t, err)
 
 	// Get the ticket
@@ -127,7 +127,7 @@ func TestDirectoryCreationWithWorktrees(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create a ticket
-	err = app.NewTicket(context.Background(), "test-worktree-dir", cli.FormatText)
+	err = app.NewTicket(context.Background(), "test-worktree-dir", "", cli.FormatText)
 	require.NoError(t, err)
 
 	// Get the ticket

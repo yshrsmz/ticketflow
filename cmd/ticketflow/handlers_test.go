@@ -124,7 +124,7 @@ func TestHandleNew(t *testing.T) {
 			if err != nil {
 				cmdErr = err
 			} else {
-				cmdErr = app.NewTicket(ctx, tt.slug, outputFormat)
+				cmdErr = app.NewTicket(ctx, tt.slug, "", outputFormat)
 			}
 
 			// Verify JSON output structure if needed

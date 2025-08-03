@@ -1,0 +1,286 @@
+package cli
+
+import (
+	"context"
+	"testing"
+	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+	"github.com/yshrsmz/ticketflow/internal/config"
+	"github.com/yshrsmz/ticketflow/internal/mocks"
+	"github.com/yshrsmz/ticketflow/internal/ticket"
+	ticketerrors "github.com/yshrsmz/ticketflow/internal/errors"
+)
+
+func TestApp_NewTicket_WithParent(t *testing.T) {
+	tests := []struct {
+		name              string
+		slug              string
+		explicitParent    string
+		currentBranch     string
+		setupManager      func(m *mocks.MockTicketManager)
+		expectedError     bool
+		errorMessage      string
+		expectedParent    string
+		checkOutput       func(t *testing.T, output *TestOutputCapture)
+	}{
+		{
+			name:           "explicit parent - valid",
+			slug:           "sub-feature",
+			explicitParent: "parent-ticket",
+			currentBranch:  "main",
+			setupManager: func(m *mocks.MockTicketManager) {
+				// Validate parent exists
+				parentTicket := &ticket.Ticket{
+					ID:          "parent-ticket",
+					Path:        "/test/tickets/doing/parent-ticket.md",
+					Priority:    1,
+					Description: "Parent ticket",
+					CreatedAt:   ticket.RFC3339Time{Time: time.Now()},
+				}
+				m.On("Get", mock.Anything, "parent-ticket").Return(parentTicket, nil)
+				
+				// Create new ticket
+				newTicket := &ticket.Ticket{
+					ID:          "250802-120000-sub-feature",
+					Slug:        "sub-feature",
+					Path:        "/test/tickets/todo/250802-120000-sub-feature.md",
+					Priority:    3,
+					Description: "sub-feature",
+					CreatedAt:   ticket.RFC3339Time{Time: time.Now()},
+				}
+				m.On("Create", mock.Anything, "sub-feature").Return(newTicket, nil)
+				
+				// Update with parent relation
+				updatedTicket := *newTicket
+				updatedTicket.Related = []string{"parent:parent-ticket"}
+				m.On("Update", mock.Anything, mock.MatchedBy(func(t *ticket.Ticket) bool {
+					return t.ID == newTicket.ID && len(t.Related) == 1 && t.Related[0] == "parent:parent-ticket"
+				})).Return(nil)
+			},
+			expectedError:  false,
+			expectedParent: "parent-ticket",
+			checkOutput: func(t *testing.T, output *TestOutputCapture) {
+				assert.Contains(t, output.Stdout(), "Creating sub-ticket with parent: parent-ticket")
+			},
+		},
+		{
+			name:           "explicit parent - not found",
+			slug:           "sub-feature",
+			explicitParent: "non-existent",
+			currentBranch:  "main",
+			setupManager: func(m *mocks.MockTicketManager) {
+				// Parent doesn't exist
+				m.On("Get", mock.Anything, "non-existent").Return(nil, ticketerrors.ErrTicketNotFound)
+			},
+			expectedError: true,
+			errorMessage:  "Parent ticket not found",
+		},
+		{
+			name:           "explicit parent - self parent",
+			slug:           "same-ticket",
+			explicitParent: "same-ticket",
+			currentBranch:  "main",
+			setupManager: func(m *mocks.MockTicketManager) {
+				// Don't need to check if parent exists for self-parent validation
+			},
+			expectedError: true,
+			errorMessage:  "Invalid parent relationship",
+		},
+		{
+			name:           "implicit parent from current branch",
+			slug:           "sub-feature",
+			explicitParent: "",
+			currentBranch:  "250802-100000-parent-ticket",
+			setupManager: func(m *mocks.MockTicketManager) {
+				// Check if current branch is a ticket
+				parentTicket := &ticket.Ticket{
+					ID:          "250802-100000-parent-ticket",
+					Path:        "/test/tickets/doing/250802-100000-parent-ticket.md",
+					Priority:    1,
+					Description: "Parent ticket",
+					CreatedAt:   ticket.RFC3339Time{Time: time.Now()},
+				}
+				m.On("Get", mock.Anything, "250802-100000-parent-ticket").Return(parentTicket, nil)
+				
+				// Create new ticket
+				newTicket := &ticket.Ticket{
+					ID:          "250802-120000-sub-feature",
+					Slug:        "sub-feature",
+					Path:        "/test/tickets/todo/250802-120000-sub-feature.md",
+					Priority:    3,
+					Description: "sub-feature",
+					CreatedAt:   ticket.RFC3339Time{Time: time.Now()},
+				}
+				m.On("Create", mock.Anything, "sub-feature").Return(newTicket, nil)
+				
+				// Update with parent relation
+				updatedTicket := *newTicket
+				updatedTicket.Related = []string{"parent:250802-100000-parent-ticket"}
+				m.On("Update", mock.Anything, mock.MatchedBy(func(t *ticket.Ticket) bool {
+					return t.ID == newTicket.ID && len(t.Related) == 1 && t.Related[0] == "parent:250802-100000-parent-ticket"
+				})).Return(nil)
+			},
+			expectedError:  false,
+			expectedParent: "250802-100000-parent-ticket",
+			checkOutput: func(t *testing.T, output *TestOutputCapture) {
+				assert.Contains(t, output.Stdout(), "Creating ticket in branch: 250802-100000-parent-ticket")
+			},
+		},
+		{
+			name:           "explicit parent overrides implicit",
+			slug:           "sub-feature",
+			explicitParent: "explicit-parent",
+			currentBranch:  "implicit-parent",
+			setupManager: func(m *mocks.MockTicketManager) {
+				// Check current branch (implicit parent)
+				implicitTicket := &ticket.Ticket{
+					ID: "implicit-parent",
+				}
+				m.On("Get", mock.Anything, "implicit-parent").Return(implicitTicket, nil)
+				
+				// Validate explicit parent
+				explicitTicket := &ticket.Ticket{
+					ID: "explicit-parent",
+				}
+				m.On("Get", mock.Anything, "explicit-parent").Return(explicitTicket, nil)
+				
+				// Create new ticket
+				newTicket := &ticket.Ticket{
+					ID:          "250802-120000-sub-feature",
+					Slug:        "sub-feature",
+					Path:        "/test/tickets/todo/250802-120000-sub-feature.md",
+					Priority:    3,
+					Description: "sub-feature",
+					CreatedAt:   ticket.RFC3339Time{Time: time.Now()},
+				}
+				m.On("Create", mock.Anything, "sub-feature").Return(newTicket, nil)
+				
+				// Update with explicit parent
+				updatedTicket := *newTicket
+				updatedTicket.Related = []string{"parent:explicit-parent"}
+				m.On("Update", mock.Anything, mock.MatchedBy(func(t *ticket.Ticket) bool {
+					return t.ID == newTicket.ID && len(t.Related) == 1 && t.Related[0] == "parent:explicit-parent"
+				})).Return(nil)
+			},
+			expectedError:  false,
+			expectedParent: "explicit-parent",
+			checkOutput: func(t *testing.T, output *TestOutputCapture) {
+				assert.Contains(t, output.Stdout(), "Using explicit parent 'explicit-parent' instead of current worktree 'implicit-parent'")
+				assert.Contains(t, output.Stdout(), "Creating sub-ticket with parent: explicit-parent")
+			},
+		},
+		{
+			name:           "no parent - on main branch",
+			slug:           "top-level-feature",
+			explicitParent: "",
+			currentBranch:  "main",
+			setupManager: func(m *mocks.MockTicketManager) {
+				// Create new ticket without parent
+				newTicket := &ticket.Ticket{
+					ID:          "250802-120000-top-level-feature",
+					Slug:        "top-level-feature",
+					Path:        "/test/tickets/todo/250802-120000-top-level-feature.md",
+					Priority:    3,
+					Description: "top-level-feature",
+					CreatedAt:   ticket.RFC3339Time{Time: time.Now()},
+				}
+				m.On("Create", mock.Anything, "top-level-feature").Return(newTicket, nil)
+				// No Update call expected since no parent
+			},
+			expectedError:  false,
+			expectedParent: "",
+			checkOutput: func(t *testing.T, output *TestOutputCapture) {
+				// Should not contain any parent-related messages
+				assert.NotContains(t, output.Stdout(), "Creating sub-ticket")
+				assert.NotContains(t, output.Stdout(), "Creating ticket in branch")
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create mock manager
+			mockManager := new(mocks.MockTicketManager)
+			if tt.setupManager != nil {
+				tt.setupManager(mockManager)
+			}
+
+			// Create mock git client
+			mockGit := new(mocks.MockGitClient)
+			mockGit.On("CurrentBranch", mock.Anything).Return(tt.currentBranch, nil)
+
+			// Capture output
+			output := NewTestOutputCapture()
+
+			// Create app with mocks
+			cfg := config.Default()
+			cfg.Git.DefaultBranch = "main"
+			app := &App{
+				Config:      cfg,
+				Manager:     mockManager,
+				Git:         mockGit,
+				ProjectRoot: "/test/project",
+				Output:      output.Writer,
+			}
+
+			// Execute
+			err := app.NewTicket(context.Background(), tt.slug, tt.explicitParent, FormatText)
+
+			// Assert
+			if tt.expectedError {
+				assert.Error(t, err)
+				if tt.errorMessage != "" {
+					assert.Contains(t, err.Error(), tt.errorMessage)
+				}
+			} else {
+				assert.NoError(t, err)
+			}
+
+			// Check output if provided
+			if tt.checkOutput != nil {
+				tt.checkOutput(t, output)
+			}
+
+			// Verify expectations
+			mockManager.AssertExpectations(t)
+			mockGit.AssertExpectations(t)
+		})
+	}
+}
+
+// TestOutputCapture helps capture output during tests
+type TestOutputCapture struct {
+	stdout string
+	stderr string
+	Writer *OutputWriter
+}
+
+func NewTestOutputCapture() *TestOutputCapture {
+	capture := &TestOutputCapture{}
+	capture.Writer = &OutputWriter{
+		stdout: capture,
+		stderr: capture,
+		format: FormatText,
+	}
+	return capture
+}
+
+func (c *TestOutputCapture) Write(p []byte) (n int, err error) {
+	c.stdout += string(p)
+	return len(p), nil
+}
+
+func (c *TestOutputCapture) WriteString(s string) (n int, err error) {
+	c.stdout += s
+	return len(s), nil
+}
+
+func (c *TestOutputCapture) Stdout() string {
+	return c.stdout
+}
+
+func (c *TestOutputCapture) Stderr() string {
+	return c.stderr
+}

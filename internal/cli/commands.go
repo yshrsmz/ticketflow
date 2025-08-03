@@ -180,7 +180,7 @@ func InitCommandWithWorkingDir(ctx context.Context, workingDir string) error {
 }
 
 // NewTicket creates a new ticket
-func (app *App) NewTicket(ctx context.Context, slug string, format OutputFormat) error {
+func (app *App) NewTicket(ctx context.Context, slug string, explicitParent string, format OutputFormat) error {
 	logger := log.Global().WithOperation("new_ticket")
 
 	// Validate slug
@@ -194,25 +194,60 @@ func (app *App) NewTicket(ctx context.Context, slug string, format OutputFormat)
 				"Use only hyphens (-) for separation",
 			})
 	}
-	logger.Debug("creating new ticket", "slug", slug)
+	logger.Debug("creating new ticket", slog.String("slug", slug), slog.String("explicit_parent", explicitParent))
 
-	// Auto-detect parent ticket from current branch
 	var parentTicketID string
+	
+	// First, check current branch to see if we're in a ticket worktree
 	currentBranch, err := app.Git.CurrentBranch(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get current branch: %w", err)
 	}
-
-	// If we're not on the default branch, check if it's a ticket branch
+	
+	var implicitParent string
 	if currentBranch != app.Config.Git.DefaultBranch {
-		// Verify this is a valid ticket
+		// Check if current branch is a ticket
 		if _, err := app.Manager.Get(ctx, currentBranch); err == nil {
-			parentTicketID = currentBranch
+			implicitParent = currentBranch
 		}
 	}
-
-	// Print the message only if we successfully detected a parent ticket
-	if parentTicketID != "" {
+	
+	// Handle explicit parent
+	if explicitParent != "" {
+		// Prevent self-parenting (check this first before checking if parent exists)
+		// Get the generated ticket ID for comparison
+		generatedID := ticket.GenerateID(slug)
+		if explicitParent == slug || explicitParent == generatedID {
+			return NewError(ErrTicketInvalid, "Invalid parent relationship",
+				"A ticket cannot be its own parent",
+				[]string{
+					"Choose a different parent ticket",
+					"Or create a top-level ticket without --parent",
+				})
+		}
+		
+		// Validate that the parent ticket exists
+		if _, err := app.Manager.Get(ctx, explicitParent); err != nil {
+			logger.Error("parent ticket not found", slog.String("parent", explicitParent))
+			return NewError(ErrTicketNotFound, "Parent ticket not found",
+				fmt.Sprintf("Ticket '%s' does not exist", explicitParent),
+				[]string{
+					"Check the ticket ID is correct",
+					"Use 'ticketflow list' to see available tickets",
+				})
+		}
+		
+		parentTicketID = explicitParent
+		
+		// Show warning if we're overriding an implicit parent
+		if implicitParent != "" && implicitParent != explicitParent {
+			app.Output.Printf("Using explicit parent '%s' instead of current worktree '%s'\n", 
+				explicitParent, implicitParent)
+		}
+		app.Output.Printf("Creating sub-ticket with parent: %s\n", parentTicketID)
+	} else if implicitParent != "" {
+		// Use implicit parent from current branch
+		parentTicketID = implicitParent
 		app.Output.Printf("Creating ticket in branch: %s\n", currentBranch)
 	}
 

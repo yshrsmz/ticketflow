@@ -89,7 +89,7 @@ func TestApp_NewTicket(t *testing.T) {
 			}
 
 			// Execute
-			err := app.NewTicket(context.Background(), tt.slug, tt.outputFormat)
+			err := app.NewTicket(context.Background(), tt.slug, "", tt.outputFormat)
 
 			// Assert
 			if tt.expectedError {

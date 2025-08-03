@@ -34,7 +34,7 @@ func TestAutoCleanupStaleBranchesIntegration(t *testing.T) {
 
 	for _, slug := range ticketSlugs {
 		// Create ticket
-		err = app.NewTicket(context.Background(), slug, cli.FormatText)
+		err = app.NewTicket(context.Background(), slug, "", cli.FormatText)
 		require.NoError(t, err)
 
 		// Find the ticket ID
@@ -126,7 +126,7 @@ func TestAutoCleanupDryRun(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create a ticket
-	err = app.NewTicket(context.Background(), "dry-run-test", cli.FormatText)
+	err = app.NewTicket(context.Background(), "dry-run-test", "", cli.FormatText)
 	require.NoError(t, err)
 
 	// Find the ticket ID

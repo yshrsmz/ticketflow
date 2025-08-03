@@ -44,7 +44,7 @@ func TestStartTicketWithExistingBranch(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create a test ticket
-	err = app.NewTicket(ctx, "existing-branch-test", cli.FormatText)
+	err = app.NewTicket(ctx, "existing-branch-test", "", cli.FormatText)
 	require.NoError(t, err)
 
 	// Commit the ticket
@@ -137,7 +137,7 @@ func TestStartTicketWithExistingBranchAndWorktree(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create a test ticket
-	err = app.NewTicket(ctx, "existing-both-test", cli.FormatText)
+	err = app.NewTicket(ctx, "existing-both-test", "", cli.FormatText)
 	require.NoError(t, err)
 
 	// Commit the ticket
