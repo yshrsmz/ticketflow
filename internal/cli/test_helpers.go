@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -80,4 +81,10 @@ func newTestFixture(t *testing.T) *testFixture {
 func (f *testFixture) assertMocks(t *testing.T) {
 	f.mockGit.AssertExpectations(t)
 	f.mockManager.AssertExpectations(t)
+}
+
+// NewAppWithWorkingDir creates a new App instance with a specific working directory for testing
+func NewAppWithWorkingDir(ctx context.Context, t *testing.T, workingDir string) (*App, error) {
+	t.Helper()
+	return NewAppWithOptions(ctx, WithWorkingDirectory(workingDir))
 }

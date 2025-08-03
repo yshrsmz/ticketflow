@@ -13,33 +13,36 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/yshrsmz/ticketflow/internal/cli"
 	"github.com/yshrsmz/ticketflow/internal/ticket"
 )
 
 func TestHandleInit(t *testing.T) {
-	// Cannot run in parallel due to os.Chdir
+	t.Parallel()
 
 	// Create a temporary directory for the test
 	tmpDir := t.TempDir()
-	oldDir, err := os.Getwd()
-	require.NoError(t, err)
-	defer func() {
-		if err := os.Chdir(oldDir); err != nil {
-			t.Logf("Failed to restore directory: %v", err)
-		}
-	}()
-
-	err = os.Chdir(tmpDir)
-	require.NoError(t, err)
 
 	// Initialize git repo
 	cmd := exec.Command("git", "init")
+	cmd.Dir = tmpDir
+	err := cmd.Run()
+	require.NoError(t, err)
+
+	// Configure git locally
+	cmd = exec.Command("git", "config", "user.name", "Test User")
+	cmd.Dir = tmpDir
 	err = cmd.Run()
 	require.NoError(t, err)
 
-	// Test handleInit
+	cmd = exec.Command("git", "config", "user.email", "test@example.com")
+	cmd.Dir = tmpDir
+	err = cmd.Run()
+	require.NoError(t, err)
+
+	// Test InitCommandWithWorkingDir instead of handleInit
 	ctx := context.Background()
-	err = handleInit(ctx)
+	err = cli.InitCommandWithWorkingDir(ctx, tmpDir)
 	assert.NoError(t, err)
 
 	// Verify config file was created
@@ -54,7 +57,7 @@ func TestHandleInit(t *testing.T) {
 }
 
 func TestHandleNew(t *testing.T) {
-	// Cannot run in parallel due to os.Chdir
+	t.Parallel()
 
 	tests := []struct {
 		name          string
@@ -104,56 +107,58 @@ func TestHandleNew(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			
 			tmpDir := t.TempDir()
-			oldDir, err := os.Getwd()
-			require.NoError(t, err)
-			defer func() {
-				if err := os.Chdir(oldDir); err != nil {
-					t.Logf("Failed to restore directory: %v", err)
-				}
-			}()
-
-			err = os.Chdir(tmpDir)
-			require.NoError(t, err)
-
 			tt.setupFunc(t, tmpDir)
 
 			ctx := context.Background()
 
-			// Capture output for JSON format
+			// Create app with working directory
+			app, err := cli.NewAppWithWorkingDir(ctx, t, tmpDir)
 			var cmdErr error
-			if tt.format == "json" {
-				oldStdout := os.Stdout
-				r, w, err := os.Pipe()
-				require.NoError(t, err)
-				defer func() {
-					os.Stdout = oldStdout
-					if err := r.Close(); err != nil {
-						t.Logf("Failed to close reader: %v", err)
-					}
-				}()
-				os.Stdout = w
-
-				// Run the command
-				cmdErr = handleNew(ctx, tt.slug, tt.format)
-
-				// Close write end and read output
-				if err := w.Close(); err != nil {
-					t.Logf("Failed to close writer: %v", err)
-				}
-
-				var buf bytes.Buffer
-				_, _ = io.Copy(&buf, r)
-
-				// For JSON format, verify output structure
-				if !tt.expectedError && cmdErr == nil {
-					var result map[string]interface{}
-					err2 := json.Unmarshal(buf.Bytes(), &result)
-					assert.NoError(t, err2)
-					assert.Contains(t, result, "ticket")
-				}
+			
+			if err != nil {
+				cmdErr = err
 			} else {
-				cmdErr = handleNew(ctx, tt.slug, tt.format)
+				// Capture output for JSON format
+				if tt.format == "json" {
+					oldStdout := os.Stdout
+					r, w, err := os.Pipe()
+					require.NoError(t, err)
+					defer func() {
+						os.Stdout = oldStdout
+						if err := r.Close(); err != nil {
+							t.Logf("Failed to close reader: %v", err)
+						}
+					}()
+					os.Stdout = w
+
+					// Run the command
+					outputFormat := cli.ParseOutputFormat(tt.format)
+					cli.GlobalOutputFormat = outputFormat
+					cmdErr = app.NewTicket(ctx, tt.slug, outputFormat)
+
+					// Close write end and read output
+					if err := w.Close(); err != nil {
+						t.Logf("Failed to close writer: %v", err)
+					}
+
+					var buf bytes.Buffer
+					_, _ = io.Copy(&buf, r)
+
+					// For JSON format, verify output structure
+					if !tt.expectedError && cmdErr == nil {
+						var result map[string]interface{}
+						err2 := json.Unmarshal(buf.Bytes(), &result)
+						assert.NoError(t, err2)
+						assert.Contains(t, result, "ticket")
+					}
+				} else {
+					outputFormat := cli.ParseOutputFormat(tt.format)
+					cli.GlobalOutputFormat = outputFormat
+					cmdErr = app.NewTicket(ctx, tt.slug, outputFormat)
+				}
 			}
 
 			if tt.expectedError {
@@ -174,7 +179,7 @@ func TestHandleNew(t *testing.T) {
 }
 
 func TestHandleList(t *testing.T) {
-	// Cannot run in parallel due to os.Chdir
+	// Cannot run in parallel because handleList works in the current directory
 
 	tests := []struct {
 		name          string
@@ -221,10 +226,10 @@ func TestHandleList(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tmpDir := t.TempDir()
-			oldDir, err := os.Getwd()
+			origDir, err := os.Getwd()
 			require.NoError(t, err)
 			defer func() {
-				if err := os.Chdir(oldDir); err != nil {
+				if err := os.Chdir(origDir); err != nil {
 					t.Logf("Failed to restore directory: %v", err)
 				}
 			}()
@@ -250,7 +255,7 @@ func TestHandleList(t *testing.T) {
 }
 
 func TestHandleShow(t *testing.T) {
-	// Cannot run in parallel due to os.Chdir
+	// Cannot run in parallel because handleShow works in the current directory
 
 	tests := []struct {
 		name          string
@@ -288,10 +293,10 @@ func TestHandleShow(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tmpDir := t.TempDir()
-			oldDir, err := os.Getwd()
+			origDir, err := os.Getwd()
 			require.NoError(t, err)
 			defer func() {
-				if err := os.Chdir(oldDir); err != nil {
+				if err := os.Chdir(origDir); err != nil {
 					t.Logf("Failed to restore directory: %v", err)
 				}
 			}()
@@ -353,7 +358,7 @@ func TestHandleShow(t *testing.T) {
 }
 
 func TestHandleStart(t *testing.T) {
-	// Cannot run in parallel due to os.Chdir
+	// Cannot run in parallel because handleStart works in the current directory
 
 	tests := []struct {
 		name          string
@@ -385,10 +390,10 @@ func TestHandleStart(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tmpDir := t.TempDir()
-			oldDir, err := os.Getwd()
+			origDir, err := os.Getwd()
 			require.NoError(t, err)
 			defer func() {
-				if err := os.Chdir(oldDir); err != nil {
+				if err := os.Chdir(origDir); err != nil {
 					t.Logf("Failed to restore directory: %v", err)
 				}
 			}()
@@ -417,7 +422,7 @@ func TestHandleStart(t *testing.T) {
 }
 
 func TestHandleClose(t *testing.T) {
-	// Cannot run in parallel due to os.Chdir
+	// Cannot run in parallel because handleClose works in the current directory
 
 	tests := []struct {
 		name          string
@@ -451,10 +456,10 @@ func TestHandleClose(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tmpDir := t.TempDir()
-			oldDir, err := os.Getwd()
+			origDir, err := os.Getwd()
 			require.NoError(t, err)
 			defer func() {
-				if err := os.Chdir(oldDir); err != nil {
+				if err := os.Chdir(origDir); err != nil {
 					t.Logf("Failed to restore directory: %v", err)
 				}
 			}()
