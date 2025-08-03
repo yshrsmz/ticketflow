@@ -118,7 +118,7 @@ func TestIsValidBranchName(t *testing.T) {
 		{"complex valid branch", "feature/JIRA-123_test-branch.v2", true},
 		{"branch starting with letter", "a", true},
 		{"branch starting with number", "123-feature", true},
-		
+
 		// Invalid branch names
 		{"empty string", "", false},
 		{"starts with slash", "/feature", false},

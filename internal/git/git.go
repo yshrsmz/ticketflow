@@ -38,18 +38,18 @@ func isValidBranchName(name string) bool {
 	if name == "" {
 		return false
 	}
-	
+
 	// Check for invalid patterns
 	if strings.Contains(name, "..") || strings.Contains(name, "@{") || strings.Contains(name, "//") {
 		return false
 	}
-	
+
 	// Check that it doesn't start or end with dot or slash
 	if strings.HasPrefix(name, ".") || strings.HasSuffix(name, ".") ||
 		strings.HasPrefix(name, "/") || strings.HasSuffix(name, "/") {
 		return false
 	}
-	
+
 	// Check against regex for other invalid characters
 	return branchNameRegex.MatchString(name)
 }
@@ -160,7 +160,7 @@ func (g *Git) BranchExists(ctx context.Context, branch string) (bool, error) {
 	if !isValidBranchName(branch) {
 		return false, fmt.Errorf("invalid branch name: %s", branch)
 	}
-	
+
 	// Use git show-ref --verify --quiet refs/heads/<branch>
 	// This command returns exit code 0 if branch exists, non-zero otherwise
 	_, err := g.Exec(ctx, SubcmdShowRef, FlagVerify, FlagQuiet, fmt.Sprintf("refs/heads/%s", branch))
