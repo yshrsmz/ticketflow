@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -55,6 +56,21 @@ func setupTestRepo(t *testing.T, tmpDir string) {
 	cmd.Dir = tmpDir
 	err = cmd.Run()
 	require.NoError(t, err)
+
+	// Ensure we're on the main branch
+	// First check what branch we're on
+	cmd = exec.Command("git", "branch", "--show-current")
+	cmd.Dir = tmpDir
+	currentBranch, err := cmd.Output()
+	require.NoError(t, err)
+	
+	// If we're not on main, rename the current branch to main
+	if strings.TrimSpace(string(currentBranch)) != "main" {
+		cmd = exec.Command("git", "checkout", "-b", "main")
+		cmd.Dir = tmpDir
+		output, err = cmd.CombinedOutput()
+		require.NoError(t, err, "Failed to create main branch: %s", string(output))
+	}
 
 	// Create config file
 	cfg := config.Default()
