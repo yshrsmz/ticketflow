@@ -1,8 +1,8 @@
 ---
 priority: 2
-description: "Refactor tests to avoid using os.Chdir for better parallelization"
+description: Refactor tests to avoid using os.Chdir for better parallelization
 created_at: "2025-08-03T11:30:12+09:00"
-started_at: null
+started_at: "2025-08-03T14:09:31+09:00"
 closed_at: null
 related:
     - parent:250801-003207-improve-test-coverage
