@@ -25,6 +25,7 @@ type App struct {
 	Git         git.GitClient
 	Manager     ticket.TicketManager
 	ProjectRoot string
+	workingDir  string // Working directory for the app (defaults to ".")
 }
 
 // AppOption represents an option for creating a new App
@@ -44,10 +45,27 @@ func WithTicketManager(manager ticket.TicketManager) AppOption {
 	}
 }
 
+// WithWorkingDirectory sets a custom working directory
+func WithWorkingDirectory(dir string) AppOption {
+	return func(a *App) {
+		a.workingDir = dir
+	}
+}
+
 // NewAppWithOptions creates a new CLI application with custom options
 func NewAppWithOptions(ctx context.Context, opts ...AppOption) (*App, error) {
-	// Find project root (with .git directory)
-	projectRoot, err := git.FindProjectRoot(ctx, ".")
+	// Create app with default working directory
+	app := &App{
+		workingDir: ".", // Default to current directory
+	}
+
+	// Apply options first to allow overriding workingDir
+	for _, opt := range opts {
+		opt(app)
+	}
+
+	// Find project root (with .git directory) using configured working directory
+	projectRoot, err := git.FindProjectRoot(ctx, app.workingDir)
 	if err != nil {
 		return nil, NewError(ErrNotGitRepo, "Not in a git repository", "",
 			[]string{
@@ -66,15 +84,8 @@ func NewAppWithOptions(ctx context.Context, opts ...AppOption) (*App, error) {
 			})
 	}
 
-	app := &App{
-		Config:      cfg,
-		ProjectRoot: projectRoot,
-	}
-
-	// Apply options
-	for _, opt := range opts {
-		opt(app)
-	}
+	app.Config = cfg
+	app.ProjectRoot = projectRoot
 
 	// Set defaults if not provided
 	if app.Git == nil {
@@ -89,42 +100,19 @@ func NewAppWithOptions(ctx context.Context, opts ...AppOption) (*App, error) {
 
 // NewApp creates a new CLI application
 func NewApp(ctx context.Context) (*App, error) {
-	// Find project root (with .git directory)
-	projectRoot, err := git.FindProjectRoot(ctx, ".")
-	if err != nil {
-		return nil, NewError(ErrNotGitRepo, "Not in a git repository", "",
-			[]string{
-				"Navigate to your project root directory",
-				"Initialize a new git repository with 'git init'",
-			})
-	}
-
-	// Load config
-	cfg, err := config.Load(projectRoot)
-	if err != nil {
-		return nil, NewError(ErrConfigNotFound, "Ticket system not initialized", "",
-			[]string{
-				"Run 'ticketflow init' to initialize",
-				"Navigate to the project root directory",
-			})
-	}
-
-	gitClient := git.NewWithTimeout(projectRoot, cfg.GetGitTimeout())
-	manager := ticket.NewManager(cfg, projectRoot)
-
-	return &App{
-		Config:      cfg,
-		Git:         gitClient,
-		Manager:     manager,
-		ProjectRoot: projectRoot,
-	}, nil
+	return NewAppWithOptions(ctx)
 }
 
 // InitCommand initializes the ticket system (doesn't require existing config)
 func InitCommand(ctx context.Context) error {
+	return InitCommandWithWorkingDir(ctx, ".")
+}
+
+// InitCommandWithWorkingDir initializes the ticket system with a specific working directory
+func InitCommandWithWorkingDir(ctx context.Context, workingDir string) error {
 	logger := log.Global().WithOperation("init")
 
-	projectRoot, err := git.FindProjectRoot(ctx, ".")
+	projectRoot, err := git.FindProjectRoot(ctx, workingDir)
 	if err != nil {
 		logger.WithError(err).Error("not in a git repository")
 		return NewError(ErrNotGitRepo, "Not in a git repository", "", nil)
