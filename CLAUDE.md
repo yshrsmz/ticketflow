@@ -90,6 +90,8 @@ These are displayed in `ticketflow version` command.
 ## Development Workflow for New Features
 
 1. Create a feature ticket: `ticketflow new my-feature`
+   - Or create a sub-ticket with explicit parent: `ticketflow new --parent parent-ticket-id my-sub-feature`
+   - Note: Flags must come before the ticket slug
 2. Start work (creates worktree): `ticketflow start <ticket-id>`
    - You don't need to actually start work. just execute ticketflow command.
    - Actual work is done by another Coding Agent by launching new editor
