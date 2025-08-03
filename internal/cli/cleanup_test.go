@@ -16,23 +16,16 @@ import (
 )
 
 func TestAutoCleanupStaleBranches(t *testing.T) {
+	t.Parallel()
+
 	// Create a temporary directory for our test repo
 	tmpDir := t.TempDir()
 	repoPath := filepath.Join(tmpDir, "test-repo")
 	require.NoError(t, os.MkdirAll(repoPath, 0755))
 
-	// Change to test directory
-	originalWd, err := os.Getwd()
-	require.NoError(t, err)
-	defer func() {
-		err := os.Chdir(originalWd)
-		require.NoError(t, err)
-	}()
-	require.NoError(t, os.Chdir(repoPath))
-
-	// Initialize git repo
-	gitOps := &git.Git{}
-	_, err = gitOps.Exec(context.Background(), "init")
+	// Initialize git repo with specific path
+	gitOps := git.New(repoPath)
+	_, err := gitOps.Exec(context.Background(), "init")
 	require.NoError(t, err)
 	_, err = gitOps.Exec(context.Background(), "config", "user.email", "test@example.com")
 	require.NoError(t, err)
@@ -40,7 +33,7 @@ func TestAutoCleanupStaleBranches(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create initial commit
-	require.NoError(t, os.WriteFile("README.md", []byte("Test repo"), 0644))
+	require.NoError(t, os.WriteFile(filepath.Join(repoPath, "README.md"), []byte("Test repo"), 0644))
 	_, err = gitOps.Exec(context.Background(), "add", ".")
 	require.NoError(t, err)
 	_, err = gitOps.Exec(context.Background(), "commit", "-m", "Initial commit")
@@ -59,7 +52,7 @@ func TestAutoCleanupStaleBranches(t *testing.T) {
 
 	// Create ticket directories
 	for _, dir := range []string{"todo", "doing", "done"} {
-		require.NoError(t, os.MkdirAll(filepath.Join(cfg.Tickets.Dir, dir), 0755))
+		require.NoError(t, os.MkdirAll(filepath.Join(repoPath, cfg.Tickets.Dir, dir), 0755))
 	}
 
 	// Create ticket manager
@@ -71,6 +64,8 @@ func TestAutoCleanupStaleBranches(t *testing.T) {
 		Git:         gitOps,
 		Config:      cfg,
 		ProjectRoot: repoPath,
+		workingDir:  repoPath,
+		Output:      NewOutputWriter(nil, nil, FormatText),
 	}
 
 	// Test scenario: Create tickets and branches, move tickets to done, then run cleanup
@@ -94,7 +89,7 @@ func TestAutoCleanupStaleBranches(t *testing.T) {
 			Priority:    2,
 			Description: "Test ticket",
 			CreatedAt:   ticket.NewRFC3339Time(now),
-			Path:        filepath.Join(cfg.Tickets.Dir, string(tc.status), tc.id+".md"),
+			Path:        filepath.Join(repoPath, cfg.Tickets.Dir, string(tc.status), tc.id+".md"),
 		}
 
 		// Set closed time for done tickets
@@ -154,23 +149,16 @@ func TestAutoCleanupStaleBranches(t *testing.T) {
 }
 
 func TestCleanupStatsWithDoneTickets(t *testing.T) {
+	t.Parallel()
+
 	// Create a temporary directory for our test repo
 	tmpDir := t.TempDir()
 	repoPath := filepath.Join(tmpDir, "test-repo")
 	require.NoError(t, os.MkdirAll(repoPath, 0755))
 
-	// Change to test directory
-	originalWd, err := os.Getwd()
-	require.NoError(t, err)
-	defer func() {
-		err := os.Chdir(originalWd)
-		require.NoError(t, err)
-	}()
-	require.NoError(t, os.Chdir(repoPath))
-
-	// Initialize git repo
-	gitOps := &git.Git{}
-	_, err = gitOps.Exec(context.Background(), "init")
+	// Initialize git repo with specific path
+	gitOps := git.New(repoPath)
+	_, err := gitOps.Exec(context.Background(), "init")
 	require.NoError(t, err)
 	_, err = gitOps.Exec(context.Background(), "config", "user.email", "test@example.com")
 	require.NoError(t, err)
@@ -178,7 +166,7 @@ func TestCleanupStatsWithDoneTickets(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create initial commit
-	require.NoError(t, os.WriteFile("README.md", []byte("Test repo"), 0644))
+	require.NoError(t, os.WriteFile(filepath.Join(repoPath, "README.md"), []byte("Test repo"), 0644))
 	_, err = gitOps.Exec(context.Background(), "add", ".")
 	require.NoError(t, err)
 	_, err = gitOps.Exec(context.Background(), "commit", "-m", "Initial commit")
@@ -196,7 +184,7 @@ func TestCleanupStatsWithDoneTickets(t *testing.T) {
 
 	// Create ticket directories
 	for _, dir := range []string{"todo", "doing", "done"} {
-		require.NoError(t, os.MkdirAll(filepath.Join(cfg.Tickets.Dir, dir), 0755))
+		require.NoError(t, os.MkdirAll(filepath.Join(repoPath, cfg.Tickets.Dir, dir), 0755))
 	}
 
 	// Create ticket manager
@@ -213,7 +201,7 @@ func TestCleanupStatsWithDoneTickets(t *testing.T) {
 			Priority:    2,
 			Description: "Done ticket",
 			CreatedAt:   ticket.NewRFC3339Time(now),
-			Path:        filepath.Join(cfg.Tickets.Dir, "done", id+".md"),
+			Path:        filepath.Join(repoPath, cfg.Tickets.Dir, "done", id+".md"),
 		}
 
 		// Set started and closed times
@@ -241,7 +229,7 @@ func TestCleanupStatsWithDoneTickets(t *testing.T) {
 		Priority:    2,
 		Description: "Active ticket",
 		CreatedAt:   ticket.NewRFC3339Time(now),
-		Path:        filepath.Join(cfg.Tickets.Dir, "doing", "active-1.md"),
+		Path:        filepath.Join(repoPath, cfg.Tickets.Dir, "doing", "active-1.md"),
 	}
 
 	// Set started time

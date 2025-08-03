@@ -2,7 +2,6 @@ package integration
 
 import (
 	"context"
-	"os"
 	"path/filepath"
 	"testing"
 
@@ -15,19 +14,13 @@ import (
 )
 
 func TestStartTicketWithExistingBranch(t *testing.T) {
+	t.Parallel()
+
 	// Setup test repository
 	repoPath := setupTestRepo(t)
-	originalWd, err := os.Getwd()
-	require.NoError(t, err)
-	defer func() {
-		err := os.Chdir(originalWd)
-		require.NoError(t, err)
-	}()
-	err = os.Chdir(repoPath)
-	require.NoError(t, err)
 
 	// Initialize ticketflow with worktree enabled
-	err = cli.InitCommand(context.Background())
+	err := cli.InitCommandWithWorkingDir(context.Background(), repoPath)
 	require.NoError(t, err)
 
 	// Enable worktrees in config
@@ -47,7 +40,7 @@ func TestStartTicketWithExistingBranch(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create app instance
-	app, err := cli.NewApp(ctx)
+	app, err := cli.NewAppWithWorkingDir(ctx, t, repoPath)
 	require.NoError(t, err)
 
 	// Create a test ticket
@@ -114,19 +107,13 @@ func TestStartTicketWithExistingBranch(t *testing.T) {
 }
 
 func TestStartTicketWithExistingBranchAndWorktree(t *testing.T) {
+	t.Parallel()
+
 	// Setup test repository
 	repoPath := setupTestRepo(t)
-	originalWd, err := os.Getwd()
-	require.NoError(t, err)
-	defer func() {
-		err := os.Chdir(originalWd)
-		require.NoError(t, err)
-	}()
-	err = os.Chdir(repoPath)
-	require.NoError(t, err)
 
 	// Initialize ticketflow
-	err = cli.InitCommand(context.Background())
+	err := cli.InitCommandWithWorkingDir(context.Background(), repoPath)
 	require.NoError(t, err)
 
 	// Enable worktrees in config
@@ -146,7 +133,7 @@ func TestStartTicketWithExistingBranchAndWorktree(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create app instance
-	app, err := cli.NewApp(ctx)
+	app, err := cli.NewAppWithWorkingDir(ctx, t, repoPath)
 	require.NoError(t, err)
 
 	// Create a test ticket

@@ -4,10 +4,28 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"sync"
 )
 
-// GlobalOutputFormat is set by command parsing to control error output format
-var GlobalOutputFormat OutputFormat = FormatText
+// globalOutputFormat is set by command parsing to control error output format
+var (
+	globalOutputFormat OutputFormat = FormatText
+	formatMutex        sync.RWMutex
+)
+
+// SetGlobalOutputFormat sets the global output format in a thread-safe manner
+func SetGlobalOutputFormat(format OutputFormat) {
+	formatMutex.Lock()
+	defer formatMutex.Unlock()
+	globalOutputFormat = format
+}
+
+// GetGlobalOutputFormat gets the global output format in a thread-safe manner
+func GetGlobalOutputFormat() OutputFormat {
+	formatMutex.RLock()
+	defer formatMutex.RUnlock()
+	return globalOutputFormat
+}
 
 // Error codes
 const (
@@ -64,48 +82,71 @@ func NewError(code, message, details string, suggestions []string) *CLIError {
 }
 
 // HandleError handles errors appropriately based on output format
+// Deprecated: Use OutputWriter.Error instead for better testability and thread safety. Will be removed in v2.0.0.
 func HandleError(err error) {
+	if err == nil {
+		return
+	}
+
+	// Determine output format
+	format := GetGlobalOutputFormat()
+
+	// Check if JSON output is requested via environment variable
+	// This allows error formatting even before app initialization
+	if format == FormatText && os.Getenv("TICKETFLOW_OUTPUT_FORMAT") == "json" {
+		format = FormatJSON
+	}
+
+	// Create default writer and delegate
+	writer := NewOutputWriter(nil, nil, format)
+	writer.Error(err)
+}
+
+// Error writes an error to stderr based on the output format
+func (w *OutputWriter) Error(err error) {
 	if err == nil {
 		return
 	}
 
 	// Check if it's a CLI error
 	if cliErr, ok := err.(*CLIError); ok {
-		handleCLIError(cliErr)
+		w.handleCLIError(cliErr)
 		return
 	}
 
 	// Generic error
-	fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+	_, _ = fmt.Fprintf(w.stderr, "Error: %v\n", err)
 }
 
-func handleCLIError(err *CLIError) {
-	// Check global format first (set by command line parsing)
-	if GlobalOutputFormat == FormatJSON {
-		OutputJSONError(err)
-		return
-	}
-
-	// Check if JSON output is requested via environment variable
-	// This allows error formatting even before app initialization
-	if os.Getenv("TICKETFLOW_OUTPUT_FORMAT") == "json" {
-		OutputJSONError(err)
+func (w *OutputWriter) handleCLIError(err *CLIError) {
+	if w.format == FormatJSON {
+		w.outputJSONError(err)
 		return
 	}
 
 	// Default text format
-	fmt.Fprintf(os.Stderr, "Error: %s\n", err.Message)
+	_, _ = fmt.Fprintf(w.stderr, "Error: %s\n", err.Message)
 
 	if err.Details != "" {
-		fmt.Fprintf(os.Stderr, "Details: %s\n", err.Details)
+		_, _ = fmt.Fprintf(w.stderr, "Details: %s\n", err.Details)
 	}
 
 	if len(err.Suggestions) > 0 {
-		fmt.Fprintf(os.Stderr, "\nSuggestions:\n")
+		_, _ = fmt.Fprintf(w.stderr, "\nSuggestions:\n")
 		for _, suggestion := range err.Suggestions {
-			fmt.Fprintf(os.Stderr, "  - %s\n", suggestion)
+			_, _ = fmt.Fprintf(w.stderr, "  - %s\n", suggestion)
 		}
 	}
+}
+
+func (w *OutputWriter) outputJSONError(err *CLIError) {
+	output := map[string]interface{}{
+		"error": err,
+	}
+
+	encoder := json.NewEncoder(w.stderr)
+	encoder.SetIndent("", "  ")
+	_ = encoder.Encode(output)
 }
 
 // OutputJSONError outputs error in JSON format

@@ -13,6 +13,14 @@ import (
 	ticketerrors "github.com/yshrsmz/ticketflow/internal/errors"
 )
 
+const (
+	// DefaultGitTimeout is the default timeout for git operations
+	DefaultGitTimeout = 30 * time.Second
+
+	// TestGitTimeout is a shorter timeout suitable for tests
+	TestGitTimeout = 10 * time.Second
+)
+
 // Git provides git operations
 type Git struct {
 	repoPath string
@@ -99,16 +107,37 @@ func isWhitespace(b byte) bool {
 	return b == ' ' || b == '\t' || b == '\n' || b == '\r' || b == '\f' || b == '\v'
 }
 
+// validateTimeout ensures the timeout is positive, defaulting to DefaultGitTimeout if not
+func validateTimeout(timeout time.Duration) time.Duration {
+	if timeout <= 0 {
+		return DefaultGitTimeout
+	}
+	return timeout
+}
+
 // New creates a new Git instance with default timeout
 func New(repoPath string) *Git {
-	return NewWithTimeout(repoPath, 30*time.Second) // 30 seconds default
+	if repoPath == "" {
+		repoPath = "."
+	}
+
+	// Note: We don't validate path existence here - git commands will fail with appropriate errors
+	// This allows for cases where the directory will be created later
+
+	return NewWithTimeout(repoPath, DefaultGitTimeout)
 }
 
 // NewWithTimeout creates a new Git instance with custom timeout
 func NewWithTimeout(repoPath string, timeout time.Duration) *Git {
+	// Validate inputs
+	if repoPath == "" {
+		// Default to current directory if empty
+		repoPath = "."
+	}
+
 	return &Git{
 		repoPath: repoPath,
-		timeout:  timeout,
+		timeout:  validateTimeout(timeout),
 	}
 }
 

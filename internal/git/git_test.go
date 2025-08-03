@@ -14,35 +14,73 @@ func TestNewWithTimeout(t *testing.T) {
 		name        string
 		repoPath    string
 		timeout     time.Duration
+		wantPath    string
 		wantTimeout time.Duration
 	}{
 		{
 			name:        "custom timeout",
 			repoPath:    "/tmp/test",
 			timeout:     45 * time.Second,
+			wantPath:    "/tmp/test",
 			wantTimeout: 45 * time.Second,
 		},
 		{
-			name:        "zero timeout",
+			name:        "zero timeout defaults to 30s",
 			repoPath:    "/tmp/test2",
 			timeout:     0,
-			wantTimeout: 0,
+			wantPath:    "/tmp/test2",
+			wantTimeout: 30 * time.Second,
+		},
+		{
+			name:        "negative timeout defaults to 30s",
+			repoPath:    "/tmp/test3",
+			timeout:     -5 * time.Second,
+			wantPath:    "/tmp/test3",
+			wantTimeout: 30 * time.Second,
+		},
+		{
+			name:        "empty path defaults to current dir",
+			repoPath:    "",
+			timeout:     10 * time.Second,
+			wantPath:    ".",
+			wantTimeout: 10 * time.Second,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithTimeout(tt.repoPath, tt.timeout)
-			assert.Equal(t, tt.repoPath, g.repoPath)
+			assert.Equal(t, tt.wantPath, g.repoPath)
 			assert.Equal(t, tt.wantTimeout, g.timeout)
 		})
 	}
 }
 
 func TestNew(t *testing.T) {
-	g := New("/tmp/test")
-	assert.Equal(t, "/tmp/test", g.repoPath)
-	assert.Equal(t, 30*time.Second, g.timeout)
+	tests := []struct {
+		name     string
+		repoPath string
+		wantPath string
+	}{
+		{
+			name:     "valid path",
+			repoPath: "/tmp/test",
+			wantPath: "/tmp/test",
+		},
+		{
+			name:     "empty path defaults to current dir",
+			repoPath: "",
+			wantPath: ".",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := New(tt.repoPath)
+			assert.Equal(t, tt.wantPath, g.repoPath)
+			assert.Equal(t, 30*time.Second, g.timeout)
+		})
+	}
 }
 
 func TestExecWithTimeout(t *testing.T) {

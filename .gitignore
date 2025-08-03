@@ -29,3 +29,6 @@ dist/
 .ticketflow.local.yaml
 
 tmp/
+
+# Test artifacts that shouldn't be in source tree
+internal/cli/tickets/

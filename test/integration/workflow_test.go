@@ -50,19 +50,13 @@ func setupTestRepo(t *testing.T) string {
 }
 
 func TestCompleteWorkflow(t *testing.T) {
+	t.Parallel()
+
 	// Setup test repository
 	repoPath := setupTestRepo(t)
-	originalWd, err := os.Getwd()
-	require.NoError(t, err)
-	defer func() {
-		err := os.Chdir(originalWd)
-		require.NoError(t, err)
-	}()
-	err = os.Chdir(repoPath)
-	require.NoError(t, err)
 
 	// 1. Initialize ticketflow
-	err = cli.InitCommand(context.Background())
+	err := cli.InitCommandWithWorkingDir(context.Background(), repoPath)
 	require.NoError(t, err)
 
 	// Verify config exists
@@ -76,7 +70,7 @@ func TestCompleteWorkflow(t *testing.T) {
 	require.NoError(t, err)
 
 	// Disable worktrees for this test
-	app, err := cli.NewApp(context.Background())
+	app, err := cli.NewAppWithWorkingDir(context.Background(), t, repoPath)
 	require.NoError(t, err)
 	app.Config.Worktree.Enabled = false
 
@@ -159,23 +153,17 @@ func TestCompleteWorkflow(t *testing.T) {
 }
 
 func TestRestoreWorkflow(t *testing.T) {
+	t.Parallel()
+
 	// Setup test repository
 	repoPath := setupTestRepo(t)
-	originalWd, err := os.Getwd()
-	require.NoError(t, err)
-	defer func() {
-		err := os.Chdir(originalWd)
-		require.NoError(t, err)
-	}()
-	err = os.Chdir(repoPath)
-	require.NoError(t, err)
 
 	// Initialize and create ticket
-	err = cli.InitCommand(context.Background())
+	err := cli.InitCommandWithWorkingDir(context.Background(), repoPath)
 	require.NoError(t, err)
 
 	// Disable worktrees for this test
-	app, err := cli.NewApp(context.Background())
+	app, err := cli.NewAppWithWorkingDir(context.Background(), t, repoPath)
 	require.NoError(t, err)
 	app.Config.Worktree.Enabled = false
 
