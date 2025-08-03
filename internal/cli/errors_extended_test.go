@@ -76,7 +76,8 @@ func TestHandleError(t *testing.T) {
 			os.Stderr = oldStderr
 
 			var buf bytes.Buffer
-			_, _ = io.Copy(&buf, r)
+			_, err := io.Copy(&buf, r)
+			require.NoError(t, err)
 			output := buf.String()
 
 			if tt.expectJSON {
@@ -129,13 +130,14 @@ func TestHandleCLIError_EnvironmentVariable(t *testing.T) {
 	os.Stderr = oldStderr
 
 	var buf bytes.Buffer
-	_, _ = io.Copy(&buf, r)
+	_, err2 := io.Copy(&buf, r)
+	require.NoError(t, err2)
 	output := buf.String()
 
 	// Should be JSON despite text format
 	var result map[string]interface{}
-	err2 := json.Unmarshal([]byte(output), &result)
-	assert.NoError(t, err2)
+	err3 := json.Unmarshal([]byte(output), &result)
+	assert.NoError(t, err3)
 	assert.Contains(t, result, "error")
 }
 
@@ -195,7 +197,8 @@ func TestOutputJSONError(t *testing.T) {
 			os.Stderr = oldStderr
 
 			var buf bytes.Buffer
-			_, _ = io.Copy(&buf, r)
+			_, err := io.Copy(&buf, r)
+			require.NoError(t, err)
 			output := buf.String()
 
 			var result map[string]interface{}
@@ -345,7 +348,8 @@ func TestHandleError_EdgeCases(t *testing.T) {
 			os.Stderr = oldStderr
 
 			var buf bytes.Buffer
-			_, _ = io.Copy(&buf, r)
+			_, err := io.Copy(&buf, r)
+			require.NoError(t, err)
 			output := buf.String()
 
 			assert.Equal(t, tt.expectOutput, output)
