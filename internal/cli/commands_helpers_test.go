@@ -58,7 +58,7 @@ func TestCountTicketsByStatus(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			app := &App{}
+			app := &App{Output: NewOutputWriter(nil, nil, FormatText)}
 			todoCount, doingCount, doneCount := app.countTicketsByStatus(tt.tickets)
 			assert.Equal(t, tt.wantTodo, todoCount, "todo count mismatch")
 			assert.Equal(t, tt.wantDoing, doingCount, "doing count mismatch")
@@ -113,7 +113,7 @@ func TestCalculateWorkDuration(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			app := &App{}
+			app := &App{Output: NewOutputWriter(nil, nil, FormatText)}
 			got := app.calculateWorkDuration(tt.ticket)
 			assert.Equal(t, tt.want, got)
 		})
@@ -158,7 +158,7 @@ func TestExtractParentTicketID(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			app := &App{}
+			app := &App{Output: NewOutputWriter(nil, nil, FormatText)}
 			got := app.extractParentTicketID(tt.ticket)
 			assert.Equal(t, tt.want, got)
 		})
@@ -219,6 +219,7 @@ func TestCheckExistingWorktree(t *testing.T) {
 				},
 				Git:     mockGit,
 				Manager: mockManager,
+				Output:  NewOutputWriter(nil, nil, FormatText),
 			}
 
 			testTicket := &ticket.Ticket{ID: "test-ticket"}

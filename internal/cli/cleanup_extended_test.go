@@ -409,6 +409,7 @@ func TestCleanupStats(t *testing.T) {
 				Config:  cfg,
 				Git:     mockGit,
 				Manager: mockManager,
+				Output:  NewOutputWriter(nil, nil, FormatText),
 			}
 
 			tt.setupMocks(mockGit, mockManager)

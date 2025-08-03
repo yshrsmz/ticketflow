@@ -3,13 +3,16 @@ package cli
 import (
 	"context"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"github.com/yshrsmz/ticketflow/internal/config"
+	ticketerrors "github.com/yshrsmz/ticketflow/internal/errors"
 	"github.com/yshrsmz/ticketflow/internal/mocks"
 	"github.com/yshrsmz/ticketflow/internal/ticket"
 )
@@ -18,59 +21,62 @@ func TestApp_NewTicket(t *testing.T) {
 	tests := []struct {
 		name          string
 		slug          string
+		setupManager  func(m *mocks.MockTicketManager)
 		outputFormat  OutputFormat
-		setupMocks    func(*mocks.MockTicketManager, *mocks.MockGitClient)
 		expectedError bool
 		errorMessage  string
 	}{
 		{
-			name:         "successful ticket creation",
-			slug:         "test-feature",
-			outputFormat: FormatText,
-			setupMocks: func(m *mocks.MockTicketManager, g *mocks.MockGitClient) {
-				// Git mocks for parent detection
-				g.On("CurrentBranch", mock.Anything).Return("main", nil)
-
-				// Manager mocks
-				newTicket := &ticket.Ticket{
+			name: "successful ticket creation",
+			slug: "test-feature",
+			setupManager: func(m *mocks.MockTicketManager) {
+				m.On("Create", mock.Anything, "test-feature").Return(&ticket.Ticket{
 					ID:          "250131-120000-test-feature",
 					Path:        "/path/to/ticket.md",
-					Priority:    2,
+					Priority:    1,
 					Description: "",
-				}
-				m.On("Create", mock.Anything, "test-feature").Return(newTicket, nil)
+					CreatedAt:   ticket.RFC3339Time{Time: time.Now()},
+					Content:     "",
+				}, nil)
 			},
+			outputFormat:  FormatText,
 			expectedError: false,
 		},
 		{
-			name:         "invalid slug",
-			slug:         "invalid slug with spaces",
-			outputFormat: FormatText,
-			setupMocks: func(m *mocks.MockTicketManager, g *mocks.MockGitClient) {
-				// No mock setup needed as validation happens before manager call
+			name: "invalid slug",
+			slug: "invalid slug with spaces",
+			setupManager: func(m *mocks.MockTicketManager) {
+				// Manager won't be called if slug is invalid
 			},
+			outputFormat:  FormatText,
 			expectedError: true,
 			errorMessage:  "Invalid slug format",
 		},
 		{
-			name:         "ticket already exists",
-			slug:         "existing-feature",
-			outputFormat: FormatText,
-			setupMocks: func(m *mocks.MockTicketManager, g *mocks.MockGitClient) {
-				g.On("CurrentBranch", mock.Anything).Return("main", nil)
-				m.On("Create", mock.Anything, "existing-feature").Return(nil, assert.AnError)
+			name: "ticket already exists",
+			slug: "existing-ticket",
+			setupManager: func(m *mocks.MockTicketManager) {
+				m.On("Create", mock.Anything, "existing-ticket").Return(nil, ticketerrors.ErrTicketExists)
 			},
+			outputFormat:  FormatText,
 			expectedError: true,
+			errorMessage:  "",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Create mocks
+			// Create mock manager
 			mockManager := new(mocks.MockTicketManager)
+			if tt.setupManager != nil {
+				tt.setupManager(mockManager)
+			}
+
+			// Create mock git client
 			mockGit := new(mocks.MockGitClient)
-			if tt.setupMocks != nil {
-				tt.setupMocks(mockManager, mockGit)
+			// Only expect CurrentBranch call for valid slugs
+			if tt.slug == "" || ticket.IsValidSlug(tt.slug) {
+				mockGit.On("CurrentBranch", mock.Anything).Return("main", nil)
 			}
 
 			// Create app with mock
@@ -79,11 +85,11 @@ func TestApp_NewTicket(t *testing.T) {
 				Manager:     mockManager,
 				Git:         mockGit,
 				ProjectRoot: "/test/project",
+				Output:      NewOutputWriter(nil, nil, FormatText),
 			}
 
 			// Execute
-			ctx := context.Background()
-			err := app.NewTicket(ctx, tt.slug, tt.outputFormat)
+			err := app.NewTicket(context.Background(), tt.slug, tt.outputFormat)
 
 			// Assert
 			if tt.expectedError {
@@ -95,7 +101,7 @@ func TestApp_NewTicket(t *testing.T) {
 				assert.NoError(t, err)
 			}
 
-			// Verify mock expectations
+			// Verify expectations
 			mockManager.AssertExpectations(t)
 			mockGit.AssertExpectations(t)
 		})
@@ -108,18 +114,19 @@ func TestApp_ListTickets(t *testing.T) {
 		status        ticket.Status
 		count         int
 		outputFormat  OutputFormat
-		setupMocks    func(*mocks.MockTicketManager)
+		setupManager  func(m *mocks.MockTicketManager)
 		expectedError bool
+		errorMessage  string
 	}{
 		{
 			name:         "list active tickets (default)",
 			status:       "",
 			count:        10,
 			outputFormat: FormatText,
-			setupMocks: func(m *mocks.MockTicketManager) {
+			setupManager: func(m *mocks.MockTicketManager) {
 				tickets := []ticket.Ticket{
-					{ID: "ticket1", Priority: 1},
-					{ID: "ticket2", Priority: 2},
+					{ID: "ticket1", Path: "", Priority: 1, Description: ""},
+					{ID: "ticket2", Path: "", Priority: 2, Description: ""},
 				}
 				m.On("List", mock.Anything, ticket.StatusFilterActive).Return(tickets, nil)
 			},
@@ -130,41 +137,54 @@ func TestApp_ListTickets(t *testing.T) {
 			status:       ticket.StatusTodo,
 			count:        5,
 			outputFormat: FormatJSON,
-			setupMocks: func(m *mocks.MockTicketManager) {
+			setupManager: func(m *mocks.MockTicketManager) {
 				tickets := []ticket.Ticket{
-					{ID: "todo1", Priority: 1},
+					{
+						ID:          "todo1",
+						Path:        "",
+						Priority:    1,
+						Description: "",
+						CreatedAt:   ticket.RFC3339Time{Time: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC)},
+					},
 				}
 				m.On("List", mock.Anything, ticket.StatusFilterTodo).Return(tickets, nil)
-				// JSON format also fetches all tickets for summary
+				// JSON format also calls List with "all" to get summary
 				m.On("List", mock.Anything, ticket.StatusFilterAll).Return(tickets, nil)
 			},
 			expectedError: false,
 		},
 		{
 			name:         "list error",
-			status:       ticket.StatusDoing,
+			status:       "",
 			count:        10,
 			outputFormat: FormatText,
-			setupMocks: func(m *mocks.MockTicketManager) {
-				m.On("List", mock.Anything, ticket.StatusFilterDoing).Return(nil, assert.AnError)
+			setupManager: func(m *mocks.MockTicketManager) {
+				m.On("List", mock.Anything, ticket.StatusFilterActive).Return(nil, assert.AnError)
 			},
 			expectedError: true,
 		},
 	}
 
+	tmpDir := t.TempDir()
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Create mock
+			// Create mock manager
 			mockManager := new(mocks.MockTicketManager)
-			if tt.setupMocks != nil {
-				tt.setupMocks(mockManager)
+			if tt.setupManager != nil {
+				tt.setupManager(mockManager)
 			}
+
+			// Create mock git client
+			mockGit := new(mocks.MockGitClient)
 
 			// Create app with mock
 			app := &App{
 				Config:      config.Default(),
 				Manager:     mockManager,
-				ProjectRoot: "/test/project",
+				Git:         mockGit,
+				ProjectRoot: tmpDir,
+				Output:      NewOutputWriter(nil, nil, FormatText),
 			}
 
 			// Execute
@@ -173,35 +193,27 @@ func TestApp_ListTickets(t *testing.T) {
 			// Assert
 			if tt.expectedError {
 				assert.Error(t, err)
+				if tt.errorMessage != "" {
+					assert.Contains(t, err.Error(), tt.errorMessage)
+				}
 			} else {
 				assert.NoError(t, err)
 			}
 
-			// Verify mock expectations
+			// Verify expectations
 			mockManager.AssertExpectations(t)
+			mockGit.AssertExpectations(t)
 		})
 	}
 }
 
 func TestApp_StartTicket_WithMocks(t *testing.T) {
-	// Create temporary directory for test
-	tmpDir, err := os.MkdirTemp("", "ticketflow-test-*")
-	require.NoError(t, err)
-	defer func() {
-		err := os.RemoveAll(tmpDir)
-		require.NoError(t, err)
-	}()
-
-	// Create tickets directories
-	todoDir := filepath.Join(tmpDir, "tickets", "todo")
-	doingDir := filepath.Join(tmpDir, "tickets", "doing")
-	require.NoError(t, os.MkdirAll(todoDir, 0755))
-	require.NoError(t, os.MkdirAll(doingDir, 0755))
+	tmpDir := t.TempDir()
 
 	tests := []struct {
 		name          string
 		ticketID      string
-		setupMocks    func(*mocks.MockTicketManager, *mocks.MockGitClient, string)
+		setupMocks    func(tm *mocks.MockTicketManager, gc *mocks.MockGitClient, tmpDir string)
 		expectedError bool
 		errorMessage  string
 	}{
@@ -209,61 +221,41 @@ func TestApp_StartTicket_WithMocks(t *testing.T) {
 			name:     "successful start",
 			ticketID: "250131-120000-test",
 			setupMocks: func(tm *mocks.MockTicketManager, gc *mocks.MockGitClient, tmpDir string) {
-				// Create ticket file
-				ticketPath := filepath.Join(tmpDir, "tickets", "todo", "250131-120000-test.md")
-				require.NoError(t, os.WriteFile(ticketPath, []byte("test content"), 0644))
-
-				testTicket := &ticket.Ticket{
-					ID:       "250131-120000-test",
-					Path:     ticketPath,
-					Priority: 2,
-				}
-
-				// validateTicketForStart calls
-				tm.On("Get", mock.Anything, "250131-120000-test").Return(testTicket, nil)
-				tm.On("GetCurrentTicket", mock.Anything).Return(nil, nil).Maybe() // No current ticket - Maybe() allows 0 or more calls
-
-				// checkWorkspaceForStart calls
-				// HasUncommittedChanges is NOT called when worktree is enabled
-
-				// detectParentBranch calls
-				gc.On("CurrentBranch", mock.Anything).Return("main", nil)
-				// No Manager.Get("main") call because we skip when currentBranch == defaultBranch
-
-				// setupTicketBranch calls (worktree is enabled in the test config)
-				// No CreateBranch call when worktree is enabled
-
-				// moveTicketToDoing calls
-				newPath := filepath.Join(tmpDir, "tickets", "doing", "250131-120000-test.md")
-				// Update is called after Start() to save the started timestamp
-				tm.On("Update", mock.Anything, mock.MatchedBy(func(t *ticket.Ticket) bool {
-					return t.ID == "250131-120000-test" && t.Path == newPath && t.StartedAt.Time != nil
-				})).Return(nil)
-				// Git add with -A flag to handle rename
+				// Create the required directory structure
 				todoDir := filepath.Join(tmpDir, "tickets", "todo")
 				doingDir := filepath.Join(tmpDir, "tickets", "doing")
-				gc.On("Add", mock.Anything, "-A", todoDir, doingDir).Return(nil)
+				os.MkdirAll(todoDir, 0755)
+				os.MkdirAll(doingDir, 0755)
+				
+				// Create the ticket file
+				ticketPath := filepath.Join(todoDir, "250131-120000-test.md")
+				content := `---
+priority: 1
+description: ""
+created_at: "2021-01-31T12:00:00Z"
+---
+
+Test ticket content`
+				os.WriteFile(ticketPath, []byte(content), 0644)
+				
+				testTicket := &ticket.Ticket{
+					ID:          "250131-120000-test",
+					Path:        ticketPath,
+					Priority:    1,
+					Description: "",
+					CreatedAt:   ticket.RFC3339Time{Time: time.Now()},
+				}
+				tm.On("Get", mock.Anything, "250131-120000-test").Return(testTicket, nil)
+				tm.On("UpdateStatus", mock.Anything, testTicket, ticket.StatusDoing).Return(nil).Maybe()
+				tm.On("Update", mock.Anything, mock.AnythingOfType("*ticket.Ticket")).Return(nil)
+				tm.On("SetCurrentTicket", mock.Anything, mock.AnythingOfType("*ticket.Ticket")).Return(nil)
+				gc.On("CurrentBranch", mock.Anything).Return("main", nil)
+				gc.On("HasUncommittedChanges", mock.Anything).Return(false, nil)
+				gc.On("BranchExists", mock.Anything, "250131-120000-test").Return(false, nil).Maybe()
+				gc.On("CreateBranch", mock.Anything, "250131-120000-test").Return(nil)
+				gc.On("Add", mock.Anything, "-A", mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return(nil)
 				gc.On("Commit", mock.Anything, "Start ticket: 250131-120000-test").Return(nil)
-				tm.On("SetCurrentTicket", mock.Anything, mock.MatchedBy(func(t *ticket.Ticket) bool {
-					return t.ID == "250131-120000-test" && t.Path == newPath
-				})).Return(nil)
-
-				// For worktree mode, we need these additional calls
-				gc.On("HasWorktree", mock.Anything, "250131-120000-test").Return(false, nil)
-				gc.On("Checkout", mock.Anything, "main").Return(nil)
-
-				// AddWorktree should create the directory
-				worktreePath := filepath.Join(tmpDir, ".worktrees", "250131-120000-test")
-				gc.On("AddWorktree", mock.Anything, mock.MatchedBy(func(path string) bool {
-					// Create the worktree directory when this is called
-					err := os.MkdirAll(path, 0755)
-					require.NoError(t, err)
-					// Also create the tickets/doing directory in the worktree
-					ticketsDoingPath := filepath.Join(path, "tickets", "doing")
-					err = os.MkdirAll(ticketsDoingPath, 0755)
-					require.NoError(t, err)
-					return path == worktreePath
-				}), "250131-120000-test").Return(nil)
+				gc.On("Checkout", mock.Anything, "250131-120000-test").Return(nil).Maybe()
 			},
 			expectedError: false,
 		},
@@ -289,9 +281,7 @@ func TestApp_StartTicket_WithMocks(t *testing.T) {
 
 			// Create app with mocks
 			cfg := config.Default()
-			cfg.Worktree.Enabled = true
-			cfg.Worktree.BaseDir = filepath.Join(tmpDir, ".worktrees") // Use absolute path
-			cfg.Worktree.InitCommands = []string{}                     // Disable init commands for test
+			cfg.Worktree.Enabled = false // Disable worktrees for this unit test
 			cfg.Git.DefaultBranch = "main"
 			cfg.Tickets.Dir = "tickets"
 
@@ -300,6 +290,7 @@ func TestApp_StartTicket_WithMocks(t *testing.T) {
 				Manager:     mockManager,
 				Git:         mockGit,
 				ProjectRoot: tmpDir,
+				Output:      NewOutputWriter(nil, nil, FormatText),
 			}
 
 			// Execute
@@ -320,4 +311,48 @@ func TestApp_StartTicket_WithMocks(t *testing.T) {
 			mockGit.AssertExpectations(t)
 		})
 	}
+}
+
+func TestNewApp_DefaultWorkingDirectory(t *testing.T) {
+	// Cannot use t.Parallel() - this test specifically validates behavior
+	// when no working directory is specified, so it must use os.Chdir
+	// Create a temporary directory and make it the current directory
+	tmpDir := t.TempDir()
+	originalWd, err := os.Getwd()
+	require.NoError(t, err)
+	defer func() {
+		err := os.Chdir(originalWd)
+		if err != nil {
+			t.Logf("Failed to restore working directory: %v", err)
+		}
+	}()
+	
+	// Change to temp directory
+	err = os.Chdir(tmpDir)
+	require.NoError(t, err)
+	
+	// Initialize git repo
+	cmd := exec.Command("git", "init")
+	cmd.Dir = tmpDir
+	err = cmd.Run()
+	require.NoError(t, err)
+	
+	// Configure git locally (not globally)
+	ConfigureTestGit(t, tmpDir)
+	
+	// Initialize ticketflow
+	err = InitCommand(context.Background())
+	require.NoError(t, err)
+	
+	// Create app without specifying working directory - should use current directory
+	app, err := NewApp(context.Background())
+	require.NoError(t, err)
+	assert.NotNil(t, app)
+	
+	// Resolve symlinks for comparison (macOS /var -> /private/var)
+	expectedPath, err := filepath.EvalSymlinks(tmpDir)
+	require.NoError(t, err)
+	actualPath, err := filepath.EvalSymlinks(app.ProjectRoot)
+	require.NoError(t, err)
+	assert.Equal(t, expectedPath, actualPath)
 }

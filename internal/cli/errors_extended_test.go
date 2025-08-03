@@ -122,7 +122,7 @@ func TestHandleCLIError_EnvironmentVariable(t *testing.T) {
 	SetGlobalOutputFormat(FormatText)
 	defer func() { SetGlobalOutputFormat(oldFormat) }()
 
-	handleCLIError(testErr)
+	HandleError(testErr)
 
 	if err := w.Close(); err != nil {
 		t.Logf("Failed to close writer: %v", err)

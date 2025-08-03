@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
@@ -300,7 +299,6 @@ func handleNew(ctx context.Context, slug, format string) error {
 	}
 
 	outputFormat := cli.ParseOutputFormat(format)
-	cli.SetGlobalOutputFormat(outputFormat)
 	return app.NewTicket(ctx, slug, outputFormat)
 }
 
@@ -319,7 +317,6 @@ func handleList(ctx context.Context, status string, count int, format string) er
 	}
 
 	outputFormat := cli.ParseOutputFormat(format)
-	cli.SetGlobalOutputFormat(outputFormat)
 	return app.ListTickets(ctx, ticketStatus, count, outputFormat)
 }
 
@@ -336,10 +333,9 @@ func handleShow(ctx context.Context, ticketID, format string) error {
 	}
 
 	outputFormat := cli.ParseOutputFormat(format)
-	cli.SetGlobalOutputFormat(outputFormat)
 	if outputFormat == cli.FormatJSON {
 		// For JSON, just output the ticket data
-		return outputJSON(map[string]interface{}{
+		return app.Output.PrintJSON(map[string]interface{}{
 			"ticket": map[string]interface{}{
 				"id":          t.ID,
 				"path":        t.Path,
@@ -356,25 +352,25 @@ func handleShow(ctx context.Context, ticketID, format string) error {
 	}
 
 	// Text format
-	fmt.Printf("ID: %s\n", t.ID)
-	fmt.Printf("Status: %s\n", t.Status())
-	fmt.Printf("Priority: %d\n", t.Priority)
-	fmt.Printf("Description: %s\n", t.Description)
-	fmt.Printf("Created: %s\n", t.CreatedAt.Format(time.RFC3339))
+	app.Output.Printf("ID: %s\n", t.ID)
+	app.Output.Printf("Status: %s\n", t.Status())
+	app.Output.Printf("Priority: %d\n", t.Priority)
+	app.Output.Printf("Description: %s\n", t.Description)
+	app.Output.Printf("Created: %s\n", t.CreatedAt.Format(time.RFC3339))
 
 	if t.StartedAt.Time != nil {
-		fmt.Printf("Started: %s\n", t.StartedAt.Time.Format(time.RFC3339))
+		app.Output.Printf("Started: %s\n", t.StartedAt.Time.Format(time.RFC3339))
 	}
 
 	if t.ClosedAt.Time != nil {
-		fmt.Printf("Closed: %s\n", t.ClosedAt.Time.Format(time.RFC3339))
+		app.Output.Printf("Closed: %s\n", t.ClosedAt.Time.Format(time.RFC3339))
 	}
 
 	if len(t.Related) > 0 {
-		fmt.Printf("Related: %s\n", strings.Join(t.Related, ", "))
+		app.Output.Printf("Related: %s\n", strings.Join(t.Related, ", "))
 	}
 
-	fmt.Printf("\n%s\n", t.Content)
+	app.Output.Printf("\n%s\n", t.Content)
 
 	return nil
 }
@@ -413,7 +409,6 @@ func handleStatus(ctx context.Context, format string) error {
 	}
 
 	outputFormat := cli.ParseOutputFormat(format)
-	cli.SetGlobalOutputFormat(outputFormat)
 	return app.Status(ctx, outputFormat)
 }
 
@@ -430,7 +425,6 @@ func handleWorktree(ctx context.Context, subcommand string, args []string) error
 			format = args[1]
 		}
 		outputFormat := cli.ParseOutputFormat(format)
-		cli.SetGlobalOutputFormat(outputFormat)
 		return app.ListWorktrees(ctx, outputFormat)
 
 	case "clean":
@@ -541,11 +535,6 @@ Use 'ticketflow <command> -h' for command-specific help.
 `, Version)
 }
 
-func outputJSON(data interface{}) error {
-	encoder := json.NewEncoder(os.Stdout)
-	encoder.SetIndent("", "  ")
-	return encoder.Encode(data)
-}
 
 func printWorktreeUsage() {
 	fmt.Println(`TicketFlow Worktree Management

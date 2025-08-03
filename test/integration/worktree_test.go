@@ -213,19 +213,13 @@ func TestWorktreeCleanCommand(t *testing.T) {
 }
 
 func TestWorktreeListCommand(t *testing.T) {
+	t.Parallel()
+
 	// Setup test repository
 	repoPath := setupTestRepo(t)
-	originalWd, err := os.Getwd()
-	require.NoError(t, err)
-	defer func() {
-		err := os.Chdir(originalWd)
-		require.NoError(t, err)
-	}()
-	err = os.Chdir(repoPath)
-	require.NoError(t, err)
 
 	// Initialize and setup
-	err = cli.InitCommand(context.Background())
+	err := cli.InitCommandWithWorkingDir(context.Background(), repoPath)
 	require.NoError(t, err)
 
 	cfg, err := config.Load(repoPath)
@@ -241,7 +235,7 @@ func TestWorktreeListCommand(t *testing.T) {
 	_, err = gitCmd.Exec(context.Background(), "commit", "-m", "Initialize")
 	require.NoError(t, err)
 
-	app, err := cli.NewApp(context.Background())
+	app, err := cli.NewAppWithWorkingDir(context.Background(), t, repoPath)
 	require.NoError(t, err)
 
 	// Create and start a ticket

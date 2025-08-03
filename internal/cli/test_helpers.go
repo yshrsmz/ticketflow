@@ -1,12 +1,14 @@
 package cli
 
 import (
+	"bytes"
 	"context"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/yshrsmz/ticketflow/internal/config"
+	"github.com/yshrsmz/ticketflow/internal/git"
 	"github.com/yshrsmz/ticketflow/internal/mocks"
 	"github.com/yshrsmz/ticketflow/internal/ticket"
 )
@@ -67,6 +69,7 @@ func newTestFixture(t *testing.T) *testFixture {
 		Config:  cfg,
 		Git:     mockGit,
 		Manager: mockManager,
+		Output:  NewOutputWriter(nil, nil, FormatText),
 	}
 
 	return &testFixture{
@@ -87,4 +90,31 @@ func (f *testFixture) assertMocks(t *testing.T) {
 func NewAppWithWorkingDir(ctx context.Context, t *testing.T, workingDir string) (*App, error) {
 	t.Helper()
 	return NewAppWithOptions(ctx, WithWorkingDirectory(workingDir))
+}
+
+// ConfigureTestGit sets up git configuration for a test repository
+// IMPORTANT: Always configures locally, never globally
+func ConfigureTestGit(t *testing.T, repoPath string) {
+	t.Helper()
+	
+	ctx := context.Background()
+	gitOps := git.New(repoPath)
+	
+	// Configure user name locally
+	if _, err := gitOps.Exec(ctx, "config", "user.name", "Test User"); err != nil {
+		t.Fatalf("Failed to configure git user.name: %v", err)
+	}
+	
+	// Configure user email locally
+	if _, err := gitOps.Exec(ctx, "config", "user.email", "test@example.com"); err != nil {
+		t.Fatalf("Failed to configure git user.email: %v", err)
+	}
+}
+
+// NewTestOutputWriter creates an OutputWriter that captures output for testing
+func NewTestOutputWriter() (*OutputWriter, *bytes.Buffer, *bytes.Buffer) {
+	stdout := &bytes.Buffer{}
+	stderr := &bytes.Buffer{}
+	writer := NewOutputWriter(stdout, stderr, FormatText)
+	return writer, stdout, stderr
 }

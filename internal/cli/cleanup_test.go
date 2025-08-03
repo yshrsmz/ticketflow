@@ -65,6 +65,7 @@ func TestAutoCleanupStaleBranches(t *testing.T) {
 		Config:      cfg,
 		ProjectRoot: repoPath,
 		workingDir:  repoPath,
+		Output:      NewOutputWriter(nil, nil, FormatText),
 	}
 
 	// Test scenario: Create tickets and branches, move tickets to done, then run cleanup

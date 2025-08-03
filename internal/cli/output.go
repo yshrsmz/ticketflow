@@ -3,6 +3,7 @@ package cli
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 	"time"
@@ -28,7 +29,51 @@ func ParseOutputFormat(format string) OutputFormat {
 	}
 }
 
-// outputJSON outputs data as JSON
+// OutputWriter handles formatted output for CLI commands
+type OutputWriter struct {
+	stdout io.Writer
+	stderr io.Writer
+	format OutputFormat
+}
+
+// NewOutputWriter creates a new OutputWriter with the specified format
+func NewOutputWriter(stdout, stderr io.Writer, format OutputFormat) *OutputWriter {
+	if stdout == nil {
+		stdout = os.Stdout
+	}
+	if stderr == nil {
+		stderr = os.Stderr
+	}
+	return &OutputWriter{
+		stdout: stdout,
+		stderr: stderr,
+		format: format,
+	}
+}
+
+// PrintJSON writes JSON output to stdout
+func (w *OutputWriter) PrintJSON(data interface{}) error {
+	encoder := json.NewEncoder(w.stdout)
+	encoder.SetIndent("", "  ")
+	return encoder.Encode(data)
+}
+
+// Printf writes formatted text to stdout
+func (w *OutputWriter) Printf(format string, args ...interface{}) {
+	fmt.Fprintf(w.stdout, format, args...)
+}
+
+// Println writes a line to stdout
+func (w *OutputWriter) Println(args ...interface{}) {
+	fmt.Fprintln(w.stdout, args...)
+}
+
+// GetFormat returns the current output format
+func (w *OutputWriter) GetFormat() OutputFormat {
+	return w.format
+}
+
+// outputJSON outputs data as JSON - kept for backward compatibility
 func outputJSON(data interface{}) error {
 	encoder := json.NewEncoder(os.Stdout)
 	encoder.SetIndent("", "  ")

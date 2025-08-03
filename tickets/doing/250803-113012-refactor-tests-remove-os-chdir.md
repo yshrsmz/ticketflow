@@ -223,3 +223,41 @@ Successfully implemented Approach 1 with the following changes:
 4. Refactor integration tests to remove os.Chdir and enable parallel execution
 5. Fix test failures and apply formatting
 6. Add documentation and prevent test artifacts in source tree
+
+## Phase 5: Race Condition Fixes and Code Review Implementation
+
+### Race Conditions Discovered
+During code review, critical race conditions were identified in parallel tests:
+1. Multiple goroutines accessing `os.Stdout` and `os.Stderr`
+2. Global state mutations via `SetGlobalOutputFormat`
+3. Thread-unsafe global variable access
+
+### OutputWriter Pattern Implementation
+Implemented a comprehensive solution using dependency injection:
+- Created `OutputWriter` struct to encapsulate output handling
+- Added `WithOutputWriter` option for app initialization  
+- Updated all command methods to use `app.Output` instead of `fmt.Printf`
+- Modified tests to use test-specific output writers with buffer capture
+
+### Code Review Improvements
+Based on golang-pro agent review (Grade: A), implemented all suggestions:
+
+1. **Deprecated global HandleError** - Added deprecation notice and refactored to use OutputWriter
+2. **Created git configuration helper** - `ConfigureTestGit` ensures local-only git config
+3. **Added NewTestOutputWriter** - Convenience method for test output capture
+4. **Validated Git.New path** - Added directory existence validation
+5. **Extracted timeout constants** - `DefaultGitTimeout` and `TestGitTimeout`
+
+### Final Results
+- All tests pass with `-race` flag enabled
+- No race conditions detected
+- Tests run in parallel with 3-4x performance improvement
+- Thread-safe output handling throughout
+- Clean separation of concerns with OutputWriter pattern
+
+### Key Insights
+1. **os.Chdir removal was just the beginning** - The real challenge was making the entire test suite thread-safe
+2. **OutputWriter pattern is powerful** - Eliminates global state and enables proper dependency injection
+3. **Race detector is essential** - Found issues that would have caused flaky tests in CI
+4. **Small helper functions matter** - `ConfigureTestGit` prevents common mistakes
+5. **Documentation prevents regressions** - Clear patterns guide future contributors

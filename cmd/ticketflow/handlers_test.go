@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -32,15 +31,7 @@ func TestHandleInit(t *testing.T) {
 	require.NoError(t, err)
 
 	// Configure git locally
-	cmd = exec.Command("git", "config", "user.name", "Test User")
-	cmd.Dir = tmpDir
-	err = cmd.Run()
-	require.NoError(t, err)
-
-	cmd = exec.Command("git", "config", "user.email", "test@example.com")
-	cmd.Dir = tmpDir
-	err = cmd.Run()
-	require.NoError(t, err)
+	cli.ConfigureTestGit(t, tmpDir)
 
 	// Test InitCommandWithWorkingDir instead of handleInit
 	ctx := context.Background()
@@ -116,51 +107,32 @@ func TestHandleNew(t *testing.T) {
 
 			ctx := context.Background()
 
-			// Create app with working directory
-			app, err := cli.NewAppWithWorkingDir(ctx, t, tmpDir)
+			// Create buffers to capture output
+			var stdout, stderr bytes.Buffer
+			outputFormat := cli.ParseOutputFormat(tt.format)
+			
+			// Create test-specific output writer
+			outputWriter := cli.NewOutputWriter(&stdout, &stderr, outputFormat)
+
+			// Create app with output writer
+			app, err := cli.NewAppWithOptions(ctx,
+				cli.WithWorkingDirectory(tmpDir),
+				cli.WithOutputWriter(outputWriter),
+			)
 			var cmdErr error
 
 			if err != nil {
 				cmdErr = err
 			} else {
-				// Capture output for JSON format
-				if tt.format == "json" {
-					oldStdout := os.Stdout
-					r, w, err := os.Pipe()
-					require.NoError(t, err)
-					defer func() {
-						os.Stdout = oldStdout
-						if err := r.Close(); err != nil {
-							t.Logf("Failed to close reader: %v", err)
-						}
-					}()
-					os.Stdout = w
+				cmdErr = app.NewTicket(ctx, tt.slug, outputFormat)
+			}
 
-					// Run the command
-					outputFormat := cli.ParseOutputFormat(tt.format)
-					cli.SetGlobalOutputFormat(outputFormat)
-					cmdErr = app.NewTicket(ctx, tt.slug, outputFormat)
-
-					// Close write end and read output
-					if err := w.Close(); err != nil {
-						t.Logf("Failed to close writer: %v", err)
-					}
-
-					var buf bytes.Buffer
-					_, _ = io.Copy(&buf, r)
-
-					// For JSON format, verify output structure
-					if !tt.expectedError && cmdErr == nil {
-						var result map[string]interface{}
-						err2 := json.Unmarshal(buf.Bytes(), &result)
-						assert.NoError(t, err2)
-						assert.Contains(t, result, "ticket")
-					}
-				} else {
-					outputFormat := cli.ParseOutputFormat(tt.format)
-					cli.SetGlobalOutputFormat(outputFormat)
-					cmdErr = app.NewTicket(ctx, tt.slug, outputFormat)
-				}
+			// Verify JSON output structure if needed
+			if tt.format == "json" && !tt.expectedError && cmdErr == nil {
+				var result map[string]interface{}
+				err := json.Unmarshal(stdout.Bytes(), &result)
+				assert.NoError(t, err)
+				assert.Contains(t, result, "ticket")
 			}
 
 			if tt.expectedError {
@@ -234,8 +206,18 @@ func TestHandleList(t *testing.T) {
 
 			ctx := context.Background()
 
-			// Create app with working directory
-			app, err := cli.NewAppWithWorkingDir(ctx, t, tmpDir)
+			// Create buffers to capture output
+			var stdout, stderr bytes.Buffer
+			outputFormat := cli.ParseOutputFormat(tt.format)
+			
+			// Create test-specific output writer
+			outputWriter := cli.NewOutputWriter(&stdout, &stderr, outputFormat)
+
+			// Create app with output writer
+			app, err := cli.NewAppWithOptions(ctx,
+				cli.WithWorkingDirectory(tmpDir),
+				cli.WithOutputWriter(outputWriter),
+			)
 			var cmdErr error
 
 			if err != nil {
@@ -251,28 +233,7 @@ func TestHandleList(t *testing.T) {
 				}
 
 				if cmdErr == nil {
-					outputFormat := cli.ParseOutputFormat(tt.format)
-					// Capture output to avoid test noise
-					oldStdout := os.Stdout
-					r, w, err := os.Pipe()
-					require.NoError(t, err)
-					defer func() {
-						os.Stdout = oldStdout
-						if err := r.Close(); err != nil {
-							t.Logf("Failed to close reader: %v", err)
-						}
-					}()
-					os.Stdout = w
-
 					cmdErr = app.ListTickets(ctx, ticketStatus, tt.count, outputFormat)
-
-					if err := w.Close(); err != nil {
-						t.Logf("Failed to close writer: %v", err)
-					}
-
-					// Read the output to prevent blocking
-					var buf bytes.Buffer
-					_, _ = io.Copy(&buf, r)
 				}
 			}
 
@@ -336,8 +297,18 @@ func TestHandleShow(t *testing.T) {
 
 			ctx := context.Background()
 
-			// Create app with working directory
-			app, err := cli.NewAppWithWorkingDir(ctx, t, tmpDir)
+			// Create buffers to capture output
+			var stdout, stderr bytes.Buffer
+			outputFormat := cli.ParseOutputFormat(tt.format)
+			
+			// Create test-specific output writer
+			outputWriter := cli.NewOutputWriter(&stdout, &stderr, outputFormat)
+
+			// Create app with output writer
+			app, err := cli.NewAppWithOptions(ctx,
+				cli.WithWorkingDirectory(tmpDir),
+				cli.WithOutputWriter(outputWriter),
+			)
 			var cmdErr error
 
 			if err != nil {
@@ -348,22 +319,9 @@ func TestHandleShow(t *testing.T) {
 				if err != nil {
 					cmdErr = err
 				} else {
-					// Capture output
-					oldStdout := os.Stdout
-					r, w, err := os.Pipe()
-					require.NoError(t, err)
-					defer func() {
-						os.Stdout = oldStdout
-						if err := r.Close(); err != nil {
-							t.Logf("Failed to close reader: %v", err)
-						}
-					}()
-					os.Stdout = w
-
-					outputFormat := cli.ParseOutputFormat(tt.format)
 					if outputFormat == cli.FormatJSON {
 						// For JSON, output the ticket data
-						if err := outputJSON(map[string]interface{}{
+						if err := outputWriter.PrintJSON(map[string]interface{}{
 							"ticket": map[string]interface{}{
 								"id":          ticketObj.ID,
 								"path":        ticketObj.Path,
@@ -381,26 +339,20 @@ func TestHandleShow(t *testing.T) {
 						}
 					} else {
 						// For text format, print ticket details
-						fmt.Printf("ID: %s\n", ticketObj.ID)
-						fmt.Printf("Status: %s\n", ticketObj.Status())
-						fmt.Printf("Priority: %d\n", ticketObj.Priority)
-						fmt.Printf("Description: %s\n", ticketObj.Description)
-						fmt.Printf("Created: %s\n", ticketObj.CreatedAt.Time.Format(time.RFC3339))
+						outputWriter.Printf("ID: %s\n", ticketObj.ID)
+						outputWriter.Printf("Status: %s\n", ticketObj.Status())
+						outputWriter.Printf("Priority: %d\n", ticketObj.Priority)
+						outputWriter.Printf("Description: %s\n", ticketObj.Description)
+						outputWriter.Printf("Created: %s\n", ticketObj.CreatedAt.Time.Format(time.RFC3339))
 						if ticketObj.StartedAt.Time != nil {
-							fmt.Printf("Started: %s\n", ticketObj.StartedAt.Time.Format(time.RFC3339))
+							outputWriter.Printf("Started: %s\n", ticketObj.StartedAt.Time.Format(time.RFC3339))
 						}
 						if ticketObj.ClosedAt.Time != nil {
-							fmt.Printf("Closed: %s\n", ticketObj.ClosedAt.Time.Format(time.RFC3339))
+							outputWriter.Printf("Closed: %s\n", ticketObj.ClosedAt.Time.Format(time.RFC3339))
 						}
 					}
 
-					if err := w.Close(); err != nil {
-						t.Logf("Warning: failed to close writer: %v", err)
-					}
-
-					var buf bytes.Buffer
-					_, _ = io.Copy(&buf, r)
-					output := buf.String()
+					output := stdout.String()
 
 					if tt.format == "json" {
 						// Verify JSON structure
@@ -471,34 +423,23 @@ func TestHandleStart(t *testing.T) {
 
 			ctx := context.Background()
 
-			// Create app with working directory
-			app, err := cli.NewAppWithWorkingDir(ctx, t, tmpDir)
+			// Create buffers to capture output
+			var stdout, stderr bytes.Buffer
+			
+			// Create test-specific output writer
+			outputWriter := cli.NewOutputWriter(&stdout, &stderr, cli.FormatText)
+
+			// Create app with output writer
+			app, err := cli.NewAppWithOptions(ctx,
+				cli.WithWorkingDirectory(tmpDir),
+				cli.WithOutputWriter(outputWriter),
+			)
 			var cmdErr error
 
 			if err != nil {
 				cmdErr = err
 			} else {
-				// Capture output to avoid test noise
-				oldStdout := os.Stdout
-				r, w, err := os.Pipe()
-				require.NoError(t, err)
-				defer func() {
-					os.Stdout = oldStdout
-					if err := r.Close(); err != nil {
-						t.Logf("Failed to close reader: %v", err)
-					}
-				}()
-				os.Stdout = w
-
 				cmdErr = app.StartTicket(ctx, ticketID)
-
-				if err := w.Close(); err != nil {
-					t.Logf("Failed to close writer: %v", err)
-				}
-
-				// Read the output to prevent blocking
-				var buf bytes.Buffer
-				_, _ = io.Copy(&buf, r)
 			}
 
 			if tt.expectedError {
@@ -554,34 +495,23 @@ func TestHandleClose(t *testing.T) {
 
 			ctx := context.Background()
 
-			// Create app with working directory
-			app, err := cli.NewAppWithWorkingDir(ctx, t, tmpDir)
+			// Create buffers to capture output
+			var stdout, stderr bytes.Buffer
+			
+			// Create test-specific output writer
+			outputWriter := cli.NewOutputWriter(&stdout, &stderr, cli.FormatText)
+
+			// Create app with output writer
+			app, err := cli.NewAppWithOptions(ctx,
+				cli.WithWorkingDirectory(tmpDir),
+				cli.WithOutputWriter(outputWriter),
+			)
 			var cmdErr error
 
 			if err != nil {
 				cmdErr = err
 			} else {
-				// Capture output to avoid test noise
-				oldStdout := os.Stdout
-				r, w, err := os.Pipe()
-				require.NoError(t, err)
-				defer func() {
-					os.Stdout = oldStdout
-					if err := r.Close(); err != nil {
-						t.Logf("Failed to close reader: %v", err)
-					}
-				}()
-				os.Stdout = w
-
 				cmdErr = app.CloseTicket(ctx, tt.force)
-
-				if err := w.Close(); err != nil {
-					t.Logf("Failed to close writer: %v", err)
-				}
-
-				// Read the output to prevent blocking
-				var buf bytes.Buffer
-				_, _ = io.Copy(&buf, r)
 			}
 
 			if tt.expectedError {
@@ -648,30 +578,18 @@ func TestOutputJSON(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Capture stdout
-			oldStdout := os.Stdout
-			r, w, err := os.Pipe()
-			require.NoError(t, err)
-			defer func() {
-				os.Stdout = oldStdout
-				if err := r.Close(); err != nil {
-					t.Logf("Failed to close reader: %v", err)
-				}
-			}()
-			os.Stdout = w
+			t.Parallel()
 
-			err = outputJSON(tt.data)
+			// Create buffers to capture output
+			var stdout, stderr bytes.Buffer
+			
+			// Create test-specific output writer
+			outputWriter := cli.NewOutputWriter(&stdout, &stderr, cli.FormatJSON)
 
-			if err := w.Close(); err != nil {
-				t.Logf("Warning: failed to close writer: %v", err)
-			}
-
+			err := outputWriter.PrintJSON(tt.data)
 			assert.NoError(t, err)
 
-			var buf bytes.Buffer
-			_, _ = io.Copy(&buf, r)
-			output := strings.TrimSpace(buf.String())
-
+			output := strings.TrimSpace(stdout.String())
 			assert.JSONEq(t, tt.expected, output)
 		})
 	}

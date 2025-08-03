@@ -26,6 +26,7 @@ type App struct {
 	Manager     ticket.TicketManager
 	ProjectRoot string
 	workingDir  string // Working directory for the app (defaults to ".")
+	Output      *OutputWriter // Output writer for formatted output
 }
 
 // AppOption represents an option for creating a new App
@@ -49,6 +50,13 @@ func WithTicketManager(manager ticket.TicketManager) AppOption {
 func WithWorkingDirectory(dir string) AppOption {
 	return func(a *App) {
 		a.workingDir = dir
+	}
+}
+
+// WithOutputWriter sets a custom output writer
+func WithOutputWriter(writer *OutputWriter) AppOption {
+	return func(a *App) {
+		a.Output = writer
 	}
 }
 
@@ -93,6 +101,9 @@ func NewAppWithOptions(ctx context.Context, opts ...AppOption) (*App, error) {
 	}
 	if app.Manager == nil {
 		app.Manager = ticket.NewManager(cfg, projectRoot)
+	}
+	if app.Output == nil {
+		app.Output = NewOutputWriter(nil, nil, FormatText)
 	}
 
 	return app, nil
@@ -197,7 +208,7 @@ func (app *App) NewTicket(ctx context.Context, slug string, format OutputFormat)
 		// Verify this is a valid ticket
 		if _, err := app.Manager.Get(ctx, currentBranch); err == nil {
 			parentTicketID = currentBranch
-			fmt.Printf("Creating ticket in branch: %s\n", currentBranch)
+			app.Output.Printf("Creating ticket in branch: %s\n", currentBranch)
 		}
 	}
 
@@ -231,25 +242,25 @@ func (app *App) NewTicket(ctx context.Context, slug string, format OutputFormat)
 		if parentTicketID != "" {
 			output["parent_ticket"] = parentTicketID
 		}
-		return outputJSON(output)
+		return app.Output.PrintJSON(output)
 	}
 
-	fmt.Printf("\n🎫 Created new ticket: %s\n", t.ID)
-	fmt.Printf("   File: %s\n", t.Path)
+	app.Output.Printf("\n🎫 Created new ticket: %s\n", t.ID)
+	app.Output.Printf("   File: %s\n", t.Path)
 	if parentTicketID != "" {
-		fmt.Printf("   Parent ticket: %s\n", parentTicketID)
-		fmt.Printf("   Type: Sub-ticket\n")
+		app.Output.Printf("   Parent ticket: %s\n", parentTicketID)
+		app.Output.Printf("   Type: Sub-ticket\n")
 	}
-	fmt.Printf("\n📋 Next steps:\n")
-	fmt.Printf("1. Edit the ticket file to add details:\n")
-	fmt.Printf("   $EDITOR %s\n", t.Path)
-	fmt.Printf("   \n")
-	fmt.Printf("2. Commit the ticket file:\n")
-	fmt.Printf("   git add %s\n", t.Path)
-	fmt.Printf("   git commit -m \"Add ticket: %s\"\n", slug)
-	fmt.Printf("   \n")
-	fmt.Printf("3. Start working on it:\n")
-	fmt.Printf("   ticketflow start %s\n", t.ID)
+	app.Output.Printf("\n📋 Next steps:\n")
+	app.Output.Printf("1. Edit the ticket file to add details:\n")
+	app.Output.Printf("   $EDITOR %s\n", t.Path)
+	app.Output.Printf("   \n")
+	app.Output.Printf("2. Commit the ticket file:\n")
+	app.Output.Printf("   git add %s\n", t.Path)
+	app.Output.Printf("   git commit -m \"Add ticket: %s\"\n", slug)
+	app.Output.Printf("   \n")
+	app.Output.Printf("3. Start working on it:\n")
+	app.Output.Printf("   ticketflow start %s\n", t.ID)
 
 	return nil
 }
@@ -407,7 +418,7 @@ func (app *App) RestoreCurrentTicket(ctx context.Context) error {
 		return fmt.Errorf("failed to set current ticket: %w", err)
 	}
 
-	fmt.Printf("Restored current ticket link: %s\n", t.ID)
+	app.Output.Printf("Restored current ticket link: %s\n", t.ID)
 	return nil
 }
 
@@ -466,7 +477,7 @@ func updateGitignore(path string) error {
 
 func (app *App) outputTicketListText(tickets []*ticket.Ticket) error {
 	if len(tickets) == 0 {
-		fmt.Println("No tickets found")
+		app.Output.Println("No tickets found")
 		return nil
 	}
 
@@ -479,8 +490,8 @@ func (app *App) outputTicketListText(tickets []*ticket.Ticket) error {
 	}
 
 	// Print header
-	fmt.Printf("%-*s  %-6s  %-3s  %s\n", maxIDLen, "ID", "STATUS", "PRI", "DESCRIPTION")
-	fmt.Println(strings.Repeat("-", maxIDLen+50))
+	app.Output.Printf("%-*s  %-6s  %-3s  %s\n", maxIDLen, "ID", "STATUS", "PRI", "DESCRIPTION")
+	app.Output.Println(strings.Repeat("-", maxIDLen+50))
 
 	// Print tickets
 	for _, t := range tickets {
@@ -494,7 +505,7 @@ func (app *App) outputTicketListText(tickets []*ticket.Ticket) error {
 			desc = desc[:maxDescLen-3] + "..."
 		}
 
-		fmt.Printf("%-*s  %-6s  %-3s  %s\n", maxIDLen, t.ID, status, priority, desc)
+		app.Output.Printf("%-*s  %-6s  %-3s  %s\n", maxIDLen, t.ID, status, priority, desc)
 	}
 
 	return nil
@@ -532,7 +543,7 @@ func (app *App) outputTicketListJSON(ctx context.Context, tickets []*ticket.Tick
 		},
 	}
 
-	return outputJSON(output)
+	return app.Output.PrintJSON(output)
 }
 
 // ListWorktrees lists all worktrees
@@ -546,24 +557,24 @@ func (app *App) ListWorktrees(ctx context.Context, format OutputFormat) error {
 		output := map[string]interface{}{
 			"worktrees": worktrees,
 		}
-		return outputJSON(output)
+		return app.Output.PrintJSON(output)
 	}
 
 	// Text format
 	if len(worktrees) == 0 {
-		fmt.Println("No worktrees found")
+		app.Output.Println("No worktrees found")
 		return nil
 	}
 
-	fmt.Printf("%-50s %-30s %s\n", "PATH", "BRANCH", "HEAD")
-	fmt.Println(strings.Repeat("-", 100))
+	app.Output.Printf("%-50s %-30s %s\n", "PATH", "BRANCH", "HEAD")
+	app.Output.Println(strings.Repeat("-", 100))
 
 	for _, wt := range worktrees {
 		head := wt.HEAD
 		if len(head) > 40 {
 			head = head[:7] // Short commit hash
 		}
-		fmt.Printf("%-50s %-30s %s\n", wt.Path, wt.Branch, head)
+		app.Output.Printf("%-50s %-30s %s\n", wt.Path, wt.Branch, head)
 	}
 
 	return nil
@@ -606,10 +617,10 @@ func (app *App) CleanWorktrees(ctx context.Context) error {
 
 		// Check if this worktree corresponds to an active ticket
 		if !activeMap[wt.Branch] {
-			fmt.Printf("Removing orphaned worktree: %s (branch: %s)\n", wt.Path, wt.Branch)
+			app.Output.Printf("Removing orphaned worktree: %s (branch: %s)\n", wt.Path, wt.Branch)
 			if err := app.Git.RemoveWorktree(ctx, wt.Path); err != nil {
 				logger.WithError(err).Warn("failed to remove worktree", "path", wt.Path)
-				fmt.Printf("Warning: Failed to remove worktree: %v\n", err)
+				app.Output.Printf("Warning: Failed to remove worktree: %v\n", err)
 			} else {
 				cleaned++
 			}
@@ -617,9 +628,9 @@ func (app *App) CleanWorktrees(ctx context.Context) error {
 	}
 
 	if cleaned == 0 {
-		fmt.Println("No orphaned worktrees found")
+		app.Output.Println("No orphaned worktrees found")
 	} else {
-		fmt.Printf("Cleaned %d orphaned worktree(s)\n", cleaned)
+		app.Output.Printf("Cleaned %d orphaned worktree(s)\n", cleaned)
 	}
 
 	return nil
@@ -663,48 +674,48 @@ func (app *App) CleanupTicket(ctx context.Context, ticketID string, force bool) 
 	}
 
 	// Show what will be done
-	fmt.Printf("\n🗑️  Cleanup for ticket: %s\n", t.ID)
-	fmt.Printf("   Description: %s\n", t.Description)
-	fmt.Printf("\nThis will:\n")
+	app.Output.Printf("\n🗑️  Cleanup for ticket: %s\n", t.ID)
+	app.Output.Printf("   Description: %s\n", t.Description)
+	app.Output.Printf("\nThis will:\n")
 	if wt != nil {
-		fmt.Printf("  • Remove worktree: %s\n", wt.Path)
+		app.Output.Printf("  • Remove worktree: %s\n", wt.Path)
 	}
-	fmt.Printf("  • Delete local branch: %s\n", t.ID)
+	app.Output.Printf("  • Delete local branch: %s\n", t.ID)
 
 	// Confirmation prompt if not forced
 	if !force {
-		fmt.Printf("\nAre you sure? (y/N): ")
+		app.Output.Printf("\nAre you sure? (y/N): ")
 
 		var response string
 		_, _ = fmt.Scanln(&response)
 		if response != "y" && response != "Y" {
-			fmt.Println("\n❌ Cleanup cancelled")
+			app.Output.Println("\n❌ Cleanup cancelled")
 			return nil
 		}
 	}
 
-	fmt.Printf("\n🔧 Performing cleanup...\n")
+	app.Output.Printf("\n🔧 Performing cleanup...\n")
 
 	// Remove worktree if it exists
 	if wt != nil {
-		fmt.Printf("🌳 Removing worktree: %s\n", wt.Path)
+		app.Output.Printf("🌳 Removing worktree: %s\n", wt.Path)
 		if err := app.Git.RemoveWorktree(ctx, wt.Path); err != nil {
 			return fmt.Errorf("failed to remove worktree at %s for ticket %s: %w", wt.Path, ticketID, err)
 		}
 	}
 
 	// Delete local branch
-	fmt.Printf("🌿 Deleting local branch: %s\n", t.ID)
+	app.Output.Printf("🌿 Deleting local branch: %s\n", t.ID)
 	if _, err := app.Git.Exec(ctx, "branch", "-D", t.ID); err != nil {
 		// Branch might not exist locally, which is fine
-		fmt.Printf("⚠️  Note: Local branch %s not found or already deleted\n", t.ID)
+		app.Output.Printf("⚠️  Note: Local branch %s not found or already deleted\n", t.ID)
 	}
 
-	fmt.Printf("\n✅ Cleanup completed successfully!\n")
-	fmt.Printf("\n📋 What's next:\n")
-	fmt.Printf("• Start a new ticket: ticketflow new <slug>\n")
-	fmt.Printf("• View open tickets: ticketflow list --status todo\n")
-	fmt.Printf("• Check active work: ticketflow list --status doing\n")
+	app.Output.Printf("\n✅ Cleanup completed successfully!\n")
+	app.Output.Printf("\n📋 What's next:\n")
+	app.Output.Printf("• Start a new ticket: ticketflow new <slug>\n")
+	app.Output.Printf("• View open tickets: ticketflow list --status todo\n")
+	app.Output.Printf("• Check active work: ticketflow list --status doing\n")
 	return nil
 }
 
@@ -1100,8 +1111,8 @@ func (app *App) createWorktreeTicketSymlink(worktreePath string, t *ticket.Ticke
 
 // printStartSuccessMessage prints the success message after starting a ticket
 func (app *App) printStartSuccessMessage(t *ticket.Ticket, worktreePath string, parentBranch string) {
-	fmt.Printf("\n✅ Started work on ticket: %s\n", t.ID)
-	fmt.Printf("   Description: %s\n", t.Description)
+	app.Output.Printf("\n✅ Started work on ticket: %s\n", t.ID)
+	app.Output.Printf("   Description: %s\n", t.Description)
 
 	if app.Config.Worktree.Enabled {
 		app.printWorktreeStartMessage(t, worktreePath, parentBranch)
@@ -1112,39 +1123,39 @@ func (app *App) printStartSuccessMessage(t *ticket.Ticket, worktreePath string, 
 
 // printWorktreeStartMessage prints the success message for worktree mode
 func (app *App) printWorktreeStartMessage(t *ticket.Ticket, worktreePath string, parentBranch string) {
-	fmt.Printf("\n📁 Worktree created: %s\n", worktreePath)
+	app.Output.Printf("\n📁 Worktree created: %s\n", worktreePath)
 	if parentBranch != "" {
-		fmt.Printf("   Parent ticket: %s\n", parentBranch)
-		fmt.Printf("   Branch from: %s\n", parentBranch)
+		app.Output.Printf("   Parent ticket: %s\n", parentBranch)
+		app.Output.Printf("   Branch from: %s\n", parentBranch)
 	}
-	fmt.Printf("   Status: todo → doing\n")
-	fmt.Printf("   Committed: \"Start ticket: %s\"\n", t.ID)
-	fmt.Printf("\n📋 Next steps:\n")
-	fmt.Printf("1. Navigate to worktree:\n")
-	fmt.Printf("   cd %s\n", worktreePath)
-	fmt.Printf("   \n")
-	fmt.Printf("2. Make your changes and commit regularly\n")
-	fmt.Printf("   \n")
-	fmt.Printf("3. Push branch to create PR:\n")
-	fmt.Printf("   git push -u origin %s\n", t.ID)
-	fmt.Printf("   \n")
-	fmt.Printf("4. When done, close the ticket:\n")
-	fmt.Printf("   ticketflow close\n")
+	app.Output.Printf("   Status: todo → doing\n")
+	app.Output.Printf("   Committed: \"Start ticket: %s\"\n", t.ID)
+	app.Output.Printf("\n📋 Next steps:\n")
+	app.Output.Printf("1. Navigate to worktree:\n")
+	app.Output.Printf("   cd %s\n", worktreePath)
+	app.Output.Printf("   \n")
+	app.Output.Printf("2. Make your changes and commit regularly\n")
+	app.Output.Printf("   \n")
+	app.Output.Printf("3. Push branch to create PR:\n")
+	app.Output.Printf("   git push -u origin %s\n", t.ID)
+	app.Output.Printf("   \n")
+	app.Output.Printf("4. When done, close the ticket:\n")
+	app.Output.Printf("   ticketflow close\n")
 }
 
 // printBranchStartMessage prints the success message for non-worktree mode
 func (app *App) printBranchStartMessage(t *ticket.Ticket) {
-	fmt.Printf("\n🌿 Switched to branch: %s\n", t.ID)
-	fmt.Printf("   Status: todo → doing\n")
-	fmt.Printf("   Committed: \"Start ticket: %s\"\n", t.ID)
-	fmt.Printf("\n📋 Next steps:\n")
-	fmt.Printf("1. Make your changes and commit regularly\n")
-	fmt.Printf("   \n")
-	fmt.Printf("2. Push branch to create PR:\n")
-	fmt.Printf("   git push -u origin %s\n", t.ID)
-	fmt.Printf("   \n")
-	fmt.Printf("3. When done, close the ticket:\n")
-	fmt.Printf("   ticketflow close\n")
+	app.Output.Printf("\n🌿 Switched to branch: %s\n", t.ID)
+	app.Output.Printf("   Status: todo → doing\n")
+	app.Output.Printf("   Committed: \"Start ticket: %s\"\n", t.ID)
+	app.Output.Printf("\n📋 Next steps:\n")
+	app.Output.Printf("1. Make your changes and commit regularly\n")
+	app.Output.Printf("   \n")
+	app.Output.Printf("2. Push branch to create PR:\n")
+	app.Output.Printf("   git push -u origin %s\n", t.ID)
+	app.Output.Printf("   \n")
+	app.Output.Printf("3. When done, close the ticket:\n")
+	app.Output.Printf("   ticketflow close\n")
 }
 
 // calculateWorkDuration calculates the work duration for a closed ticket
@@ -1168,35 +1179,35 @@ func (app *App) extractParentTicketID(t *ticket.Ticket) string {
 
 // printCloseSuccessMessage prints the success message after closing a ticket
 func (app *App) printCloseSuccessMessage(t *ticket.Ticket, duration, parentTicketID, worktreePath string) {
-	fmt.Printf("\n✅ Ticket closed: %s\n", t.ID)
-	fmt.Printf("   Description: %s\n", t.Description)
-	fmt.Printf("   Status: doing → done\n")
+	app.Output.Printf("\n✅ Ticket closed: %s\n", t.ID)
+	app.Output.Printf("   Description: %s\n", t.Description)
+	app.Output.Printf("   Status: doing → done\n")
 	if duration != "" {
-		fmt.Printf("   Duration: %s\n", duration)
+		app.Output.Printf("   Duration: %s\n", duration)
 	}
-	fmt.Printf("   Committed: \"Close ticket: %s\"\n", t.ID)
+	app.Output.Printf("   Committed: \"Close ticket: %s\"\n", t.ID)
 
 	if parentTicketID != "" {
-		fmt.Printf("   Parent ticket: %s\n", parentTicketID)
+		app.Output.Printf("   Parent ticket: %s\n", parentTicketID)
 	}
 
-	fmt.Printf("\n📋 Next steps:\n")
-	fmt.Printf("1. Push your branch to create/update PR:\n")
-	fmt.Printf("   git push origin %s\n", t.ID)
-	fmt.Printf("   \n")
-	fmt.Printf("2. Create Pull Request on your Git service\n")
-	fmt.Printf("   - Title: %s\n", t.Description)
-	fmt.Printf("   - Target: %s\n", app.Config.Git.DefaultBranch)
+	app.Output.Printf("\n📋 Next steps:\n")
+	app.Output.Printf("1. Push your branch to create/update PR:\n")
+	app.Output.Printf("   git push origin %s\n", t.ID)
+	app.Output.Printf("   \n")
+	app.Output.Printf("2. Create Pull Request on your Git service\n")
+	app.Output.Printf("   - Title: %s\n", t.Description)
+	app.Output.Printf("   - Target: %s\n", app.Config.Git.DefaultBranch)
 	if parentTicketID != "" {
-		fmt.Printf("   - Mention parent ticket: %s\n", parentTicketID)
+		app.Output.Printf("   - Mention parent ticket: %s\n", parentTicketID)
 	}
-	fmt.Printf("   \n")
-	fmt.Printf("3. After PR is merged, clean up:\n")
-	fmt.Printf("   ticketflow cleanup %s\n", t.ID)
+	app.Output.Printf("   \n")
+	app.Output.Printf("3. After PR is merged, clean up:\n")
+	app.Output.Printf("   ticketflow cleanup %s\n", t.ID)
 
 	if worktreePath != "" {
-		fmt.Printf("\n🌳 Note: Worktree remains at %s\n", worktreePath)
-		fmt.Printf("   You can continue working there until cleanup\n")
+		app.Output.Printf("\n🌳 Note: Worktree remains at %s\n", worktreePath)
+		app.Output.Printf("   You can continue working there until cleanup\n")
 	}
 }
 
@@ -1233,38 +1244,38 @@ func (app *App) formatStatusJSON(branch string, current *ticket.Ticket, allTicke
 		output["current_ticket"] = nil
 	}
 
-	return outputJSON(output)
+	return app.Output.PrintJSON(output)
 }
 
 // printStatusText prints the status in text format
 func (app *App) printStatusText(ctx context.Context, branch string, current *ticket.Ticket, allTickets []ticket.Ticket, todoCount, doingCount, doneCount int) {
-	fmt.Printf("\n🌿 Current branch: %s\n", branch)
+	app.Output.Printf("\n🌿 Current branch: %s\n", branch)
 
 	if current != nil {
-		fmt.Printf("\n🎯 Active ticket: %s\n", current.ID)
-		fmt.Printf("   Description: %s\n", current.Description)
-		fmt.Printf("   Status: %s\n", current.Status())
+		app.Output.Printf("\n🎯 Active ticket: %s\n", current.ID)
+		app.Output.Printf("   Description: %s\n", current.Description)
+		app.Output.Printf("   Status: %s\n", current.Status())
 		if current.StartedAt.Time != nil {
 			duration := time.Since(*current.StartedAt.Time)
-			fmt.Printf("   Duration: %s\n", formatDuration(duration))
+			app.Output.Printf("   Duration: %s\n", formatDuration(duration))
 		}
 
 		// Check if in worktree
 		if app.Config.Worktree.Enabled {
 			wt, _ := app.Git.FindWorktreeByBranch(ctx, current.ID)
 			if wt != nil {
-				fmt.Printf("   Worktree: %s\n", wt.Path)
+				app.Output.Printf("   Worktree: %s\n", wt.Path)
 			}
 		}
 	} else {
-		fmt.Println("\n⚠️  No active ticket")
-		fmt.Println("   Start a ticket with: ticketflow start <ticket-id>")
+		app.Output.Println("\n⚠️  No active ticket")
+		app.Output.Println("   Start a ticket with: ticketflow start <ticket-id>")
 	}
 
-	fmt.Printf("\n📊 Ticket summary:\n")
-	fmt.Printf("   📘 Todo:  %d\n", todoCount)
-	fmt.Printf("   🔨 Doing: %d\n", doingCount)
-	fmt.Printf("   ✅ Done:  %d\n", doneCount)
-	fmt.Printf("   ─────────\n")
-	fmt.Printf("   🔢 Total: %d\n", len(allTickets))
+	app.Output.Printf("\n📊 Ticket summary:\n")
+	app.Output.Printf("   📘 Todo:  %d\n", todoCount)
+	app.Output.Printf("   🔨 Doing: %d\n", doingCount)
+	app.Output.Printf("   ✅ Done:  %d\n", doneCount)
+	app.Output.Printf("   ─────────\n")
+	app.Output.Printf("   🔢 Total: %d\n", len(allTickets))
 }
