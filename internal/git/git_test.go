@@ -100,6 +100,31 @@ func TestRunInWorktreePreservesTimeout(t *testing.T) {
 	_, _ = g.RunInWorktree(ctx, "/tmp/fake-worktree", "status")
 }
 
+func TestIsValidBranchCharEdgeCases(t *testing.T) {
+	tests := []struct {
+		name string
+		ch   rune
+		want bool
+	}{
+		{"ASCII DEL 0x7F", 0x7F, false},
+		{"ASCII space", ' ', false},
+		{"ASCII tab", '\t', false},
+		{"Valid hyphen", '-', true},
+		{"Valid letter", 'a', true},
+		{"Control char 0x1F", 0x1F, false},
+		{"Control char 0x00", 0x00, false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := isValidBranchChar(tt.ch)
+			if got != tt.want {
+				t.Errorf("isValidBranchChar(%q/0x%X) = %v, want %v", tt.ch, tt.ch, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestIsValidBranchName(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -242,6 +267,50 @@ func TestBranchExists(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.wantExists, exists)
+			}
+		})
+	}
+}
+
+func BenchmarkIsValidBranchChar(b *testing.B) {
+	testCases := []struct {
+		name string
+		ch   rune
+	}{
+		{"ASCII letter", 'a'},
+		{"ASCII digit", '5'},
+		{"ASCII hyphen", '-'},
+		{"ASCII control", '\x1f'},
+		{"ASCII DEL", '\x7f'},
+		{"Unicode letter", '世'},
+		{"Forbidden char", ':'},
+	}
+
+	for _, tc := range testCases {
+		b.Run(tc.name, func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				_ = isValidBranchChar(tc.ch)
+			}
+		})
+	}
+}
+
+func BenchmarkIsValidBranchName(b *testing.B) {
+	testCases := []struct {
+		name  string
+		input string
+	}{
+		{"short ASCII", "feature/my-new-feature"},
+		{"long ASCII", "feature/my-very-long-feature-name-with-many-words-123456789"},
+		{"with unicode", "feature/新機能-implementation"},
+		{"with invalid", "feature/my new feature!"},
+		{"typical ticket branch", "250726-183403-fix-branch-already-exist-on-start"},
+	}
+
+	for _, tc := range testCases {
+		b.Run(tc.name, func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				_ = isValidBranchName(tc.input)
 			}
 		})
 	}
