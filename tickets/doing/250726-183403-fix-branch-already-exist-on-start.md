@@ -29,6 +29,8 @@ fix the following error.
 - [ ] 250803-121450-handle-diverged-branch - Handle case when branch points to different commit
 - [ ] 250803-121506-worktree-recovery - Add worktree recovery mechanisms
 - [ ] 250803-121521-robustness-improvements - Add permission and concurrency handling
+- [ ] 250803-130821-force-flag-for-worktree-recreation - Add --force flag to recreate worktrees
+- [ ] 250803-130903-metrics-telemetry-for-worktree-operations - Add metrics/telemetry tracking
 
 ## 技術仕様 (Core Fix Only)
 
