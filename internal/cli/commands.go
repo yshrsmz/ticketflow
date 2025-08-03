@@ -210,7 +210,7 @@ func (app *App) NewTicket(ctx context.Context, slug string, format OutputFormat)
 			parentTicketID = currentBranch
 		}
 	}
-	
+
 	// Print the message only if we successfully detected a parent ticket
 	if parentTicketID != "" {
 		app.Output.Printf("Creating ticket in branch: %s\n", currentBranch)
