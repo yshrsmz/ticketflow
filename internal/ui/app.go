@@ -14,10 +14,12 @@ import (
 	"github.com/mattn/go-shellwords"
 	"github.com/yshrsmz/ticketflow/internal/config"
 	"github.com/yshrsmz/ticketflow/internal/git"
+	"github.com/yshrsmz/ticketflow/internal/log"
 	"github.com/yshrsmz/ticketflow/internal/ticket"
 	"github.com/yshrsmz/ticketflow/internal/ui/components"
 	"github.com/yshrsmz/ticketflow/internal/ui/styles"
 	"github.com/yshrsmz/ticketflow/internal/ui/views"
+	"github.com/yshrsmz/ticketflow/internal/worktree"
 )
 
 // InitCommandError represents a non-fatal error during worktree initialization
@@ -492,28 +494,19 @@ func (m *Model) checkWorkspaceForStart() error {
 	return nil
 }
 
-// getWorktreePath attempts to get the actual worktree path or falls back to calculated path
-func (m *Model) getWorktreePath(ctx context.Context, ticketID string) string {
-	// Try to get the actual worktree path
-	if wt, err := m.git.FindWorktreeByBranch(ctx, ticketID); err == nil && wt != nil {
-		return wt.Path
-	}
-	
-	// Fall back to calculated path
-	baseDir := m.config.GetWorktreePath(m.projectRoot)
-	return filepath.Join(baseDir, ticketID)
-}
-
 // setupTicketBranchOrWorktree creates a branch or worktree for the ticket
 func (m *Model) setupTicketBranchOrWorktree(t *ticket.Ticket) (string, error) {
+	logger := log.Global().WithTicket(t.ID)
 	var worktreePath string
 
 	if m.config.Worktree.Enabled {
 		// Check if worktree already exists
 		if exists, err := m.git.HasWorktree(context.Background(), t.ID); err != nil {
+			logger.WithError(err).Error("failed to check worktree")
 			return "", fmt.Errorf("failed to check worktree: %w", err)
 		} else if exists {
-			worktreePath := m.getWorktreePath(context.Background(), t.ID)
+			worktreePath := worktree.GetPath(context.Background(), m.git, m.config, m.projectRoot, t.ID)
+			logger.Debug("worktree already exists", "path", worktreePath)
 			return "", fmt.Errorf("worktree for ticket %s already exists at: %s", t.ID, worktreePath)
 		}
 
@@ -522,8 +515,10 @@ func (m *Model) setupTicketBranchOrWorktree(t *ticket.Ticket) (string, error) {
 		worktreePath = filepath.Join(baseDir, t.ID)
 
 		if err := m.git.AddWorktree(context.Background(), worktreePath, t.ID); err != nil {
+			logger.WithError(err).Error("failed to create worktree", "path", worktreePath)
 			return "", fmt.Errorf("failed to create worktree: %w", err)
 		}
+		logger.Debug("created worktree", "path", worktreePath)
 
 		// Run init commands if configured
 		if err := m.runWorktreeInitCommands(worktreePath); err != nil {
