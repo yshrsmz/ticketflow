@@ -5,7 +5,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 	"os/exec"
 	"strings"
 	"sync"
@@ -17,7 +16,7 @@ import (
 const (
 	// DefaultGitTimeout is the default timeout for git operations
 	DefaultGitTimeout = 30 * time.Second
-	
+
 	// TestGitTimeout is a shorter timeout suitable for tests
 	TestGitTimeout = 10 * time.Second
 )
@@ -113,17 +112,10 @@ func New(repoPath string) *Git {
 	if repoPath == "" {
 		repoPath = "."
 	}
-	
-	// Validate that the path exists and is a directory
-	if info, err := os.Stat(repoPath); err != nil || !info.IsDir() {
-		// Log warning but continue - git commands will fail with appropriate errors
-		// This allows for cases where the directory will be created later
-		if err != nil && !os.IsNotExist(err) {
-			// Only log if it's not a "does not exist" error
-			// as the directory might be created later
-		}
-	}
-	
+
+	// Note: We don't validate path existence here - git commands will fail with appropriate errors
+	// This allows for cases where the directory will be created later
+
 	return NewWithTimeout(repoPath, DefaultGitTimeout)
 }
 

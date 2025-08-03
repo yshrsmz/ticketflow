@@ -224,9 +224,13 @@ func TestApp_StartTicket_WithMocks(t *testing.T) {
 				// Create the required directory structure
 				todoDir := filepath.Join(tmpDir, "tickets", "todo")
 				doingDir := filepath.Join(tmpDir, "tickets", "doing")
-				os.MkdirAll(todoDir, 0755)
-				os.MkdirAll(doingDir, 0755)
-				
+				if err := os.MkdirAll(todoDir, 0755); err != nil {
+					t.Fatalf("Failed to create todo dir: %v", err)
+				}
+				if err := os.MkdirAll(doingDir, 0755); err != nil {
+					t.Fatalf("Failed to create doing dir: %v", err)
+				}
+
 				// Create the ticket file
 				ticketPath := filepath.Join(todoDir, "250131-120000-test.md")
 				content := `---
@@ -236,8 +240,10 @@ created_at: "2021-01-31T12:00:00Z"
 ---
 
 Test ticket content`
-				os.WriteFile(ticketPath, []byte(content), 0644)
-				
+				if err := os.WriteFile(ticketPath, []byte(content), 0644); err != nil {
+					t.Fatalf("Failed to write ticket file: %v", err)
+				}
+
 				testTicket := &ticket.Ticket{
 					ID:          "250131-120000-test",
 					Path:        ticketPath,
@@ -326,29 +332,29 @@ func TestNewApp_DefaultWorkingDirectory(t *testing.T) {
 			t.Logf("Failed to restore working directory: %v", err)
 		}
 	}()
-	
+
 	// Change to temp directory
 	err = os.Chdir(tmpDir)
 	require.NoError(t, err)
-	
+
 	// Initialize git repo
 	cmd := exec.Command("git", "init")
 	cmd.Dir = tmpDir
 	err = cmd.Run()
 	require.NoError(t, err)
-	
+
 	// Configure git locally (not globally)
 	ConfigureTestGit(t, tmpDir)
-	
+
 	// Initialize ticketflow
 	err = InitCommand(context.Background())
 	require.NoError(t, err)
-	
+
 	// Create app without specifying working directory - should use current directory
 	app, err := NewApp(context.Background())
 	require.NoError(t, err)
 	assert.NotNil(t, app)
-	
+
 	// Resolve symlinks for comparison (macOS /var -> /private/var)
 	expectedPath, err := filepath.EvalSymlinks(tmpDir)
 	require.NoError(t, err)

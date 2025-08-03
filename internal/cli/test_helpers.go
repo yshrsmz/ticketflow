@@ -96,15 +96,15 @@ func NewAppWithWorkingDir(ctx context.Context, t *testing.T, workingDir string) 
 // IMPORTANT: Always configures locally, never globally
 func ConfigureTestGit(t *testing.T, repoPath string) {
 	t.Helper()
-	
+
 	ctx := context.Background()
 	gitOps := git.New(repoPath)
-	
+
 	// Configure user name locally
 	if _, err := gitOps.Exec(ctx, "config", "user.name", "Test User"); err != nil {
 		t.Fatalf("Failed to configure git user.name: %v", err)
 	}
-	
+
 	// Configure user email locally
 	if _, err := gitOps.Exec(ctx, "config", "user.email", "test@example.com"); err != nil {
 		t.Fatalf("Failed to configure git user.email: %v", err)

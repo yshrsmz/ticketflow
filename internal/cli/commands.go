@@ -25,7 +25,7 @@ type App struct {
 	Git         git.GitClient
 	Manager     ticket.TicketManager
 	ProjectRoot string
-	workingDir  string // Working directory for the app (defaults to ".")
+	workingDir  string        // Working directory for the app (defaults to ".")
 	Output      *OutputWriter // Output writer for formatted output
 }
 

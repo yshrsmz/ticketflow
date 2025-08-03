@@ -121,7 +121,7 @@ func TestHandleNewRefactored(t *testing.T) {
 					if !errorFound && contains(stderr.String(), tt.errorContains) {
 						errorFound = true
 					}
-					assert.True(t, errorFound, "Expected error containing '%s', got error: %v, stderr: %s", 
+					assert.True(t, errorFound, "Expected error containing '%s', got error: %v, stderr: %s",
 						tt.errorContains, cmdErr, stderr.String())
 				}
 			} else {
@@ -175,7 +175,7 @@ func TestHandleShowRefactored(t *testing.T) {
 				err := json.Unmarshal([]byte(stdout), &result)
 				assert.NoError(t, err)
 				assert.Contains(t, result, "ticket")
-				
+
 				ticketData, ok := result["ticket"].(map[string]interface{})
 				assert.True(t, ok)
 				assert.Equal(t, ticketID, ticketData["id"])
@@ -253,7 +253,7 @@ func TestHandleShowRefactored(t *testing.T) {
 						outputWriter.Printf("Status: %s\n", ticketObj.Status())
 						outputWriter.Printf("Priority: %d\n", ticketObj.Priority)
 						outputWriter.Printf("Description: %s\n", ticketObj.Description)
-						outputWriter.Printf("Created: %s\n", ticketObj.CreatedAt.Time.Format(time.RFC3339))
+						outputWriter.Printf("Created: %s\n", ticketObj.CreatedAt.Format(time.RFC3339))
 						if ticketObj.StartedAt.Time != nil {
 							outputWriter.Printf("Started: %s\n", ticketObj.StartedAt.Time.Format(time.RFC3339))
 						}
@@ -341,7 +341,7 @@ func TestErrorsExtendedRefactored(t *testing.T) {
 				err := json.Unmarshal(stderr.Bytes(), &result)
 				assert.NoError(t, err)
 				assert.Contains(t, result, "error")
-				
+
 				// Verify error fields
 				errorData, ok := result["error"].(map[string]interface{})
 				assert.True(t, ok)
@@ -356,9 +356,9 @@ func TestErrorsExtendedRefactored(t *testing.T) {
 
 // Helper function
 func contains(s, substr string) bool {
-	return len(substr) > 0 && len(s) >= len(substr) && 
-		(s == substr || len(s) > len(substr) && 
-			(s[:len(substr)] == substr || s[len(s)-len(substr):] == substr || 
+	return len(substr) > 0 && len(s) >= len(substr) &&
+		(s == substr || len(s) > len(substr) &&
+			(s[:len(substr)] == substr || s[len(s)-len(substr):] == substr ||
 				len(s) > len(substr) && findSubstring(s, substr)))
 }
 

@@ -45,7 +45,7 @@ func TestHandleNewWithProperOutputCapture(t *testing.T) {
 			// Create buffers to capture output
 			var stdout, stderr bytes.Buffer
 			outputFormat := cli.ParseOutputFormat(tt.format)
-			
+
 			// Create a test-specific output writer
 			outputWriter := cli.NewOutputWriter(&stdout, &stderr, outputFormat)
 

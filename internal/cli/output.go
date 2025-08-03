@@ -65,7 +65,7 @@ func (w *OutputWriter) Printf(format string, args ...interface{}) {
 
 // Println writes a line to stdout
 func (w *OutputWriter) Println(args ...interface{}) {
-	fmt.Fprintln(w.stdout, args...)
+	_, _ = fmt.Fprintln(w.stdout, args...)
 }
 
 // GetFormat returns the current output format

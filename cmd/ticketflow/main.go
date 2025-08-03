@@ -535,7 +535,6 @@ Use 'ticketflow <command> -h' for command-specific help.
 `, Version)
 }
 
-
 func printWorktreeUsage() {
 	fmt.Println(`TicketFlow Worktree Management
 

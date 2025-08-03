@@ -110,7 +110,7 @@ func TestHandleNew(t *testing.T) {
 			// Create buffers to capture output
 			var stdout, stderr bytes.Buffer
 			outputFormat := cli.ParseOutputFormat(tt.format)
-			
+
 			// Create test-specific output writer
 			outputWriter := cli.NewOutputWriter(&stdout, &stderr, outputFormat)
 
@@ -209,7 +209,7 @@ func TestHandleList(t *testing.T) {
 			// Create buffers to capture output
 			var stdout, stderr bytes.Buffer
 			outputFormat := cli.ParseOutputFormat(tt.format)
-			
+
 			// Create test-specific output writer
 			outputWriter := cli.NewOutputWriter(&stdout, &stderr, outputFormat)
 
@@ -300,7 +300,7 @@ func TestHandleShow(t *testing.T) {
 			// Create buffers to capture output
 			var stdout, stderr bytes.Buffer
 			outputFormat := cli.ParseOutputFormat(tt.format)
-			
+
 			// Create test-specific output writer
 			outputWriter := cli.NewOutputWriter(&stdout, &stderr, outputFormat)
 
@@ -343,7 +343,7 @@ func TestHandleShow(t *testing.T) {
 						outputWriter.Printf("Status: %s\n", ticketObj.Status())
 						outputWriter.Printf("Priority: %d\n", ticketObj.Priority)
 						outputWriter.Printf("Description: %s\n", ticketObj.Description)
-						outputWriter.Printf("Created: %s\n", ticketObj.CreatedAt.Time.Format(time.RFC3339))
+						outputWriter.Printf("Created: %s\n", ticketObj.CreatedAt.Format(time.RFC3339))
 						if ticketObj.StartedAt.Time != nil {
 							outputWriter.Printf("Started: %s\n", ticketObj.StartedAt.Time.Format(time.RFC3339))
 						}
@@ -425,7 +425,7 @@ func TestHandleStart(t *testing.T) {
 
 			// Create buffers to capture output
 			var stdout, stderr bytes.Buffer
-			
+
 			// Create test-specific output writer
 			outputWriter := cli.NewOutputWriter(&stdout, &stderr, cli.FormatText)
 
@@ -497,7 +497,7 @@ func TestHandleClose(t *testing.T) {
 
 			// Create buffers to capture output
 			var stdout, stderr bytes.Buffer
-			
+
 			// Create test-specific output writer
 			outputWriter := cli.NewOutputWriter(&stdout, &stderr, cli.FormatText)
 
@@ -582,7 +582,7 @@ func TestOutputJSON(t *testing.T) {
 
 			// Create buffers to capture output
 			var stdout, stderr bytes.Buffer
-			
+
 			// Create test-specific output writer
 			outputWriter := cli.NewOutputWriter(&stdout, &stderr, cli.FormatJSON)
 

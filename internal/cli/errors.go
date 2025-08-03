@@ -90,7 +90,7 @@ func HandleError(err error) {
 
 	// Determine output format
 	format := GetGlobalOutputFormat()
-	
+
 	// Check if JSON output is requested via environment variable
 	// This allows error formatting even before app initialization
 	if format == FormatText && os.Getenv("TICKETFLOW_OUTPUT_FORMAT") == "json" {
@@ -115,7 +115,7 @@ func (w *OutputWriter) Error(err error) {
 	}
 
 	// Generic error
-	fmt.Fprintf(w.stderr, "Error: %v\n", err)
+	_, _ = fmt.Fprintf(w.stderr, "Error: %v\n", err)
 }
 
 func (w *OutputWriter) handleCLIError(err *CLIError) {
@@ -125,16 +125,16 @@ func (w *OutputWriter) handleCLIError(err *CLIError) {
 	}
 
 	// Default text format
-	fmt.Fprintf(w.stderr, "Error: %s\n", err.Message)
+	_, _ = fmt.Fprintf(w.stderr, "Error: %s\n", err.Message)
 
 	if err.Details != "" {
-		fmt.Fprintf(w.stderr, "Details: %s\n", err.Details)
+		_, _ = fmt.Fprintf(w.stderr, "Details: %s\n", err.Details)
 	}
 
 	if len(err.Suggestions) > 0 {
-		fmt.Fprintf(w.stderr, "\nSuggestions:\n")
+		_, _ = fmt.Fprintf(w.stderr, "\nSuggestions:\n")
 		for _, suggestion := range err.Suggestions {
-			fmt.Fprintf(w.stderr, "  - %s\n", suggestion)
+			_, _ = fmt.Fprintf(w.stderr, "  - %s\n", suggestion)
 		}
 	}
 }
@@ -148,7 +148,6 @@ func (w *OutputWriter) outputJSONError(err *CLIError) {
 	encoder.SetIndent("", "  ")
 	_ = encoder.Encode(output)
 }
-
 
 // OutputJSONError outputs error in JSON format
 func OutputJSONError(err *CLIError) {
