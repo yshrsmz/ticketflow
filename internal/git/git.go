@@ -106,6 +106,17 @@ func New(repoPath string) *Git {
 
 // NewWithTimeout creates a new Git instance with custom timeout
 func NewWithTimeout(repoPath string, timeout time.Duration) *Git {
+	// Validate inputs
+	if repoPath == "" {
+		// Default to current directory if empty
+		repoPath = "."
+	}
+
+	// Ensure timeout is positive
+	if timeout <= 0 {
+		timeout = 30 * time.Second // Default timeout
+	}
+
 	return &Git{
 		repoPath: repoPath,
 		timeout:  timeout,

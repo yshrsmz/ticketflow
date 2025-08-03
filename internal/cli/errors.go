@@ -4,10 +4,28 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"sync"
 )
 
-// GlobalOutputFormat is set by command parsing to control error output format
-var GlobalOutputFormat OutputFormat = FormatText
+// globalOutputFormat is set by command parsing to control error output format
+var (
+	globalOutputFormat OutputFormat = FormatText
+	formatMutex        sync.RWMutex
+)
+
+// SetGlobalOutputFormat sets the global output format in a thread-safe manner
+func SetGlobalOutputFormat(format OutputFormat) {
+	formatMutex.Lock()
+	defer formatMutex.Unlock()
+	globalOutputFormat = format
+}
+
+// GetGlobalOutputFormat gets the global output format in a thread-safe manner
+func GetGlobalOutputFormat() OutputFormat {
+	formatMutex.RLock()
+	defer formatMutex.RUnlock()
+	return globalOutputFormat
+}
 
 // Error codes
 const (
@@ -81,7 +99,7 @@ func HandleError(err error) {
 
 func handleCLIError(err *CLIError) {
 	// Check global format first (set by command line parsing)
-	if GlobalOutputFormat == FormatJSON {
+	if GetGlobalOutputFormat() == FormatJSON {
 		OutputJSONError(err)
 		return
 	}

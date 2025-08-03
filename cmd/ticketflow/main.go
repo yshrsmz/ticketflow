@@ -300,7 +300,7 @@ func handleNew(ctx context.Context, slug, format string) error {
 	}
 
 	outputFormat := cli.ParseOutputFormat(format)
-	cli.GlobalOutputFormat = outputFormat
+	cli.SetGlobalOutputFormat(outputFormat)
 	return app.NewTicket(ctx, slug, outputFormat)
 }
 
@@ -319,7 +319,7 @@ func handleList(ctx context.Context, status string, count int, format string) er
 	}
 
 	outputFormat := cli.ParseOutputFormat(format)
-	cli.GlobalOutputFormat = outputFormat
+	cli.SetGlobalOutputFormat(outputFormat)
 	return app.ListTickets(ctx, ticketStatus, count, outputFormat)
 }
 
@@ -336,7 +336,7 @@ func handleShow(ctx context.Context, ticketID, format string) error {
 	}
 
 	outputFormat := cli.ParseOutputFormat(format)
-	cli.GlobalOutputFormat = outputFormat
+	cli.SetGlobalOutputFormat(outputFormat)
 	if outputFormat == cli.FormatJSON {
 		// For JSON, just output the ticket data
 		return outputJSON(map[string]interface{}{
@@ -413,7 +413,7 @@ func handleStatus(ctx context.Context, format string) error {
 	}
 
 	outputFormat := cli.ParseOutputFormat(format)
-	cli.GlobalOutputFormat = outputFormat
+	cli.SetGlobalOutputFormat(outputFormat)
 	return app.Status(ctx, outputFormat)
 }
 
@@ -430,7 +430,7 @@ func handleWorktree(ctx context.Context, subcommand string, args []string) error
 			format = args[1]
 		}
 		outputFormat := cli.ParseOutputFormat(format)
-		cli.GlobalOutputFormat = outputFormat
+		cli.SetGlobalOutputFormat(outputFormat)
 		return app.ListWorktrees(ctx, outputFormat)
 
 	case "clean":

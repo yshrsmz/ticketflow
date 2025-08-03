@@ -64,9 +64,9 @@ func TestHandleError(t *testing.T) {
 			os.Stderr = w
 
 			// Set global output format
-			oldFormat := GlobalOutputFormat
-			GlobalOutputFormat = tt.outputFormat
-			defer func() { GlobalOutputFormat = oldFormat }()
+			oldFormat := GetGlobalOutputFormat()
+			SetGlobalOutputFormat(tt.outputFormat)
+			defer func() { SetGlobalOutputFormat(oldFormat) }()
 
 			HandleError(tt.err)
 
@@ -118,9 +118,9 @@ func TestHandleCLIError_EnvironmentVariable(t *testing.T) {
 	os.Stderr = w
 
 	// Ensure global format is text (to test env override)
-	oldFormat := GlobalOutputFormat
-	GlobalOutputFormat = FormatText
-	defer func() { GlobalOutputFormat = oldFormat }()
+	oldFormat := GetGlobalOutputFormat()
+	SetGlobalOutputFormat(FormatText)
+	defer func() { SetGlobalOutputFormat(oldFormat) }()
 
 	handleCLIError(testErr)
 
@@ -336,9 +336,9 @@ func TestHandleError_EdgeCases(t *testing.T) {
 			os.Stderr = w
 
 			// Ensure text format
-			oldFormat := GlobalOutputFormat
-			GlobalOutputFormat = FormatText
-			defer func() { GlobalOutputFormat = oldFormat }()
+			oldFormat := GetGlobalOutputFormat()
+			SetGlobalOutputFormat(FormatText)
+			defer func() { SetGlobalOutputFormat(oldFormat) }()
 
 			HandleError(tt.err)
 

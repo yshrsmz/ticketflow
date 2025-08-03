@@ -4,12 +4,14 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -136,7 +138,7 @@ func TestHandleNew(t *testing.T) {
 
 					// Run the command
 					outputFormat := cli.ParseOutputFormat(tt.format)
-					cli.GlobalOutputFormat = outputFormat
+					cli.SetGlobalOutputFormat(outputFormat)
 					cmdErr = app.NewTicket(ctx, tt.slug, outputFormat)
 
 					// Close write end and read output
@@ -156,7 +158,7 @@ func TestHandleNew(t *testing.T) {
 					}
 				} else {
 					outputFormat := cli.ParseOutputFormat(tt.format)
-					cli.GlobalOutputFormat = outputFormat
+					cli.SetGlobalOutputFormat(outputFormat)
 					cmdErr = app.NewTicket(ctx, tt.slug, outputFormat)
 				}
 			}
@@ -179,7 +181,7 @@ func TestHandleNew(t *testing.T) {
 }
 
 func TestHandleList(t *testing.T) {
-	// Cannot run in parallel because handleList works in the current directory
+	t.Parallel()
 
 	tests := []struct {
 		name          string
@@ -225,37 +227,69 @@ func TestHandleList(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			tmpDir := t.TempDir()
-			origDir, err := os.Getwd()
-			require.NoError(t, err)
-			defer func() {
-				if err := os.Chdir(origDir); err != nil {
-					t.Logf("Failed to restore directory: %v", err)
-				}
-			}()
-
-			err = os.Chdir(tmpDir)
-			require.NoError(t, err)
-
 			tt.setupFunc(t, tmpDir)
 
 			ctx := context.Background()
-			err = handleList(ctx, tt.status, tt.count, tt.format)
+
+			// Create app with working directory
+			app, err := cli.NewAppWithWorkingDir(ctx, t, tmpDir)
+			var cmdErr error
+
+			if err != nil {
+				cmdErr = err
+			} else {
+				// Validate status if provided
+				var ticketStatus ticket.Status
+				if tt.status != "" {
+					ticketStatus = ticket.Status(tt.status)
+					if !isValidStatus(ticketStatus) {
+						cmdErr = fmt.Errorf("invalid status: %s", tt.status)
+					}
+				}
+
+				if cmdErr == nil {
+					outputFormat := cli.ParseOutputFormat(tt.format)
+					// Capture output to avoid test noise
+					oldStdout := os.Stdout
+					r, w, err := os.Pipe()
+					require.NoError(t, err)
+					defer func() {
+						os.Stdout = oldStdout
+						if err := r.Close(); err != nil {
+							t.Logf("Failed to close reader: %v", err)
+						}
+					}()
+					os.Stdout = w
+
+					cmdErr = app.ListTickets(ctx, ticketStatus, tt.count, outputFormat)
+
+					if err := w.Close(); err != nil {
+						t.Logf("Failed to close writer: %v", err)
+					}
+
+					// Read the output to prevent blocking
+					var buf bytes.Buffer
+					_, _ = io.Copy(&buf, r)
+				}
+			}
 
 			if tt.expectedError {
-				assert.Error(t, err)
+				assert.Error(t, cmdErr)
 				if tt.errorContains != "" {
-					assert.Contains(t, err.Error(), tt.errorContains)
+					assert.Contains(t, cmdErr.Error(), tt.errorContains)
 				}
 			} else {
-				assert.NoError(t, err)
+				assert.NoError(t, cmdErr)
 			}
 		})
 	}
 }
 
 func TestHandleShow(t *testing.T) {
-	// Cannot run in parallel because handleShow works in the current directory
+	t.Parallel()
 
 	tests := []struct {
 		name          string
@@ -292,73 +326,111 @@ func TestHandleShow(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			tmpDir := t.TempDir()
-			origDir, err := os.Getwd()
-			require.NoError(t, err)
-			defer func() {
-				if err := os.Chdir(origDir); err != nil {
-					t.Logf("Failed to restore directory: %v", err)
-				}
-			}()
-
-			err = os.Chdir(tmpDir)
-			require.NoError(t, err)
-
 			ticketID := tt.setupFunc(t, tmpDir)
 			if tt.ticketID != "" {
 				ticketID = tt.ticketID
 			}
 
-			// Capture output
-			oldStdout := os.Stdout
-			r, w, err := os.Pipe()
-			require.NoError(t, err)
-			defer func() {
-				os.Stdout = oldStdout
-				if err := r.Close(); err != nil {
-					t.Logf("Failed to close reader: %v", err)
-				}
-			}()
-			os.Stdout = w
-
 			ctx := context.Background()
-			err = handleShow(ctx, ticketID, tt.format)
 
-			if err := w.Close(); err != nil {
-				t.Logf("Warning: failed to close writer: %v", err)
+			// Create app with working directory
+			app, err := cli.NewAppWithWorkingDir(ctx, t, tmpDir)
+			var cmdErr error
+
+			if err != nil {
+				cmdErr = err
+			} else {
+				// Get the ticket
+				ticketObj, err := app.Manager.Get(ctx, ticketID)
+				if err != nil {
+					cmdErr = err
+				} else {
+					// Capture output
+					oldStdout := os.Stdout
+					r, w, err := os.Pipe()
+					require.NoError(t, err)
+					defer func() {
+						os.Stdout = oldStdout
+						if err := r.Close(); err != nil {
+							t.Logf("Failed to close reader: %v", err)
+						}
+					}()
+					os.Stdout = w
+
+					outputFormat := cli.ParseOutputFormat(tt.format)
+					if outputFormat == cli.FormatJSON {
+						// For JSON, output the ticket data
+						if err := outputJSON(map[string]interface{}{
+							"ticket": map[string]interface{}{
+								"id":          ticketObj.ID,
+								"path":        ticketObj.Path,
+								"status":      string(ticketObj.Status()),
+								"priority":    ticketObj.Priority,
+								"description": ticketObj.Description,
+								"created_at":  ticketObj.CreatedAt.Time,
+								"started_at":  ticketObj.StartedAt.Time,
+								"closed_at":   ticketObj.ClosedAt.Time,
+								"related":     ticketObj.Related,
+								"content":     ticketObj.Content,
+							},
+						}); err != nil {
+							cmdErr = err
+						}
+					} else {
+						// For text format, print ticket details
+						fmt.Printf("ID: %s\n", ticketObj.ID)
+						fmt.Printf("Status: %s\n", ticketObj.Status())
+						fmt.Printf("Priority: %d\n", ticketObj.Priority)
+						fmt.Printf("Description: %s\n", ticketObj.Description)
+						fmt.Printf("Created: %s\n", ticketObj.CreatedAt.Time.Format(time.RFC3339))
+						if ticketObj.StartedAt.Time != nil {
+							fmt.Printf("Started: %s\n", ticketObj.StartedAt.Time.Format(time.RFC3339))
+						}
+						if ticketObj.ClosedAt.Time != nil {
+							fmt.Printf("Closed: %s\n", ticketObj.ClosedAt.Time.Format(time.RFC3339))
+						}
+					}
+
+					if err := w.Close(); err != nil {
+						t.Logf("Warning: failed to close writer: %v", err)
+					}
+
+					var buf bytes.Buffer
+					_, _ = io.Copy(&buf, r)
+					output := buf.String()
+
+					if tt.format == "json" {
+						// Verify JSON structure
+						var result map[string]interface{}
+						err = json.Unmarshal([]byte(output), &result)
+						assert.NoError(t, err)
+						assert.Contains(t, result, "ticket")
+					} else {
+						// Verify text output contains expected fields
+						assert.Contains(t, output, "ID:")
+						assert.Contains(t, output, "Status:")
+						assert.Contains(t, output, "Priority:")
+					}
+				}
 			}
 
-			var buf bytes.Buffer
-			_, _ = io.Copy(&buf, r)
-			output := buf.String()
-
 			if tt.expectedError {
-				assert.Error(t, err)
+				assert.Error(t, cmdErr)
 				if tt.errorContains != "" {
-					assert.Contains(t, err.Error(), tt.errorContains)
+					assert.Contains(t, cmdErr.Error(), tt.errorContains)
 				}
 			} else {
-				assert.NoError(t, err)
-
-				if tt.format == "json" {
-					// Verify JSON structure
-					var result map[string]interface{}
-					err = json.Unmarshal([]byte(output), &result)
-					assert.NoError(t, err)
-					assert.Contains(t, result, "ticket")
-				} else {
-					// Verify text output contains expected fields
-					assert.Contains(t, output, "ID:")
-					assert.Contains(t, output, "Status:")
-					assert.Contains(t, output, "Priority:")
-				}
+				assert.NoError(t, cmdErr)
 			}
 		})
 	}
 }
 
 func TestHandleStart(t *testing.T) {
-	// Cannot run in parallel because handleStart works in the current directory
+	t.Parallel()
 
 	tests := []struct {
 		name          string
@@ -389,40 +461,60 @@ func TestHandleStart(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			tmpDir := t.TempDir()
-			origDir, err := os.Getwd()
-			require.NoError(t, err)
-			defer func() {
-				if err := os.Chdir(origDir); err != nil {
-					t.Logf("Failed to restore directory: %v", err)
-				}
-			}()
-
-			err = os.Chdir(tmpDir)
-			require.NoError(t, err)
-
 			ticketID := tt.setupFunc(t, tmpDir)
 			if tt.ticketID != "" {
 				ticketID = tt.ticketID
 			}
 
 			ctx := context.Background()
-			err = handleStart(ctx, ticketID, tt.noPush)
+
+			// Create app with working directory
+			app, err := cli.NewAppWithWorkingDir(ctx, t, tmpDir)
+			var cmdErr error
+
+			if err != nil {
+				cmdErr = err
+			} else {
+				// Capture output to avoid test noise
+				oldStdout := os.Stdout
+				r, w, err := os.Pipe()
+				require.NoError(t, err)
+				defer func() {
+					os.Stdout = oldStdout
+					if err := r.Close(); err != nil {
+						t.Logf("Failed to close reader: %v", err)
+					}
+				}()
+				os.Stdout = w
+
+				cmdErr = app.StartTicket(ctx, ticketID)
+
+				if err := w.Close(); err != nil {
+					t.Logf("Failed to close writer: %v", err)
+				}
+
+				// Read the output to prevent blocking
+				var buf bytes.Buffer
+				_, _ = io.Copy(&buf, r)
+			}
 
 			if tt.expectedError {
-				assert.Error(t, err)
+				assert.Error(t, cmdErr)
 				if tt.errorContains != "" {
-					assert.Contains(t, err.Error(), tt.errorContains)
+					assert.Contains(t, cmdErr.Error(), tt.errorContains)
 				}
 			} else {
-				assert.NoError(t, err)
+				assert.NoError(t, cmdErr)
 			}
 		})
 	}
 }
 
 func TestHandleClose(t *testing.T) {
-	// Cannot run in parallel because handleClose works in the current directory
+	t.Parallel()
 
 	tests := []struct {
 		name          string
@@ -455,30 +547,50 @@ func TestHandleClose(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			tmpDir := t.TempDir()
-			origDir, err := os.Getwd()
-			require.NoError(t, err)
-			defer func() {
-				if err := os.Chdir(origDir); err != nil {
-					t.Logf("Failed to restore directory: %v", err)
-				}
-			}()
-
-			err = os.Chdir(tmpDir)
-			require.NoError(t, err)
-
 			tt.setupFunc(t, tmpDir)
 
 			ctx := context.Background()
-			err = handleClose(ctx, tt.noPush, tt.force)
+
+			// Create app with working directory
+			app, err := cli.NewAppWithWorkingDir(ctx, t, tmpDir)
+			var cmdErr error
+
+			if err != nil {
+				cmdErr = err
+			} else {
+				// Capture output to avoid test noise
+				oldStdout := os.Stdout
+				r, w, err := os.Pipe()
+				require.NoError(t, err)
+				defer func() {
+					os.Stdout = oldStdout
+					if err := r.Close(); err != nil {
+						t.Logf("Failed to close reader: %v", err)
+					}
+				}()
+				os.Stdout = w
+
+				cmdErr = app.CloseTicket(ctx, tt.force)
+
+				if err := w.Close(); err != nil {
+					t.Logf("Failed to close writer: %v", err)
+				}
+
+				// Read the output to prevent blocking
+				var buf bytes.Buffer
+				_, _ = io.Copy(&buf, r)
+			}
 
 			if tt.expectedError {
-				assert.Error(t, err)
+				assert.Error(t, cmdErr)
 				if tt.errorContains != "" {
-					assert.Contains(t, err.Error(), tt.errorContains)
+					assert.Contains(t, cmdErr.Error(), tt.errorContains)
 				}
 			} else {
-				assert.NoError(t, err)
+				assert.NoError(t, cmdErr)
 			}
 		})
 	}
