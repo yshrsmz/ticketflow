@@ -31,4 +31,4 @@ dist/
 tmp/
 
 # Test artifacts that shouldn't be in source tree
-**/tickets/
+internal/cli/tickets/
