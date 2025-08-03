@@ -20,12 +20,17 @@ fix the following error.
 
 ## タスク
 - [ ] Add BranchExists method to check if a branch exists
-- [ ] Update AddWorktree to handle existing branches
-- [ ] Improve error messages for better user guidance
-- [ ] Add comprehensive tests for edge cases
-- [ ] Update documentation with troubleshooting guide
+- [ ] Update AddWorktree to handle existing branches (use branch without -b if exists)
+- [ ] Add unit tests for BranchExists method
+- [ ] Add tests for AddWorktree with existing/non-existing branches
+- [ ] Improve error message when worktree already exists (show path)
 
-## 技術仕様
+## Sub-tickets Created
+- [ ] 250803-121450-handle-diverged-branch - Handle case when branch points to different commit
+- [ ] 250803-121506-worktree-recovery - Add worktree recovery mechanisms
+- [ ] 250803-121521-robustness-improvements - Add permission and concurrency handling
+
+## 技術仕様 (Core Fix Only)
 
 ### Problems
 1. **Branch exists without worktree**: When `ticketflow start` is called and the branch exists but worktree doesn't, it fails with "fatal: a branch named '<branch>' already exists"
@@ -64,72 +69,11 @@ Modify `internal/git/worktree.go`:
 5. Add integration tests for the complete workflow
 6. Update error messages to be more helpful
 
-### Edge Cases to Handle
-
-#### 1. Branch exists pointing to different commit than expected
-**Scenario**: User manually created a branch with same name or branch exists from previous work
-**Solution**:
-- Check if branch's HEAD matches the commit where we expect to start (usually main/master HEAD)
-- If different, provide options:
-  ```
-  Branch '250726-181410-fix-empty-status-tab' already exists but points to a different commit.
-  Current branch HEAD: abc123 (2 commits ahead of main)
-  Expected base: def456 (main)
-  
-  Options:
-  1. Use existing branch (continue previous work)
-  2. Delete and recreate branch from main
-  3. Cancel operation
-  ```
-- Implementation: Compare `git rev-parse <branch>` with `git rev-parse <default-branch>`
-
-#### 2. Corrupted worktree references
-**Scenario**: Worktree directory deleted but git still tracks it, or .git/worktrees entry corrupted
-**Solution**:
-- When `git worktree add` fails with worktree errors, try:
-  1. Run `git worktree prune` to clean stale entries
-  2. Retry the operation
-  3. If still fails, check if worktree path exists without git tracking
-- Add recovery command: `ticketflow doctor --fix-worktrees`
-- Implementation:
-  ```go
-  if err != nil && strings.Contains(err.Error(), "worktree") {
-      // Try to prune and retry
-      g.PruneWorktrees(ctx)
-      // Retry add operation
-  }
-  ```
-
-#### 3. Permission issues
-**Scenario**: No write permissions to worktree directory or git directories
-**Solution**:
-- Check permissions before operations:
-  ```go
-  if err := checkWritePermission(worktreeBaseDir); err != nil {
-      return fmt.Errorf("no write permission to %s: %w", worktreeBaseDir, err)
-  }
-  ```
-- Provide clear error messages with fix suggestions:
-  ```
-  Error: Permission denied creating worktree at /path/to/worktrees
-  Try: sudo chown -R $(whoami) /path/to/worktrees
-  ```
-- Fall back to non-worktree mode if configured
-
-#### 4. Concurrent operations on same ticket
-**Scenario**: Multiple users or processes trying to start the same ticket simultaneously
-**Solution**:
-- Implement file-based locking in tickets directory:
-  ```go
-  lockFile := filepath.Join(ticketDir, fmt.Sprintf(".%s.lock", ticketID))
-  if err := acquireLock(lockFile, 30*time.Second); err != nil {
-      return fmt.Errorf("ticket is being modified by another process")
-  }
-  defer releaseLock(lockFile)
-  ```
-- Add timeout for lock acquisition (30 seconds)
-- Show which process holds the lock if possible
-- Add `--force` flag to override stale locks
+### Core Fix Focus
+This ticket focuses only on fixing the immediate "branch already exists" error. Edge cases are handled in sub-tickets:
+- **250803-121450-handle-diverged-branch**: Branch pointing to different commit
+- **250803-121506-worktree-recovery**: Corrupted worktree references  
+- **250803-121521-robustness-improvements**: Permission issues and concurrent operations
 
 ## メモ
 
