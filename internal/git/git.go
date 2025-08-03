@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"os/exec"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -20,6 +21,37 @@ type Git struct {
 	rootOnce sync.Once     // Ensures root is initialized only once
 	rootErr  error         // Error from root initialization
 	timeout  time.Duration // Timeout for git operations
+}
+
+// branchNameRegex defines valid git branch name pattern
+// Based on git-check-ref-format rules:
+// - Cannot begin with a slash (/) or contain consecutive slashes
+// - Cannot end with a slash (/)
+// - Cannot contain .., @{, \, or control characters
+// - Cannot begin or end with a dot (.)
+// - Cannot contain a colon (:), question mark (?), asterisk (*), or open bracket ([)
+// - Cannot contain a space or other whitespace characters
+var branchNameRegex = regexp.MustCompile(`^[^/.\s\\:?*\[\x00-\x1f\x7f](?:[^\s\\:?*\[\x00-\x1f\x7f]*[^/.\s\\:?*\[\x00-\x1f\x7f])?$`)
+
+// isValidBranchName validates a git branch name according to git-check-ref-format rules
+func isValidBranchName(name string) bool {
+	if name == "" {
+		return false
+	}
+	
+	// Check for invalid patterns
+	if strings.Contains(name, "..") || strings.Contains(name, "@{") || strings.Contains(name, "//") {
+		return false
+	}
+	
+	// Check that it doesn't start or end with dot or slash
+	if strings.HasPrefix(name, ".") || strings.HasSuffix(name, ".") ||
+		strings.HasPrefix(name, "/") || strings.HasSuffix(name, "/") {
+		return false
+	}
+	
+	// Check against regex for other invalid characters
+	return branchNameRegex.MatchString(name)
 }
 
 // New creates a new Git instance with default timeout
@@ -124,6 +156,11 @@ func (g *Git) Checkout(ctx context.Context, branch string) error {
 
 // BranchExists checks if a branch exists locally
 func (g *Git) BranchExists(ctx context.Context, branch string) (bool, error) {
+	// Validate branch name to prevent command injection
+	if !isValidBranchName(branch) {
+		return false, fmt.Errorf("invalid branch name: %s", branch)
+	}
+	
 	// Use git show-ref --verify --quiet refs/heads/<branch>
 	// This command returns exit code 0 if branch exists, non-zero otherwise
 	_, err := g.Exec(ctx, SubcmdShowRef, FlagVerify, FlagQuiet, fmt.Sprintf("refs/heads/%s", branch))

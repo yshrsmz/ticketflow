@@ -100,6 +100,54 @@ func TestRunInWorktreePreservesTimeout(t *testing.T) {
 	_, _ = g.RunInWorktree(ctx, "/tmp/fake-worktree", "status")
 }
 
+func TestIsValidBranchName(t *testing.T) {
+	tests := []struct {
+		name     string
+		branch   string
+		expected bool
+	}{
+		// Valid branch names
+		{"simple branch", "feature", true},
+		{"branch with slash", "feature/test", true},
+		{"branch with numbers", "feature123", true},
+		{"branch with dash", "feature-test", true},
+		{"branch with underscore", "feature_test", true},
+		{"branch with multiple segments", "feature/test/v2", true},
+		{"branch with version", "release-1.2.3", true},
+		{"branch with dots in middle", "release.1.2.3", true},
+		{"complex valid branch", "feature/JIRA-123_test-branch.v2", true},
+		{"branch starting with letter", "a", true},
+		{"branch starting with number", "123-feature", true},
+		
+		// Invalid branch names
+		{"empty string", "", false},
+		{"starts with slash", "/feature", false},
+		{"ends with slash", "feature/", false},
+		{"double slash", "feature//test", false},
+		{"contains space", "feature test", false},
+		{"contains dot dot", "feature..test", false},
+		{"contains @{", "feature@{test", false},
+		{"starts with dot", ".feature", false},
+		{"ends with dot", "feature.", false},
+		{"contains colon", "feature:test", false},
+		{"contains question mark", "feature?test", false},
+		{"contains asterisk", "feature*test", false},
+		{"contains open bracket", "feature[test", false},
+		{"contains backslash", "feature\\test", false},
+		{"contains control char", "feature\x00test", false},
+		{"contains tab", "feature\ttest", false},
+		{"single dot", ".", false},
+		{"single slash", "/", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := isValidBranchName(tt.branch)
+			assert.Equal(t, tt.expected, result, "branch: %q", tt.branch)
+		})
+	}
+}
+
 func TestBranchExists(t *testing.T) {
 	// Setup test git repo
 	tmpDir := t.TempDir()
@@ -132,7 +180,7 @@ func TestBranchExists(t *testing.T) {
 			branch: "master",
 			setup: func() {
 				// Try to create master branch, ignore error if it already exists
-				git.Exec(ctx, "checkout", "-b", "master")
+				_, _ = git.Exec(ctx, "checkout", "-b", "master")
 			},
 			wantExists: true,
 			wantErr:    false,
@@ -148,7 +196,7 @@ func TestBranchExists(t *testing.T) {
 			name:   "existing feature branch",
 			branch: "feature/test-branch",
 			setup: func() {
-				git.Exec(ctx, "checkout", "-b", "feature/test-branch")
+				_, _ = git.Exec(ctx, "checkout", "-b", "feature/test-branch")
 			},
 			wantExists: true,
 			wantErr:    false,
@@ -157,10 +205,24 @@ func TestBranchExists(t *testing.T) {
 			name:   "branch with special characters",
 			branch: "feat/my-branch_v2.0",
 			setup: func() {
-				git.Exec(ctx, "checkout", "-b", "feat/my-branch_v2.0")
+				_, _ = git.Exec(ctx, "checkout", "-b", "feat/my-branch_v2.0")
 			},
 			wantExists: true,
 			wantErr:    false,
+		},
+		{
+			name:       "invalid branch name with spaces",
+			branch:     "feature test",
+			setup:      func() {},
+			wantExists: false,
+			wantErr:    true,
+		},
+		{
+			name:       "invalid branch name with command injection attempt",
+			branch:     "feature; rm -rf /",
+			setup:      func() {},
+			wantExists: false,
+			wantErr:    true,
 		},
 	}
 

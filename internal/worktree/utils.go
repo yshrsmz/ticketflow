@@ -22,7 +22,11 @@ func GetPath(ctx context.Context, gitClient git.GitClient, cfg *config.Config, p
 	logger := log.Global().WithTicket(ticketID)
 
 	// Try to get the actual worktree path from git
-	if wt, err := gitClient.FindWorktreeByBranch(ctx, ticketID); err == nil && wt != nil {
+	wt, err := gitClient.FindWorktreeByBranch(ctx, ticketID)
+	if err != nil {
+		// Log the error for debugging purposes
+		logger.Debug("failed to find worktree by branch", "error", err, "ticketID", ticketID)
+	} else if wt != nil {
 		logger.Debug("found worktree path from git", "path", wt.Path)
 		return wt.Path
 	}
