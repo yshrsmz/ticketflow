@@ -1,8 +1,8 @@
 ---
 priority: 2
-description: "Optimize I/O operations with buffering, string builders, and pre-allocated slices"
+description: Optimize I/O operations with buffering, string builders, and pre-allocated slices
 created_at: "2025-08-01T00:32:07+09:00"
-started_at: null
+started_at: "2025-08-04T12:26:22+09:00"
 closed_at: null
 ---
 
