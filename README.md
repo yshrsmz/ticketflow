@@ -135,6 +135,9 @@ ticketflow init
 ```bash
 ticketflow new implement-feature
 # Creates: tickets/todo/250124-150000-implement-feature.md
+
+# Or create a sub-ticket with explicit parent
+ticketflow new --parent 250124-150000-implement-feature add-tests
 ```
 
 3. **Edit ticket details**:
@@ -223,7 +226,7 @@ The auto-cleanup command will:
 |---------|-------------|
 | `ticketflow` | Launch interactive TUI |
 | `ticketflow init` | Initialize ticket system in current repository |
-| `ticketflow new <slug>` | Create a new ticket |
+| `ticketflow new [options] <slug>` | Create a new ticket |
 | `ticketflow list [options]` | List tickets |
 | `ticketflow show <id> [options]` | Show ticket details |
 | `ticketflow start <id>` | Start working on a ticket |
@@ -246,6 +249,14 @@ The auto-cleanup command will:
 - `--format FORMAT` - Output format (text/json)
 - `--force, -f` - Force operation without confirmation
 - `--count N` - Limit number of results
+
+### Command-Specific Options
+
+**new command:**
+- `--parent TICKET_ID` - Specify parent ticket ID explicitly
+- `-p TICKET_ID` - Short form of --parent
+
+**Note:** Flags must come before the ticket slug (e.g., `ticketflow new --parent parent-id my-ticket`)
 - `--help, -h` - Show command help
 
 ## Configuration
@@ -296,13 +307,21 @@ timeouts:
 
 Create sub-tickets while working on a parent ticket:
 
+### Method 1: Implicit Parent (from worktree)
 ```bash
 # In parent worktree
 cd ../ticketflow.worktrees/250124-150000-user-system
 
-# Create sub-tickets
+# Create sub-tickets (automatically linked to current ticket)
 ticketflow new user-model
 ticketflow new user-auth
+```
+
+### Method 2: Explicit Parent (from anywhere)
+```bash
+# From main repository or any location
+ticketflow new --parent 250124-150000-user-system user-model
+ticketflow new -p 250124-150000-user-system user-auth
 
 # Start sub-ticket (branches from parent)
 ticketflow start 250124-151000-user-model

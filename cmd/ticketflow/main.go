@@ -117,6 +117,13 @@ type migrateFlags struct {
 	dryRun bool
 }
 
+// newFlags holds command-line flags for the 'new' command
+type newFlags struct {
+	parent      string // Parent ticket ID (long form)
+	parentShort string // Parent ticket ID (short form)
+	format      string // Output format (text or json)
+}
+
 func runCLI(ctx context.Context) error {
 	// Parse command
 	if len(os.Args) < 2 {
@@ -139,8 +146,20 @@ func runCLI(ctx context.Context) error {
 			Name:         "new",
 			MinArgs:      1,
 			MinArgsError: "missing slug argument",
-			Execute: func(ctx context.Context, fs *flag.FlagSet, flags interface{}) error {
-				return handleNew(ctx, fs.Arg(0), "text")
+			SetupFlags: func(fs *flag.FlagSet) interface{} {
+				flags := &newFlags{}
+				fs.StringVar(&flags.parent, "parent", "", "Parent ticket ID")
+				fs.StringVar(&flags.parentShort, "p", "", "Parent ticket ID (short form)")
+				fs.StringVar(&flags.format, "format", "text", "Output format (text|json)")
+				return flags
+			},
+			Execute: func(ctx context.Context, fs *flag.FlagSet, cmdFlags interface{}) error {
+				flags := cmdFlags.(*newFlags)
+				parent := flags.parent
+				if parent == "" {
+					parent = flags.parentShort
+				}
+				return handleNew(ctx, fs.Arg(0), parent, flags.format)
 			},
 		}, os.Args[2:])
 
@@ -292,14 +311,14 @@ func handleInit(ctx context.Context) error {
 	return cli.InitCommand(ctx)
 }
 
-func handleNew(ctx context.Context, slug, format string) error {
+func handleNew(ctx context.Context, slug, parent, format string) error {
 	app, err := cli.NewApp(ctx)
 	if err != nil {
 		return err
 	}
 
 	outputFormat := cli.ParseOutputFormat(format)
-	return app.NewTicket(ctx, slug, outputFormat)
+	return app.NewTicket(ctx, slug, parent, outputFormat)
 }
 
 func handleList(ctx context.Context, status string, count int, format string) error {
@@ -451,7 +470,7 @@ func printUsage() {
 USAGE:
   ticketflow                          Start TUI (interactive mode)
   ticketflow init                     Initialize ticket system
-  ticketflow new <slug>               Create new ticket
+  ticketflow new <slug> [options]     Create new ticket
   ticketflow list [options]           List tickets
   ticketflow show <ticket> [options]  Show ticket details
   ticketflow start <ticket> [options] Start working on ticket
@@ -470,6 +489,11 @@ OPTIONS:
     --log-level LEVEL   Log level (debug, info, warn, error)
     --log-format FORMAT Log format (text, json)
     --log-output OUTPUT Log output (stderr, stdout, or file path)
+
+  new:
+    --parent TICKET    Specify parent ticket ID
+    -p TICKET          Short form of --parent
+    --format FORMAT    Output format: text|json (default: text)
 
   list:
     --status STATUS    Filter by status (todo|doing|done)

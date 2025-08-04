@@ -83,7 +83,7 @@ func TestCompleteWorkflow(t *testing.T) {
 
 	// 2. Create a new ticket
 
-	err = app.NewTicket(context.Background(), "test-feature", cli.FormatText)
+	err = app.NewTicket(context.Background(), "test-feature", "", cli.FormatText)
 	require.NoError(t, err)
 
 	// 3. List tickets
@@ -174,7 +174,7 @@ func TestRestoreWorkflow(t *testing.T) {
 	_, err = gitCmd.Exec(context.Background(), "commit", "-m", "Initialize ticketflow")
 	require.NoError(t, err)
 
-	err = app.NewTicket(context.Background(), "restore-test", cli.FormatText)
+	err = app.NewTicket(context.Background(), "restore-test", "", cli.FormatText)
 	require.NoError(t, err)
 
 	tickets, err := app.Manager.List(context.Background(), ticket.StatusFilterActive)

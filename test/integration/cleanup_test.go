@@ -25,7 +25,7 @@ func TestCleanupTicketWithForceFlag(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create a ticket
-	err = app.NewTicket(context.Background(), "test-cleanup-force", cli.FormatText)
+	err = app.NewTicket(context.Background(), "test-cleanup-force", "", cli.FormatText)
 	require.NoError(t, err)
 
 	// List tickets to get the actual ID

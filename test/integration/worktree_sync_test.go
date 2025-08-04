@@ -45,7 +45,7 @@ func TestStartTicket_WorktreeCreatedAfterCommit(t *testing.T) {
 	require.NoError(t, err)
 
 	// 1. Create a ticket
-	err = app.NewTicket(context.Background(), "commit-first-test", cli.FormatText)
+	err = app.NewTicket(context.Background(), "commit-first-test", "", cli.FormatText)
 	require.NoError(t, err)
 
 	// Commit the ticket

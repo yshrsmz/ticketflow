@@ -46,7 +46,7 @@ func TestWorktreeWorkflow(t *testing.T) {
 	require.NoError(t, err)
 
 	// 1. Create a ticket
-	err = app.NewTicket(context.Background(), "worktree-test", cli.FormatText)
+	err = app.NewTicket(context.Background(), "worktree-test", "", cli.FormatText)
 	require.NoError(t, err)
 
 	// Commit the ticket
@@ -150,7 +150,7 @@ func TestWorktreeCleanCommand(t *testing.T) {
 	// Create multiple tickets
 	for i := 1; i <= 3; i++ {
 		slug := fmt.Sprintf("ticket-%d", i)
-		err = app.NewTicket(context.Background(), slug, cli.FormatText)
+		err = app.NewTicket(context.Background(), slug, "", cli.FormatText)
 		require.NoError(t, err)
 	}
 
@@ -239,7 +239,7 @@ func TestWorktreeListCommand(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create and start a ticket
-	err = app.NewTicket(context.Background(), "list-test", cli.FormatText)
+	err = app.NewTicket(context.Background(), "list-test", "", cli.FormatText)
 	require.NoError(t, err)
 
 	_, err = gitCmd.Exec(context.Background(), "add", "tickets/")
