@@ -16,7 +16,7 @@ import (
 
 func TestStartTicketWithForceFlag(t *testing.T) {
 	// Cannot run in parallel due to os.Chdir in setupTestRepo
-	
+
 	// Setup test repository
 	repoPath := setupTestRepo(t)
 

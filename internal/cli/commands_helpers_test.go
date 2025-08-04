@@ -234,7 +234,7 @@ func TestCheckExistingWorktree(t *testing.T) {
 				}
 			}
 
-			err := app.checkExistingWorktree(context.Background(), testTicket)
+			err := app.checkExistingWorktree(context.Background(), testTicket, false)
 
 			if tt.wantErr {
 				assert.Error(t, err)
