@@ -72,6 +72,7 @@ func BenchmarkStartTicket(b *testing.B) {
 			ctx := context.Background()
 
 			// Pre-create tickets for benchmarking
+			b.StopTimer()
 			ticketIDs := make([]string, b.N)
 			for i := 0; i < b.N; i++ {
 				slug := fmt.Sprintf("benchmark-ticket-%d", i)
@@ -81,8 +82,8 @@ func BenchmarkStartTicket(b *testing.B) {
 				}
 				ticketIDs[i] = generateTicketID(slug)
 			}
+			b.StartTimer()
 
-			b.ResetTimer()
 			b.ReportAllocs()
 
 			for i := 0; i < b.N; i++ {
@@ -120,13 +121,33 @@ func BenchmarkCloseTicket(b *testing.B) {
 	ctx := context.Background()
 
 	// Pre-create and start tickets
+	b.StopTimer()
+	ticketIDs := make([]string, b.N)
 	for i := 0; i < b.N; i++ {
 		slug := fmt.Sprintf("benchmark-ticket-%d", i)
 		err := app.NewTicket(ctx, slug, "", FormatText)
 		if err != nil {
 			b.Fatal(err)
 		}
-		ticketID := generateTicketID(slug)
+
+		// Get the actual ticket ID
+		tickets, err := app.Manager.List(ctx, ticket.StatusFilterTodo)
+		if err != nil {
+			b.Fatal(err)
+		}
+
+		// Find the ticket we just created
+		var ticketID string
+		for _, t := range tickets {
+			if t.Slug == slug {
+				ticketID = t.ID
+				break
+			}
+		}
+		if ticketID == "" {
+			b.Fatalf("Could not find ticket with slug %s", slug)
+		}
+		ticketIDs[i] = ticketID
 
 		// Start the ticket to move it to doing status
 		err = app.StartTicket(ctx, ticketID, false)
@@ -134,20 +155,19 @@ func BenchmarkCloseTicket(b *testing.B) {
 			b.Fatal(err)
 		}
 	}
-
-	b.ResetTimer()
+	b.StartTimer()
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		err := app.CloseTicket(ctx, false)
+		// Switch to the ticket branch
+		_, err := app.Git.Exec(ctx, "checkout", ticketIDs[i])
 		if err != nil {
 			b.Fatal(err)
 		}
 
-		// Prepare for next iteration by starting another ticket
-		if i < b.N-1 {
-			nextTicketID := fmt.Sprintf("%s-benchmark-ticket-%d", generateTimestamp(), i+1)
-			_, _ = app.Git.Exec(ctx, "checkout", nextTicketID)
+		err = app.CloseTicket(ctx, false)
+		if err != nil {
+			b.Fatal(err)
 		}
 	}
 }
@@ -192,7 +212,12 @@ func BenchmarkListTickets(b *testing.B) {
 
 			// Redirect output to discard it during benchmark
 			oldStdout := os.Stdout
-			os.Stdout, _ = os.Open(os.DevNull)
+			devNull, err := os.Open(os.DevNull)
+			if err != nil {
+				b.Fatal(err)
+			}
+			defer devNull.Close()
+			os.Stdout = devNull
 			defer func() { os.Stdout = oldStdout }()
 
 			b.ResetTimer()
@@ -261,4 +286,3 @@ tickets:
 	cmd.Dir = tmpDir
 	require.NoError(b, cmd.Run())
 }
-

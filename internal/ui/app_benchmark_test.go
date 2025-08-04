@@ -205,8 +205,8 @@ func BenchmarkListFiltering(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		filter := filterScenarios[i%len(filterScenarios)]
-		// Simulate filtering logic
-		var filtered []ticket.Ticket
+		// Simulate filtering logic with pre-allocated slice
+		filtered := make([]ticket.Ticket, 0, len(tickets))
 		for _, t := range tickets {
 			switch filter {
 			case "all":
@@ -294,4 +294,3 @@ tickets:
 	cmd.Dir = tmpDir
 	require.NoError(b, cmd.Run())
 }
-

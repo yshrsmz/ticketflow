@@ -47,6 +47,19 @@ func BenchmarkCreateBranch(b *testing.B) {
 	git := New(tmpDir)
 	ctx := context.Background()
 
+	// Cleanup created branches after benchmark
+	b.Cleanup(func() {
+		// Switch to main/master first
+		_, _ = git.Exec(ctx, "checkout", "main")
+
+		// Get all benchmark branches
+		output, _ := git.Exec(ctx, "branch", "--list", "benchmark-branch-*")
+		if output != "" {
+			// Delete branches
+			_, _ = git.Exec(ctx, "branch", "-D", "benchmark-branch-*")
+		}
+	})
+
 	b.ResetTimer()
 	b.ReportAllocs()
 
@@ -172,6 +185,21 @@ func BenchmarkAddWorktree(b *testing.B) {
 			b.Fatal(err)
 		}
 	}
+
+	// Cleanup worktrees and branches after benchmark
+	b.Cleanup(func() {
+		// Remove all worktrees
+		worktrees, _ := git.ListWorktrees(ctx)
+		for _, wt := range worktrees {
+			if wt.Path != tmpDir { // Don't remove main worktree
+				_ = git.RemoveWorktree(ctx, wt.Path)
+			}
+		}
+
+		// Switch to main and delete branches
+		_, _ = git.Exec(ctx, "checkout", "main")
+		_, _ = git.Exec(ctx, "branch", "-D", "worktree-branch-*")
+	})
 
 	b.ResetTimer()
 	b.ReportAllocs()
@@ -332,4 +360,3 @@ func setupBenchmarkRepo(b *testing.B, tmpDir string) {
 	cmd.Dir = tmpDir
 	require.NoError(b, cmd.Run())
 }
-

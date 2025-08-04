@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/yshrsmz/ticketflow/internal/config"
 )
@@ -288,6 +289,71 @@ func BenchmarkManagerReadWriteContent(b *testing.B) {
 	}
 }
 
+// BenchmarkManagerCreateConcurrent benchmarks concurrent ticket creation
+func BenchmarkManagerCreateConcurrent(b *testing.B) {
+	tmpDir := b.TempDir()
+	cfg := config.Default()
+	cfg.Tickets.Dir = "tickets"
+	manager := NewManager(cfg, tmpDir)
+	ctx := context.Background()
+
+	// Create ticket directory structure
+	todoDir := filepath.Join(tmpDir, cfg.Tickets.Dir, "todo")
+	if err := os.MkdirAll(todoDir, 0755); err != nil {
+		b.Fatal(err)
+	}
+
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	b.RunParallel(func(pb *testing.PB) {
+		i := 0
+		for pb.Next() {
+			slug := fmt.Sprintf("benchmark-ticket-%d-%d", i, time.Now().UnixNano())
+			_, err := manager.Create(ctx, slug)
+			if err != nil {
+				b.Fatal(err)
+			}
+			i++
+		}
+	})
+}
+
+// BenchmarkManagerListConcurrent benchmarks concurrent list operations
+func BenchmarkManagerListConcurrent(b *testing.B) {
+	tmpDir := b.TempDir()
+	cfg := config.Default()
+	cfg.Tickets.Dir = "tickets"
+	manager := NewManager(cfg, tmpDir)
+	ctx := context.Background()
+
+	// Create ticket directory structure and some tickets
+	todoDir := filepath.Join(tmpDir, cfg.Tickets.Dir, "todo")
+	if err := os.MkdirAll(todoDir, 0755); err != nil {
+		b.Fatal(err)
+	}
+
+	// Create 50 tickets for listing
+	for i := 0; i < 50; i++ {
+		slug := fmt.Sprintf("benchmark-ticket-%d", i)
+		if _, err := manager.Create(ctx, slug); err != nil {
+			b.Fatal(err)
+		}
+	}
+
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			_, err := manager.List(ctx, StatusFilterAll)
+			if err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+}
+
 // BenchmarkManagerCurrentTicket benchmarks getting and setting current ticket
 func BenchmarkManagerCurrentTicket(b *testing.B) {
 	tmpDir := b.TempDir()
@@ -332,4 +398,3 @@ func BenchmarkManagerCurrentTicket(b *testing.B) {
 		}
 	})
 }
-
