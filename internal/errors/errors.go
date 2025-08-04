@@ -49,14 +49,53 @@ type TicketError struct {
 }
 
 func (e *TicketError) Error() string {
-	prefix := e.Op
-	if len(e.Context) > 0 {
-		prefix = strings.Join(e.Context, " > ") + " > " + e.Op
+	// Handle nil error case
+	if e.Err == nil {
+		var sb strings.Builder
+		sb.WriteString(e.Op)
+		sb.WriteString(" ticket: <nil>")
+		return sb.String()
+	}
+
+	// Use strings.Builder for efficient string concatenation
+	var sb strings.Builder
+
+	// Pre-allocate estimated capacity
+	estimatedSize := len(e.Op) + len(e.Err.Error()) + 10 // base overhead
+	for _, ctx := range e.Context {
+		estimatedSize += len(ctx) + 3 // " > "
 	}
 	if e.TicketID != "" {
-		return fmt.Sprintf("%s ticket %s: %v", prefix, e.TicketID, e.Err)
+		estimatedSize += len(e.TicketID) + 8 // " ticket "
+	} else {
+		estimatedSize += 7 // " ticket"
 	}
-	return fmt.Sprintf("%s ticket: %v", prefix, e.Err)
+	sb.Grow(estimatedSize)
+
+	// Build context chain
+	if len(e.Context) > 0 {
+		for i, ctx := range e.Context {
+			if i > 0 {
+				sb.WriteString(" > ")
+			}
+			sb.WriteString(ctx)
+		}
+		sb.WriteString(" > ")
+	}
+	sb.WriteString(e.Op)
+
+	// Always include "ticket" in the message
+	if e.TicketID != "" {
+		sb.WriteString(" ticket ")
+		sb.WriteString(e.TicketID)
+	} else {
+		sb.WriteString(" ticket")
+	}
+
+	sb.WriteString(": ")
+	sb.WriteString(e.Err.Error())
+
+	return sb.String()
 }
 
 func (e *TicketError) Unwrap() error {

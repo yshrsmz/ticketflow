@@ -26,6 +26,16 @@ const (
 	StatusFilterDone   StatusFilter = "done"   // Include only done tickets
 )
 
+const (
+	// initialTicketCapacity is the initial capacity for ticket slices
+	// Most projects have 10-50 active tickets, so 50 is a good starting capacity
+	initialTicketCapacity = 50
+
+	// initialMatchCapacity is the initial capacity for search match slices
+	// Most searches result in 0-1 matches, rarely more than 5
+	initialMatchCapacity = 5
+)
+
 // Manager manages ticket operations
 type Manager struct {
 	config      *config.Config
@@ -114,7 +124,9 @@ func (m *Manager) List(ctx context.Context, statusFilter StatusFilter) ([]Ticket
 		return nil, fmt.Errorf("invalid status filter: %s", statusFilter)
 	}
 
-	var tickets []Ticket
+	// Pre-allocate tickets slice with reasonable capacity based on typical usage
+	// This avoids multiple reallocations during append operations without double-reading directories
+	tickets := make([]Ticket, 0, initialTicketCapacity)
 	for _, dir := range dirs {
 		entries, err := os.ReadDir(dir)
 		if err != nil {
@@ -331,7 +343,8 @@ func (m *Manager) findTicketInDir(ticketID, dir string) (string, error) {
 		return "", fmt.Errorf("failed to read directory: %w", err)
 	}
 
-	var matches []string
+	// Pre-allocate matches slice with small initial capacity
+	matches := make([]string, 0, initialMatchCapacity)
 	for _, entry := range entries {
 		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".md") {
 			continue
@@ -429,7 +442,8 @@ func readFileWithContext(ctx context.Context, path string) ([]byte, error) {
 
 	// For larger files, read in chunks with context checks
 	const chunkSize = 64 * 1024 // 64KB chunks
-	var result []byte
+	// Pre-allocate result slice based on file size to avoid multiple reallocations
+	result := make([]byte, 0, info.Size())
 	buffer := make([]byte, chunkSize)
 
 	for {
