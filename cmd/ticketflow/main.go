@@ -119,8 +119,9 @@ type migrateFlags struct {
 
 // newFlags holds command-line flags for the 'new' command
 type newFlags struct {
-	parent string // Parent ticket ID (supports both --parent and -p)
-	format string // Output format (text or json)
+	parent      string // Parent ticket ID (long form)
+	parentShort string // Parent ticket ID (short form)
+	format      string // Output format (text or json)
 }
 
 func runCLI(ctx context.Context) error {
@@ -148,13 +149,17 @@ func runCLI(ctx context.Context) error {
 			SetupFlags: func(fs *flag.FlagSet) interface{} {
 				flags := &newFlags{}
 				fs.StringVar(&flags.parent, "parent", "", "Parent ticket ID")
-				fs.StringVar(&flags.parent, "p", "", "Parent ticket ID (short form)")
+				fs.StringVar(&flags.parentShort, "p", "", "Parent ticket ID (short form)")
 				fs.StringVar(&flags.format, "format", "text", "Output format (text|json)")
 				return flags
 			},
 			Execute: func(ctx context.Context, fs *flag.FlagSet, cmdFlags interface{}) error {
 				flags := cmdFlags.(*newFlags)
-				return handleNew(ctx, fs.Arg(0), flags.parent, flags.format)
+				parent := flags.parent
+				if parent == "" {
+					parent = flags.parentShort
+				}
+				return handleNew(ctx, fs.Arg(0), parent, flags.format)
 			},
 		}, os.Args[2:])
 

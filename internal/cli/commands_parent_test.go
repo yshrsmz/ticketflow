@@ -198,7 +198,7 @@ func TestApp_NewTicket_WithParent(t *testing.T) {
 		// 2. The generated ID includes a timestamp that changes
 		// 3. Circular deps would only occur if an existing ticket already references
 		//    the exact ID we're about to generate
-		// 
+		//
 		// The implementation is correct but these edge cases are unlikely in practice
 		{
 			name:           "done parent warning",

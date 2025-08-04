@@ -179,7 +179,6 @@ func InitCommandWithWorkingDir(ctx context.Context, workingDir string) error {
 	return nil
 }
 
-// NewTicket creates a new ticket
 // validateSlug checks if the slug is valid
 func (app *App) validateSlug(slug string) error {
 	if !ticket.IsValidSlug(slug) {
@@ -343,6 +342,7 @@ func (app *App) outputTicketCreated(t *ticket.Ticket, parentTicketID, slug strin
 	return nil
 }
 
+// NewTicket creates a new ticket
 func (app *App) NewTicket(ctx context.Context, slug string, explicitParent string, format OutputFormat) error {
 	logger := log.Global().WithOperation("new_ticket")
 
