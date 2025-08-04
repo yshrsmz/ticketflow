@@ -64,8 +64,10 @@ func runTUI() {
 		os.Exit(1)
 	}
 
-	// Load config
-	cfg, err := config.Load(root)
+	// Load config with a short timeout context for TUI mode
+	loadCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	cfg, err := config.LoadWithContext(loadCtx, root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: failed to load config: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Run 'ticketflow init' to initialize the ticket system\n")

@@ -82,8 +82,8 @@ func NewAppWithOptions(ctx context.Context, opts ...AppOption) (*App, error) {
 			})
 	}
 
-	// Load config
-	cfg, err := config.Load(projectRoot)
+	// Load config with context
+	cfg, err := config.LoadWithContext(ctx, projectRoot)
 	if err != nil {
 		return nil, NewError(ErrConfigNotFound, "Ticket system not initialized", "",
 			[]string{
@@ -141,8 +141,8 @@ func InitCommandWithWorkingDir(ctx context.Context, workingDir string) error {
 		return nil
 	}
 
-	// Save config
-	if err := cfg.Save(configPath); err != nil {
+	// Save config with context
+	if err := cfg.SaveWithContext(ctx, configPath); err != nil {
 		logger.WithError(err).Error("failed to save config")
 		return fmt.Errorf("failed to save config: %w", err)
 	}

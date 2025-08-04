@@ -1,7 +1,9 @@
 package config
 
 import (
+	"context"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"time"
@@ -100,6 +102,15 @@ func Default() *Config {
 
 // Load loads configuration from the specified project root
 func Load(projectRoot string) (*Config, error) {
+	return LoadWithContext(context.Background(), projectRoot)
+}
+
+// LoadWithContext loads configuration from the specified project root with context support
+func LoadWithContext(ctx context.Context, projectRoot string) (*Config, error) {
+	// Check context
+	if err := ctx.Err(); err != nil {
+		return nil, fmt.Errorf("operation cancelled: %w", err)
+	}
 	configPath := filepath.Join(projectRoot, ConfigFileName)
 
 	// Check if config file exists
@@ -107,8 +118,8 @@ func Load(projectRoot string) (*Config, error) {
 		return nil, ticketerrors.ErrConfigNotFound
 	}
 
-	// Read config file
-	data, err := os.ReadFile(configPath)
+	// Read config file with context support
+	data, err := readConfigFileWithContext(ctx, configPath)
 	if err != nil {
 		return nil, ticketerrors.NewConfigError("file", configPath, fmt.Errorf("failed to read config file: %w", err))
 	}
@@ -129,6 +140,15 @@ func Load(projectRoot string) (*Config, error) {
 
 // Save saves the configuration to the specified path
 func (c *Config) Save(path string) error {
+	return c.SaveWithContext(context.Background(), path)
+}
+
+// SaveWithContext saves the configuration to the specified path with context support
+func (c *Config) SaveWithContext(ctx context.Context, path string) error {
+	// Check context
+	if err := ctx.Err(); err != nil {
+		return fmt.Errorf("operation cancelled: %w", err)
+	}
 	// Ensure directory exists
 	dir := filepath.Dir(path)
 	if err := os.MkdirAll(dir, DirPermission); err != nil {
@@ -141,8 +161,8 @@ func (c *Config) Save(path string) error {
 		return fmt.Errorf("failed to marshal config: %w", err)
 	}
 
-	// Write to file
-	if err := os.WriteFile(path, data, FilePermission); err != nil {
+	// Write to file with context support
+	if err := writeConfigFileWithContext(ctx, path, data, FilePermission); err != nil {
 		return fmt.Errorf("failed to write config file: %w", err)
 	}
 
@@ -234,5 +254,119 @@ func validateTimeout(value int, fieldName string) error {
 			fmt.Sprintf("%d exceeds maximum of %d seconds", value, MaxTimeoutSeconds),
 			ticketerrors.ErrConfigInvalid)
 	}
+	return nil
+}
+
+// MaxConfigSize is the maximum allowed size for config files.
+// This prevents accidental loading of non-config files and protects
+// against malicious large files. 1MB should be more than sufficient
+// for any reasonable configuration.
+const MaxConfigSize = 1024 * 1024 // 1MB
+
+// readConfigFileWithContext reads a config file with context support
+func readConfigFileWithContext(ctx context.Context, path string) ([]byte, error) {
+	// Check context before starting
+	if err := ctx.Err(); err != nil {
+		return nil, fmt.Errorf("operation cancelled: %w", err)
+	}
+
+	// Config files are expected to be small, so we can read them directly
+	// But we still check context for consistency
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		_ = file.Close() // Ignore close error for read operations
+	}()
+
+	// Get file info to validate size
+	info, err := file.Stat()
+	if err != nil {
+		return nil, err
+	}
+
+	// Validate file size to prevent loading overly large files
+	if info.Size() > MaxConfigSize {
+		return nil, fmt.Errorf("config file too large: %d bytes exceeds %d bytes limit", info.Size(), MaxConfigSize)
+	}
+
+	// Check context one more time before reading
+	if err := ctx.Err(); err != nil {
+		return nil, fmt.Errorf("operation cancelled: %w", err)
+	}
+
+	// Read the entire file
+	data, err := io.ReadAll(file)
+	if err != nil {
+		return nil, err
+	}
+
+	return data, nil
+}
+
+// writeConfigFileWithContext writes a config file with context support
+func writeConfigFileWithContext(ctx context.Context, path string, data []byte, perm os.FileMode) error {
+	// Check context before starting
+	if err := ctx.Err(); err != nil {
+		return fmt.Errorf("operation cancelled: %w", err)
+	}
+
+	// Config files are expected to be small, so we can write them directly
+	// Create a temporary file first to ensure atomic writes
+	dir := filepath.Dir(path)
+	tmpFile, err := os.CreateTemp(dir, fmt.Sprintf(".%s-*.tmp", filepath.Base(path)))
+	if err != nil {
+		return fmt.Errorf("failed to create temp file: %w", err)
+	}
+
+	// Clean up temp file on error
+	defer func() {
+		if tmpFile != nil {
+			_ = os.Remove(tmpFile.Name())
+		}
+	}()
+
+	// Check context before writing
+	if err := ctx.Err(); err != nil {
+		_ = tmpFile.Close()
+		return fmt.Errorf("operation cancelled: %w", err)
+	}
+
+	// Write data to temp file
+	if _, err := tmpFile.Write(data); err != nil {
+		_ = tmpFile.Close()
+		return fmt.Errorf("failed to write temp file: %w", err)
+	}
+
+	// Sync to ensure data is persisted
+	if err := tmpFile.Sync(); err != nil {
+		_ = tmpFile.Close()
+		return fmt.Errorf("failed to sync temp file: %w", err)
+	}
+
+	// Close temp file
+	if err := tmpFile.Close(); err != nil {
+		return fmt.Errorf("failed to close temp file: %w", err)
+	}
+
+	// Set permissions on temp file
+	if err := os.Chmod(tmpFile.Name(), perm); err != nil {
+		return fmt.Errorf("failed to set permissions: %w", err)
+	}
+
+	// Check context one more time before rename
+	if err := ctx.Err(); err != nil {
+		return fmt.Errorf("operation cancelled: %w", err)
+	}
+
+	// Atomic rename
+	if err := os.Rename(tmpFile.Name(), path); err != nil {
+		return fmt.Errorf("failed to rename temp file: %w", err)
+	}
+
+	// Clear tmpFile so defer doesn't try to remove it
+	tmpFile = nil
+
 	return nil
 }
