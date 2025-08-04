@@ -26,6 +26,16 @@ const (
 	StatusFilterDone   StatusFilter = "done"   // Include only done tickets
 )
 
+const (
+	// initialTicketCapacity is the initial capacity for ticket slices
+	// Most projects have 10-50 active tickets, so 50 is a good starting capacity
+	initialTicketCapacity = 50
+
+	// initialMatchCapacity is the initial capacity for search match slices
+	// Most searches result in 0-1 matches, rarely more than 5
+	initialMatchCapacity = 5
+)
+
 // Manager manages ticket operations
 type Manager struct {
 	config      *config.Config
@@ -116,8 +126,7 @@ func (m *Manager) List(ctx context.Context, statusFilter StatusFilter) ([]Ticket
 
 	// Pre-allocate tickets slice with reasonable capacity based on typical usage
 	// This avoids multiple reallocations during append operations without double-reading directories
-	// Most projects have 10-50 active tickets, so 50 is a good starting capacity
-	tickets := make([]Ticket, 0, 50)
+	tickets := make([]Ticket, 0, initialTicketCapacity)
 	for _, dir := range dirs {
 		entries, err := os.ReadDir(dir)
 		if err != nil {
@@ -335,8 +344,7 @@ func (m *Manager) findTicketInDir(ticketID, dir string) (string, error) {
 	}
 
 	// Pre-allocate matches slice with small initial capacity
-	// Most searches result in 0-1 matches, rarely more than 5
-	matches := make([]string, 0, 5)
+	matches := make([]string, 0, initialMatchCapacity)
 	for _, entry := range entries {
 		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".md") {
 			continue

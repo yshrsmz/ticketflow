@@ -51,7 +51,10 @@ type TicketError struct {
 func (e *TicketError) Error() string {
 	// Handle nil error case
 	if e.Err == nil {
-		return fmt.Sprintf("%s ticket: <nil>", e.Op)
+		var sb strings.Builder
+		sb.WriteString(e.Op)
+		sb.WriteString(" ticket: <nil>")
+		return sb.String()
 	}
 
 	// Use strings.Builder for efficient string concatenation
