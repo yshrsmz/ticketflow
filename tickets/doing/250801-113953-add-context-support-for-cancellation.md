@@ -1,8 +1,8 @@
 ---
 priority: 3
-description: "Add context.Context support for cancellation of long-running operations"
+description: Add context.Context support for cancellation of long-running operations
 created_at: "2025-08-01T11:39:53+09:00"
-started_at: null
+started_at: "2025-08-04T22:33:53+09:00"
 closed_at: null
 related:
     - parent:250801-003010-decompose-large-functions
