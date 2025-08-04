@@ -233,7 +233,7 @@ func BenchmarkAddWorktree(b *testing.B) {
 		// Use modulo to cycle through pre-created branches if b.N > maxBranches
 		branchName := fmt.Sprintf("worktree-branch-%d", i%maxBranches)
 		worktreePath := filepath.Join(tmpDir, ".worktrees", fmt.Sprintf("wt-%d", i))
-		
+
 		err := git.AddWorktree(ctx, worktreePath, branchName)
 		if err != nil {
 			b.Fatal(err)
