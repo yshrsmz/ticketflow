@@ -6,8 +6,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"testing"
-	"time"
 
 	"github.com/yshrsmz/ticketflow/internal/config"
 )
@@ -303,18 +303,20 @@ func BenchmarkManagerCreateConcurrent(b *testing.B) {
 		b.Fatal(err)
 	}
 
+	// Use atomic counter for unique slugs
+	var counter atomic.Uint64
+
 	b.ResetTimer()
 	b.ReportAllocs()
 
 	b.RunParallel(func(pb *testing.PB) {
-		i := 0
 		for pb.Next() {
-			slug := fmt.Sprintf("benchmark-ticket-%d-%d", i, time.Now().UnixNano())
+			id := counter.Add(1)
+			slug := fmt.Sprintf("benchmark-ticket-%d", id)
 			_, err := manager.Create(ctx, slug)
 			if err != nil {
 				b.Fatal(err)
 			}
-			i++
 		}
 	})
 }
