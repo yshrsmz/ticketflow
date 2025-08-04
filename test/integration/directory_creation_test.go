@@ -61,7 +61,7 @@ func TestDirectoryAutoCreation(t *testing.T) {
 	require.NoError(t, err)
 
 	// Start the ticket (this should create the doing directory)
-	err = app.StartTicket(context.Background(), tickets[0].ID)
+	err = app.StartTicket(context.Background(), tickets[0].ID, false)
 	require.NoError(t, err)
 
 	// Verify doing directory was created
@@ -142,7 +142,7 @@ func TestDirectoryCreationWithWorktrees(t *testing.T) {
 	require.NoError(t, err)
 
 	// Start the ticket (this should create the doing directory even with worktrees)
-	err = app.StartTicket(context.Background(), tickets[0].ID)
+	err = app.StartTicket(context.Background(), tickets[0].ID, false)
 	require.NoError(t, err)
 
 	// Verify doing directory was created

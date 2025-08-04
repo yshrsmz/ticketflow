@@ -61,7 +61,7 @@ func TestWorktreeWorkflow(t *testing.T) {
 	require.Len(t, tickets, 1)
 
 	ticketID := tickets[0].ID
-	err = app.StartTicket(context.Background(), ticketID)
+	err = app.StartTicket(context.Background(), ticketID, false)
 	require.NoError(t, err)
 
 	// Verify worktree was created
@@ -164,9 +164,9 @@ func TestWorktreeCleanCommand(t *testing.T) {
 	require.Len(t, tickets, 3)
 
 	// Start work on first two tickets
-	err = app.StartTicket(context.Background(), tickets[0].ID)
+	err = app.StartTicket(context.Background(), tickets[0].ID, false)
 	require.NoError(t, err)
-	err = app.StartTicket(context.Background(), tickets[1].ID)
+	err = app.StartTicket(context.Background(), tickets[1].ID, false)
 	require.NoError(t, err)
 
 	// Manually close the first ticket without removing worktree
@@ -249,7 +249,7 @@ func TestWorktreeListCommand(t *testing.T) {
 
 	tickets, err := app.Manager.List(context.Background(), ticket.StatusFilterActive)
 	require.NoError(t, err)
-	err = app.StartTicket(context.Background(), tickets[0].ID)
+	err = app.StartTicket(context.Background(), tickets[0].ID, false)
 	require.NoError(t, err)
 
 	// Test listing worktrees

@@ -124,6 +124,11 @@ type newFlags struct {
 	format      string // Output format (text or json)
 }
 
+// startFlags holds command-line flags for the 'start' command
+type startFlags struct {
+	force bool // Force recreate worktree if it exists
+}
+
 func runCLI(ctx context.Context) error {
 	// Parse command
 	if len(os.Args) < 2 {
@@ -200,8 +205,14 @@ func runCLI(ctx context.Context) error {
 			Name:         "start",
 			MinArgs:      1,
 			MinArgsError: "missing ticket argument",
-			Execute: func(ctx context.Context, fs *flag.FlagSet, flags interface{}) error {
-				return handleStart(ctx, fs.Arg(0), false)
+			SetupFlags: func(fs *flag.FlagSet) interface{} {
+				flags := &startFlags{}
+				fs.BoolVar(&flags.force, "force", false, "Force recreate worktree if it already exists")
+				return flags
+			},
+			Execute: func(ctx context.Context, fs *flag.FlagSet, cmdFlags interface{}) error {
+				flags := cmdFlags.(*startFlags)
+				return handleStart(ctx, fs.Arg(0), flags.force)
 			},
 		}, os.Args[2:])
 
@@ -394,13 +405,13 @@ func handleShow(ctx context.Context, ticketID, format string) error {
 	return nil
 }
 
-func handleStart(ctx context.Context, ticketID string, noPush bool) error {
+func handleStart(ctx context.Context, ticketID string, force bool) error {
 	app, err := cli.NewApp(ctx)
 	if err != nil {
 		return err
 	}
 
-	return app.StartTicket(ctx, ticketID)
+	return app.StartTicket(ctx, ticketID, force)
 }
 
 func handleClose(ctx context.Context, noPush, force bool) error {
@@ -504,7 +515,7 @@ OPTIONS:
     --format FORMAT    Output format: text|json (default: text)
 
   start:
-    (no specific options)
+    --force            Force recreate worktree if it already exists
 
   close:
     --force, -f        Force close with uncommitted changes
