@@ -49,23 +49,27 @@ type TicketError struct {
 }
 
 func (e *TicketError) Error() string {
+	// Handle nil error case
+	if e.Err == nil {
+		return fmt.Sprintf("%s ticket: <nil>", e.Op)
+	}
+
 	// Use strings.Builder for efficient string concatenation
 	var sb strings.Builder
 
 	// Pre-allocate estimated capacity
-	estimatedSize := len(e.Op) + 20 // Base size for operation and separators
+	estimatedSize := len(e.Op) + len(e.Err.Error()) + 10 // base overhead
 	for _, ctx := range e.Context {
-		estimatedSize += len(ctx) + 3 // Add context length plus " > "
+		estimatedSize += len(ctx) + 3 // " > "
 	}
 	if e.TicketID != "" {
 		estimatedSize += len(e.TicketID) + 8 // " ticket "
-	}
-	if e.Err != nil {
-		estimatedSize += len(e.Err.Error()) + 2 // ": " plus error message
+	} else {
+		estimatedSize += 7 // " ticket"
 	}
 	sb.Grow(estimatedSize)
 
-	// Build the error message
+	// Build context chain
 	if len(e.Context) > 0 {
 		for i, ctx := range e.Context {
 			if i > 0 {
@@ -77,6 +81,7 @@ func (e *TicketError) Error() string {
 	}
 	sb.WriteString(e.Op)
 
+	// Always include "ticket" in the message
 	if e.TicketID != "" {
 		sb.WriteString(" ticket ")
 		sb.WriteString(e.TicketID)

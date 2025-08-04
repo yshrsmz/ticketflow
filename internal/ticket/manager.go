@@ -114,18 +114,10 @@ func (m *Manager) List(ctx context.Context, statusFilter StatusFilter) ([]Ticket
 		return nil, fmt.Errorf("invalid status filter: %s", statusFilter)
 	}
 
-	// Pre-allocate tickets slice with estimated capacity based on typical ticket count
-	// This avoids multiple reallocations during append operations
-	estimatedCapacity := 0
-	for _, dir := range dirs {
-		entries, _ := os.ReadDir(dir)
-		for _, entry := range entries {
-			if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".md") {
-				estimatedCapacity++
-			}
-		}
-	}
-	tickets := make([]Ticket, 0, estimatedCapacity)
+	// Pre-allocate tickets slice with reasonable capacity based on typical usage
+	// This avoids multiple reallocations during append operations without double-reading directories
+	// Most projects have 10-50 active tickets, so 50 is a good starting capacity
+	tickets := make([]Ticket, 0, 50)
 	for _, dir := range dirs {
 		entries, err := os.ReadDir(dir)
 		if err != nil {
