@@ -147,4 +147,22 @@ func TestNewCommandWithParentFlag(t *testing.T) {
 		// Should not have the first parent
 		assert.NotContains(t, subTicket.Related, "parent:"+parentID)
 	})
+
+	t.Run("use ticket ID as parent", func(t *testing.T) {
+		// Create sub-ticket using parent ticket ID instead of slug
+		err := app.NewTicket(ctx, "sub-with-id-parent", parentID, cli.FormatText)
+		require.NoError(t, err)
+
+		// Find the created sub-ticket
+		subTicketPath := filepath.Join(tmpDir, "tickets", "todo", "*sub-with-id-parent.md")
+		subFiles, err := filepath.Glob(subTicketPath)
+		require.NoError(t, err)
+		require.Len(t, subFiles, 1, "Should have created one sub-ticket")
+
+		// Read and verify sub-ticket has parent relationship
+		subTicket := readTicketFromFile(t, subFiles[0])
+		require.NotNil(t, subTicket)
+
+		assert.Contains(t, subTicket.Related, "parent:"+parentID)
+	})
 }

@@ -180,11 +180,10 @@ func InitCommandWithWorkingDir(ctx context.Context, workingDir string) error {
 }
 
 // NewTicket creates a new ticket
-func (app *App) NewTicket(ctx context.Context, slug string, explicitParent string, format OutputFormat) error {
-	logger := log.Global().WithOperation("new_ticket")
-
-	// Validate slug
+// validateSlug checks if the slug is valid
+func (app *App) validateSlug(slug string) error {
 	if !ticket.IsValidSlug(slug) {
+		logger := log.Global().WithOperation("new_ticket")
 		logger.Error("invalid slug format", slog.String("slug", slug))
 		return NewError(ErrTicketInvalid, "Invalid slug format",
 			fmt.Sprintf("Slug '%s' contains invalid characters", slug),
@@ -194,84 +193,123 @@ func (app *App) NewTicket(ctx context.Context, slug string, explicitParent strin
 				"Use only hyphens (-) for separation",
 			})
 	}
-	logger.Debug("creating new ticket", slog.String("slug", slug), slog.String("explicit_parent", explicitParent))
+	return nil
+}
 
-	var parentTicketID string
+// warnIfParentDone warns if the parent ticket is already done
+func (app *App) warnIfParentDone(parentTicket *ticket.Ticket, parentID string) {
+	if parentTicket.Status() == ticket.StatusDone {
+		app.Output.Printf("⚠️  Warning: Parent ticket '%s' is already done\n", parentID)
+	}
+}
 
-	// Handle explicit parent first to avoid unnecessary checks
-	if explicitParent != "" {
-		// Prevent self-parenting (check this first before checking if parent exists)
-		// Get the generated ticket ID for comparison
-		generatedID := ticket.GenerateID(slug)
-		if explicitParent == slug || explicitParent == generatedID {
-			return NewError(ErrTicketInvalid, "Invalid parent relationship",
-				"A ticket cannot be its own parent",
+// checkCircularDependency checks if adding newTicketID as a child of parentID would create a circular dependency
+func (app *App) checkCircularDependency(ctx context.Context, parentID, newTicketID string) error {
+	// Check if the parent ticket has the new ticket as an ancestor
+	currentID := parentID
+	visited := make(map[string]bool)
+
+	for currentID != "" {
+		// Prevent infinite loops in case of existing circular dependencies
+		if visited[currentID] {
+			break
+		}
+		visited[currentID] = true
+
+		// Check if we've reached the new ticket ID
+		if currentID == newTicketID {
+			return NewError(ErrTicketInvalid, "Circular dependency detected",
+				fmt.Sprintf("Creating this relationship would form a circular dependency: %s → %s", newTicketID, parentID),
 				[]string{
 					"Choose a different parent ticket",
-					"Or create a top-level ticket without --parent",
+					"Check the ticket hierarchy with 'ticketflow show'",
 				})
 		}
 
-		// Validate that the parent ticket exists
-		parentTicket, err := app.Manager.Get(ctx, explicitParent)
+		// Get the current ticket to check its parent
+		currentTicket, err := app.Manager.Get(ctx, currentID)
 		if err != nil {
-			logger.Error("parent ticket not found", slog.String("parent", explicitParent))
-			return NewError(ErrTicketNotFound, "Parent ticket not found",
-				fmt.Sprintf("Ticket '%s' does not exist", explicitParent),
-				[]string{
-					"Check the ticket ID is correct",
-					"Use 'ticketflow list' to see available tickets",
-				})
+			// If we can't get the ticket, assume no circular dependency
+			break
 		}
 
-		// Warn if parent ticket is done (but still allow it)
-		if parentTicket.Status() == ticket.StatusDone {
-			app.Output.Printf("⚠️  Warning: Parent ticket '%s' is already done\n", explicitParent)
-		}
-
-		parentTicketID = explicitParent
-		app.Output.Printf("Creating sub-ticket with parent: %s\n", parentTicketID)
-	} else {
-		// No explicit parent, check for implicit parent from current branch
-		currentBranch, err := app.Git.CurrentBranch(ctx)
-		if err != nil {
-			return fmt.Errorf("failed to get current branch: %w", err)
-		}
-
-		if currentBranch != app.Config.Git.DefaultBranch {
-			// Check if current branch is a ticket
-			if parentTicket, err := app.Manager.Get(ctx, currentBranch); err == nil {
-				parentTicketID = currentBranch
-				app.Output.Printf("Creating ticket in branch: %s\n", currentBranch)
-
-				// Warn if parent ticket is done (but still allow it)
-				if parentTicket.Status() == ticket.StatusDone {
-					app.Output.Printf("⚠️  Warning: Parent ticket '%s' is already done\n", currentBranch)
-				}
-			}
-		}
+		// Extract parent from related field
+		currentID = app.extractParentTicketID(currentTicket)
 	}
 
-	// Create ticket
-	t, err := app.Manager.Create(ctx, slug)
+	return nil
+}
+
+// validateExplicitParent validates an explicitly provided parent ticket
+func (app *App) validateExplicitParent(ctx context.Context, explicitParent, slug string) (string, error) {
+	logger := log.Global().WithOperation("new_ticket")
+
+	// Prevent self-parenting (check this first before checking if parent exists)
+	// Get the generated ticket ID for comparison
+	generatedID := ticket.GenerateID(slug)
+	if explicitParent == slug || explicitParent == generatedID {
+		return "", NewError(ErrTicketInvalid, "Invalid parent relationship",
+			"A ticket cannot be its own parent",
+			[]string{
+				"Choose a different parent ticket",
+				"Or create a top-level ticket without --parent",
+			})
+	}
+
+	// Validate that the parent ticket exists
+	parentTicket, err := app.Manager.Get(ctx, explicitParent)
 	if err != nil {
-		logger.WithError(err).Error("failed to create ticket", slog.String("slug", slug))
-		return ConvertError(err)
+		logger.Error("parent ticket not found", slog.String("parent", explicitParent))
+		return "", NewError(ErrTicketNotFound, "Parent ticket not found",
+			fmt.Sprintf("Ticket '%s' does not exist", explicitParent),
+			[]string{
+				"Check the ticket ID is correct",
+				"Use 'ticketflow list' to see available tickets",
+			})
 	}
-	logger.Info("created ticket", "ticket_id", t.ID, "path", t.Path)
 
-	// If this is a sub-ticket, update its metadata
-	if parentTicketID != "" {
-		logger.Debug("creating sub-ticket", "parent", parentTicketID)
-		// Add parent relationship
-		t.Related = append(t.Related, fmt.Sprintf("parent:%s", parentTicketID))
-		if err := app.Manager.Update(ctx, t); err != nil {
-			logger.WithError(err).Error("failed to update ticket metadata", slog.String("ticket_id", t.ID), slog.String("parent", parentTicketID))
-			return fmt.Errorf("failed to update ticket metadata: %w", err)
+	// Check for circular dependencies
+	if err := app.checkCircularDependency(ctx, explicitParent, generatedID); err != nil {
+		return "", err
+	}
+
+	// Warn if parent ticket is done (but still allow it)
+	app.warnIfParentDone(parentTicket, explicitParent)
+
+	app.Output.Printf("Creating sub-ticket with parent: %s\n", explicitParent)
+	return explicitParent, nil
+}
+
+// detectImplicitParent detects parent ticket from current branch
+func (app *App) detectImplicitParent(ctx context.Context) (string, error) {
+	currentBranch, err := app.Git.CurrentBranch(ctx)
+	if err != nil {
+		return "", fmt.Errorf("failed to get current branch: %w", err)
+	}
+
+	if currentBranch != app.Config.Git.DefaultBranch {
+		// Check if current branch is a ticket
+		if parentTicket, err := app.Manager.Get(ctx, currentBranch); err == nil {
+			app.Output.Printf("Creating ticket in branch: %s\n", currentBranch)
+			// Warn if parent ticket is done (but still allow it)
+			app.warnIfParentDone(parentTicket, currentBranch)
+			return currentBranch, nil
 		}
-		logger.Info("created sub-ticket", "ticket_id", t.ID, "parent", parentTicketID)
 	}
 
+	return "", nil
+}
+
+// resolveParentTicket resolves the parent ticket from explicit or implicit sources
+func (app *App) resolveParentTicket(ctx context.Context, explicitParent, slug string) (string, error) {
+	if explicitParent != "" {
+		return app.validateExplicitParent(ctx, explicitParent, slug)
+	}
+	return app.detectImplicitParent(ctx)
+}
+
+// outputTicketCreated outputs the result of ticket creation
+func (app *App) outputTicketCreated(t *ticket.Ticket, parentTicketID, slug string, format OutputFormat) error {
 	if format == FormatJSON {
 		output := map[string]interface{}{
 			"ticket": map[string]interface{}{
@@ -303,6 +341,46 @@ func (app *App) NewTicket(ctx context.Context, slug string, explicitParent strin
 	app.Output.Printf("   ticketflow start %s\n", t.ID)
 
 	return nil
+}
+
+func (app *App) NewTicket(ctx context.Context, slug string, explicitParent string, format OutputFormat) error {
+	logger := log.Global().WithOperation("new_ticket")
+
+	// Validate slug
+	if err := app.validateSlug(slug); err != nil {
+		return err
+	}
+
+	logger.Debug("creating new ticket", slog.String("slug", slug), slog.String("explicit_parent", explicitParent))
+
+	// Resolve parent ticket
+	parentTicketID, err := app.resolveParentTicket(ctx, explicitParent, slug)
+	if err != nil {
+		return err
+	}
+
+	// Create ticket
+	t, err := app.Manager.Create(ctx, slug)
+	if err != nil {
+		logger.WithError(err).Error("failed to create ticket", slog.String("slug", slug))
+		return ConvertError(err)
+	}
+	logger.Info("created ticket", "ticket_id", t.ID, "path", t.Path)
+
+	// If this is a sub-ticket, update its metadata
+	if parentTicketID != "" {
+		logger.Debug("creating sub-ticket", "parent", parentTicketID)
+		// Add parent relationship
+		t.Related = append(t.Related, fmt.Sprintf("parent:%s", parentTicketID))
+		if err := app.Manager.Update(ctx, t); err != nil {
+			logger.WithError(err).Error("failed to update ticket metadata", slog.String("ticket_id", t.ID), slog.String("parent", parentTicketID))
+			return fmt.Errorf("failed to update ticket metadata: %w", err)
+		}
+		logger.Info("created sub-ticket", "ticket_id", t.ID, "parent", parentTicketID)
+	}
+
+	// Output result
+	return app.outputTicketCreated(t, parentTicketID, slug, format)
 }
 
 // ListTickets lists tickets
