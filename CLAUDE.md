@@ -57,6 +57,7 @@ make release-archives   # Create release archives with checksums
 4. **Command Pattern**: CLI commands are self-contained with their own Execute methods
 5. **Interface-based Git Operations**: Git package provides an abstraction over git commands
 6. **Small, Focused Functions**: Following Single Responsibility Principle, complex operations are decomposed into smaller helper functions for better maintainability and testability
+7. **Context-Aware Operations**: All long-running operations support context.Context for cancellation and timeouts (see docs/context-usage.md)
 
 ### Configuration (.ticketflow.yaml)
 The application is configured via .ticketflow.yaml which controls:
@@ -79,6 +80,7 @@ The application is configured via .ticketflow.yaml which controls:
 - **Error Handling**: Wrap errors with context using `fmt.Errorf` for better debugging
 - **Helper Functions**: Extract common validation, setup, and cleanup logic into reusable helpers
 - **Early Returns**: Use guard clauses to reduce nesting and improve readability
+- **Context Usage**: All long-running operations should accept `context.Context` as first parameter and check for cancellation
 
 ### Version Management
 Version information is embedded at build time using ldflags:
