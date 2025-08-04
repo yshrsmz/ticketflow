@@ -124,7 +124,7 @@ func BenchmarkCloseTicket(b *testing.B) {
 	cfg := config.Default()
 	// Disable worktrees for close benchmark to avoid conflicts
 	cfg.Worktree.Enabled = false
-	
+
 	app := &App{
 		Manager:     ticket.NewManager(cfg, tmpDir),
 		Git:         git.New(tmpDir),
@@ -169,7 +169,7 @@ func BenchmarkCloseTicket(b *testing.B) {
 		if err != nil {
 			b.Fatal(err)
 		}
-		
+
 		// Commit the changes to avoid uncommitted changes error
 		_, _ = app.Git.Exec(ctx, "add", ".")
 		_, _ = app.Git.Exec(ctx, "commit", "-m", "Start ticket")
