@@ -3,7 +3,7 @@ priority: 3
 description: Add benchmarks for critical performance paths in the codebase
 created_at: "2025-08-01T11:39:16+09:00"
 started_at: "2025-08-04T18:23:04+09:00"
-closed_at: null
+closed_at: "2025-08-04T22:30:37+09:00"
 related:
     - parent:250801-003010-decompose-large-functions
 ---
