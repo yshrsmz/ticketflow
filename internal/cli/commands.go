@@ -198,21 +198,7 @@ func (app *App) NewTicket(ctx context.Context, slug string, explicitParent strin
 
 	var parentTicketID string
 
-	// First, check current branch to see if we're in a ticket worktree
-	currentBranch, err := app.Git.CurrentBranch(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to get current branch: %w", err)
-	}
-
-	var implicitParent string
-	if currentBranch != app.Config.Git.DefaultBranch {
-		// Check if current branch is a ticket
-		if _, err := app.Manager.Get(ctx, currentBranch); err == nil {
-			implicitParent = currentBranch
-		}
-	}
-
-	// Handle explicit parent
+	// Handle explicit parent first to avoid unnecessary checks
 	if explicitParent != "" {
 		// Prevent self-parenting (check this first before checking if parent exists)
 		// Get the generated ticket ID for comparison
@@ -227,7 +213,8 @@ func (app *App) NewTicket(ctx context.Context, slug string, explicitParent strin
 		}
 
 		// Validate that the parent ticket exists
-		if _, err := app.Manager.Get(ctx, explicitParent); err != nil {
+		parentTicket, err := app.Manager.Get(ctx, explicitParent)
+		if err != nil {
 			logger.Error("parent ticket not found", slog.String("parent", explicitParent))
 			return NewError(ErrTicketNotFound, "Parent ticket not found",
 				fmt.Sprintf("Ticket '%s' does not exist", explicitParent),
@@ -237,18 +224,32 @@ func (app *App) NewTicket(ctx context.Context, slug string, explicitParent strin
 				})
 		}
 
-		parentTicketID = explicitParent
-
-		// Show warning if we're overriding an implicit parent
-		if implicitParent != "" && implicitParent != explicitParent {
-			app.Output.Printf("Using explicit parent '%s' instead of current worktree '%s'\n",
-				explicitParent, implicitParent)
+		// Warn if parent ticket is done (but still allow it)
+		if parentTicket.Status() == ticket.StatusDone {
+			app.Output.Printf("⚠️  Warning: Parent ticket '%s' is already done\n", explicitParent)
 		}
+
+		parentTicketID = explicitParent
 		app.Output.Printf("Creating sub-ticket with parent: %s\n", parentTicketID)
-	} else if implicitParent != "" {
-		// Use implicit parent from current branch
-		parentTicketID = implicitParent
-		app.Output.Printf("Creating ticket in branch: %s\n", currentBranch)
+	} else {
+		// No explicit parent, check for implicit parent from current branch
+		currentBranch, err := app.Git.CurrentBranch(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to get current branch: %w", err)
+		}
+
+		if currentBranch != app.Config.Git.DefaultBranch {
+			// Check if current branch is a ticket
+			if parentTicket, err := app.Manager.Get(ctx, currentBranch); err == nil {
+				parentTicketID = currentBranch
+				app.Output.Printf("Creating ticket in branch: %s\n", currentBranch)
+
+				// Warn if parent ticket is done (but still allow it)
+				if parentTicket.Status() == ticket.StatusDone {
+					app.Output.Printf("⚠️  Warning: Parent ticket '%s' is already done\n", currentBranch)
+				}
+			}
+		}
 	}
 
 	// Create ticket

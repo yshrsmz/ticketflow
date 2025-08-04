@@ -10,6 +10,7 @@ import (
 	"github.com/yshrsmz/ticketflow/internal/config"
 	ticketerrors "github.com/yshrsmz/ticketflow/internal/errors"
 	"github.com/yshrsmz/ticketflow/internal/mocks"
+	"github.com/yshrsmz/ticketflow/internal/testutil"
 	"github.com/yshrsmz/ticketflow/internal/ticket"
 )
 
@@ -23,7 +24,7 @@ func TestApp_NewTicket_WithParent(t *testing.T) {
 		expectedError  bool
 		errorMessage   string
 		expectedParent string
-		checkOutput    func(t *testing.T, output *TestOutputCapture)
+		checkOutput    func(t *testing.T, output *testutil.OutputCapture)
 	}{
 		{
 			name:           "explicit parent - valid",
@@ -61,7 +62,7 @@ func TestApp_NewTicket_WithParent(t *testing.T) {
 			},
 			expectedError:  false,
 			expectedParent: "parent-ticket",
-			checkOutput: func(t *testing.T, output *TestOutputCapture) {
+			checkOutput: func(t *testing.T, output *testutil.OutputCapture) {
 				assert.Contains(t, output.Stdout(), "Creating sub-ticket with parent: parent-ticket")
 			},
 		},
@@ -124,7 +125,7 @@ func TestApp_NewTicket_WithParent(t *testing.T) {
 			},
 			expectedError:  false,
 			expectedParent: "250802-100000-parent-ticket",
-			checkOutput: func(t *testing.T, output *TestOutputCapture) {
+			checkOutput: func(t *testing.T, output *testutil.OutputCapture) {
 				assert.Contains(t, output.Stdout(), "Creating ticket in branch: 250802-100000-parent-ticket")
 			},
 		},
@@ -134,12 +135,6 @@ func TestApp_NewTicket_WithParent(t *testing.T) {
 			explicitParent: "explicit-parent",
 			currentBranch:  "implicit-parent",
 			setupManager: func(m *mocks.MockTicketManager) {
-				// Check current branch (implicit parent)
-				implicitTicket := &ticket.Ticket{
-					ID: "implicit-parent",
-				}
-				m.On("Get", mock.Anything, "implicit-parent").Return(implicitTicket, nil)
-
 				// Validate explicit parent
 				explicitTicket := &ticket.Ticket{
 					ID: "explicit-parent",
@@ -166,8 +161,7 @@ func TestApp_NewTicket_WithParent(t *testing.T) {
 			},
 			expectedError:  false,
 			expectedParent: "explicit-parent",
-			checkOutput: func(t *testing.T, output *TestOutputCapture) {
-				assert.Contains(t, output.Stdout(), "Using explicit parent 'explicit-parent' instead of current worktree 'implicit-parent'")
+			checkOutput: func(t *testing.T, output *testutil.OutputCapture) {
 				assert.Contains(t, output.Stdout(), "Creating sub-ticket with parent: explicit-parent")
 			},
 		},
@@ -191,7 +185,7 @@ func TestApp_NewTicket_WithParent(t *testing.T) {
 			},
 			expectedError:  false,
 			expectedParent: "",
-			checkOutput: func(t *testing.T, output *TestOutputCapture) {
+			checkOutput: func(t *testing.T, output *testutil.OutputCapture) {
 				// Should not contain any parent-related messages
 				assert.NotContains(t, output.Stdout(), "Creating sub-ticket")
 				assert.NotContains(t, output.Stdout(), "Creating ticket in branch")
@@ -209,10 +203,13 @@ func TestApp_NewTicket_WithParent(t *testing.T) {
 
 			// Create mock git client
 			mockGit := new(mocks.MockGitClient)
-			mockGit.On("CurrentBranch", mock.Anything).Return(tt.currentBranch, nil)
+			// Only set up CurrentBranch expectation if no explicit parent
+			if tt.explicitParent == "" {
+				mockGit.On("CurrentBranch", mock.Anything).Return(tt.currentBranch, nil)
+			}
 
 			// Capture output
-			output := NewTestOutputCapture()
+			output := testutil.NewOutputCapture()
 
 			// Create app with mocks
 			cfg := config.Default()
@@ -222,7 +219,7 @@ func TestApp_NewTicket_WithParent(t *testing.T) {
 				Manager:     mockManager,
 				Git:         mockGit,
 				ProjectRoot: "/test/project",
-				Output:      output.Writer,
+				Output:      NewOutputWriter(output, output.StderrWriter(), FormatText),
 			}
 
 			// Execute
@@ -248,39 +245,4 @@ func TestApp_NewTicket_WithParent(t *testing.T) {
 			mockGit.AssertExpectations(t)
 		})
 	}
-}
-
-// TestOutputCapture helps capture output during tests
-type TestOutputCapture struct {
-	stdout string
-	stderr string
-	Writer *OutputWriter
-}
-
-func NewTestOutputCapture() *TestOutputCapture {
-	capture := &TestOutputCapture{}
-	capture.Writer = &OutputWriter{
-		stdout: capture,
-		stderr: capture,
-		format: FormatText,
-	}
-	return capture
-}
-
-func (c *TestOutputCapture) Write(p []byte) (n int, err error) {
-	c.stdout += string(p)
-	return len(p), nil
-}
-
-func (c *TestOutputCapture) WriteString(s string) (n int, err error) {
-	c.stdout += s
-	return len(s), nil
-}
-
-func (c *TestOutputCapture) Stdout() string {
-	return c.stdout
-}
-
-func (c *TestOutputCapture) Stderr() string {
-	return c.stderr
 }

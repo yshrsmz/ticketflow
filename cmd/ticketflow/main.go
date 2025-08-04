@@ -124,6 +124,17 @@ type newFlags struct {
 	format      string // Output format (text or json)
 }
 
+// resolveParentFlag resolves the parent flag from long and short forms
+func resolveParentFlag(parent, parentShort string) (string, error) {
+	if parent != "" && parentShort != "" {
+		return "", fmt.Errorf("cannot specify both --parent and -p flags")
+	}
+	if parent != "" {
+		return parent, nil
+	}
+	return parentShort, nil
+}
+
 func runCLI(ctx context.Context) error {
 	// Parse command
 	if len(os.Args) < 2 {
@@ -155,12 +166,9 @@ func runCLI(ctx context.Context) error {
 			},
 			Execute: func(ctx context.Context, fs *flag.FlagSet, cmdFlags interface{}) error {
 				flags := cmdFlags.(*newFlags)
-				// Validate that only one parent flag is used
-				parent := flags.parent
-				if parent == "" {
-					parent = flags.parentShort
-				} else if flags.parentShort != "" {
-					return fmt.Errorf("cannot specify both --parent and -p flags")
+				parent, err := resolveParentFlag(flags.parent, flags.parentShort)
+				if err != nil {
+					return err
 				}
 				return handleNew(ctx, fs.Arg(0), parent, flags.format)
 			},
