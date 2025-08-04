@@ -140,7 +140,7 @@ func TestConfigFileContextHelpers(t *testing.T) {
 		// Simulate partial write by creating a goroutine that tries to read
 		// while we're writing new content
 		newData := []byte("new: content\nmore: data")
-		done := make(chan bool)
+		done := make(chan struct{})
 		go func() {
 			// Try to read file multiple times during write
 			for i := 0; i < 10; i++ {
@@ -151,7 +151,7 @@ func TestConfigFileContextHelpers(t *testing.T) {
 				}
 				time.Sleep(time.Millisecond)
 			}
-			done <- true
+			close(done)
 		}()
 
 		// Write new content

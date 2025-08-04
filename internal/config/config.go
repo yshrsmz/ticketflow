@@ -257,12 +257,6 @@ func validateTimeout(value int, fieldName string) error {
 	return nil
 }
 
-// MaxConfigSize is the maximum allowed size for config files.
-// This prevents accidental loading of non-config files and protects
-// against malicious large files. 1MB should be more than sufficient
-// for any reasonable configuration.
-const MaxConfigSize = 1024 * 1024 // 1MB
-
 // readConfigFileWithContext reads a config file with context support
 func readConfigFileWithContext(ctx context.Context, path string) ([]byte, error) {
 	// Check context before starting

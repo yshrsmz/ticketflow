@@ -38,3 +38,12 @@ const (
 	DirPermission  = 0755
 	FilePermission = 0644
 )
+
+// File size limits
+const (
+	// MaxConfigSize is the maximum allowed size for config files.
+	// This prevents accidental loading of non-config files and protects
+	// against malicious large files. 1MB should be more than sufficient
+	// for any reasonable configuration.
+	MaxConfigSize = 1024 * 1024 // 1MB
+)
