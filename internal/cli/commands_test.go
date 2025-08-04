@@ -300,7 +300,7 @@ Test ticket content`
 			}
 
 			// Execute
-			err := app.StartTicket(context.Background(), tt.ticketID)
+			err := app.StartTicket(context.Background(), tt.ticketID, false)
 
 			// Assert
 			if tt.expectedError {

@@ -78,7 +78,7 @@ func TestStartTicketWithExistingBranch(t *testing.T) {
 	assert.False(t, hasWorktree, "Worktree should not exist yet")
 
 	// Now try to start the ticket - this should succeed even though branch exists
-	err = app.StartTicket(ctx, ticketID)
+	err = app.StartTicket(ctx, ticketID, false)
 	require.NoError(t, err, "Starting ticket with existing branch should succeed")
 
 	// Verify worktree was created
@@ -153,11 +153,11 @@ func TestStartTicketWithExistingBranchAndWorktree(t *testing.T) {
 	ticketID := tickets[0].ID
 
 	// Start the ticket normally first time
-	err = app.StartTicket(ctx, ticketID)
+	err = app.StartTicket(ctx, ticketID, false)
 	require.NoError(t, err)
 
 	// Try to start the same ticket again - should fail
-	err = app.StartTicket(ctx, ticketID)
+	err = app.StartTicket(ctx, ticketID, false)
 	require.Error(t, err)
 
 	// The error is "ticket already started" which happens before worktree check

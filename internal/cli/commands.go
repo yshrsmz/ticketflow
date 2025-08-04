@@ -426,12 +426,12 @@ func (app *App) ListTickets(ctx context.Context, status ticket.Status, count int
 }
 
 // StartTicket starts working on a ticket
-func (app *App) StartTicket(ctx context.Context, ticketID string) error {
+func (app *App) StartTicket(ctx context.Context, ticketID string, force bool) error {
 	logger := log.Global().WithOperation("start_ticket").WithTicket(ticketID)
 	logger.Info("starting ticket")
 
 	// Get and validate the ticket
-	t, err := app.validateTicketForStart(ctx, ticketID)
+	t, err := app.validateTicketForStart(ctx, ticketID, force)
 	if err != nil {
 		logger.WithError(err).Error("failed to validate ticket")
 		return err
@@ -454,7 +454,7 @@ func (app *App) StartTicket(ctx context.Context, ticketID string) error {
 	}
 
 	// Check if worktree already exists (for worktree mode)
-	if err := app.checkExistingWorktree(ctx, t); err != nil {
+	if err := app.checkExistingWorktree(ctx, t, force); err != nil {
 		return err
 	}
 
@@ -463,9 +463,11 @@ func (app *App) StartTicket(ctx context.Context, ticketID string) error {
 		return err
 	}
 
-	// Move ticket to doing status
-	if err := app.moveTicketToDoing(ctx, t, currentBranch); err != nil {
-		return err
+	// Move ticket to doing status (skip if already in doing and using force)
+	if t.Status() != ticket.StatusDoing {
+		if err := app.moveTicketToDoing(ctx, t, currentBranch); err != nil {
+			return err
+		}
 	}
 
 	// Now create worktree AFTER committing (for worktree mode)
@@ -839,7 +841,7 @@ func (app *App) CleanupTicket(ctx context.Context, ticketID string, force bool) 
 }
 
 // validateTicketForStart validates that a ticket can be started
-func (app *App) validateTicketForStart(ctx context.Context, ticketID string) (*ticket.Ticket, error) {
+func (app *App) validateTicketForStart(ctx context.Context, ticketID string, force bool) (*ticket.Ticket, error) {
 	// Get the ticket
 	t, err := app.Manager.Get(ctx, ticketID)
 	if err != nil {
@@ -848,6 +850,10 @@ func (app *App) validateTicketForStart(ctx context.Context, ticketID string) (*t
 
 	// Check if already started
 	if t.Status() == ticket.StatusDoing {
+		// If force is enabled and worktrees are used, allow restarting
+		if force && app.Config.Worktree.Enabled {
+			return t, nil
+		}
 		return nil, NewError(ErrTicketAlreadyStarted, "Ticket already started",
 			fmt.Sprintf("Ticket %s is already in progress", t.ID), nil)
 	}
@@ -1118,7 +1124,7 @@ func (app *App) moveTicketToDone(ctx context.Context, current *ticket.Ticket) er
 }
 
 // checkExistingWorktree checks if a worktree already exists for the ticket
-func (app *App) checkExistingWorktree(ctx context.Context, t *ticket.Ticket) error {
+func (app *App) checkExistingWorktree(ctx context.Context, t *ticket.Ticket, force bool) error {
 	if !app.Config.Worktree.Enabled {
 		return nil
 	}
@@ -1127,8 +1133,17 @@ func (app *App) checkExistingWorktree(ctx context.Context, t *ticket.Ticket) err
 		return fmt.Errorf("failed to check worktree: %w", err)
 	} else if exists {
 		worktreePath := worktree.GetPath(ctx, app.Git, app.Config, app.ProjectRoot, t.ID)
-		return NewError(ErrWorktreeExists, "Worktree already exists",
-			fmt.Sprintf("Worktree for ticket %s already exists at: %s", t.ID, worktreePath), nil)
+		if !force {
+			return NewError(ErrWorktreeExists, "Worktree already exists",
+				fmt.Sprintf("Worktree for ticket %s already exists at: %s", t.ID, worktreePath), nil)
+		}
+		// Force is enabled, remove the existing worktree
+		logger := log.Global().WithOperation("start_ticket").WithTicket(t.ID)
+		logger.Info("removing existing worktree due to --force flag", "path", worktreePath)
+		fmt.Printf("Removing existing worktree at %s\n", worktreePath)
+		if err := app.Git.RemoveWorktree(ctx, worktreePath); err != nil {
+			return fmt.Errorf("failed to remove existing worktree: %w", err)
+		}
 	}
 
 	return nil

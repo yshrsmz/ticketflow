@@ -439,7 +439,7 @@ func TestHandleStart(t *testing.T) {
 			if err != nil {
 				cmdErr = err
 			} else {
-				cmdErr = app.StartTicket(ctx, ticketID)
+				cmdErr = app.StartTicket(ctx, ticketID, false)
 			}
 
 			if tt.expectedError {

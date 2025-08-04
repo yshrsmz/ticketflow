@@ -44,7 +44,7 @@ func TestCleanupTicketWithForceFlag(t *testing.T) {
 	require.NotEmpty(t, ticketID, "Could not find created ticket")
 
 	// Start the ticket (creates worktree)
-	err = app.StartTicket(context.Background(), ticketID)
+	err = app.StartTicket(context.Background(), ticketID, false)
 	require.NoError(t, err)
 
 	// Get the ticket to verify it exists
