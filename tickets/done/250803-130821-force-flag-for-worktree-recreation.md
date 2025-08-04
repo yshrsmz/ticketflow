@@ -3,7 +3,7 @@ priority: 2
 description: ""
 created_at: "2025-08-03T13:08:21+09:00"
 started_at: "2025-08-04T17:27:48+09:00"
-closed_at: null
+closed_at: "2025-08-04T18:16:21+09:00"
 related:
     - parent:250726-183403-fix-branch-already-exist-on-start
 ---
