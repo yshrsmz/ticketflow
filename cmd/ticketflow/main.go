@@ -117,22 +117,29 @@ type migrateFlags struct {
 	dryRun bool
 }
 
-// newFlags holds command-line flags for the 'new' command
-type newFlags struct {
-	parent      string // Parent ticket ID specified with --parent
-	parentShort string // Parent ticket ID specified with -p (short form)
-	format      string // Output format (text or json)
+// parentValue implements flag.Value for parent ticket ID with support for both long and short forms
+type parentValue struct {
+	value string
+	isSet bool
 }
 
-// resolveParentFlag resolves the parent flag from long and short forms
-func resolveParentFlag(parent, parentShort string) (string, error) {
-	if parent != "" && parentShort != "" {
-		return "", fmt.Errorf("cannot specify both --parent and -p flags")
+func (p *parentValue) String() string {
+	return p.value
+}
+
+func (p *parentValue) Set(v string) error {
+	if p.isSet {
+		return fmt.Errorf("parent flag already set")
 	}
-	if parent != "" {
-		return parent, nil
-	}
-	return parentShort, nil
+	p.value = v
+	p.isSet = true
+	return nil
+}
+
+// newFlags holds command-line flags for the 'new' command
+type newFlags struct {
+	parent parentValue // Parent ticket ID (supports both --parent and -p)
+	format string      // Output format (text or json)
 }
 
 func runCLI(ctx context.Context) error {
@@ -159,18 +166,14 @@ func runCLI(ctx context.Context) error {
 			MinArgsError: "missing slug argument",
 			SetupFlags: func(fs *flag.FlagSet) interface{} {
 				flags := &newFlags{}
-				fs.StringVar(&flags.parent, "parent", "", "Parent ticket ID")
-				fs.StringVar(&flags.parentShort, "p", "", "Parent ticket ID (short form)")
+				fs.Var(&flags.parent, "parent", "Parent ticket ID")
+				fs.Var(&flags.parent, "p", "Parent ticket ID (short form)")
 				fs.StringVar(&flags.format, "format", "text", "Output format (text|json)")
 				return flags
 			},
 			Execute: func(ctx context.Context, fs *flag.FlagSet, cmdFlags interface{}) error {
 				flags := cmdFlags.(*newFlags)
-				parent, err := resolveParentFlag(flags.parent, flags.parentShort)
-				if err != nil {
-					return err
-				}
-				return handleNew(ctx, fs.Arg(0), parent, flags.format)
+				return handleNew(ctx, fs.Arg(0), flags.parent.value, flags.format)
 			},
 		}, os.Args[2:])
 
