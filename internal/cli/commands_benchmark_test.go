@@ -3,6 +3,7 @@ package cli
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -25,6 +26,7 @@ func BenchmarkCreateTicket(b *testing.B) {
 		Git:         git.New(tmpDir),
 		Config:      config.Default(),
 		ProjectRoot: tmpDir,
+		Output:      NewOutputWriter(io.Discard, io.Discard, FormatText),
 	}
 
 	ctx := context.Background()
@@ -60,6 +62,8 @@ func BenchmarkStartTicket(b *testing.B) {
 			cfg.Worktree.Enabled = scenario.worktreeEnabled
 			if scenario.worktreeEnabled {
 				cfg.Worktree.BaseDir = "../.worktrees"
+				// Disable init commands for benchmark
+				cfg.Worktree.InitCommands = []string{}
 			}
 
 			app := &App{
@@ -67,6 +71,7 @@ func BenchmarkStartTicket(b *testing.B) {
 				Git:         git.New(tmpDir),
 				Config:      cfg,
 				ProjectRoot: tmpDir,
+				Output:      NewOutputWriter(io.Discard, io.Discard, FormatText),
 			}
 
 			ctx := context.Background()
@@ -92,6 +97,12 @@ func BenchmarkStartTicket(b *testing.B) {
 					b.Fatal(err)
 				}
 
+				// For non-worktree mode, commit the changes to avoid uncommitted changes error
+				if !scenario.worktreeEnabled {
+					_, _ = app.Git.Exec(ctx, "add", ".")
+					_, _ = app.Git.Exec(ctx, "commit", "-m", "Benchmark commit")
+				}
+
 				// Clean up by switching back to main branch
 				_, _ = app.Git.Exec(ctx, "checkout", "main")
 
@@ -111,11 +122,15 @@ func BenchmarkCloseTicket(b *testing.B) {
 	setupBenchmarkGitRepo(b, tmpDir)
 
 	cfg := config.Default()
+	// Disable worktrees for close benchmark to avoid conflicts
+	cfg.Worktree.Enabled = false
+	
 	app := &App{
 		Manager:     ticket.NewManager(cfg, tmpDir),
 		Git:         git.New(tmpDir),
 		Config:      cfg,
 		ProjectRoot: tmpDir,
+		Output:      NewOutputWriter(io.Discard, io.Discard, FormatText),
 	}
 
 	ctx := context.Background()
@@ -154,6 +169,10 @@ func BenchmarkCloseTicket(b *testing.B) {
 		if err != nil {
 			b.Fatal(err)
 		}
+		
+		// Commit the changes to avoid uncommitted changes error
+		_, _ = app.Git.Exec(ctx, "add", ".")
+		_, _ = app.Git.Exec(ctx, "commit", "-m", "Start ticket")
 	}
 	b.StartTimer()
 	b.ReportAllocs()
@@ -197,6 +216,7 @@ func BenchmarkListTickets(b *testing.B) {
 				Git:         git.New(tmpDir),
 				Config:      config.Default(),
 				ProjectRoot: tmpDir,
+				Output:      NewOutputWriter(io.Discard, io.Discard, FormatText),
 			}
 
 			ctx := context.Background()
@@ -210,15 +230,9 @@ func BenchmarkListTickets(b *testing.B) {
 				}
 			}
 
-			// Redirect output to discard it during benchmark
-			oldStdout := os.Stdout
-			devNull, err := os.Open(os.DevNull)
-			if err != nil {
-				b.Fatal(err)
-			}
-			defer devNull.Close()
-			os.Stdout = devNull
-			defer func() { os.Stdout = oldStdout }()
+			// Output is already set to io.Discard in app creation
+			// Update it with the specific format for this scenario
+			app.Output = NewOutputWriter(io.Discard, io.Discard, scenario.format)
 
 			b.ResetTimer()
 			b.ReportAllocs()

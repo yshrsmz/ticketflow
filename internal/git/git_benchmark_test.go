@@ -141,20 +141,40 @@ func BenchmarkListWorktrees(b *testing.B) {
 
 	for _, scenario := range scenarios {
 		b.Run(scenario.name, func(b *testing.B) {
+			// Setup once before the benchmark loop
 			tmpDir := b.TempDir()
 			setupBenchmarkRepo(b, tmpDir)
 			git := New(tmpDir)
 			ctx := context.Background()
-
-			// Create worktrees
-			for i := 0; i < scenario.worktreeCount; i++ {
-				branchName := fmt.Sprintf("worktree-branch-%d", i)
-				worktreePath := filepath.Join(tmpDir, ".worktrees", branchName)
-				if err := git.CreateBranch(ctx, branchName); err != nil {
+			
+			// Only create worktrees if needed
+			if scenario.worktreeCount > 0 {
+				// Ensure we're on the main branch
+				currentBranch, err := git.CurrentBranch(ctx)
+				if err != nil {
 					b.Fatal(err)
 				}
-				if err := git.AddWorktree(ctx, worktreePath, branchName); err != nil {
+				
+				// Create worktrees outside the main repo directory to avoid conflicts
+				parentDir := filepath.Dir(tmpDir)
+				worktreesDir := filepath.Join(parentDir, "bench-worktrees")
+				if err := os.MkdirAll(worktreesDir, 0755); err != nil {
 					b.Fatal(err)
+				}
+				
+				// Create worktrees with unique branch names
+				for i := 0; i < scenario.worktreeCount; i++ {
+					branchName := fmt.Sprintf("bench-wt-%d", i)
+					worktreePath := filepath.Join(worktreesDir, branchName)
+					
+					// Create branch from current branch
+					if _, err := git.Exec(ctx, "branch", branchName, currentBranch); err != nil {
+						b.Fatal(err)
+					}
+					
+					if err := git.AddWorktree(ctx, worktreePath, branchName); err != nil {
+						b.Fatal(err)
+					}
 				}
 			}
 

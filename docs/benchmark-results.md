@@ -94,3 +94,19 @@ To generate updated results:
 ```bash
 make bench > benchmark-results.txt
 ```
+
+## Best Practices for Benchmarking
+
+1. **Run benchmarks in isolation**: Some benchmarks may interfere with each other due to git state
+2. **Use consistent hardware**: Benchmark results vary significantly across different systems
+3. **Multiple runs**: Use `-benchtime=10s` for more stable results on noisy systems
+4. **Profile hotspots**: Use `-cpuprofile` and `-memprofile` flags for detailed analysis
+
+## Future Enhancements
+
+Based on the review, consider these enhancements:
+
+1. **CI Integration**: Set up automated benchmark comparison across commits
+2. **Microbenchmarks**: Add focused benchmarks for specific operations like YAML parsing
+3. **Error Path Benchmarks**: Test performance of error handling scenarios
+4. **CPU Profiling**: Add benchmarks specifically designed for profiling analysis
