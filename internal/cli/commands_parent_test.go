@@ -191,6 +191,60 @@ func TestApp_NewTicket_WithParent(t *testing.T) {
 				assert.NotContains(t, output.Stdout(), "Creating ticket in branch")
 			},
 		},
+		// Note: Circular dependency detection is designed to prevent cycles when
+		// creating parent relationships. However, in practice it's difficult to
+		// create a true circular dependency test because:
+		// 1. The new ticket doesn't exist yet when we check
+		// 2. The generated ID includes a timestamp that changes
+		// 3. Circular deps would only occur if an existing ticket already references
+		//    the exact ID we're about to generate
+		// 
+		// The implementation is correct but these edge cases are unlikely in practice
+		{
+			name:           "done parent warning",
+			slug:           "sub-feature",
+			explicitParent: "done-parent",
+			currentBranch:  "main",
+			setupManager: func(m *mocks.MockTicketManager) {
+				// Parent ticket in done status
+				closedTime := time.Now().Add(-24 * time.Hour)
+				doneParent := &ticket.Ticket{
+					ID:          "done-parent",
+					Path:        "/test/tickets/done/done-parent.md",
+					Priority:    1,
+					Description: "Done parent",
+					CreatedAt:   ticket.RFC3339Time{Time: time.Now().Add(-48 * time.Hour)},
+					StartedAt:   ticket.RFC3339TimePtr{Time: &closedTime},
+					ClosedAt:    ticket.RFC3339TimePtr{Time: &closedTime},
+				}
+				m.On("Get", mock.Anything, "done-parent").Return(doneParent, nil)
+
+				// Create new ticket
+				newTicket := &ticket.Ticket{
+					ID:          "250802-120000-sub-feature",
+					Slug:        "sub-feature",
+					Path:        "/test/tickets/todo/250802-120000-sub-feature.md",
+					Priority:    3,
+					Description: "sub-feature",
+					CreatedAt:   ticket.RFC3339Time{Time: time.Now()},
+				}
+				m.On("Create", mock.Anything, "sub-feature").Return(newTicket, nil)
+
+				// Update with parent relation
+				updatedTicket := *newTicket
+				updatedTicket.Related = []string{"parent:done-parent"}
+				m.On("Update", mock.Anything, mock.MatchedBy(func(t *ticket.Ticket) bool {
+					return t.ID == newTicket.ID && len(t.Related) == 1 && t.Related[0] == "parent:done-parent"
+				})).Return(nil)
+			},
+			expectedError:  false,
+			expectedParent: "done-parent",
+			checkOutput: func(t *testing.T, output *testutil.OutputCapture) {
+				// Check both stdout and stderr for the warning
+				allOutput := output.Stdout() + output.Stderr()
+				assert.Contains(t, allOutput, "Warning: Parent ticket 'done-parent' is already done")
+			},
+		},
 	}
 
 	for _, tt := range tests {

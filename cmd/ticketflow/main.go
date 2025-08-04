@@ -117,29 +117,10 @@ type migrateFlags struct {
 	dryRun bool
 }
 
-// parentValue implements flag.Value for parent ticket ID with support for both long and short forms
-type parentValue struct {
-	value string
-	isSet bool
-}
-
-func (p *parentValue) String() string {
-	return p.value
-}
-
-func (p *parentValue) Set(v string) error {
-	if p.isSet {
-		return fmt.Errorf("parent flag already set")
-	}
-	p.value = v
-	p.isSet = true
-	return nil
-}
-
 // newFlags holds command-line flags for the 'new' command
 type newFlags struct {
-	parent parentValue // Parent ticket ID (supports both --parent and -p)
-	format string      // Output format (text or json)
+	parent string // Parent ticket ID (supports both --parent and -p)
+	format string // Output format (text or json)
 }
 
 func runCLI(ctx context.Context) error {
@@ -166,14 +147,14 @@ func runCLI(ctx context.Context) error {
 			MinArgsError: "missing slug argument",
 			SetupFlags: func(fs *flag.FlagSet) interface{} {
 				flags := &newFlags{}
-				fs.Var(&flags.parent, "parent", "Parent ticket ID")
-				fs.Var(&flags.parent, "p", "Parent ticket ID (short form)")
+				fs.StringVar(&flags.parent, "parent", "", "Parent ticket ID")
+				fs.StringVar(&flags.parent, "p", "", "Parent ticket ID (short form)")
 				fs.StringVar(&flags.format, "format", "text", "Output format (text|json)")
 				return flags
 			},
 			Execute: func(ctx context.Context, fs *flag.FlagSet, cmdFlags interface{}) error {
 				flags := cmdFlags.(*newFlags)
-				return handleNew(ctx, fs.Arg(0), flags.parent.value, flags.format)
+				return handleNew(ctx, fs.Arg(0), flags.parent, flags.format)
 			},
 		}, os.Args[2:])
 
