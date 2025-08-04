@@ -66,6 +66,27 @@ coverage:
 	$(GOCMD) tool cover -html=coverage.out -o coverage.html
 	@echo "Coverage report generated: coverage.html"
 
+# Run benchmarks
+bench:
+	$(GOTEST) -bench=. -benchmem ./...
+
+# Run benchmarks for specific package
+bench-ticket:
+	$(GOTEST) -bench=. -benchmem ./internal/ticket/...
+
+bench-cli:
+	$(GOTEST) -bench=. -benchmem ./internal/cli/...
+
+bench-git:
+	$(GOTEST) -bench=. -benchmem ./internal/git/...
+
+bench-ui:
+	$(GOTEST) -bench=. -benchmem ./internal/ui/...
+
+# Run benchmarks with detailed output
+bench-verbose:
+	$(GOTEST) -bench=. -benchmem -benchtime=10s -v ./...
+
 # Run go fmt
 fmt:
 	$(GOFMT) ./...
@@ -190,6 +211,11 @@ help:
 	@echo "  make install       - Install the binary to GOPATH/bin"
 	@echo "  make test          - Run all tests"
 	@echo "  make coverage      - Generate test coverage report"
+	@echo "  make bench         - Run all benchmarks"
+	@echo "  make bench-ticket  - Run ticket package benchmarks"
+	@echo "  make bench-cli     - Run CLI benchmarks"
+	@echo "  make bench-git     - Run git benchmarks"
+	@echo "  make bench-ui      - Run UI benchmarks"
 	@echo "  make run           - Build and run the application"
 	@echo "  make clean         - Remove build artifacts"
 	@echo "  make deps          - Download dependencies"
