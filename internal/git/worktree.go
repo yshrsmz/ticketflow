@@ -24,8 +24,14 @@ func (g *Git) ListWorktrees(ctx context.Context) ([]WorktreeInfo, error) {
 		return nil, err
 	}
 
-	var worktrees []WorktreeInfo
 	lines := strings.Split(output, "\n")
+	// Pre-allocate worktrees slice based on number of lines
+	// Each worktree typically has 3-4 lines of output
+	estimatedWorktrees := len(lines) / 4
+	if estimatedWorktrees < 1 {
+		estimatedWorktrees = 1
+	}
+	worktrees := make([]WorktreeInfo, 0, estimatedWorktrees)
 
 	var current WorktreeInfo
 	for _, line := range lines {

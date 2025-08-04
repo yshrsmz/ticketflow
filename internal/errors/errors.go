@@ -49,14 +49,45 @@ type TicketError struct {
 }
 
 func (e *TicketError) Error() string {
-	prefix := e.Op
-	if len(e.Context) > 0 {
-		prefix = strings.Join(e.Context, " > ") + " > " + e.Op
+	// Use strings.Builder for efficient string concatenation
+	var sb strings.Builder
+
+	// Pre-allocate estimated capacity
+	estimatedSize := len(e.Op) + 20 // Base size for operation and separators
+	for _, ctx := range e.Context {
+		estimatedSize += len(ctx) + 3 // Add context length plus " > "
 	}
 	if e.TicketID != "" {
-		return fmt.Sprintf("%s ticket %s: %v", prefix, e.TicketID, e.Err)
+		estimatedSize += len(e.TicketID) + 8 // " ticket "
 	}
-	return fmt.Sprintf("%s ticket: %v", prefix, e.Err)
+	if e.Err != nil {
+		estimatedSize += len(e.Err.Error()) + 2 // ": " plus error message
+	}
+	sb.Grow(estimatedSize)
+
+	// Build the error message
+	if len(e.Context) > 0 {
+		for i, ctx := range e.Context {
+			if i > 0 {
+				sb.WriteString(" > ")
+			}
+			sb.WriteString(ctx)
+		}
+		sb.WriteString(" > ")
+	}
+	sb.WriteString(e.Op)
+
+	if e.TicketID != "" {
+		sb.WriteString(" ticket ")
+		sb.WriteString(e.TicketID)
+	} else {
+		sb.WriteString(" ticket")
+	}
+
+	sb.WriteString(": ")
+	sb.WriteString(e.Err.Error())
+
+	return sb.String()
 }
 
 func (e *TicketError) Unwrap() error {

@@ -90,7 +90,8 @@ func formatDuration(d time.Duration) string {
 	hours := int(d.Hours()) % 24
 	minutes := int(d.Minutes()) % 60
 
-	parts := []string{}
+	// Pre-allocate parts slice with capacity 3 (days, hours, minutes)
+	parts := make([]string, 0, 3)
 	if days > 0 {
 		parts = append(parts, fmt.Sprintf("%dd", days))
 	}

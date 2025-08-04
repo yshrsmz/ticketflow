@@ -416,7 +416,9 @@ func truncate(s string, maxWidth int) string {
 
 // applyFilter applies the search query filter to tickets
 func (m *TicketListModel) applyFilter() {
-	m.filteredTickets = nil
+	// Pre-allocate filteredTickets with capacity of original tickets
+	// In worst case, all tickets match the filter
+	m.filteredTickets = make([]ticket.Ticket, 0, len(m.tickets))
 	query := strings.ToLower(m.searchQuery)
 
 	for _, t := range m.tickets {

@@ -114,7 +114,18 @@ func (m *Manager) List(ctx context.Context, statusFilter StatusFilter) ([]Ticket
 		return nil, fmt.Errorf("invalid status filter: %s", statusFilter)
 	}
 
-	var tickets []Ticket
+	// Pre-allocate tickets slice with estimated capacity based on typical ticket count
+	// This avoids multiple reallocations during append operations
+	estimatedCapacity := 0
+	for _, dir := range dirs {
+		entries, _ := os.ReadDir(dir)
+		for _, entry := range entries {
+			if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".md") {
+				estimatedCapacity++
+			}
+		}
+	}
+	tickets := make([]Ticket, 0, estimatedCapacity)
 	for _, dir := range dirs {
 		entries, err := os.ReadDir(dir)
 		if err != nil {
@@ -331,7 +342,9 @@ func (m *Manager) findTicketInDir(ticketID, dir string) (string, error) {
 		return "", fmt.Errorf("failed to read directory: %w", err)
 	}
 
-	var matches []string
+	// Pre-allocate matches slice with small initial capacity
+	// Most searches result in 0-1 matches, rarely more than 5
+	matches := make([]string, 0, 5)
 	for _, entry := range entries {
 		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".md") {
 			continue
@@ -429,7 +442,8 @@ func readFileWithContext(ctx context.Context, path string) ([]byte, error) {
 
 	// For larger files, read in chunks with context checks
 	const chunkSize = 64 * 1024 // 64KB chunks
-	var result []byte
+	// Pre-allocate result slice based on file size to avoid multiple reallocations
+	result := make([]byte, 0, info.Size())
 	buffer := make([]byte, chunkSize)
 
 	for {
