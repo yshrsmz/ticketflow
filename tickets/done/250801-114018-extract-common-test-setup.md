@@ -3,7 +3,7 @@ priority: 4
 description: Extract common test setup code to reduce duplication in tests
 created_at: "2025-08-01T11:40:18+09:00"
 started_at: "2025-08-05T00:46:13+09:00"
-closed_at: null
+closed_at: "2025-08-05T12:41:09+09:00"
 related:
     - parent:250801-003010-decompose-large-functions
 ---
