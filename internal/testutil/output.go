@@ -3,12 +3,14 @@ package testutil
 import (
 	"bytes"
 	"io"
+	"sync"
 )
 
 // OutputCapture helps capture output during tests
 type OutputCapture struct {
 	stdout bytes.Buffer
 	stderr bytes.Buffer
+	mu     sync.Mutex
 }
 
 // NewOutputCapture creates a new output capture instance
@@ -18,21 +20,29 @@ func NewOutputCapture() *OutputCapture {
 
 // Write implements io.Writer (for stdout)
 func (c *OutputCapture) Write(p []byte) (n int, err error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	return c.stdout.Write(p)
 }
 
 // WriteString implements io.StringWriter (for stdout)
 func (c *OutputCapture) WriteString(s string) (n int, err error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	return c.stdout.WriteString(s)
 }
 
 // Stdout returns the captured stdout
 func (c *OutputCapture) Stdout() string {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	return c.stdout.String()
 }
 
 // Stderr returns the captured stderr
 func (c *OutputCapture) Stderr() string {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	return c.stderr.String()
 }
 
@@ -48,6 +58,8 @@ func (c *OutputCapture) StderrWriter() io.Writer {
 
 // Reset clears the captured output
 func (c *OutputCapture) Reset() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	c.stdout.Reset()
 	c.stderr.Reset()
 }
