@@ -89,16 +89,14 @@ func TestStartTicketWithExistingBranch(t *testing.T) {
 	// 1. Move ticket to "doing" status and commit
 	// 2. Try to create worktree with existing branch
 	// 3. Detect that branch is behind main (missing status change commit)
-	// 4. Prompt user, which will fail in test environment
+	// 4. In non-interactive mode, automatically recreate the branch
 	err = app.StartTicket(ctx, ticketID, false)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to get user choice", 
-		"Should fail due to divergence prompt requiring user input")
+	require.NoError(t, err, "StartTicket should succeed in non-interactive mode")
 
-	// Verify no worktree was created
+	// Verify worktree was created successfully
 	hasWorktree, err = gitCmd.HasWorktree(ctx, ticketID)
 	require.NoError(t, err)
-	assert.False(t, hasWorktree, "Worktree should not exist after divergence error")
+	assert.True(t, hasWorktree, "Worktree should exist after successful start")
 }
 
 func TestStartTicketWithExistingBranchAndWorktree(t *testing.T) {

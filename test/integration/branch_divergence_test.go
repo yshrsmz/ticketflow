@@ -98,18 +98,21 @@ func TestStartTicketWithDivergedBranch(t *testing.T) {
 	assert.Equal(t, 1, ahead, "Branch should be 1 commit ahead")
 	assert.Equal(t, 1, behind, "Branch should be 1 commit behind")
 
-	// Now try to start the ticket - it should fail with user choice error
-	// because we can't provide input in the test
+	// Now try to start the ticket
+	// In CI/non-interactive mode, it should automatically use the default option (recreate branch)
 	err = app.StartTicket(ctx, ticketID, false)
-	require.Error(t, err)
-	// The error will be about failing to read input, but we should have seen
-	// the divergence message in the output
-	assert.Contains(t, err.Error(), "failed to get user choice")
+	require.NoError(t, err, "StartTicket should succeed in non-interactive mode by using default option")
 
-	// Verify no worktree was created
+	// Verify worktree was created successfully
 	hasWorktree, err := gitCmd.HasWorktree(ctx, ticketID)
 	require.NoError(t, err)
-	assert.False(t, hasWorktree, "Worktree should not exist after divergence error")
+	assert.True(t, hasWorktree, "Worktree should exist after successful start")
+	
+	// Verify branch was recreated at main's HEAD
+	// The branch should no longer be diverged
+	diverged, err = gitCmd.BranchDivergedFrom(ctx, ticketID, "main")
+	require.NoError(t, err)
+	assert.False(t, diverged, "Branch should not be diverged after recreation")
 }
 
 func TestBranchDivergenceWithSameCommit(t *testing.T) {
@@ -176,15 +179,14 @@ func TestBranchDivergenceWithSameCommit(t *testing.T) {
 	// This will:
 	// 1. Change ticket status to "doing" and commit (moving main forward)
 	// 2. Try to create worktree, which will detect the branch is now behind
-	// 3. Prompt user for action (which will fail in test due to no stdin)
+	// 3. In non-interactive mode, automatically choose to recreate the branch
 	err = app.StartTicket(ctx, ticketID, false)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to get user choice")
+	require.NoError(t, err, "StartTicket should succeed in non-interactive mode")
 
-	// Verify no worktree was created due to the divergence prompt
+	// Verify worktree was created successfully
 	hasWorktree, err := gitCmd.HasWorktree(ctx, ticketID)
 	require.NoError(t, err)
-	assert.False(t, hasWorktree, "Worktree should not exist after divergence prompt")
+	assert.True(t, hasWorktree, "Worktree should exist after successful start")
 }
 
 func TestBranchDivergenceErrorMessage(t *testing.T) {

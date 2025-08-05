@@ -6,6 +6,8 @@ import (
 	"io"
 	"os"
 	"strings"
+
+	"golang.org/x/term"
 )
 
 // PromptOption represents a choice in a prompt
@@ -15,8 +17,39 @@ type PromptOption struct {
 	IsDefault   bool
 }
 
+// IsInteractive checks if the current environment is interactive
+func IsInteractive() bool {
+	// Check for explicit non-interactive environment variable
+	if os.Getenv("TICKETFLOW_NON_INTERACTIVE") == "true" {
+		return false
+	}
+	
+	// Check common CI environment variables
+	ciVars := []string{"CI", "CONTINUOUS_INTEGRATION", "GITHUB_ACTIONS", "GITLAB_CI", "CIRCLECI", "JENKINS_URL"}
+	for _, v := range ciVars {
+		if os.Getenv(v) != "" {
+			return false
+		}
+	}
+	
+	// Check if stdin is a terminal
+	return term.IsTerminal(int(os.Stdin.Fd()))
+}
+
 // Prompt displays a prompt and returns the selected option key
 func Prompt(message string, options []PromptOption) (string, error) {
+	// In non-interactive mode, automatically use the default option
+	if !IsInteractive() {
+		for _, opt := range options {
+			if opt.IsDefault {
+				fmt.Printf("Non-interactive mode detected. Using default option: %s\n", opt.Key)
+				return opt.Key, nil
+			}
+		}
+		// If no default option is set, return an error
+		return "", fmt.Errorf("non-interactive mode detected and no default option available")
+	}
+	
 	return PromptWithReader(message, options, os.Stdin)
 }
 
@@ -70,6 +103,16 @@ func PromptWithReader(message string, options []PromptOption, input io.Reader) (
 
 // ConfirmPrompt displays a yes/no prompt
 func ConfirmPrompt(message string, defaultYes bool) bool {
+	// In non-interactive mode, automatically use the default
+	if !IsInteractive() {
+		action := "No"
+		if defaultYes {
+			action = "Yes"
+		}
+		fmt.Printf("Non-interactive mode detected. Using default: %s\n", action)
+		return defaultYes
+	}
+	
 	return ConfirmPromptWithReader(message, defaultYes, os.Stdin)
 }
 
