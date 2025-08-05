@@ -125,7 +125,7 @@ func (g *Git) AddWorktree(ctx context.Context, path, branch string) error {
 		// Branch doesn't exist, create it with -b flag
 		_, err = g.Exec(ctx, SubcmdWorktree, WorktreeAdd, path, FlagBranch, branch)
 	}
-	
+
 	return err
 }
 

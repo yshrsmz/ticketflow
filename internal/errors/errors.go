@@ -18,13 +18,13 @@ var (
 	ErrTicketNotDone        = errors.New("ticket not in done status")
 
 	// Git errors
-	ErrNotGitRepo      = errors.New("not a git repository")
-	ErrDirtyWorkspace  = errors.New("workspace has uncommitted changes")
-	ErrBranchExists    = errors.New("branch already exists")
-	ErrBranchNotFound  = errors.New("branch not found")
-	ErrBranchDiverged  = errors.New("branch has diverged from expected base")
-	ErrMergeFailed     = errors.New("merge failed")
-	ErrPushFailed      = errors.New("push failed")
+	ErrNotGitRepo     = errors.New("not a git repository")
+	ErrDirtyWorkspace = errors.New("workspace has uncommitted changes")
+	ErrBranchExists   = errors.New("branch already exists")
+	ErrBranchNotFound = errors.New("branch not found")
+	ErrBranchDiverged = errors.New("branch has diverged from expected base")
+	ErrMergeFailed    = errors.New("merge failed")
+	ErrPushFailed     = errors.New("push failed")
 
 	// Worktree errors
 	ErrWorktreeExists       = errors.New("worktree already exists")

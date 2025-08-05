@@ -353,7 +353,7 @@ func (g *Git) GetBranchDivergenceInfo(ctx context.Context, branch, baseBranch st
 	if err != nil {
 		return 0, 0, fmt.Errorf("failed to parse ahead count: %w", err)
 	}
-	
+
 	behind, err = strconv.Atoi(strings.TrimSpace(behindOutput))
 	if err != nil {
 		return 0, 0, fmt.Errorf("failed to parse behind count: %w", err)

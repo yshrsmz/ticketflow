@@ -18,7 +18,7 @@ import (
 
 func TestStartTicketWithDivergedBranch(t *testing.T) {
 	// Cannot run in parallel due to os.Chdir
-	
+
 	// Setup test repository
 	repoPath := setupTestRepo(t)
 
@@ -107,7 +107,7 @@ func TestStartTicketWithDivergedBranch(t *testing.T) {
 	hasWorktree, err := gitCmd.HasWorktree(ctx, ticketID)
 	require.NoError(t, err)
 	assert.True(t, hasWorktree, "Worktree should exist after successful start")
-	
+
 	// Verify branch was recreated at main's HEAD
 	// The branch should no longer be diverged
 	diverged, err = gitCmd.BranchDivergedFrom(ctx, ticketID, "main")
@@ -117,11 +117,11 @@ func TestStartTicketWithDivergedBranch(t *testing.T) {
 
 func TestBranchDivergenceWithSameCommit(t *testing.T) {
 	// Cannot run in parallel due to os.Chdir
-	
+
 	// This test verifies that when a branch exists at the same commit as main,
 	// but StartTicket creates a new commit (status change), it will detect divergence
 	// and prompt the user. This is expected behavior.
-	
+
 	// Setup test repository
 	repoPath := setupTestRepo(t)
 
@@ -193,7 +193,7 @@ func TestBranchDivergenceErrorMessage(t *testing.T) {
 	// Test the error message formatting
 	err := ticketerrors.NewBranchDivergenceError("feature-123", "main", 3, 5)
 	assert.Equal(t, "branch feature-123 has diverged from main (3 commits ahead, 5 behind)", err.Error())
-	
+
 	// Test error matching
 	assert.True(t, errors.Is(err, ticketerrors.ErrBranchDiverged))
 }

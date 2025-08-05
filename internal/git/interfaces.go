@@ -36,7 +36,7 @@ type WorktreeClient interface {
 // This maintains backward compatibility
 type GitClient interface {
 	WorktreeClient
-	
+
 	// Branch divergence operations
 	GetDefaultBranch(ctx context.Context) (string, error)
 	BranchDivergedFrom(ctx context.Context, branch, baseBranch string) (bool, error)

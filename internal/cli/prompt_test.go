@@ -70,7 +70,7 @@ func TestIsInteractive(t *testing.T) {
 			// because it depends on the actual stdin file descriptor.
 			// In CI, IsInteractive() will return false due to CI env vars.
 			got := IsInteractive()
-			
+
 			// In test environments that are not CI, the terminal check might return true,
 			// so we only assert when we expect false
 			if !tt.want {
@@ -129,7 +129,7 @@ func TestPromptNonInteractive(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			choice, err := Prompt(tt.message, tt.options)
-			
+
 			if tt.wantErr {
 				require.Error(t, err)
 				if tt.errContains != "" {

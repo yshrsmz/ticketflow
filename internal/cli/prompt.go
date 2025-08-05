@@ -23,7 +23,7 @@ func IsInteractive() bool {
 	if os.Getenv("TICKETFLOW_NON_INTERACTIVE") == "true" {
 		return false
 	}
-	
+
 	// Check common CI environment variables
 	ciVars := []string{"CI", "CONTINUOUS_INTEGRATION", "GITHUB_ACTIONS", "GITLAB_CI", "CIRCLECI", "JENKINS_URL"}
 	for _, v := range ciVars {
@@ -31,7 +31,7 @@ func IsInteractive() bool {
 			return false
 		}
 	}
-	
+
 	// Check if stdin is a terminal
 	return term.IsTerminal(int(os.Stdin.Fd()))
 }
@@ -49,7 +49,7 @@ func Prompt(message string, options []PromptOption) (string, error) {
 		// If no default option is set, return an error
 		return "", fmt.Errorf("non-interactive mode detected and no default option available")
 	}
-	
+
 	return PromptWithReader(message, options, os.Stdin)
 }
 
@@ -112,7 +112,7 @@ func ConfirmPrompt(message string, defaultYes bool) bool {
 		fmt.Printf("Non-interactive mode detected. Using default: %s\n", action)
 		return defaultYes
 	}
-	
+
 	return ConfirmPromptWithReader(message, defaultYes, os.Stdin)
 }
 

@@ -13,7 +13,7 @@ import (
 // initGitRepo initializes a git repository in the given directory
 func initGitRepo(ctx context.Context, dir string) error {
 	g := New(dir)
-	
+
 	// Initialize repo with main as default branch
 	// Note: --initial-branch requires git 2.28+, we have a fallback for older versions
 	if _, err := g.Exec(ctx, "init", "--initial-branch=main"); err != nil {
@@ -24,7 +24,7 @@ func initGitRepo(ctx context.Context, dir string) error {
 		// Try to rename branch to main
 		_, _ = g.Exec(ctx, "branch", "-m", "main")
 	}
-	
+
 	// Set git config
 	if _, err := g.Exec(ctx, "config", "user.name", "Test User"); err != nil {
 		return err
@@ -32,7 +32,7 @@ func initGitRepo(ctx context.Context, dir string) error {
 	if _, err := g.Exec(ctx, "config", "user.email", "test@example.com"); err != nil {
 		return err
 	}
-	
+
 	return nil
 }
 
