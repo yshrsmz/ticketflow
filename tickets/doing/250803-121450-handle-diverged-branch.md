@@ -14,11 +14,11 @@ related:
 When starting a ticket, if a branch already exists but points to a different commit than expected (e.g., not at the default branch HEAD), we need to provide clear options to the user.
 
 ## Tasks
-- [ ] Add method to check if branch diverged from expected base
-- [ ] Implement interactive prompt for user choice
-- [ ] Add option to use existing branch
-- [ ] Add option to delete and recreate branch
-- [ ] Add tests for diverged branch scenarios
+- [x] Add method to check if branch diverged from expected base
+- [x] Implement interactive prompt for user choice
+- [x] Add option to use existing branch
+- [x] Add option to delete and recreate branch
+- [x] Add tests for diverged branch scenarios
 
 ## Technical Details
 - Compare branch HEAD with default branch HEAD using `git rev-parse`
@@ -190,3 +190,43 @@ logger.Debug("checking branch divergence",
 - No git operations leave repository in inconsistent state
 - Tests cover all divergence scenarios
 - Branch name validation prevents command injection
+
+## Implementation Summary
+
+Successfully implemented branch divergence detection and handling with the following changes:
+
+1. **Git Methods Added** (in `internal/git/git.go`):
+   - `GetDefaultBranch()` - Detects main/master branch with fallback
+   - `GetBranchCommit()` - Gets commit hash for a branch
+   - `BranchDivergedFrom()` - Checks if branches have diverged
+   - `GetBranchDivergenceInfo()` - Returns commits ahead/behind
+
+2. **Error Handling** (in `internal/errors/errors.go`):
+   - Added `ErrBranchDiverged` sentinel error
+   - Created `BranchDivergenceError` type with detailed info
+   - Implements `Is()` method for proper error matching
+
+3. **Interactive Prompt** (new file `internal/cli/prompt.go`):
+   - `Prompt()` - Displays options and handles user choice
+   - `ConfirmPrompt()` - Yes/no confirmation helper
+   - Supports default options
+
+4. **Worktree Updates** (in `internal/git/worktree.go`):
+   - `AddWorktree()` now checks for branch divergence
+   - Returns `BranchDivergenceError` when divergence detected
+
+5. **CLI Integration** (in `internal/cli/commands.go`):
+   - `handleBranchDivergence()` - Shows divergence info and handles user choice
+   - Three options: use existing, recreate, or cancel
+   - Proper rollback on cancellation
+
+6. **Interface Updates** (in `internal/git/interfaces.go`):
+   - Added new methods to `GitClient` interface
+   - Added `BranchExists` to `BasicGitClient`
+
+7. **Tests Added**:
+   - Unit tests for all new git methods
+   - Integration tests for divergence scenarios
+   - Mock implementation updated for testing
+
+The implementation ensures users are informed when a branch has diverged and can make an informed choice about how to proceed.
