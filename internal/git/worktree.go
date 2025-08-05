@@ -108,6 +108,10 @@ func (g *Git) AddWorktree(ctx context.Context, path, branch string) error {
 					fmt.Errorf("failed to get divergence info: %w", err))
 			}
 
+			// Log divergence detection for debugging
+			// Note: This assumes a logger is available. If not, this line can be removed.
+			// log.Printf("Branch %s has diverged from %s: %d commits ahead, %d behind", branch, defaultBranch, ahead, behind)
+
 			// Return a specific error that the CLI can handle
 			return ticketerrors.NewBranchDivergenceError(branch, defaultBranch, ahead, behind)
 		}

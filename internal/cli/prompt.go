@@ -53,7 +53,13 @@ func Prompt(message string, options []PromptOption) (string, error) {
 		}
 	}
 
-	return "", fmt.Errorf("invalid choice: %s", input)
+	// Collect valid options for error message
+	validKeys := make([]string, 0, len(options))
+	for _, opt := range options {
+		validKeys = append(validKeys, opt.Key)
+	}
+
+	return "", fmt.Errorf("invalid choice: %s (valid options: %s)", input, strings.Join(validKeys, ", "))
 }
 
 // ConfirmPrompt displays a yes/no prompt

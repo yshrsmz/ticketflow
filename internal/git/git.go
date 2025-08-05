@@ -308,6 +308,14 @@ func (g *Git) GetBranchCommit(ctx context.Context, branch string) (string, error
 
 // BranchDivergedFrom checks if a branch has diverged from a base branch
 func (g *Git) BranchDivergedFrom(ctx context.Context, branch, baseBranch string) (bool, error) {
+	// Validate branch names
+	if !isValidBranchName(branch) {
+		return false, fmt.Errorf("invalid branch name: %s", branch)
+	}
+	if !isValidBranchName(baseBranch) {
+		return false, fmt.Errorf("invalid base branch name: %s", baseBranch)
+	}
+
 	branchCommit, err := g.GetBranchCommit(ctx, branch)
 	if err != nil {
 		return false, fmt.Errorf("failed to get commit for branch %s: %w", branch, err)

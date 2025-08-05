@@ -3,7 +3,6 @@ package integration
 import (
 	"context"
 	"errors"
-	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -190,20 +189,4 @@ func TestBranchDivergenceErrorMessage(t *testing.T) {
 	
 	// Test error matching
 	assert.True(t, errors.Is(err, ticketerrors.ErrBranchDiverged))
-}
-
-// Helper function to simulate user input for interactive prompts
-func simulateUserInput(input string) func() {
-	oldStdin := os.Stdin
-	r, w, _ := os.Pipe()
-	os.Stdin = r
-	
-	go func() {
-		fmt.Fprint(w, input)
-		w.Close()
-	}()
-	
-	return func() {
-		os.Stdin = oldStdin
-	}
 }

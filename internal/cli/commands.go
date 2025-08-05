@@ -1242,6 +1242,10 @@ func (app *App) handleBranchDivergence(ctx context.Context, t *ticket.Ticket, wo
 		_, err = app.Git.Exec(ctx, git.SubcmdWorktree, git.WorktreeAdd, worktreePath,
 			git.FlagBranch, t.ID)
 		if err != nil {
+			// Try to recover by recreating the branch we just deleted
+			if recoverErr := app.Git.CreateBranch(ctx, t.ID); recoverErr != nil {
+				return "", fmt.Errorf("failed to create worktree with new branch and could not recover: %w (recovery error: %v)", err, recoverErr)
+			}
 			return "", fmt.Errorf("failed to create worktree with new branch: %w", err)
 		}
 		return worktreePath, nil
