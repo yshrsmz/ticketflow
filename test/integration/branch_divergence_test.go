@@ -166,7 +166,9 @@ func TestBranchDivergenceWithSameCommit(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create the branch manually at current HEAD
-	// Use git branch instead of CreateBranch to avoid checking out the branch
+	// Note: We use raw git command here instead of gitCmd.CreateBranch() because
+	// CreateBranch automatically checks out the branch, but we need to stay on main
+	// to properly test the divergence detection logic
 	_, err = gitCmd.Exec(ctx, "branch", ticketID)
 	require.NoError(t, err)
 

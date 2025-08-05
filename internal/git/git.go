@@ -271,13 +271,29 @@ func (g *Git) Push(ctx context.Context, remote, branch string, setUpstream bool)
 
 // GetDefaultBranch returns the configured default branch (main/master)
 func (g *Git) GetDefaultBranch(ctx context.Context) (string, error) {
-	// Try to get from remote HEAD
-	output, err := g.Exec(ctx, SubcmdRevParse, FlagAbbrevRef, "origin/HEAD")
+	// First, check if origin remote exists
+	_, err := g.Exec(ctx, SubcmdRemote, "get-url", "origin")
 	if err == nil {
-		// Remove "origin/" prefix
-		branch := strings.TrimPrefix(strings.TrimSpace(output), "origin/")
-		if branch != "" && branch != "HEAD" {
-			return branch, nil
+		// Origin exists, try to get from remote HEAD
+		output, err := g.Exec(ctx, SubcmdRevParse, FlagAbbrevRef, "origin/HEAD")
+		if err == nil {
+			// Remove "origin/" prefix
+			branch := strings.TrimPrefix(strings.TrimSpace(output), "origin/")
+			if branch != "" && branch != "HEAD" {
+				return branch, nil
+			}
+		}
+	}
+
+	// Try to get from git config init.defaultBranch
+	output, err := g.Exec(ctx, SubcmdConfig, "--get", "init.defaultBranch")
+	if err == nil {
+		branch := strings.TrimSpace(output)
+		if branch != "" {
+			// Verify the branch exists locally
+			if exists, _ := g.BranchExists(ctx, branch); exists {
+				return branch, nil
+			}
 		}
 	}
 
@@ -337,12 +353,14 @@ func (g *Git) GetBranchDivergenceInfo(ctx context.Context, branch, baseBranch st
 	}
 
 	// Get commits ahead (in branch but not in baseBranch)
+	// Note: Both branch names are validated above, making this fmt.Sprintf safe from injection
 	aheadOutput, err := g.Exec(ctx, SubcmdRevList, FlagCount, fmt.Sprintf("%s..%s", baseBranch, branch))
 	if err != nil {
 		return 0, 0, fmt.Errorf("failed to count commits ahead: %w", err)
 	}
 
 	// Get commits behind (in baseBranch but not in branch)
+	// Note: Both branch names are validated above, making this fmt.Sprintf safe from injection
 	behindOutput, err := g.Exec(ctx, SubcmdRevList, FlagCount, fmt.Sprintf("%s..%s", branch, baseBranch))
 	if err != nil {
 		return 0, 0, fmt.Errorf("failed to count commits behind: %w", err)

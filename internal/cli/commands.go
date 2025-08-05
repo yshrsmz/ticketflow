@@ -1254,9 +1254,9 @@ func (app *App) handleBranchDivergence(ctx context.Context, t *ticket.Ticket, wo
 		// Cancel
 		app.Output.Printf("Operation cancelled.\n")
 		// Rollback the ticket start if HEAD^ exists
-		if _, err := app.Git.Exec(ctx, "rev-parse", "HEAD^"); err == nil {
+		if _, err := app.Git.Exec(ctx, git.SubcmdRevParse, "HEAD^"); err == nil {
 			// HEAD^ exists, safe to rollback
-			if _, rollbackErr := app.Git.Exec(ctx, "reset", "--hard", "HEAD^"); rollbackErr != nil {
+			if _, rollbackErr := app.Git.Exec(ctx, git.SubcmdReset, git.FlagHard, "HEAD^"); rollbackErr != nil {
 				fmt.Fprintf(os.Stderr, "Warning: failed to rollback: %v\n", rollbackErr)
 			}
 		}
