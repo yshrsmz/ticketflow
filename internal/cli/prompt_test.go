@@ -18,40 +18,40 @@ func TestIsInteractive(t *testing.T) {
 		{
 			name: "CI environment variable set",
 			setup: func() {
-				os.Setenv("CI", "true")
+				_ = os.Setenv("CI", "true")
 			},
 			teardown: func() {
-				os.Unsetenv("CI")
+				_ = os.Unsetenv("CI")
 			},
 			want: false,
 		},
 		{
 			name: "GITHUB_ACTIONS environment variable set",
 			setup: func() {
-				os.Setenv("GITHUB_ACTIONS", "true")
+				_ = os.Setenv("GITHUB_ACTIONS", "true")
 			},
 			teardown: func() {
-				os.Unsetenv("GITHUB_ACTIONS")
+				_ = os.Unsetenv("GITHUB_ACTIONS")
 			},
 			want: false,
 		},
 		{
 			name: "TICKETFLOW_NON_INTERACTIVE set to true",
 			setup: func() {
-				os.Setenv("TICKETFLOW_NON_INTERACTIVE", "true")
+				_ = os.Setenv("TICKETFLOW_NON_INTERACTIVE", "true")
 			},
 			teardown: func() {
-				os.Unsetenv("TICKETFLOW_NON_INTERACTIVE")
+				_ = os.Unsetenv("TICKETFLOW_NON_INTERACTIVE")
 			},
 			want: false,
 		},
 		{
 			name: "TICKETFLOW_NON_INTERACTIVE set to false",
 			setup: func() {
-				os.Setenv("TICKETFLOW_NON_INTERACTIVE", "false")
+				_ = os.Setenv("TICKETFLOW_NON_INTERACTIVE", "false")
 			},
 			teardown: func() {
-				os.Unsetenv("TICKETFLOW_NON_INTERACTIVE")
+				_ = os.Unsetenv("TICKETFLOW_NON_INTERACTIVE")
 			},
 			want: true, // Should be interactive because the value is not "true"
 		},
@@ -85,14 +85,14 @@ func TestPromptNonInteractive(t *testing.T) {
 	originalCI := os.Getenv("CI")
 	defer func() {
 		if originalCI != "" {
-			os.Setenv("CI", originalCI)
+			_ = os.Setenv("CI", originalCI)
 		} else {
-			os.Unsetenv("CI")
+			_ = os.Unsetenv("CI")
 		}
 	}()
 
 	// Set CI environment to simulate non-interactive mode
-	os.Setenv("CI", "true")
+	_ = os.Setenv("CI", "true")
 
 	tests := []struct {
 		name        string
@@ -148,14 +148,14 @@ func TestConfirmPromptNonInteractive(t *testing.T) {
 	originalCI := os.Getenv("CI")
 	defer func() {
 		if originalCI != "" {
-			os.Setenv("CI", originalCI)
+			_ = os.Setenv("CI", originalCI)
 		} else {
-			os.Unsetenv("CI")
+			_ = os.Unsetenv("CI")
 		}
 	}()
 
 	// Set CI environment to simulate non-interactive mode
-	os.Setenv("CI", "true")
+	_ = os.Setenv("CI", "true")
 
 	tests := []struct {
 		name       string
