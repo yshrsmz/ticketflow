@@ -14,9 +14,10 @@ import (
 func initGitRepo(ctx context.Context, dir string) error {
 	g := New(dir)
 	
-	// Initialize repo
+	// Initialize repo with main as default branch
+	// Note: --initial-branch requires git 2.28+, we have a fallback for older versions
 	if _, err := g.Exec(ctx, "init", "--initial-branch=main"); err != nil {
-		// Fallback for older git versions
+		// Fallback for older git versions (< 2.28)
 		if _, err := g.Exec(ctx, "init"); err != nil {
 			return err
 		}

@@ -348,9 +348,16 @@ func (g *Git) GetBranchDivergenceInfo(ctx context.Context, branch, baseBranch st
 		return 0, 0, fmt.Errorf("failed to count commits behind: %w", err)
 	}
 
-	// Parse the counts (ignore error, will be 0 if parse fails)
-	ahead, _ = strconv.Atoi(strings.TrimSpace(aheadOutput))
-	behind, _ = strconv.Atoi(strings.TrimSpace(behindOutput))
+	// Parse the counts
+	ahead, err = strconv.Atoi(strings.TrimSpace(aheadOutput))
+	if err != nil {
+		return 0, 0, fmt.Errorf("failed to parse ahead count: %w", err)
+	}
+	
+	behind, err = strconv.Atoi(strings.TrimSpace(behindOutput))
+	if err != nil {
+		return 0, 0, fmt.Errorf("failed to parse behind count: %w", err)
+	}
 
 	return ahead, behind, nil
 }

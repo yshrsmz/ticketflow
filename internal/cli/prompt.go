@@ -3,6 +3,7 @@ package cli
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 )
@@ -16,6 +17,11 @@ type PromptOption struct {
 
 // Prompt displays a prompt and returns the selected option key
 func Prompt(message string, options []PromptOption) (string, error) {
+	return PromptWithReader(message, options, os.Stdin)
+}
+
+// PromptWithReader displays a prompt and returns the selected option key using the provided reader
+func PromptWithReader(message string, options []PromptOption, input io.Reader) (string, error) {
 	fmt.Println(message)
 	fmt.Println()
 
@@ -33,22 +39,22 @@ func Prompt(message string, options []PromptOption) (string, error) {
 	fmt.Print("\nYour choice: ")
 
 	// Read input
-	reader := bufio.NewReader(os.Stdin)
-	input, err := reader.ReadString('\n')
+	reader := bufio.NewReader(input)
+	userInput, err := reader.ReadString('\n')
 	if err != nil {
 		return "", fmt.Errorf("failed to read input: %w", err)
 	}
 
-	input = strings.TrimSpace(strings.ToLower(input))
+	userInput = strings.TrimSpace(strings.ToLower(userInput))
 
 	// Use default if empty
-	if input == "" && defaultKey != "" {
+	if userInput == "" && defaultKey != "" {
 		return defaultKey, nil
 	}
 
 	// Validate input
 	for _, opt := range options {
-		if input == strings.ToLower(opt.Key) {
+		if userInput == strings.ToLower(opt.Key) {
 			return opt.Key, nil
 		}
 	}
@@ -59,11 +65,16 @@ func Prompt(message string, options []PromptOption) (string, error) {
 		validKeys = append(validKeys, opt.Key)
 	}
 
-	return "", fmt.Errorf("invalid choice: %s (valid options: %s)", input, strings.Join(validKeys, ", "))
+	return "", fmt.Errorf("invalid choice: %s (valid options: %s)", userInput, strings.Join(validKeys, ", "))
 }
 
 // ConfirmPrompt displays a yes/no prompt
 func ConfirmPrompt(message string, defaultYes bool) bool {
+	return ConfirmPromptWithReader(message, defaultYes, os.Stdin)
+}
+
+// ConfirmPromptWithReader displays a yes/no prompt using the provided reader
+func ConfirmPromptWithReader(message string, defaultYes bool, input io.Reader) bool {
 	suffix := " (y/N): "
 	if defaultYes {
 		suffix = " (Y/n): "
@@ -71,13 +82,13 @@ func ConfirmPrompt(message string, defaultYes bool) bool {
 
 	fmt.Print(message + suffix)
 
-	reader := bufio.NewReader(os.Stdin)
-	input, _ := reader.ReadString('\n')
-	input = strings.TrimSpace(strings.ToLower(input))
+	reader := bufio.NewReader(input)
+	userInput, _ := reader.ReadString('\n')
+	userInput = strings.TrimSpace(strings.ToLower(userInput))
 
-	if input == "" {
+	if userInput == "" {
 		return defaultYes
 	}
 
-	return input == "y" || input == "yes"
+	return userInput == "y" || userInput == "yes"
 }
