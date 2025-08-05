@@ -12,15 +12,13 @@ type MockGitClient struct {
 	mock.Mock
 }
 
-// Exec executes a git command
+// Exec executes a git command with the given arguments
 func (m *MockGitClient) Exec(ctx context.Context, args ...string) (string, error) {
-	// Convert variadic args to interface slice for testify
-	iArgs := make([]interface{}, len(args)+1)
-	iArgs[0] = ctx
-	for i, arg := range args {
-		iArgs[i+1] = arg
+	varArgs := []interface{}{ctx}
+	for _, arg := range args {
+		varArgs = append(varArgs, arg)
 	}
-	mockArgs := m.Called(iArgs...)
+	mockArgs := m.Called(varArgs...)
 	return mockArgs.String(0), mockArgs.Error(1)
 }
 
@@ -30,7 +28,7 @@ func (m *MockGitClient) CurrentBranch(ctx context.Context) (string, error) {
 	return args.String(0), args.Error(1)
 }
 
-// CreateBranch creates and checks out a new branch
+// CreateBranch creates a new git branch
 func (m *MockGitClient) CreateBranch(ctx context.Context, name string) error {
 	args := m.Called(ctx, name)
 	return args.Error(0)
@@ -42,15 +40,13 @@ func (m *MockGitClient) HasUncommittedChanges(ctx context.Context) (bool, error)
 	return args.Bool(0), args.Error(1)
 }
 
-// Add adds files to the staging area
+// Add stages files for commit
 func (m *MockGitClient) Add(ctx context.Context, files ...string) error {
-	// Convert variadic args to interface slice for testify
-	iArgs := make([]interface{}, len(files)+1)
-	iArgs[0] = ctx
-	for i, file := range files {
-		iArgs[i+1] = file
+	varArgs := []interface{}{ctx}
+	for _, file := range files {
+		varArgs = append(varArgs, file)
 	}
-	args := m.Called(iArgs...)
+	args := m.Called(varArgs...)
 	return args.Error(0)
 }
 
@@ -72,7 +68,7 @@ func (m *MockGitClient) MergeSquash(ctx context.Context, branch string) error {
 	return args.Error(0)
 }
 
-// Push pushes changes to the remote repository
+// Push pushes a branch to remote
 func (m *MockGitClient) Push(ctx context.Context, remote, branch string, setUpstream bool) error {
 	args := m.Called(ctx, remote, branch, setUpstream)
 	return args.Error(0)
@@ -84,7 +80,13 @@ func (m *MockGitClient) RootPath() (string, error) {
 	return args.String(0), args.Error(1)
 }
 
-// ListWorktrees returns a list of worktrees
+// BranchExists checks if a branch exists locally
+func (m *MockGitClient) BranchExists(ctx context.Context, branch string) (bool, error) {
+	args := m.Called(ctx, branch)
+	return args.Bool(0), args.Error(1)
+}
+
+// ListWorktrees lists all worktrees
 func (m *MockGitClient) ListWorktrees(ctx context.Context) ([]git.WorktreeInfo, error) {
 	args := m.Called(ctx)
 	if args.Get(0) == nil {
@@ -105,13 +107,13 @@ func (m *MockGitClient) RemoveWorktree(ctx context.Context, path string) error {
 	return args.Error(0)
 }
 
-// PruneWorktrees prunes worktree information
+// PruneWorktrees removes worktree information for deleted directories
 func (m *MockGitClient) PruneWorktrees(ctx context.Context) error {
 	args := m.Called(ctx)
 	return args.Error(0)
 }
 
-// FindWorktreeByBranch finds a worktree by branch name
+// FindWorktreeByBranch finds a worktree by its branch name
 func (m *MockGitClient) FindWorktreeByBranch(ctx context.Context, branch string) (*git.WorktreeInfo, error) {
 	args := m.Called(ctx, branch)
 	if args.Get(0) == nil {
@@ -120,21 +122,42 @@ func (m *MockGitClient) FindWorktreeByBranch(ctx context.Context, branch string)
 	return args.Get(0).(*git.WorktreeInfo), args.Error(1)
 }
 
-// HasWorktree checks if a worktree exists for the branch
+// HasWorktree checks if a worktree exists for the given branch
 func (m *MockGitClient) HasWorktree(ctx context.Context, branch string) (bool, error) {
 	args := m.Called(ctx, branch)
 	return args.Bool(0), args.Error(1)
 }
 
-// RunInWorktree runs a command in a specific worktree
+// RunInWorktree executes a command in a specific worktree
 func (m *MockGitClient) RunInWorktree(ctx context.Context, worktreePath string, cmdArgs ...string) (string, error) {
-	// Convert to interface slice for testify
-	iArgs := make([]interface{}, len(cmdArgs)+2)
-	iArgs[0] = ctx
-	iArgs[1] = worktreePath
-	for i, arg := range cmdArgs {
-		iArgs[i+2] = arg
+	varArgs := []interface{}{ctx, worktreePath}
+	for _, arg := range cmdArgs {
+		varArgs = append(varArgs, arg)
 	}
-	args := m.Called(iArgs...)
+	args := m.Called(varArgs...)
 	return args.String(0), args.Error(1)
+}
+
+// GetDefaultBranch returns the configured default branch (main/master)
+func (m *MockGitClient) GetDefaultBranch(ctx context.Context) (string, error) {
+	args := m.Called(ctx)
+	return args.String(0), args.Error(1)
+}
+
+// BranchDivergedFrom checks if a branch has diverged from a base branch
+func (m *MockGitClient) BranchDivergedFrom(ctx context.Context, branch, baseBranch string) (bool, error) {
+	args := m.Called(ctx, branch, baseBranch)
+	return args.Bool(0), args.Error(1)
+}
+
+// GetBranchCommit gets the commit hash a branch points to
+func (m *MockGitClient) GetBranchCommit(ctx context.Context, branch string) (string, error) {
+	args := m.Called(ctx, branch)
+	return args.String(0), args.Error(1)
+}
+
+// GetBranchDivergenceInfo returns commits ahead/behind between branches
+func (m *MockGitClient) GetBranchDivergenceInfo(ctx context.Context, branch, baseBranch string) (ahead, behind int, err error) {
+	args := m.Called(ctx, branch, baseBranch)
+	return args.Int(0), args.Int(1), args.Error(2)
 }

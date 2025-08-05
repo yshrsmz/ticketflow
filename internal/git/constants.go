@@ -14,6 +14,7 @@ const (
 	SubcmdPull     = "pull"
 	SubcmdPush     = "push"
 	SubcmdRevParse = "rev-parse"
+	SubcmdRevList  = "rev-list"
 	SubcmdStatus   = "status"
 	SubcmdWorktree = "worktree"
 	SubcmdBranch   = "branch"
@@ -36,12 +37,14 @@ const (
 	FlagVerbose      = "-v"
 	FlagAll          = "-a"
 	FlagDelete       = "-d"
+	FlagDeleteForce  = "-D"
 	FlagForce        = "--force"
 	FlagSet          = "--set"
 	FlagUnset        = "--unset"
 	FlagReplace      = "--replace-all"
 	FlagVerify       = "--verify"
 	FlagQuiet        = "--quiet"
+	FlagCount        = "--count"
 )
 
 // Git worktree subcommands

@@ -13,6 +13,7 @@ import (
 
 	"github.com/mattn/go-shellwords"
 	"github.com/yshrsmz/ticketflow/internal/config"
+	ticketerrors "github.com/yshrsmz/ticketflow/internal/errors"
 	"github.com/yshrsmz/ticketflow/internal/git"
 	"github.com/yshrsmz/ticketflow/internal/log"
 	"github.com/yshrsmz/ticketflow/internal/ticket"
@@ -1161,12 +1162,23 @@ func (app *App) createAndSetupWorktree(ctx context.Context, t *ticket.Ticket) (s
 	baseDir := app.Config.GetWorktreePath(app.ProjectRoot)
 	worktreePath := filepath.Join(baseDir, t.ID)
 
-	if err := app.Git.AddWorktree(ctx, worktreePath, t.ID); err != nil {
-		// Rollback: reset to previous commit
-		if _, rollbackErr := app.Git.Exec(ctx, "reset", "--hard", "HEAD^"); rollbackErr != nil {
-			fmt.Fprintf(os.Stderr, "Warning: failed to rollback after worktree creation failure: %v\n", rollbackErr)
+	err := app.Git.AddWorktree(ctx, worktreePath, t.ID)
+	if err != nil {
+		// Check if this is a branch divergence error
+		var divergenceErr *ticketerrors.BranchDivergenceError
+		if errors.As(err, &divergenceErr) {
+			// Handle branch divergence
+			worktreePath, err = app.handleBranchDivergence(ctx, t, worktreePath, divergenceErr)
+			if err != nil {
+				return "", err
+			}
+		} else {
+			// Other error - rollback
+			if _, rollbackErr := app.Git.Exec(ctx, "reset", "--hard", "HEAD^"); rollbackErr != nil {
+				fmt.Fprintf(os.Stderr, "Warning: failed to rollback after worktree creation failure: %v\n", rollbackErr)
+			}
+			return "", fmt.Errorf("failed to create worktree at %s for branch %s: %w", worktreePath, t.ID, err)
 		}
-		return "", fmt.Errorf("failed to create worktree at %s for branch %s: %w", worktreePath, t.ID, err)
 	}
 
 	// Run init commands if configured
@@ -1182,6 +1194,70 @@ func (app *App) createAndSetupWorktree(ctx context.Context, t *ticket.Ticket) (s
 	}
 
 	return worktreePath, nil
+}
+
+// handleBranchDivergence handles the case when a branch has diverged
+func (app *App) handleBranchDivergence(ctx context.Context, t *ticket.Ticket, worktreePath string,
+	divergenceErr *ticketerrors.BranchDivergenceError) (string, error) {
+
+	// Display divergence information
+	app.Output.Printf("\n⚠️  Branch '%s' already exists but has diverged from '%s'\n",
+		divergenceErr.Branch, divergenceErr.BaseBranch)
+	app.Output.Printf("   • %d commits ahead\n", divergenceErr.Ahead)
+	app.Output.Printf("   • %d commits behind\n\n", divergenceErr.Behind)
+
+	// Prompt for user action
+	options := []PromptOption{
+		{Key: "u", Description: "Use existing branch as-is", IsDefault: false},
+		{Key: "r", Description: "Delete and recreate branch at current HEAD", IsDefault: true},
+		{Key: "c", Description: "Cancel operation", IsDefault: false},
+	}
+
+	choice, err := Prompt("How would you like to proceed?", options)
+	if err != nil {
+		return "", fmt.Errorf("failed to get user choice: %w", err)
+	}
+
+	switch choice {
+	case "u":
+		// Use existing branch
+		app.Output.Printf("Using existing branch '%s'...\n", t.ID)
+		_, err = app.Git.Exec(ctx, git.SubcmdWorktree, git.WorktreeAdd, worktreePath, t.ID)
+		if err != nil {
+			return "", fmt.Errorf("failed to create worktree with existing branch: %w", err)
+		}
+		return worktreePath, nil
+
+	case "r":
+		// Delete and recreate branch
+		app.Output.Printf("Recreating branch '%s' at current HEAD...\n", t.ID)
+
+		// First, delete the branch
+		_, err = app.Git.Exec(ctx, git.SubcmdBranch, git.FlagDeleteForce, t.ID)
+		if err != nil {
+			return "", fmt.Errorf("failed to delete branch: %w", err)
+		}
+
+		// Now create worktree with new branch
+		_, err = app.Git.Exec(ctx, git.SubcmdWorktree, git.WorktreeAdd, worktreePath,
+			git.FlagBranch, t.ID)
+		if err != nil {
+			return "", fmt.Errorf("failed to create worktree with new branch: %w", err)
+		}
+		return worktreePath, nil
+
+	case "c":
+		// Cancel
+		app.Output.Printf("Operation cancelled.\n")
+		// Rollback the ticket start
+		if _, rollbackErr := app.Git.Exec(ctx, "reset", "--hard", "HEAD^"); rollbackErr != nil {
+			fmt.Fprintf(os.Stderr, "Warning: failed to rollback: %v\n", rollbackErr)
+		}
+		return "", fmt.Errorf("operation cancelled by user")
+
+	default:
+		return "", fmt.Errorf("invalid choice: %s", choice)
+	}
 }
 
 // runWorktreeInitCommands runs the configured initialization commands in the worktree

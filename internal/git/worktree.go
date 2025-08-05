@@ -84,8 +84,35 @@ func (g *Git) AddWorktree(ctx context.Context, path, branch string) error {
 		return ticketerrors.NewWorktreeError("create", path, fmt.Errorf("failed to check if branch exists: %w", err))
 	}
 
-	// If branch exists, don't use -b flag
+	// If branch exists, check if it has diverged from the default branch
 	if branchExists {
+		// Get the default branch
+		defaultBranch, err := g.GetDefaultBranch(ctx)
+		if err != nil {
+			return ticketerrors.NewWorktreeError("create", path,
+				fmt.Errorf("failed to get default branch: %w", err))
+		}
+
+		// Check if branch has diverged
+		diverged, err := g.BranchDivergedFrom(ctx, branch, defaultBranch)
+		if err != nil {
+			return ticketerrors.NewWorktreeError("create", path,
+				fmt.Errorf("failed to check branch divergence: %w", err))
+		}
+
+		if diverged {
+			// Get divergence details
+			ahead, behind, err := g.GetBranchDivergenceInfo(ctx, branch, defaultBranch)
+			if err != nil {
+				return ticketerrors.NewWorktreeError("create", path,
+					fmt.Errorf("failed to get divergence info: %w", err))
+			}
+
+			// Return a specific error that the CLI can handle
+			return ticketerrors.NewBranchDivergenceError(branch, defaultBranch, ahead, behind)
+		}
+
+		// Branch exists and hasn't diverged, use it
 		_, err = g.Exec(ctx, SubcmdWorktree, WorktreeAdd, path, branch)
 	} else {
 		// Branch doesn't exist, create it with -b flag

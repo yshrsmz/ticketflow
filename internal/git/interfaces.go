@@ -8,6 +8,7 @@ type BasicGitClient interface {
 	Exec(ctx context.Context, args ...string) (string, error)
 	CurrentBranch(ctx context.Context) (string, error)
 	CreateBranch(ctx context.Context, name string) error
+	BranchExists(ctx context.Context, branch string) (bool, error)
 	HasUncommittedChanges(ctx context.Context) (bool, error)
 	Add(ctx context.Context, files ...string) error
 	Commit(ctx context.Context, message string) error
@@ -35,4 +36,10 @@ type WorktreeClient interface {
 // This maintains backward compatibility
 type GitClient interface {
 	WorktreeClient
+	
+	// Branch divergence operations
+	GetDefaultBranch(ctx context.Context) (string, error)
+	BranchDivergedFrom(ctx context.Context, branch, baseBranch string) (bool, error)
+	GetBranchCommit(ctx context.Context, branch string) (string, error)
+	GetBranchDivergenceInfo(ctx context.Context, branch, baseBranch string) (ahead, behind int, err error)
 }

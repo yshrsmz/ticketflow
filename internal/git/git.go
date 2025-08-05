@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"os/exec"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -266,6 +267,84 @@ func (g *Git) Push(ctx context.Context, remote, branch string, setUpstream bool)
 	args = append(args, remote, branch)
 	_, err := g.Exec(ctx, args...)
 	return err
+}
+
+// GetDefaultBranch returns the configured default branch (main/master)
+func (g *Git) GetDefaultBranch(ctx context.Context) (string, error) {
+	// Try to get from remote HEAD
+	output, err := g.Exec(ctx, SubcmdRevParse, FlagAbbrevRef, "origin/HEAD")
+	if err == nil {
+		// Remove "origin/" prefix
+		branch := strings.TrimPrefix(strings.TrimSpace(output), "origin/")
+		if branch != "" && branch != "HEAD" {
+			return branch, nil
+		}
+	}
+
+	// Fallback to checking common default branch names
+	for _, branch := range []string{"main", "master"} {
+		if exists, _ := g.BranchExists(ctx, branch); exists {
+			return branch, nil
+		}
+	}
+
+	return "", fmt.Errorf("could not determine default branch")
+}
+
+// GetBranchCommit gets the commit hash a branch points to
+func (g *Git) GetBranchCommit(ctx context.Context, branch string) (string, error) {
+	// Validate branch name to prevent command injection
+	if !isValidBranchName(branch) {
+		return "", fmt.Errorf("invalid branch name: %s", branch)
+	}
+
+	output, err := g.Exec(ctx, SubcmdRevParse, branch)
+	if err != nil {
+		return "", fmt.Errorf("failed to get commit for branch %s: %w", branch, err)
+	}
+
+	return strings.TrimSpace(output), nil
+}
+
+// BranchDivergedFrom checks if a branch has diverged from a base branch
+func (g *Git) BranchDivergedFrom(ctx context.Context, branch, baseBranch string) (bool, error) {
+	branchCommit, err := g.GetBranchCommit(ctx, branch)
+	if err != nil {
+		return false, fmt.Errorf("failed to get commit for branch %s: %w", branch, err)
+	}
+
+	baseCommit, err := g.GetBranchCommit(ctx, baseBranch)
+	if err != nil {
+		return false, fmt.Errorf("failed to get commit for base branch %s: %w", baseBranch, err)
+	}
+
+	return branchCommit != baseCommit, nil
+}
+
+// GetBranchDivergenceInfo returns commits ahead/behind between branches
+func (g *Git) GetBranchDivergenceInfo(ctx context.Context, branch, baseBranch string) (ahead, behind int, err error) {
+	// Validate branch names
+	if !isValidBranchName(branch) || !isValidBranchName(baseBranch) {
+		return 0, 0, fmt.Errorf("invalid branch name")
+	}
+
+	// Get commits ahead (in branch but not in baseBranch)
+	aheadOutput, err := g.Exec(ctx, SubcmdRevList, FlagCount, fmt.Sprintf("%s..%s", baseBranch, branch))
+	if err != nil {
+		return 0, 0, fmt.Errorf("failed to count commits ahead: %w", err)
+	}
+
+	// Get commits behind (in baseBranch but not in branch)
+	behindOutput, err := g.Exec(ctx, SubcmdRevList, FlagCount, fmt.Sprintf("%s..%s", branch, baseBranch))
+	if err != nil {
+		return 0, 0, fmt.Errorf("failed to count commits behind: %w", err)
+	}
+
+	// Parse the counts (ignore error, will be 0 if parse fails)
+	ahead, _ = strconv.Atoi(strings.TrimSpace(aheadOutput))
+	behind, _ = strconv.Atoi(strings.TrimSpace(behindOutput))
+
+	return ahead, behind, nil
 }
 
 // IsGitRepo checks if the path is a git repository
