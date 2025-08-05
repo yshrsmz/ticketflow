@@ -158,14 +158,31 @@ func DefaultGitOptions() GitOptions {
 	}
 }
 
+// execGitCommand is a standalone helper for executing git commands with stderr capture
+// This is used by SetupGitRepoWithOptions and other functions that don't have access to GitRepo methods
+func execGitCommand(t *testing.T, dir string, args ...string) (string, error) {
+	t.Helper()
+	cmd := exec.Command("git", args...)
+	cmd.Dir = dir
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	err := cmd.Run()
+	if err != nil {
+		return stderr.String(), fmt.Errorf("git %v failed: %w\nstderr: %s", args, err, stderr.String())
+	}
+	return stderr.String(), nil
+}
+
 // SetupGitRepoWithOptions creates a git repository with custom options
 func SetupGitRepoWithOptions(t *testing.T, dir string, opts GitOptions) *GitRepo {
 	t.Helper()
 
+	repo := &GitRepo{Dir: dir}
+
 	// Initialize git repository
-	cmd := exec.Command("git", "init")
-	cmd.Dir = dir
-	err := cmd.Run()
+	stderr, err := execGitCommand(t, dir, "init")
+	repo.LastStderr = stderr
 	require.NoError(t, err, "Failed to initialize git repository")
 
 	// Configure git locally
@@ -173,27 +190,24 @@ func SetupGitRepoWithOptions(t *testing.T, dir string, opts GitOptions) *GitRepo
 
 	// Create initial commit if requested
 	if opts.InitialCommit {
-		cmd = exec.Command("git", "commit", "--allow-empty", "-m", "Initial commit")
-		cmd.Dir = dir
-		err = cmd.Run()
+		stderr, err = execGitCommand(t, dir, "commit", "--allow-empty", "-m", "Initial commit")
+		repo.LastStderr = stderr
 		require.NoError(t, err, "Failed to create initial commit")
 	}
 
 	// Create default branch
 	if opts.DefaultBranch != "" && opts.DefaultBranch != "master" {
-		cmd = exec.Command("git", "checkout", "-b", opts.DefaultBranch)
-		cmd.Dir = dir
-		err = cmd.Run()
+		stderr, err = execGitCommand(t, dir, "checkout", "-b", opts.DefaultBranch)
+		repo.LastStderr = stderr
 		require.NoError(t, err, "Failed to create default branch")
 	}
 
 	// Add remote if requested
 	if opts.AddRemote && opts.RemoteName != "" && opts.RemoteURL != "" {
-		cmd = exec.Command("git", "remote", "add", opts.RemoteName, opts.RemoteURL)
-		cmd.Dir = dir
-		err = cmd.Run()
+		stderr, err = execGitCommand(t, dir, "remote", "add", opts.RemoteName, opts.RemoteURL)
+		repo.LastStderr = stderr
 		require.NoError(t, err, "Failed to add remote")
 	}
 
-	return &GitRepo{Dir: dir}
+	return repo
 }
