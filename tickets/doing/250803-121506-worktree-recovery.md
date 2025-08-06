@@ -13,54 +13,46 @@ related:
 ## Overview
 Handle corrupted worktree references where the worktree directory is deleted but git still tracks it, or .git/worktrees entries are corrupted.
 
-## Analysis Complete - Ticket Split Required
+## Decision: Won't Implement
 
-After thorough analysis of the codebase, this ticket has been determined to be too large for a single implementation. It has been split into 4 focused sub-tickets that should be implemented in sequence:
+After thorough analysis and consideration of ticketflow's core purpose as a **ticket management tool**, we've decided NOT to implement complex worktree recovery mechanisms.
 
-### Sub-tickets Created:
+### Rationale
 
-1. **250806-171131-worktree-error-detection** (Priority: 1)
-   - Enhance git error detection to identify worktree-specific corruption patterns
-   - Create foundation for recovery mechanisms
-   - **Must be completed first**
+1. **Scope creep**: ticketflow is a ticket management tool, not a git repair utility. Implementing recovery mechanisms would blur this focus.
 
-2. **250806-171235-automatic-worktree-recovery** (Priority: 1)
-   - Implement automatic recovery with `git worktree prune`
-   - Add retry logic with exponential backoff
-   - Depends on: worktree-error-detection
+2. **Problem rarity**: Worktree corruption is extremely rare in practice. Most developers never encounter it.
 
-3. **250806-171306-doctor-command** (Priority: 2)
-   - Implement `ticketflow doctor` command
-   - Add `--fix-worktrees` flag for manual recovery
-   - Provide diagnostic capabilities
-   - Depends on: worktree-error-detection
+3. **Existing solution**: Git already provides `git worktree prune` which solves 99% of worktree corruption issues. Users can run this command directly.
 
-4. **250806-171343-enhanced-recovery-features** (Priority: 3)
-   - Advanced recovery features for complex scenarios
-   - Metadata backup/restore system
-   - Recovery journal and statistics
-   - Depends on: all previous tickets
+4. **User capability**: Developers using ticketflow are already comfortable with git and can handle basic troubleshooting.
 
-## Original Tasks (Now Distributed)
-- [→ Ticket 1] Add automatic recovery with `git worktree prune` on worktree errors
-- [→ Ticket 2] Implement retry mechanism after pruning
-- [→ Ticket 3] Add `ticketflow doctor --fix-worktrees` command
-- [→ Ticket 3] Add detection for orphaned worktree directories
-- [→ All] Add tests for recovery scenarios
+5. **Cost vs benefit**: The implementation would require 4 complex sub-tickets worth of development for a problem that rarely occurs. The maintenance burden would be ongoing.
 
-## Technical Analysis Summary
-The analysis revealed:
-- ✅ `PruneWorktrees()` already exists in `internal/git/worktree.go`
-- ✅ Error infrastructure exists but needs enhancement for worktree-specific errors
-- ❌ No `doctor` command infrastructure currently exists
-- ❌ No retry mechanism infrastructure
-- ❌ Current `Git.Exec()` doesn't identify worktree corruption specifically
+6. **Over-engineering**: This would be a classic case of building a complex solution for a non-problem.
 
-## Recommendation
-**This ticket should be closed** after creating the sub-tickets. The implementation should proceed with the sub-tickets in order, starting with the error detection infrastructure as it provides the foundation for all recovery mechanisms.
+### What We'll Do Instead
 
-## Acceptance Criteria (Met by Sub-tickets)
-- ✅ Worktree errors are automatically recovered when possible (Ticket 2)
-- ✅ Manual recovery command works for complex cases (Ticket 3)
-- ✅ Clear messages guide users through recovery (All tickets)
-- ✅ No data loss during recovery operations (All tickets)
+1. **Existing functionality**: Keep the current `PruneWorktrees()` call in cleanup operations (already implemented).
+
+2. **Better error messages**: When worktree errors occur, provide clear, actionable messages:
+   ```
+   Error: Worktree appears to be corrupted
+   Fix: Run 'git worktree prune' to clean up corrupted references
+   Then retry your ticketflow command
+   ```
+
+3. **Documentation**: Add a troubleshooting section to the docs covering common worktree issues and their solutions.
+
+### Original Tasks (Not Implementing)
+- ~~Add automatic recovery with `git worktree prune` on worktree errors~~
+- ~~Implement retry mechanism after pruning~~
+- ~~Add `ticketflow doctor --fix-worktrees` command~~
+- ~~Add detection for orphaned worktree directories~~
+- ~~Add tests for recovery scenarios~~
+
+## Resolution
+
+This ticket is being closed as "Won't Implement" based on the principle that ticketflow should focus on its core purpose: ticket management. Git worktree issues should be handled by git itself, with ticketflow providing helpful error messages to guide users to the solution.
+
+The 4 sub-tickets that were initially created have been deleted as they are no longer needed.
