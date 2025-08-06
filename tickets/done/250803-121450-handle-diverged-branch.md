@@ -3,7 +3,7 @@ priority: 3
 description: Handle case when branch exists but points to different commit
 created_at: "2025-08-03T12:14:50+09:00"
 started_at: "2025-08-05T13:29:41+09:00"
-closed_at: null
+closed_at: "2025-08-06T14:30:32+09:00"
 related:
     - parent:250726-183403-fix-branch-already-exist-on-start
 ---
