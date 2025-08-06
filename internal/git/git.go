@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"os/exec"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -266,6 +267,117 @@ func (g *Git) Push(ctx context.Context, remote, branch string, setUpstream bool)
 	args = append(args, remote, branch)
 	_, err := g.Exec(ctx, args...)
 	return err
+}
+
+// GetDefaultBranch returns the configured default branch (main/master)
+func (g *Git) GetDefaultBranch(ctx context.Context) (string, error) {
+	// First, check if origin remote exists
+	_, err := g.Exec(ctx, SubcmdRemote, "get-url", "origin")
+	if err == nil {
+		// Origin exists, try to get from remote HEAD
+		output, err := g.Exec(ctx, SubcmdRevParse, FlagAbbrevRef, "origin/HEAD")
+		if err == nil {
+			// Remove "origin/" prefix
+			branch := strings.TrimPrefix(strings.TrimSpace(output), "origin/")
+			if branch != "" && branch != "HEAD" {
+				return branch, nil
+			}
+		}
+	}
+
+	// Try to get from git config init.defaultBranch
+	output, err := g.Exec(ctx, SubcmdConfig, "--get", "init.defaultBranch")
+	if err == nil {
+		branch := strings.TrimSpace(output)
+		if branch != "" {
+			// Verify the branch exists locally
+			if exists, _ := g.BranchExists(ctx, branch); exists {
+				return branch, nil
+			}
+		}
+	}
+
+	// Fallback to checking common default branch names
+	for _, branch := range []string{"main", "master"} {
+		if exists, _ := g.BranchExists(ctx, branch); exists {
+			return branch, nil
+		}
+	}
+
+	return "", fmt.Errorf("could not determine default branch")
+}
+
+// GetBranchCommit gets the commit hash a branch points to
+func (g *Git) GetBranchCommit(ctx context.Context, branch string) (string, error) {
+	// Validate branch name to prevent command injection
+	if !isValidBranchName(branch) {
+		return "", fmt.Errorf("invalid branch name: %s", branch)
+	}
+
+	output, err := g.Exec(ctx, SubcmdRevParse, branch)
+	if err != nil {
+		return "", fmt.Errorf("failed to get commit for branch %s: %w", branch, err)
+	}
+
+	return strings.TrimSpace(output), nil
+}
+
+// BranchDivergedFrom checks if a branch has diverged from a base branch
+func (g *Git) BranchDivergedFrom(ctx context.Context, branch, baseBranch string) (bool, error) {
+	// Validate branch names
+	if !isValidBranchName(branch) {
+		return false, fmt.Errorf("invalid branch name: %s", branch)
+	}
+	if !isValidBranchName(baseBranch) {
+		return false, fmt.Errorf("invalid base branch name: %s", baseBranch)
+	}
+
+	branchCommit, err := g.GetBranchCommit(ctx, branch)
+	if err != nil {
+		return false, fmt.Errorf("failed to get commit for branch %s: %w", branch, err)
+	}
+
+	baseCommit, err := g.GetBranchCommit(ctx, baseBranch)
+	if err != nil {
+		return false, fmt.Errorf("failed to get commit for base branch %s: %w", baseBranch, err)
+	}
+
+	return branchCommit != baseCommit, nil
+}
+
+// GetBranchDivergenceInfo returns commits ahead/behind between branches
+func (g *Git) GetBranchDivergenceInfo(ctx context.Context, branch, baseBranch string) (ahead, behind int, err error) {
+	// Validate branch names
+	if !isValidBranchName(branch) || !isValidBranchName(baseBranch) {
+		return 0, 0, fmt.Errorf("invalid branch name")
+	}
+
+	// Get commits ahead (in branch but not in baseBranch)
+	// Note: Both branch names are validated above, making this fmt.Sprintf safe from injection
+	aheadOutput, err := g.Exec(ctx, SubcmdRevList, FlagCount, fmt.Sprintf("%s..%s", baseBranch, branch))
+	if err != nil {
+		return 0, 0, fmt.Errorf("failed to count commits ahead: %w", err)
+	}
+
+	// Get commits behind (in baseBranch but not in branch)
+	// Note: Both branch names are validated above, making this fmt.Sprintf safe from injection
+	behindOutput, err := g.Exec(ctx, SubcmdRevList, FlagCount, fmt.Sprintf("%s..%s", branch, baseBranch))
+	if err != nil {
+		return 0, 0, fmt.Errorf("failed to count commits behind: %w", err)
+	}
+
+	// Parse the counts
+	ahead, err = strconv.Atoi(strings.TrimSpace(aheadOutput))
+	if err != nil {
+		return 0, 0, fmt.Errorf("failed to parse ahead count: %w", err)
+	}
+
+	behind, err = strconv.Atoi(strings.TrimSpace(behindOutput))
+	if err != nil {
+		return 0, 0, fmt.Errorf("failed to parse behind count: %w", err)
+	}
+
+	return ahead, behind, nil
 }
 
 // IsGitRepo checks if the path is a git repository

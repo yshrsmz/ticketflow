@@ -22,6 +22,7 @@ var (
 	ErrDirtyWorkspace = errors.New("workspace has uncommitted changes")
 	ErrBranchExists   = errors.New("branch already exists")
 	ErrBranchNotFound = errors.New("branch not found")
+	ErrBranchDiverged = errors.New("branch has diverged from expected base")
 	ErrMergeFailed    = errors.New("merge failed")
 	ErrPushFailed     = errors.New("push failed")
 
@@ -252,4 +253,33 @@ func IsAlreadyExists(err error) bool {
 		errors.Is(err, ErrWorktreeExists) ||
 		errors.Is(err, ErrTicketAlreadyStarted) ||
 		errors.Is(err, ErrTicketAlreadyClosed)
+}
+
+// BranchDivergenceError provides detailed information about branch divergence
+type BranchDivergenceError struct {
+	Branch     string
+	BaseBranch string
+	Ahead      int
+	Behind     int
+}
+
+// Error returns the string representation of the BranchDivergenceError
+func (e *BranchDivergenceError) Error() string {
+	return fmt.Sprintf("branch %s has diverged from %s (%d commits ahead, %d behind)",
+		e.Branch, e.BaseBranch, e.Ahead, e.Behind)
+}
+
+// Is implements error matching for errors.Is
+func (e *BranchDivergenceError) Is(target error) bool {
+	return target == ErrBranchDiverged
+}
+
+// NewBranchDivergenceError creates a new BranchDivergenceError
+func NewBranchDivergenceError(branch, baseBranch string, ahead, behind int) error {
+	return &BranchDivergenceError{
+		Branch:     branch,
+		BaseBranch: baseBranch,
+		Ahead:      ahead,
+		Behind:     behind,
+	}
 }

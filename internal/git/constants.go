@@ -14,6 +14,7 @@ const (
 	SubcmdPull     = "pull"
 	SubcmdPush     = "push"
 	SubcmdRevParse = "rev-parse"
+	SubcmdRevList  = "rev-list"
 	SubcmdStatus   = "status"
 	SubcmdWorktree = "worktree"
 	SubcmdBranch   = "branch"
@@ -21,6 +22,7 @@ const (
 	SubcmdConfig   = "config"
 	SubcmdLog      = "log"
 	SubcmdShowRef  = "show-ref"
+	SubcmdReset    = "reset"
 )
 
 // Git command flags and options
@@ -36,12 +38,15 @@ const (
 	FlagVerbose      = "-v"
 	FlagAll          = "-a"
 	FlagDelete       = "-d"
+	FlagDeleteForce  = "-D"
 	FlagForce        = "--force"
 	FlagSet          = "--set"
 	FlagUnset        = "--unset"
 	FlagReplace      = "--replace-all"
 	FlagVerify       = "--verify"
 	FlagQuiet        = "--quiet"
+	FlagCount        = "--count"
+	FlagHard         = "--hard"
 )
 
 // Git worktree subcommands
