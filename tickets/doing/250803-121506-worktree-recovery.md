@@ -13,21 +13,54 @@ related:
 ## Overview
 Handle corrupted worktree references where the worktree directory is deleted but git still tracks it, or .git/worktrees entries are corrupted.
 
-## Tasks
-- [ ] Add automatic recovery with `git worktree prune` on worktree errors
-- [ ] Implement retry mechanism after pruning
-- [ ] Add `ticketflow doctor --fix-worktrees` command
-- [ ] Add detection for orphaned worktree directories
-- [ ] Add tests for recovery scenarios
+## Analysis Complete - Ticket Split Required
 
-## Technical Details
-- Detect worktree-related errors in git command output
-- Run `git worktree prune` automatically when appropriate
-- Implement `doctor` subcommand with various fix options
-- Check for worktree directories that exist without git tracking
+After thorough analysis of the codebase, this ticket has been determined to be too large for a single implementation. It has been split into 4 focused sub-tickets that should be implemented in sequence:
 
-## Acceptance Criteria
-- Worktree errors are automatically recovered when possible
-- Manual recovery command works for complex cases
-- Clear messages guide users through recovery
-- No data loss during recovery operations
+### Sub-tickets Created:
+
+1. **250806-171131-worktree-error-detection** (Priority: 1)
+   - Enhance git error detection to identify worktree-specific corruption patterns
+   - Create foundation for recovery mechanisms
+   - **Must be completed first**
+
+2. **250806-171235-automatic-worktree-recovery** (Priority: 1)
+   - Implement automatic recovery with `git worktree prune`
+   - Add retry logic with exponential backoff
+   - Depends on: worktree-error-detection
+
+3. **250806-171306-doctor-command** (Priority: 2)
+   - Implement `ticketflow doctor` command
+   - Add `--fix-worktrees` flag for manual recovery
+   - Provide diagnostic capabilities
+   - Depends on: worktree-error-detection
+
+4. **250806-171343-enhanced-recovery-features** (Priority: 3)
+   - Advanced recovery features for complex scenarios
+   - Metadata backup/restore system
+   - Recovery journal and statistics
+   - Depends on: all previous tickets
+
+## Original Tasks (Now Distributed)
+- [→ Ticket 1] Add automatic recovery with `git worktree prune` on worktree errors
+- [→ Ticket 2] Implement retry mechanism after pruning
+- [→ Ticket 3] Add `ticketflow doctor --fix-worktrees` command
+- [→ Ticket 3] Add detection for orphaned worktree directories
+- [→ All] Add tests for recovery scenarios
+
+## Technical Analysis Summary
+The analysis revealed:
+- ✅ `PruneWorktrees()` already exists in `internal/git/worktree.go`
+- ✅ Error infrastructure exists but needs enhancement for worktree-specific errors
+- ❌ No `doctor` command infrastructure currently exists
+- ❌ No retry mechanism infrastructure
+- ❌ Current `Git.Exec()` doesn't identify worktree corruption specifically
+
+## Recommendation
+**This ticket should be closed** after creating the sub-tickets. The implementation should proceed with the sub-tickets in order, starting with the error detection infrastructure as it provides the foundation for all recovery mechanisms.
+
+## Acceptance Criteria (Met by Sub-tickets)
+- ✅ Worktree errors are automatically recovered when possible (Ticket 2)
+- ✅ Manual recovery command works for complex cases (Ticket 3)
+- ✅ Clear messages guide users through recovery (All tickets)
+- ✅ No data loss during recovery operations (All tickets)
