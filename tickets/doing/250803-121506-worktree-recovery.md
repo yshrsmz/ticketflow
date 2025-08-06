@@ -33,7 +33,7 @@ After thorough analysis and consideration of ticketflow's core purpose as a **ti
 
 ### What We'll Do Instead
 
-1. **Existing functionality**: Keep the current `PruneWorktrees()` call in cleanup operations (already implemented).
+1. **Existing functionality**: Keep the current `PruneWorktrees()` call in cleanup operations (already implemented). ✅
 
 2. **Better error messages**: When worktree errors occur, provide clear, actionable messages:
    ```
@@ -41,8 +41,10 @@ After thorough analysis and consideration of ticketflow's core purpose as a **ti
    Fix: Run 'git worktree prune' to clean up corrupted references
    Then retry your ticketflow command
    ```
+   → **Ticket created:** 250806-172829-improve-worktree-error-messages
 
 3. **Documentation**: Add a troubleshooting section to the docs covering common worktree issues and their solutions.
+   → **Ticket created:** 250806-172904-add-troubleshooting-docs
 
 ### Original Tasks (Not Implementing)
 - ~~Add automatic recovery with `git worktree prune` on worktree errors~~
