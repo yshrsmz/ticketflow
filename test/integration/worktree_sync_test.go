@@ -99,11 +99,17 @@ func TestStartTicket_WorktreeCreatedAfterCommit(t *testing.T) {
 	_, err = os.Stat(worktreeTodoPath)
 	assert.True(t, os.IsNotExist(err), "ticket should not exist in worktree todo directory")
 
-	// 6. Verify current-ticket.md symlink
+	// 6. Verify current-ticket.md symlink exists ONLY in worktree, not in main repo
+	// Check main repo - should NOT have the symlink
+	mainRepoLinkPath := filepath.Join(repoPath, "current-ticket.md")
+	_, err = os.Lstat(mainRepoLinkPath)
+	assert.True(t, os.IsNotExist(err), "current-ticket.md should NOT exist in main repo when worktrees are enabled")
+
+	// Check worktree - should have the symlink
 	linkPath := filepath.Join(ticketWorktree.Path, "current-ticket.md")
 	linkInfo, err := os.Lstat(linkPath)
 	require.NoError(t, err)
-	assert.True(t, linkInfo.Mode()&os.ModeSymlink != 0, "current-ticket.md should be a symlink")
+	assert.True(t, linkInfo.Mode()&os.ModeSymlink != 0, "current-ticket.md should be a symlink in worktree")
 
 	// Verify link target
 	target, err := os.Readlink(linkPath)

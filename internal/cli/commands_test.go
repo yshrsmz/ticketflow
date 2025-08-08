@@ -319,6 +319,162 @@ Test ticket content`
 	}
 }
 
+func TestApp_StartTicket_WorktreeMode_NoMainRepoSymlink(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	// Create the required directory structure
+	todoDir := filepath.Join(tmpDir, "tickets", "todo")
+	doingDir := filepath.Join(tmpDir, "tickets", "doing")
+	require.NoError(t, os.MkdirAll(todoDir, 0755))
+	require.NoError(t, os.MkdirAll(doingDir, 0755))
+
+	// Create the ticket file
+	ticketID := "250131-120000-test"
+	ticketPath := filepath.Join(todoDir, ticketID+".md")
+	content := `---
+priority: 1
+description: "Test ticket"
+created_at: "2021-01-31T12:00:00Z"
+---
+
+Test ticket content`
+	require.NoError(t, os.WriteFile(ticketPath, []byte(content), 0644))
+
+	// Create the worktree directory that AddWorktree would create
+	worktreeBaseDir := filepath.Join(tmpDir, "../test.worktrees")
+	worktreePath := filepath.Join(worktreeBaseDir, ticketID)
+	require.NoError(t, os.MkdirAll(worktreePath, 0755))
+
+	// Create mocks
+	mockManager := new(mocks.MockTicketManager)
+	mockGit := new(mocks.MockGitClient)
+
+	testTicket := &ticket.Ticket{
+		ID:          ticketID,
+		Path:        ticketPath,
+		Priority:    1,
+		Description: "Test ticket",
+		CreatedAt:   ticket.RFC3339Time{Time: time.Now()},
+	}
+
+	// Setup expectations
+	mockManager.On("Get", mock.Anything, ticketID).Return(testTicket, nil)
+	mockManager.On("Update", mock.Anything, mock.AnythingOfType("*ticket.Ticket")).Return(nil)
+	// SetCurrentTicket should NOT be called when worktrees are enabled
+	// We don't set any expectation for it, so the test will fail if it's called
+
+	mockGit.On("CurrentBranch", mock.Anything).Return("main", nil)
+	mockGit.On("HasUncommittedChanges", mock.Anything).Return(false, nil).Maybe()
+	mockGit.On("BranchExists", mock.Anything, ticketID).Return(false, nil).Maybe()
+	mockGit.On("CreateBranch", mock.Anything, ticketID).Return(nil).Maybe()
+	mockGit.On("Checkout", mock.Anything, ticketID).Return(nil).Maybe()
+	mockGit.On("HasWorktree", mock.Anything, ticketID).Return(false, nil) // Check for existing worktree
+	mockGit.On("Add", mock.Anything, "-A", mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return(nil)
+	mockGit.On("Commit", mock.Anything, "Start ticket: "+ticketID).Return(nil)
+	mockGit.On("Checkout", mock.Anything, "main").Return(nil).Maybe() // Switch back in worktree mode
+	mockGit.On("AddWorktree", mock.Anything, worktreePath, ticketID).Return(nil)
+
+	// Create app with worktrees ENABLED
+	cfg := config.Default()
+	cfg.Worktree.Enabled = true
+	cfg.Worktree.BaseDir = "../test.worktrees"
+	cfg.Git.DefaultBranch = "main"
+	cfg.Tickets.Dir = "tickets"
+	cfg.Worktree.InitCommands = []string{} // Disable init commands for test
+
+	app := &App{
+		Config:      cfg,
+		Manager:     mockManager,
+		Git:         mockGit,
+		ProjectRoot: tmpDir,
+		Output:      NewOutputWriter(nil, nil, FormatText),
+	}
+
+	// Execute
+	err := app.StartTicket(context.Background(), ticketID, false)
+	assert.NoError(t, err)
+
+	// Verify that SetCurrentTicket was NOT called (by checking expectations)
+	mockManager.AssertExpectations(t)
+	mockGit.AssertExpectations(t)
+
+	// Also verify that current-ticket.md does NOT exist in the main repo
+	mainRepoSymlink := filepath.Join(tmpDir, "current-ticket.md")
+	_, err = os.Lstat(mainRepoSymlink)
+	assert.True(t, os.IsNotExist(err), "current-ticket.md should not exist in main repo when worktrees are enabled")
+}
+
+func TestApp_StartTicket_NonWorktreeMode_CreatesMainRepoSymlink(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	// Create the required directory structure
+	todoDir := filepath.Join(tmpDir, "tickets", "todo")
+	doingDir := filepath.Join(tmpDir, "tickets", "doing")
+	require.NoError(t, os.MkdirAll(todoDir, 0755))
+	require.NoError(t, os.MkdirAll(doingDir, 0755))
+
+	// Create the ticket file
+	ticketID := "250131-120000-test"
+	ticketPath := filepath.Join(todoDir, ticketID+".md")
+	content := `---
+priority: 1
+description: "Test ticket"
+created_at: "2021-01-31T12:00:00Z"
+---
+
+Test ticket content`
+	require.NoError(t, os.WriteFile(ticketPath, []byte(content), 0644))
+
+	// Create mocks
+	mockManager := new(mocks.MockTicketManager)
+	mockGit := new(mocks.MockGitClient)
+
+	testTicket := &ticket.Ticket{
+		ID:          ticketID,
+		Path:        ticketPath,
+		Priority:    1,
+		Description: "Test ticket",
+		CreatedAt:   ticket.RFC3339Time{Time: time.Now()},
+	}
+
+	// Setup expectations
+	mockManager.On("Get", mock.Anything, ticketID).Return(testTicket, nil)
+	mockManager.On("Update", mock.Anything, mock.AnythingOfType("*ticket.Ticket")).Return(nil)
+	// SetCurrentTicket SHOULD be called when worktrees are disabled
+	mockManager.On("SetCurrentTicket", mock.Anything, mock.AnythingOfType("*ticket.Ticket")).Return(nil)
+
+	mockGit.On("CurrentBranch", mock.Anything).Return("main", nil)
+	mockGit.On("HasUncommittedChanges", mock.Anything).Return(false, nil)
+	mockGit.On("BranchExists", mock.Anything, ticketID).Return(false, nil).Maybe()
+	mockGit.On("CreateBranch", mock.Anything, ticketID).Return(nil).Maybe()
+	mockGit.On("Checkout", mock.Anything, ticketID).Return(nil).Maybe()
+	mockGit.On("Add", mock.Anything, "-A", mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return(nil)
+	mockGit.On("Commit", mock.Anything, "Start ticket: "+ticketID).Return(nil)
+	// No checkout back to main since worktrees are disabled
+
+	// Create app with worktrees DISABLED
+	cfg := config.Default()
+	cfg.Worktree.Enabled = false
+	cfg.Git.DefaultBranch = "main"
+	cfg.Tickets.Dir = "tickets"
+
+	app := &App{
+		Config:      cfg,
+		Manager:     mockManager,
+		Git:         mockGit,
+		ProjectRoot: tmpDir,
+		Output:      NewOutputWriter(nil, nil, FormatText),
+	}
+
+	// Execute
+	err := app.StartTicket(context.Background(), ticketID, false)
+	assert.NoError(t, err)
+
+	// Verify that SetCurrentTicket WAS called
+	mockManager.AssertExpectations(t)
+	mockGit.AssertExpectations(t)
+}
+
 func TestNewApp_DefaultWorkingDirectory(t *testing.T) {
 	// Cannot use t.Parallel() - this test specifically validates behavior
 	// when no working directory is specified, so it must use os.Chdir
