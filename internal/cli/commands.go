@@ -1009,8 +1009,13 @@ func (app *App) validateTicketForClose(ctx context.Context, force bool) (*ticket
 	current, err := app.Manager.GetCurrentTicket(ctx)
 	if err != nil {
 		// Check if this is a symlink/readlink error that could be fixed with restore
-		// The error from GetCurrentTicket wraps os.Readlink errors with "failed to read current ticket link"
-		// We check for PathError which is returned by os.Readlink when it fails
+		// This typically happens when:
+		// 1. The current-ticket.md symlink exists but points to a non-existent file
+		// 2. The symlink is corrupted or has permission issues  
+		// 3. The user is in a worktree but the symlink wasn't properly restored
+		//
+		// GetCurrentTicket wraps os.Readlink errors with "failed to read current ticket link: %w"
+		// We rely on this error wrapping to detect readlink failures through the PathError chain
 		var pathErr *fs.PathError
 		if errors.As(err, &pathErr) && pathErr.Op == "readlink" {
 			return nil, "", NewError(ErrTicketNotStarted, "Failed to read current ticket",
