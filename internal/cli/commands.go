@@ -1011,7 +1011,7 @@ func (app *App) validateTicketForClose(ctx context.Context, force bool) (*ticket
 		// Check if this is a symlink/readlink error that could be fixed with restore
 		// This typically happens when:
 		// 1. The current-ticket.md symlink exists but points to a non-existent file
-		// 2. The symlink is corrupted or has permission issues  
+		// 2. The symlink is corrupted or has permission issues
 		// 3. The user is in a worktree but the symlink wasn't properly restored
 		//
 		// GetCurrentTicket wraps os.Readlink errors with "failed to read current ticket link: %w"

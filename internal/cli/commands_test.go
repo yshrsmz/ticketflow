@@ -620,7 +620,7 @@ func TestValidateTicketForClose_SymlinkError(t *testing.T) {
 			// Assert
 			if tt.expectedError {
 				assert.Error(t, err)
-				
+
 				// Check if it's a CLI error
 				if cliErr, ok := err.(*CLIError); ok {
 					if tt.expectedCode != "" {
@@ -637,7 +637,7 @@ func TestValidateTicketForClose_SymlinkError(t *testing.T) {
 						assert.True(t, found, "Expected suggestion not found: %s", tt.checkSuggestion)
 					}
 				}
-				
+
 				assert.Nil(t, ticket)
 				assert.Empty(t, ticketPath)
 			} else {
