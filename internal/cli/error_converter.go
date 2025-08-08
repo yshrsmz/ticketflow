@@ -47,6 +47,7 @@ func ConvertError(err error) error {
 	case errors.Is(err, ticketerrors.ErrTicketNotStarted):
 		return NewError(ErrTicketNotStarted, "Ticket not started", err.Error(), []string{
 			"Start the ticket first with 'ticketflow start <ticket-id>'",
+			"If in a worktree, try restoring the current ticket link: 'ticketflow restore'",
 		})
 
 	case errors.Is(err, ticketerrors.ErrNotGitRepo):

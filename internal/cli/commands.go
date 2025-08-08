@@ -1007,6 +1007,17 @@ func (app *App) validateTicketForClose(ctx context.Context, force bool) (*ticket
 	// Get current ticket
 	current, err := app.Manager.GetCurrentTicket(ctx)
 	if err != nil {
+		// Check if this is a symlink error that could be fixed with restore
+		if strings.Contains(err.Error(), "failed to read current ticket link") ||
+			strings.Contains(err.Error(), "symlink") {
+			return nil, "", NewError(ErrTicketNotStarted, "Failed to read current ticket",
+				err.Error(),
+				[]string{
+					"Try restoring the current ticket link: ticketflow restore",
+					"Or start a ticket manually: ticketflow start <ticket-id>",
+					"List available tickets: ticketflow list",
+				})
+		}
 		return nil, "", ConvertError(err)
 	}
 	if current == nil {
@@ -1014,6 +1025,7 @@ func (app *App) validateTicketForClose(ctx context.Context, force bool) (*ticket
 			"There is no ticket currently being worked on",
 			[]string{
 				"Start a ticket first: ticketflow start <ticket-id>",
+				"Restore current ticket link if in a worktree: ticketflow restore",
 				"List available tickets: ticketflow list",
 			})
 	}
