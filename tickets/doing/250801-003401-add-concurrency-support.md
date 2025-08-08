@@ -1,11 +1,11 @@
 ---
 priority: 3
-description: "Add safe concurrency for independent git operations and parallel file processing"
+description: Add safe concurrency for independent git operations and parallel file processing
 created_at: "2025-08-01T00:34:01+09:00"
-started_at: null
+started_at: "2025-08-08T22:55:58+09:00"
 closed_at: null
 related:
-  - parent:250801-003206-add-context-support
+    - parent:250801-003206-add-context-support
 ---
 
 # Add Concurrency Support
