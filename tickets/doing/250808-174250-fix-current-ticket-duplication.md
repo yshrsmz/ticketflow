@@ -1,8 +1,8 @@
 ---
 priority: 1
-description: "Fix current-ticket.md being created in both main repo and worktree"
+description: Fix current-ticket.md being created in both main repo and worktree
 created_at: "2025-08-08T17:42:50+09:00"
-started_at: null
+started_at: "2025-08-08T17:50:53+09:00"
 closed_at: null
 ---
 
