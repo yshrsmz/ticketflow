@@ -1,8 +1,8 @@
 ---
 priority: 2
-description: "Improve error message when ticketflow close fails to suggest using ticketflow restore"
+description: Improve error message when ticketflow close fails to suggest using ticketflow restore
 created_at: "2025-08-08T23:12:14+09:00"
-started_at: null
+started_at: "2025-08-08T23:35:16+09:00"
 closed_at: null
 ---
 
