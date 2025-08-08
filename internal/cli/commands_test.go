@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -517,4 +518,137 @@ func TestNewApp_DefaultWorkingDirectory(t *testing.T) {
 	actualPath, err := filepath.EvalSymlinks(app.ProjectRoot)
 	require.NoError(t, err)
 	assert.Equal(t, expectedPath, actualPath)
+}
+
+// TestValidateTicketForClose_SymlinkError tests that symlink errors are properly detected
+// using error type checking instead of string matching
+func TestValidateTicketForClose_SymlinkError(t *testing.T) {
+	tests := []struct {
+		name            string
+		setupManager    func(m *mocks.MockTicketManager)
+		expectedError   bool
+		expectedCode    string
+		checkSuggestion string
+	}{
+		{
+			name: "symlink readlink error",
+			setupManager: func(m *mocks.MockTicketManager) {
+				// Simulate a readlink error from GetCurrentTicket
+				// This happens when the symlink exists but cannot be read
+				pathErr := &os.PathError{
+					Op:   "readlink",
+					Path: "/test/current-ticket.md",
+					Err:  os.ErrPermission,
+				}
+				wrappedErr := fmt.Errorf("failed to read current ticket link: %w", pathErr)
+				m.On("GetCurrentTicket", mock.Anything).Return(nil, wrappedErr)
+			},
+			expectedError:   true,
+			expectedCode:    ErrTicketNotStarted,
+			checkSuggestion: "Try restoring the current ticket link: ticketflow restore",
+		},
+		{
+			name: "other file system error",
+			setupManager: func(m *mocks.MockTicketManager) {
+				// Simulate a different file system error (not readlink)
+				pathErr := &os.PathError{
+					Op:   "open",
+					Path: "/test/some-file.md",
+					Err:  os.ErrNotExist,
+				}
+				wrappedErr := fmt.Errorf("failed to open file: %w", pathErr)
+				m.On("GetCurrentTicket", mock.Anything).Return(nil, wrappedErr)
+			},
+			expectedError: true,
+			expectedCode:  "", // Should use ConvertError for non-readlink errors
+		},
+		{
+			name: "successful get current ticket",
+			setupManager: func(m *mocks.MockTicketManager) {
+				now := time.Now()
+				testTicket := &ticket.Ticket{
+					ID:          "250131-120000-test",
+					Priority:    1,
+					Description: "Test ticket",
+					StartedAt:   ticket.RFC3339TimePtr{Time: &now},
+					Path:        "/test/tickets/doing/250131-120000-test.md",
+				}
+				m.On("GetCurrentTicket", mock.Anything).Return(testTicket, nil)
+			},
+			expectedError: false,
+		},
+		{
+			name: "no current ticket",
+			setupManager: func(m *mocks.MockTicketManager) {
+				m.On("GetCurrentTicket", mock.Anything).Return(nil, nil)
+			},
+			expectedError:   true,
+			expectedCode:    ErrTicketNotStarted,
+			checkSuggestion: "Start a ticket first: ticketflow start <ticket-id>",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create mock manager
+			mockManager := new(mocks.MockTicketManager)
+			if tt.setupManager != nil {
+				tt.setupManager(mockManager)
+			}
+
+			// Create mock git client
+			mockGit := new(mocks.MockGitClient)
+			// Setup git mock only for successful case where we have a current ticket
+			if tt.name == "successful get current ticket" {
+				mockGit.On("FindWorktreeByBranch", mock.Anything, "250131-120000-test").Return(nil, nil).Maybe()
+				mockGit.On("HasUncommittedChanges", mock.Anything).Return(false, nil).Maybe()
+				mockGit.On("CurrentBranch", mock.Anything).Return("250131-120000-test", nil).Maybe()
+			}
+
+			// Create app with mocks
+			app := &App{
+				Config:      config.Default(),
+				Manager:     mockManager,
+				Git:         mockGit,
+				ProjectRoot: "/test/project",
+				Output:      NewOutputWriter(nil, nil, FormatText),
+			}
+
+			// Execute
+			ticket, ticketPath, err := app.validateTicketForClose(context.Background(), false)
+
+			// Assert
+			if tt.expectedError {
+				assert.Error(t, err)
+				
+				// Check if it's a CLI error
+				if cliErr, ok := err.(*CLIError); ok {
+					if tt.expectedCode != "" {
+						assert.Equal(t, tt.expectedCode, cliErr.Code, "Error code mismatch")
+					}
+					if tt.checkSuggestion != "" {
+						found := false
+						for _, suggestion := range cliErr.Suggestions {
+							if suggestion == tt.checkSuggestion {
+								found = true
+								break
+							}
+						}
+						assert.True(t, found, "Expected suggestion not found: %s", tt.checkSuggestion)
+					}
+				}
+				
+				assert.Nil(t, ticket)
+				assert.Empty(t, ticketPath)
+			} else {
+				assert.NoError(t, err)
+				assert.NotNil(t, ticket)
+				// ticketPath is empty when there's no worktree, which is expected
+				assert.Empty(t, ticketPath)
+			}
+
+			mockManager.AssertExpectations(t)
+			mockGit.AssertExpectations(t)
+		})
+	}
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/fs"
 	"log/slog"
 	"os"
 	"os/exec"
@@ -1007,9 +1008,11 @@ func (app *App) validateTicketForClose(ctx context.Context, force bool) (*ticket
 	// Get current ticket
 	current, err := app.Manager.GetCurrentTicket(ctx)
 	if err != nil {
-		// Check if this is a symlink error that could be fixed with restore
-		if strings.Contains(err.Error(), "failed to read current ticket link") ||
-			strings.Contains(err.Error(), "symlink") {
+		// Check if this is a symlink/readlink error that could be fixed with restore
+		// The error from GetCurrentTicket wraps os.Readlink errors with "failed to read current ticket link"
+		// We check for PathError which is returned by os.Readlink when it fails
+		var pathErr *fs.PathError
+		if errors.As(err, &pathErr) && pathErr.Op == "readlink" {
 			return nil, "", NewError(ErrTicketNotStarted, "Failed to read current ticket",
 				err.Error(),
 				[]string{
