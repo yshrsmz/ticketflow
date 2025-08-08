@@ -984,6 +984,7 @@ func (app *App) moveTicketToDoing(ctx context.Context, t *ticket.Ticket, current
 
 	// Set as current ticket only in non-worktree mode
 	// In worktree mode, the symlink will be created in the worktree by createWorktreeTicketSymlink
+	// This prevents duplicate symlinks in both main repo and worktree
 	if !app.Config.Worktree.Enabled {
 		if err := app.Manager.SetCurrentTicket(ctx, t); err != nil {
 			return fmt.Errorf("failed to set current ticket: %w", err)
