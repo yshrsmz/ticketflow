@@ -102,8 +102,26 @@ func TestWorktreeWorkflow(t *testing.T) {
 	_, err = wtGit.Exec(context.Background(), "commit", "-m", "Add test file in worktree")
 	require.NoError(t, err)
 
-	// 4. Close ticket (worktree should NOT be removed automatically)
-	err = app.CloseTicket(context.Background(), false)
+	// 4. Close ticket from within the worktree (as required when worktrees are enabled)
+	// Change to worktree directory
+	originalWd, err := os.Getwd()
+	require.NoError(t, err)
+	err = os.Chdir(ticketWorktree.Path)
+	require.NoError(t, err)
+	defer func() {
+		_ = os.Chdir(originalWd)
+	}()
+
+	// Create app instance - it will use the current directory (worktree)
+	wtApp, err := cli.NewApp(context.Background())
+	require.NoError(t, err)
+
+	// Now close the ticket from within the worktree
+	err = wtApp.CloseTicket(context.Background(), false)
+	require.NoError(t, err)
+
+	// Change back to original directory
+	err = os.Chdir(originalWd)
 	require.NoError(t, err)
 
 	// Verify worktree still exists
