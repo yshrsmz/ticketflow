@@ -2,7 +2,7 @@
 priority: 2
 description: ""
 created_at: "2025-08-08T18:07:20+09:00"
-started_at: null
+started_at: "2025-08-08T18:30:05+09:00"
 closed_at: null
 related:
     - parent:250808-174250-fix-current-ticket-duplication
