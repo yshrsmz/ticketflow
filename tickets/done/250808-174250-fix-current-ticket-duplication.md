@@ -3,7 +3,7 @@ priority: 1
 description: Fix current-ticket.md being created in both main repo and worktree
 created_at: "2025-08-08T17:42:50+09:00"
 started_at: "2025-08-08T17:50:53+09:00"
-closed_at: null
+closed_at: "2025-08-08T19:13:20+09:00"
 ---
 
 # Fix current-ticket.md duplication in worktree mode
