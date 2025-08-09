@@ -1278,7 +1278,6 @@ func (app *App) validateTicketForClose(ctx context.Context, force bool) (*ticket
 	return current, worktreePath, nil
 }
 
-
 // moveTicketToDoneWithReason moves a ticket to done and commits with optional reason
 func (app *App) moveTicketToDoneWithReason(ctx context.Context, current *ticket.Ticket, reason string) error {
 	// Check context before starting

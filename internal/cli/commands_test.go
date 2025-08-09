@@ -685,7 +685,7 @@ func TestApp_CloseTicketByID(t *testing.T) {
 
 				// Mock GetCurrentTicket (returns nil for not current)
 				tm.On("GetCurrentTicket", mock.Anything).Return(nil, nil)
-				
+
 				// Mock SetCurrentTicket (remove current if it's the current ticket)
 				tm.On("SetCurrentTicket", mock.Anything, (*ticket.Ticket)(nil)).Return(nil).Maybe()
 
@@ -724,7 +724,7 @@ func TestApp_CloseTicketByID(t *testing.T) {
 
 				// Mock GetCurrentTicket (returns nil for not current)
 				tm.On("GetCurrentTicket", mock.Anything).Return(nil, nil)
-				
+
 				// Mock SetCurrentTicket (remove current if it's the current ticket)
 				tm.On("SetCurrentTicket", mock.Anything, (*ticket.Ticket)(nil)).Return(nil).Maybe()
 

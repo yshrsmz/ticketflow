@@ -113,7 +113,7 @@ func TestCloseWithReason(t *testing.T) {
 		// Switch back to main and merge
 		err = app.Git.Checkout(ctx, "main")
 		require.NoError(t, err)
-		
+
 		// Remove the current ticket symlink since we're not on the ticket branch anymore
 		err = app.Manager.SetCurrentTicket(ctx, nil)
 		require.NoError(t, err)
@@ -125,7 +125,7 @@ func TestCloseWithReason(t *testing.T) {
 		merged, err := app.Git.IsBranchMerged(ctx, testTicket.ID, "main")
 		require.NoError(t, err)
 		assert.True(t, merged, "Branch should be merged to main")
-		
+
 		// Close the ticket without reason (should work since branch is merged)
 		err = app.CloseTicketByID(ctx, testTicket.ID, "", false)
 		require.NoError(t, err)
