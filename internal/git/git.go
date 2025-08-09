@@ -341,11 +341,9 @@ func (g *Git) IsBranchMerged(ctx context.Context, branch, targetBranch string) (
 	for _, line := range lines {
 		// Remove leading/trailing spaces and branch markers (* or +)
 		trimmed := strings.TrimSpace(line)
-		// Remove branch markers - handle both * and + prefixes
-		trimmed = strings.TrimPrefix(trimmed, "*")
-		trimmed = strings.TrimPrefix(trimmed, "+")
-		trimmed = strings.TrimSpace(trimmed) // Trim again after removing prefixes
-		
+		// Remove all leading branch markers (* or +) in any order
+		trimmed = strings.TrimLeft(trimmed, "*+ ")
+
 		if trimmed == branch {
 			return true, nil
 		}

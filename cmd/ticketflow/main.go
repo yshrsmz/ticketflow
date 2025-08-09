@@ -232,12 +232,12 @@ func runCLI(ctx context.Context) error {
 			Execute: func(ctx context.Context, fs *flag.FlagSet, cmdFlags interface{}) error {
 				flags := cmdFlags.(*closeFlags)
 				force := flags.force || flags.forceShort
-				
+
 				// Check if ticket ID was provided as an argument
 				if fs.NArg() > 0 {
 					return handleCloseTicket(ctx, fs.Arg(0), flags.reason, force)
 				}
-				
+
 				// No ticket ID provided, close current ticket
 				return handleClose(ctx, flags.reason, force)
 			},
@@ -435,7 +435,7 @@ func handleClose(ctx context.Context, reason string, force bool) error {
 	if reason != "" {
 		return app.CloseTicketWithReason(ctx, reason, force)
 	}
-	
+
 	return app.CloseTicket(ctx, force)
 }
 
@@ -510,7 +510,7 @@ USAGE:
   ticketflow list [options]           List tickets
   ticketflow show <ticket> [options]  Show ticket details
   ticketflow start <ticket> [options] Start working on ticket
-  ticketflow close [options]          Complete current ticket
+  ticketflow close [ticket] [options] Close current or specific ticket
   ticketflow restore                  Restore current-ticket link
   ticketflow status [options]         Show current status
   ticketflow worktree <command>       Manage worktrees
@@ -544,6 +544,7 @@ OPTIONS:
 
   close:
     --force, -f        Force close with uncommitted changes
+    --reason           Reason for closing ticket (required when closing abnormally)
 
   status:
     --format FORMAT    Output format: text|json (default: text)
@@ -580,6 +581,12 @@ EXAMPLES:
 
   # Close the current ticket
   ticketflow close
+  
+  # Close current ticket with reason (for abandonment)
+  ticketflow close --reason "Requirements changed"
+  
+  # Close specific ticket with reason (from main repo)
+  ticketflow close 250124-150000-fix-bug --reason "Duplicate of #123"
 
   # Get current status as JSON
   ticketflow status --format json
