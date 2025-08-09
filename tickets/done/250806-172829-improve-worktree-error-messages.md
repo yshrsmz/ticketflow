@@ -3,7 +3,7 @@ priority: 2
 description: Improve error messages for worktree-related failures to guide users to solutions
 created_at: "2025-08-06T17:28:29+09:00"
 started_at: "2025-08-09T10:08:03+09:00"
-closed_at: null
+closed_at: "2025-08-09T13:13:44+09:00"
 related:
     - parent:250803-121506-worktree-recovery
 ---
