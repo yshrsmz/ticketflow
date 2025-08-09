@@ -55,9 +55,9 @@ func TestApp_NewTicket_WithParent(t *testing.T) {
 
 				// Update with parent relation
 				updatedTicket := *newTicket
-				updatedTicket.Related = []string{"parent:parent-ticket"}
+				updatedTicket.Related = []string{`"parent:parent-ticket"`}
 				m.On("Update", mock.Anything, mock.MatchedBy(func(t *ticket.Ticket) bool {
-					return t.ID == newTicket.ID && len(t.Related) == 1 && t.Related[0] == "parent:parent-ticket"
+					return t.ID == newTicket.ID && len(t.Related) == 1 && t.Related[0] == `"parent:parent-ticket"`
 				})).Return(nil)
 			},
 			expectedError:  false,
@@ -118,9 +118,9 @@ func TestApp_NewTicket_WithParent(t *testing.T) {
 
 				// Update with parent relation
 				updatedTicket := *newTicket
-				updatedTicket.Related = []string{"parent:250802-100000-parent-ticket"}
+				updatedTicket.Related = []string{`"parent:250802-100000-parent-ticket"`}
 				m.On("Update", mock.Anything, mock.MatchedBy(func(t *ticket.Ticket) bool {
-					return t.ID == newTicket.ID && len(t.Related) == 1 && t.Related[0] == "parent:250802-100000-parent-ticket"
+					return t.ID == newTicket.ID && len(t.Related) == 1 && t.Related[0] == `"parent:250802-100000-parent-ticket"`
 				})).Return(nil)
 			},
 			expectedError:  false,
@@ -154,9 +154,9 @@ func TestApp_NewTicket_WithParent(t *testing.T) {
 
 				// Update with explicit parent
 				updatedTicket := *newTicket
-				updatedTicket.Related = []string{"parent:explicit-parent"}
+				updatedTicket.Related = []string{`"parent:explicit-parent"`}
 				m.On("Update", mock.Anything, mock.MatchedBy(func(t *ticket.Ticket) bool {
-					return t.ID == newTicket.ID && len(t.Related) == 1 && t.Related[0] == "parent:explicit-parent"
+					return t.ID == newTicket.ID && len(t.Related) == 1 && t.Related[0] == `"parent:explicit-parent"`
 				})).Return(nil)
 			},
 			expectedError:  false,
@@ -232,9 +232,9 @@ func TestApp_NewTicket_WithParent(t *testing.T) {
 
 				// Update with parent relation
 				updatedTicket := *newTicket
-				updatedTicket.Related = []string{"parent:done-parent"}
+				updatedTicket.Related = []string{`"parent:done-parent"`}
 				m.On("Update", mock.Anything, mock.MatchedBy(func(t *ticket.Ticket) bool {
-					return t.ID == newTicket.ID && len(t.Related) == 1 && t.Related[0] == "parent:done-parent"
+					return t.ID == newTicket.ID && len(t.Related) == 1 && t.Related[0] == `"parent:done-parent"`
 				})).Return(nil)
 			},
 			expectedError:  false,

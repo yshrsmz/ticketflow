@@ -134,16 +134,30 @@ func TestExtractParentTicketID(t *testing.T) {
 			want: "",
 		},
 		{
-			name: "has parent",
+			name: "has parent (unquoted - backward compatibility)",
 			ticket: &ticket.Ticket{
 				Related: []string{"parent:parent-ticket-id"},
 			},
 			want: "parent-ticket-id",
 		},
 		{
-			name: "multiple related with parent",
+			name: "has parent (quoted - new format)",
+			ticket: &ticket.Ticket{
+				Related: []string{`"parent:parent-ticket-id"`},
+			},
+			want: "parent-ticket-id",
+		},
+		{
+			name: "multiple related with parent (unquoted)",
 			ticket: &ticket.Ticket{
 				Related: []string{"related:other-ticket", "parent:parent-ticket-id", "blocked-by:blocker"},
+			},
+			want: "parent-ticket-id",
+		},
+		{
+			name: "multiple related with parent (quoted)",
+			ticket: &ticket.Ticket{
+				Related: []string{`"related:other-ticket"`, `"parent:parent-ticket-id"`, `"blocked-by:blocker"`},
 			},
 			want: "parent-ticket-id",
 		},
