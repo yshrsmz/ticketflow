@@ -322,6 +322,31 @@ func (g *Git) GetBranchCommit(ctx context.Context, branch string) (string, error
 	return strings.TrimSpace(output), nil
 }
 
+// IsBranchMerged checks if a branch has been merged into the target branch
+func (g *Git) IsBranchMerged(ctx context.Context, branch, targetBranch string) (bool, error) {
+	// Use git branch --merged to check if branch is merged
+	output, err := g.Exec(ctx, "branch", "--merged", targetBranch)
+	if err != nil {
+		// If the branch doesn't exist, it's not merged
+		if strings.Contains(err.Error(), "not a valid ref") {
+			return false, nil
+		}
+		return false, err
+	}
+
+	// Parse the output to check if our branch is in the list
+	lines := strings.Split(strings.TrimSpace(output), "\n")
+	for _, line := range lines {
+		// Remove leading/trailing spaces and branch markers (* or +)
+		trimmed := strings.TrimSpace(strings.TrimPrefix(strings.TrimPrefix(line, "*"), "+"))
+		if trimmed == branch {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
 // BranchDivergedFrom checks if a branch has diverged from a base branch
 func (g *Git) BranchDivergedFrom(ctx context.Context, branch, baseBranch string) (bool, error) {
 	// Validate branch names
