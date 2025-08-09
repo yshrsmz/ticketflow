@@ -37,6 +37,36 @@ make build-all          # Build for all platforms
 make release-archives   # Create release archives with checksums
 ```
 
+## Ticket Format
+
+Tickets are stored as Markdown files with YAML frontmatter:
+
+```yaml
+---
+priority: 2
+description: "Brief description of the ticket"
+created_at: "2025-08-09T12:00:00+09:00"
+started_at: "2025-08-09T13:00:00+09:00"
+closed_at: null
+related:
+    - "parent:250809-121723-parent-ticket"
+    - "blocks:250810-090000-dependent-feature"
+    - "related:250811-100000-similar-work"
+---
+
+# Ticket Title
+
+Detailed description and tasks...
+```
+
+### Related Field Format
+The `related` field uses quoted strings to prevent YAML parsing issues:
+- **Parent relationships**: `"parent:ticket-id"`
+- **Blocking relationships**: `"blocks:ticket-id"` or `"blocked-by:ticket-id"`
+- **General relationships**: `"related:ticket-id"`
+
+Note: Quotes are required to prevent automated tools from incorrectly flagging the colon as a YAML syntax error.
+
 ## Architecture Overview
 
 ### Core Package Structure
