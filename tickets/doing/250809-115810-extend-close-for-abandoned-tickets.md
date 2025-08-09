@@ -123,9 +123,10 @@ When closing with a reason, append to ticket content:
 - [x] Handle edge case: closing current ticket by its ID
 - [x] Handle missing ticket files with clear error message
 
-### TUI Updates (Optional - can be follow-up)
+### TUI Updates (Optional - follow-up ticket)
 - [ ] Add reason input when closing tickets in TUI
 - [ ] Show closure reason in ticket views
+- [ ] Follow-up ticket: Create ticket `tui-close-reason-support` after this PR is merged
 
 ### Testing & Documentation
 - [x] Add unit tests for all closure scenarios in `internal/cli/commands_test.go`
@@ -223,7 +224,17 @@ After comprehensive code review, the following critical issues were identified a
 ✅ **Code Review** - All HIGH and MEDIUM severity issues fixed
 
 ### Remaining Work
-- [ ] Optional TUI enhancements (can be follow-up ticket)
 - [ ] Developer approval before closing ticket
+- [ ] Create follow-up ticket for TUI enhancements: `tui-close-reason-support`
 
-The implementation successfully achieved the goal of simplifying the design while maintaining all necessary functionality and meeting high code quality standards.
+### Follow-up Work (Separate Ticket)
+After this PR is merged, create a new ticket for TUI enhancements:
+- **Ticket**: `tui-close-reason-support`
+- **Scope**: Add closure reason support to the TUI interface
+- **Tasks**:
+  - Add reason input dialog when closing tickets in TUI
+  - Display closure reason in ticket detail views
+  - Show closure reason in ticket list view (if space permits)
+  - Update TUI help text to mention reason functionality
+
+The implementation successfully achieved the goal of simplifying the design while maintaining all necessary functionality and meeting high code quality standards. The TUI enhancements are deliberately deferred to keep this PR focused on the core CLI functionality.
