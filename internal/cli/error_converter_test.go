@@ -241,7 +241,7 @@ func TestEnhanceWorktreeGitError(t *testing.T) {
 	}{
 		{
 			name:               "corrupted worktree",
-			gitErr:             &ticketerrors.GitError{Op: "worktree", Branch: "", Err: fmt.Errorf("fatal: '/path/to/worktree' is not a working tree")},
+			gitErr:             &ticketerrors.GitError{Op: "worktree", Err: fmt.Errorf("fatal: '/path/to/worktree' is not a working tree")},
 			expectedCode:       ErrWorktreeRemoveFailed,
 			expectedMsg:        "Worktree appears to be corrupted",
 			expectedSuggestion: "Run 'git worktree prune'",
@@ -249,15 +249,15 @@ func TestEnhanceWorktreeGitError(t *testing.T) {
 		},
 		{
 			name:               "directory already exists",
-			gitErr:             &ticketerrors.GitError{Op: "worktree", Branch: "", Err: fmt.Errorf("fatal: '/path/to/worktree' already exists")},
+			gitErr:             &ticketerrors.GitError{Op: "worktree", Err: fmt.Errorf("fatal: '/path/to/worktree' already exists")},
 			expectedCode:       ErrWorktreeExists,
 			expectedMsg:        "Worktree directory already exists",
-			expectedSuggestion: "Remove the directory manually",
+			expectedSuggestion: "Remove the directory manually if it's no longer needed",
 			shouldEnhance:      true,
 		},
 		{
 			name:               "branch already checked out",
-			gitErr:             &ticketerrors.GitError{Op: "worktree", Branch: "", Err: fmt.Errorf("fatal: 'feature-branch' is already checked out")},
+			gitErr:             &ticketerrors.GitError{Op: "worktree", Err: fmt.Errorf("fatal: 'feature-branch' is already checked out")},
 			expectedCode:       ErrWorktreeExists,
 			expectedMsg:        "Branch is already checked out in another worktree",
 			expectedSuggestion: "git worktree list",
@@ -265,7 +265,7 @@ func TestEnhanceWorktreeGitError(t *testing.T) {
 		},
 		{
 			name:               "cannot create work tree dir",
-			gitErr:             &ticketerrors.GitError{Op: "worktree", Branch: "", Err: fmt.Errorf("fatal: could not create work tree dir '/path/to/worktree'")},
+			gitErr:             &ticketerrors.GitError{Op: "worktree", Err: fmt.Errorf("fatal: could not create work tree dir '/path/to/worktree'")},
 			expectedCode:       ErrWorktreeCreateFailed,
 			expectedMsg:        "Cannot create worktree directory",
 			expectedSuggestion: "Check directory permissions",
@@ -273,7 +273,7 @@ func TestEnhanceWorktreeGitError(t *testing.T) {
 		},
 		{
 			name:               "invalid reference",
-			gitErr:             &ticketerrors.GitError{Op: "worktree", Branch: "", Err: fmt.Errorf("fatal: invalid reference: refs/heads/invalid-branch")},
+			gitErr:             &ticketerrors.GitError{Op: "worktree", Err: fmt.Errorf("fatal: invalid reference: refs/heads/invalid-branch")},
 			expectedCode:       ErrWorktreeCreateFailed,
 			expectedMsg:        "Invalid git reference for worktree",
 			expectedSuggestion: "Ensure the branch name is valid",
@@ -281,7 +281,7 @@ func TestEnhanceWorktreeGitError(t *testing.T) {
 		},
 		{
 			name:               "permission denied",
-			gitErr:             &ticketerrors.GitError{Op: "worktree", Branch: "", Err: fmt.Errorf("fatal: could not create directory: permission denied")},
+			gitErr:             &ticketerrors.GitError{Op: "worktree", Err: fmt.Errorf("fatal: could not create directory: permission denied")},
 			expectedCode:       ErrPermissionDenied,
 			expectedMsg:        "Permission denied for worktree operation",
 			expectedSuggestion: "Check file and directory permissions",
@@ -289,7 +289,7 @@ func TestEnhanceWorktreeGitError(t *testing.T) {
 		},
 		{
 			name:               "locked worktree",
-			gitErr:             &ticketerrors.GitError{Op: "worktree", Branch: "", Err: fmt.Errorf("fatal: '/path/to/worktree' is locked")},
+			gitErr:             &ticketerrors.GitError{Op: "worktree", Err: fmt.Errorf("fatal: '/path/to/worktree' is locked")},
 			expectedCode:       ErrWorktreeRemoveFailed,
 			expectedMsg:        "Worktree is locked",
 			expectedSuggestion: "Check if another process is using the worktree",
@@ -297,7 +297,7 @@ func TestEnhanceWorktreeGitError(t *testing.T) {
 		},
 		{
 			name:          "unrelated error",
-			gitErr:        &ticketerrors.GitError{Op: "worktree", Branch: "", Err: fmt.Errorf("some other error")},
+			gitErr:        &ticketerrors.GitError{Op: "worktree", Err: fmt.Errorf("some other error")},
 			shouldEnhance: false,
 		},
 		{
@@ -363,7 +363,7 @@ func TestEnhanceWorktreeError(t *testing.T) {
 			worktreeErr:        &ticketerrors.WorktreeError{Op: "create", Path: "test-123", Err: fmt.Errorf("fatal: '/path/to/worktree' already exists")},
 			expectedCode:       ErrWorktreeExists,
 			expectedMsg:        "Worktree directory already exists",
-			expectedSuggestion: "Remove the directory manually",
+			expectedSuggestion: "Remove the directory manually if it's no longer needed",
 			shouldEnhance:      true,
 		},
 		{

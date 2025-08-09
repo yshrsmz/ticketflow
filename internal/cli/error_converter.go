@@ -90,7 +90,7 @@ func ConvertError(err error) error {
 	var gitErr *ticketerrors.GitError
 	if errors.As(err, &gitErr) {
 		// Check for worktree-specific git errors
-		if gitErr.Op == "worktree" || strings.Contains(gitErr.Err.Error(), "worktree") {
+		if gitErr.Op == "worktree" || (gitErr.Err != nil && strings.Contains(gitErr.Err.Error(), "worktree")) {
 			if enhanced := enhanceWorktreeGitError(gitErr); enhanced != nil {
 				return enhanced
 			}
@@ -157,7 +157,7 @@ func enhanceWorktreeErrorString(errStr, fullError string) *CLIError {
 		return NewError(ErrWorktreeExists, "Worktree directory already exists",
 			fullError,
 			[]string{
-				"Remove the directory manually: rm -rf <path>",
+				"Remove the directory manually if it's no longer needed",
 				"Or use 'ticketflow cleanup' if it's an old ticket",
 			})
 
