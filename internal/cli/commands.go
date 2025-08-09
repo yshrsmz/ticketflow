@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/fs"
 	"log/slog"
 	"os"
 	"os/exec"
@@ -1007,6 +1008,24 @@ func (app *App) validateTicketForClose(ctx context.Context, force bool) (*ticket
 	// Get current ticket
 	current, err := app.Manager.GetCurrentTicket(ctx)
 	if err != nil {
+		// Check if this is a symlink/readlink error that could be fixed with restore
+		// This typically happens when:
+		// 1. The current-ticket.md symlink exists but points to a non-existent file
+		// 2. The symlink is corrupted or has permission issues
+		// 3. The user is in a worktree but the symlink wasn't properly restored
+		//
+		// GetCurrentTicket wraps os.Readlink errors with "failed to read current ticket link: %w"
+		// We rely on this error wrapping to detect readlink failures through the PathError chain
+		var pathErr *fs.PathError
+		if errors.As(err, &pathErr) && pathErr.Op == "readlink" {
+			return nil, "", NewError(ErrTicketNotStarted, "Failed to read current ticket",
+				err.Error(),
+				[]string{
+					"Try restoring the current ticket link: ticketflow restore",
+					"Or start a ticket manually: ticketflow start <ticket-id>",
+					"List available tickets: ticketflow list",
+				})
+		}
 		return nil, "", ConvertError(err)
 	}
 	if current == nil {
@@ -1014,6 +1033,7 @@ func (app *App) validateTicketForClose(ctx context.Context, force bool) (*ticket
 			"There is no ticket currently being worked on",
 			[]string{
 				"Start a ticket first: ticketflow start <ticket-id>",
+				"Restore current ticket link if in a worktree: ticketflow restore",
 				"List available tickets: ticketflow list",
 			})
 	}
