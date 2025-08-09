@@ -22,58 +22,76 @@ Current manual workaround: Users edit the ticket content with reasoning, manuall
 2. **Ticket in doing** - Started work, then discovered it's not needed/wrong approach
 3. **Working on ticket A** - Discover ticket B is invalid/duplicate
 
-## Proposed Solution
+## Proposed Solution (Simplified)
 
-Extend the `ticketflow close` command to handle different closure scenarios:
+Extend the `ticketflow close` command with minimal changes:
 
 ```bash
-# Normal close (in worktree, work completed)
+# Normal close (in worktree, work completed) - unchanged
 ticketflow close
 
-# Close without implementation (from anywhere)
+# Close current ticket with reason (from worktree, abandoned)
+ticketflow close --reason "Requirements changed"
+
+# Close any ticket with explanation (from anywhere)
 ticketflow close <ticket-id> --reason "Invalid: requirement removed"
 
-# Close with abandoned flag (clearer intent)
-ticketflow close <ticket-id> --abandoned "Superseded by #456"
-
-# Close from main repo when ticket has worktree
-ticketflow close <ticket-id> --force --reason "Obsolete"
+# Close ticket whose branch was already merged (reason optional)
+ticketflow close <ticket-id>  # Auto-detects merged branch
 ```
 
 ## Technical Design
 
+### Command Signature Change
+```bash
+ticketflow close [ticket-id] [--reason "explanation"]
+```
+
+### Simple Rules
+
+1. **Closing current ticket** (no ticket-id):
+   - From worktree: Works as today
+   - Optional `--reason` to indicate abandonment
+   
+2. **Closing specific ticket** (with ticket-id):
+   - **Requires `--reason`** UNLESS branch is already merged to main
+   - If ticket-id matches current ticket, behaves like `ticketflow close`
+   - Creates commit on current branch (typically main)
+   - Shows cleanup suggestion if ticket has worktree
+
 ### Command Flags
-- `--reason <text>` - Explanation for closing without completion
-- `--abandoned` - Explicitly mark as abandoned (optional, for clarity)
-- `--force` - Allow closing from main repo even if worktree exists
+- `--reason <text>` - Explanation for closing outside normal workflow
+- `--force` - Skip uncommitted changes check (existing behavior, keep for compatibility)
 
-### Behavior by Context
+### Behavior
 
-1. **Ticket in todo (never started)**:
-   - Can be closed from main repo
-   - Add closure note to ticket content
-   - Update frontmatter with `closed_at` and optionally `closure_type`
-   - Move to `done/` directory
-   - Commit: "Close ticket (not implemented): <ticket-id>"
+1. **Normal workflow (unchanged)**:
+   - `ticketflow close` in worktree closes current ticket
+   - `ticketflow close --force` skips uncommitted changes check
+   - `ticketflow close --reason "..."` in worktree closes with explanation
 
-2. **Ticket in doing with worktree**:
-   - If in worktree: Close normally with reason
-   - If in main repo with `--force`: Close and suggest cleanup
-   - Add closure note to ticket content
-   - Update frontmatter
-   - Move to `done/` directory
-   - Commit: "Close ticket (abandoned): <ticket-id>"
+2. **Closing specific ticket**:
+   - `ticketflow close <ticket-id> --reason "..."` - Close any ticket with explanation
+   - `ticketflow close <ticket-id>` - Only allowed if branch already merged
+   - `ticketflow close <ticket-id> --force --reason "..."` - Force close with uncommitted changes
+   - Commit created on current branch
+   - If ticket has worktree: "Ticket closed. Run `ticketflow cleanup <ticket-id>` to remove worktree and branch"
 
-3. **Ticket in doing without worktree** (non-worktree mode):
-   - Similar to todo handling
-   - Can close from current branch
+3. **Branch merge detection**:
+   - Use `git branch --merged` to check if ticket's branch is merged
+   - If merged, allow closing without reason (work was completed)
+   - If not merged, require reason (work abandoned/cancelled)
+
+4. **Edge cases handled**:
+   - Closing current ticket by ID works same as `ticketflow close`
+   - Missing ticket file shows clear error message
+   - Non-worktree mode works correctly
 
 ### Frontmatter Updates
 
 ```yaml
 closed_at: "2025-08-09T..."
-closure_type: "abandoned"  # or "completed", "cancelled"
-closure_reason: "Superseded by #456"
+closure_reason: "Superseded by #456"  # only when --reason provided
 ```
 
 ### Ticket Content Updates
@@ -82,42 +100,64 @@ When closing with a reason, append to ticket content:
 ```markdown
 ## Closure Note
 **Closed on**: 2025-08-09
-**Type**: Abandoned
 **Reason**: Superseded by #456 - better approach found
 ```
 
-## Tasks
+## Implementation Tasks (Simplified)
 
-- [ ] Add command flags (--reason, --abandoned, --force) to close command
-- [ ] Implement logic to detect ticket status and location
-- [ ] Add validation for closing from main repo vs worktree
-- [ ] Implement frontmatter updates with closure metadata
-- [ ] Add closure note to ticket content when reason provided
+### Core Changes
+- [ ] Modify command-line parser in `cmd/ticketflow/main.go` to accept optional ticket ID argument
+- [ ] Add `--reason` flag to close command
+- [ ] Keep `--force` flag for backward compatibility (skip uncommitted changes)
+- [ ] Add `closure_reason` field to Ticket model
+- [ ] Create `CloseTicketByID()` method that handles both current and specific ticket closing
+- [ ] Add branch merge detection using `git branch --merged`
+- [ ] Implement validation: require reason unless branch is merged
+
+### Simple Implementation
 - [ ] Handle file move from todo/doing to done directory
-- [ ] Create appropriate commit messages based on closure type
-- [ ] Add confirmation prompt for destructive operations
-- [ ] Update error messages for invalid operations
-- [ ] Add unit tests for all closure scenarios
-- [ ] Add integration tests for workflow
+- [ ] Update frontmatter with `closed_at` and `closure_reason` (when provided)
+- [ ] Append closure note to ticket content when reason provided
+- [ ] Display cleanup suggestion when closing ticket with worktree
+- [ ] Create simple commit message: "Close ticket: <ticket-id>"
+- [ ] Handle edge case: closing current ticket by its ID
+- [ ] Handle missing ticket files with clear error message
+
+### TUI Updates (Optional - can be follow-up)
+- [ ] Add reason input when closing tickets in TUI
+- [ ] Show closure reason in ticket views
+
+### Testing & Documentation
+- [ ] Add unit tests for all closure scenarios in `internal/cli/commands_test.go`
+- [ ] Add integration tests for workflow in `test/integration/`
+- [ ] Test backward compatibility with existing close behavior
 - [ ] Run `make test` to run the tests
 - [ ] Run `make vet`, `make fmt` and `make lint`
+- [ ] Update help text in close command
 - [ ] Update documentation for new close options
 - [ ] Update README.md with examples
 - [ ] Get developer approval before closing
 
 ## Acceptance Criteria
 
-- [ ] Can close todo tickets from main repo with reason
-- [ ] Can close doing tickets from worktree with reason
-- [ ] Can force-close doing tickets from main repo with --force
-- [ ] Closure metadata is properly saved in frontmatter
-- [ ] Closure reason is appended to ticket content
-- [ ] Appropriate commit messages for different closure types
-- [ ] Clear error messages when operation not allowed
-- [ ] Backward compatibility with existing close behavior
+- [ ] Can close any ticket with `ticketflow close <ticket-id> --reason "..."`
+- [ ] Can close ticket without reason if branch is already merged
+- [ ] Closure reason properly saved in frontmatter
+- [ ] Closure reason appended to ticket content when provided
+- [ ] Simple commit message: "Close ticket: <ticket-id>"
+- [ ] Clear error message when reason required but not provided
+- [ ] Backward compatibility: `ticketflow close` without args still works
+- [ ] Edge case: closing current ticket by ID works correctly
+- [ ] Cleanup suggestion shown for tickets with worktrees
 
 ## Notes
 
-This change maintains backward compatibility - `ticketflow close` without flags continues to work as before for normal ticket completion. The new flags only add capabilities for handling abandoned/invalid tickets.
+This final design:
+- Minimal implementation (~12 tasks vs original ~30)
+- Two command flags (`--reason` for explanation, `--force` for existing behavior)
+- Simple commit messages (always "Close ticket: <id>")
+- Smart branch merge detection for forgotten closes
+- Clear edge case handling
+- Maintains full backward compatibility with existing `--force` flag
 
-Consider future enhancement: `ticketflow cleanup --abandoned` to remove worktrees and branches for abandoned tickets in bulk.
+The key insight: We don't need complex state tracking. Just a simple rule - abnormal closure needs a reason.
