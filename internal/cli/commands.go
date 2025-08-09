@@ -373,7 +373,7 @@ func (app *App) NewTicket(ctx context.Context, slug string, explicitParent strin
 	if parentTicketID != "" {
 		logger.Debug("creating sub-ticket", "parent", parentTicketID)
 		// Add parent relationship
-		t.Related = append(t.Related, fmt.Sprintf("parent:%s", parentTicketID))
+		t.Related = append(t.Related, fmt.Sprintf(`"parent:%s"`, parentTicketID))
 		if err := app.Manager.Update(ctx, t); err != nil {
 			logger.WithError(err).Error("failed to update ticket metadata", slog.String("ticket_id", t.ID), slog.String("parent", parentTicketID))
 			return fmt.Errorf("failed to update ticket metadata: %w", err)
@@ -924,7 +924,7 @@ func (app *App) setupTicketBranch(ctx context.Context, t *ticket.Ticket, current
 func (app *App) updateParentRelationship(ctx context.Context, t *ticket.Ticket, parentBranch string, currentBranch string) error {
 	if parentBranch != "" && parentBranch != currentBranch {
 		// Add parent to Related field
-		parentRef := fmt.Sprintf("parent:%s", parentBranch)
+		parentRef := fmt.Sprintf(`"parent:%s"`, parentBranch)
 		hasParent := false
 		for _, rel := range t.Related {
 			if rel == parentRef {
