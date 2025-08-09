@@ -316,3 +316,84 @@ func TestTicketCloseNotStarted(t *testing.T) {
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "not started")
 }
+
+func TestTicketCloseWithReason(t *testing.T) {
+	t.Parallel()
+	
+	t.Run("close unstarted ticket with reason", func(t *testing.T) {
+		ticket := New("test", "Test ticket")
+		ticket.Content = "# Test Ticket\n\nThis is a test ticket.\n"
+		
+		reason := "Cancelled due to requirements change"
+		err := ticket.CloseWithReason(reason)
+		require.NoError(t, err)
+		
+		// Check that closed_at is set
+		assert.NotNil(t, ticket.ClosedAt.Time)
+		
+		// Check that closure_reason is set
+		assert.Equal(t, reason, ticket.ClosureReason)
+		
+		// Check that closure note is added to content
+		assert.Contains(t, ticket.Content, "## Closure Note")
+		assert.Contains(t, ticket.Content, "Cancelled due to requirements change")
+		assert.Contains(t, ticket.Content, "**Closed on**:")
+		assert.Contains(t, ticket.Content, "**Reason**:")
+		
+		// Verify content formatting (no double newlines)
+		assert.NotContains(t, ticket.Content, "\n\n\n")
+	})
+	
+	t.Run("close started ticket with reason", func(t *testing.T) {
+		ticket := New("test", "Test ticket")
+		ticket.Content = "# Test Ticket\n\nWork in progress.\n"
+		
+		// Start the ticket first
+		err := ticket.Start()
+		require.NoError(t, err)
+		
+		reason := "Abandoned due to priority change"
+		err = ticket.CloseWithReason(reason)
+		require.NoError(t, err)
+		
+		// Check that closed_at is set
+		assert.NotNil(t, ticket.ClosedAt.Time)
+		
+		// Check that closure_reason is set
+		assert.Equal(t, reason, ticket.ClosureReason)
+		
+		// Check that closure note is added to content
+		assert.Contains(t, ticket.Content, "## Closure Note")
+		assert.Contains(t, ticket.Content, "Abandoned due to priority change")
+	})
+	
+	t.Run("cannot close already closed ticket with reason", func(t *testing.T) {
+		ticket := New("test", "Test ticket")
+		
+		// Close the ticket first
+		err := ticket.CloseWithReason("Initial reason")
+		require.NoError(t, err)
+		
+		// Try to close again
+		err = ticket.CloseWithReason("Another reason")
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "already closed")
+	})
+	
+	t.Run("content with trailing newlines", func(t *testing.T) {
+		ticket := New("test", "Test ticket")
+		ticket.Content = "# Test Ticket\n\nContent with trailing newlines.\n\n\n"
+		
+		reason := "Test reason"
+		err := ticket.CloseWithReason(reason)
+		require.NoError(t, err)
+		
+		// Check that content is properly formatted (trailing newlines removed before appending)
+		assert.True(t, strings.HasSuffix(ticket.Content, "\n"))
+		assert.False(t, strings.Contains(ticket.Content, "\n\n\n\n"))
+		
+		// Should have exactly one section separator
+		parts := strings.Split(ticket.Content, "\n\n## Closure Note")
+		assert.Equal(t, 2, len(parts))
+	})
+}

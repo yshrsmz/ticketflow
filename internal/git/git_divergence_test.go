@@ -274,3 +274,92 @@ func TestGetBranchCommit(t *testing.T) {
 		})
 	}
 }
+
+func TestIsBranchMerged(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	tmpDir := t.TempDir()
+
+	// Initialize git repo
+	require.NoError(t, initGitRepo(ctx, tmpDir))
+
+	g := New(tmpDir)
+
+	// Create initial commit on main
+	testFile := filepath.Join(tmpDir, "test.txt")
+	require.NoError(t, os.WriteFile(testFile, []byte("initial"), 0644))
+	_, err := g.Exec(ctx, "add", "test.txt")
+	require.NoError(t, err)
+	_, err = g.Exec(ctx, "commit", "-m", "Initial commit")
+	require.NoError(t, err)
+
+	t.Run("unmerged branch", func(t *testing.T) {
+		// Create and checkout new branch
+		_, err := g.Exec(ctx, "checkout", "-b", "feature-unmerged")
+		require.NoError(t, err)
+
+		// Add a commit
+		require.NoError(t, os.WriteFile(testFile, []byte("feature change"), 0644))
+		_, err = g.Exec(ctx, "add", "test.txt")
+		require.NoError(t, err)
+		_, err = g.Exec(ctx, "commit", "-m", "Feature commit")
+		require.NoError(t, err)
+
+		// Go back to main
+		_, err = g.Exec(ctx, "checkout", "main")
+		require.NoError(t, err)
+
+		// Check if feature branch is merged (should be false)
+		merged, err := g.IsBranchMerged(ctx, "feature-unmerged", "main")
+		require.NoError(t, err)
+		assert.False(t, merged, "unmerged branch should not be marked as merged")
+	})
+
+	t.Run("merged branch", func(t *testing.T) {
+		// Create and checkout new branch
+		_, err := g.Exec(ctx, "checkout", "-b", "feature-merged")
+		require.NoError(t, err)
+
+		// Add a commit
+		mergeFile := filepath.Join(tmpDir, "merge.txt")
+		require.NoError(t, os.WriteFile(mergeFile, []byte("merge content"), 0644))
+		_, err = g.Exec(ctx, "add", "merge.txt")
+		require.NoError(t, err)
+		_, err = g.Exec(ctx, "commit", "-m", "Merge feature commit")
+		require.NoError(t, err)
+
+		// Go back to main and merge
+		_, err = g.Exec(ctx, "checkout", "main")
+		require.NoError(t, err)
+		_, err = g.Exec(ctx, "merge", "feature-merged")
+		require.NoError(t, err)
+
+		// Check if feature branch is merged (should be true)
+		merged, err := g.IsBranchMerged(ctx, "feature-merged", "main")
+		require.NoError(t, err)
+		assert.True(t, merged, "merged branch should be marked as merged")
+	})
+
+	t.Run("current branch", func(t *testing.T) {
+		// Check if main is merged into itself (should be true)
+		merged, err := g.IsBranchMerged(ctx, "main", "main")
+		require.NoError(t, err)
+		assert.True(t, merged, "current branch should be marked as merged into itself")
+	})
+
+	t.Run("nonexistent branch", func(t *testing.T) {
+		// Check if nonexistent branch is merged (should be false, no error)
+		merged, err := g.IsBranchMerged(ctx, "nonexistent", "main")
+		require.NoError(t, err)
+		assert.False(t, merged, "nonexistent branch should not be marked as merged")
+	})
+
+	t.Run("nonexistent target branch", func(t *testing.T) {
+		// Check against nonexistent target branch (should return false, no error per implementation)
+		merged, err := g.IsBranchMerged(ctx, "main", "nonexistent-target")
+		// The implementation returns false when the branch doesn't exist
+		require.NoError(t, err)
+		assert.False(t, merged, "should return false for nonexistent target branch")
+	})
+}

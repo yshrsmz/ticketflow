@@ -652,3 +652,313 @@ func TestValidateTicketForClose_SymlinkError(t *testing.T) {
 		})
 	}
 }
+
+func TestApp_CloseTicketByID(t *testing.T) {
+	t.Parallel()
+	
+	tests := []struct {
+		name          string
+		ticketID      string
+		reason        string
+		setupMocks    func(*mocks.MockTicketManager, *mocks.MockGitClient)
+		expectedError bool
+		errorContains string
+	}{
+		{
+			name:     "close ticket with reason when branch not merged",
+			ticketID: "250131-120000-test-ticket",
+			reason:   "Abandoned due to priority change",
+			setupMocks: func(tm *mocks.MockTicketManager, gc *mocks.MockGitClient) {
+				// Setup ticket
+				testTicket := &ticket.Ticket{
+					ID:          "250131-120000-test-ticket",
+					Path:        "tickets/todo/250131-120000-test-ticket.md",
+					Priority:    2,
+					Description: "Test ticket",
+					CreatedAt:   ticket.RFC3339Time{Time: time.Now()},
+					Content:     "# Test Ticket\n\nContent here.",
+				}
+				
+				// Mock getting ticket
+				tm.On("Get", mock.Anything, "250131-120000-test-ticket").Return(testTicket, nil)
+				
+				// Mock GetCurrentTicket (returns nil for not current)
+				tm.On("GetCurrentTicket", mock.Anything).Return(nil, nil)
+				
+				// Mock branch merge check (not merged)
+				gc.On("GetDefaultBranch", mock.Anything).Return("main", nil)
+				gc.On("IsBranchMerged", mock.Anything, "250131-120000-test-ticket", "main").Return(false, nil)
+				
+				// Mock updating ticket with reason
+				tm.On("Update", mock.Anything, testTicket).Return(nil).Run(func(args mock.Arguments) {
+					tkt := args.Get(1).(*ticket.Ticket)
+					// Verify the ticket was closed with reason
+					assert.NotNil(t, tkt.ClosedAt.Time)
+					assert.Equal(t, "Abandoned due to priority change", tkt.ClosureReason)
+					assert.Contains(t, tkt.Content, "## Closure Note")
+				})
+				
+				// Mock git operations
+				gc.On("HasUncommittedChanges", mock.Anything).Return(false, nil)
+				gc.On("Add", mock.Anything, "tickets/todo/250131-120000-test-ticket.md").Return(nil)
+				gc.On("Commit", mock.Anything, mock.MatchedBy(func(msg string) bool {
+					return msg == "Close ticket: 250131-120000-test-ticket (Abandoned due to priority change)"
+				})).Return(nil)
+			},
+			expectedError: false,
+		},
+		{
+			name:     "close ticket when branch already merged",
+			ticketID: "250131-120000-merged-ticket",
+			reason:   "",
+			setupMocks: func(tm *mocks.MockTicketManager, gc *mocks.MockGitClient) {
+				// Setup ticket
+				testTicket := &ticket.Ticket{
+					ID:          "250131-120000-merged-ticket",
+					Path:        "tickets/doing/250131-120000-merged-ticket.md",
+					Priority:    2,
+					Description: "Merged ticket",
+					CreatedAt:   ticket.RFC3339Time{Time: time.Now()},
+					StartedAt:   ticket.NewRFC3339TimePtr(&time.Time{}),
+					Content:     "# Merged Ticket\n\nContent here.",
+				}
+				
+				// Mock getting ticket
+				tm.On("Get", mock.Anything, "250131-120000-merged-ticket").Return(testTicket, nil)
+				
+				// Mock GetCurrentTicket (returns nil for not current)
+				tm.On("GetCurrentTicket", mock.Anything).Return(nil, nil)
+				
+				// Mock branch merge check (merged)
+				gc.On("GetDefaultBranch", mock.Anything).Return("main", nil)
+				gc.On("IsBranchMerged", mock.Anything, "250131-120000-merged-ticket", "main").Return(true, nil)
+				
+				// Mock updating ticket (normal close since branch is merged)
+				tm.On("Update", mock.Anything, testTicket).Return(nil).Run(func(args mock.Arguments) {
+					tkt := args.Get(1).(*ticket.Ticket)
+					// Verify the ticket was closed normally
+					assert.NotNil(t, tkt.ClosedAt.Time)
+					assert.Empty(t, tkt.ClosureReason)
+				})
+				
+				// Mock git operations
+				gc.On("HasUncommittedChanges", mock.Anything).Return(false, nil)
+				gc.On("Add", mock.Anything, "tickets/doing/250131-120000-merged-ticket.md").Return(nil)
+				gc.On("Commit", mock.Anything, mock.MatchedBy(func(msg string) bool {
+					return msg == "Close ticket: 250131-120000-merged-ticket"
+				})).Return(nil)
+			},
+			expectedError: false,
+		},
+		{
+			name:     "error when ticket not found",
+			ticketID: "nonexistent-ticket",
+			reason:   "Some reason",
+			setupMocks: func(tm *mocks.MockTicketManager, gc *mocks.MockGitClient) {
+				tm.On("Get", mock.Anything, "nonexistent-ticket").Return(nil, ticketerrors.ErrTicketNotFound)
+			},
+			expectedError: true,
+			errorContains: "not found",
+		},
+		{
+			name:     "error when ticket already closed",
+			ticketID: "250131-120000-closed-ticket",
+			reason:   "Some reason",
+			setupMocks: func(tm *mocks.MockTicketManager, gc *mocks.MockGitClient) {
+				closedTime := time.Now()
+				testTicket := &ticket.Ticket{
+					ID:          "250131-120000-closed-ticket",
+					Path:        "tickets/done/250131-120000-closed-ticket.md",
+					Priority:    2,
+					Description: "Closed ticket",
+					CreatedAt:   ticket.RFC3339Time{Time: time.Now()},
+					ClosedAt:    ticket.NewRFC3339TimePtr(&closedTime),
+					Content:     "# Closed Ticket\n\nContent here.",
+				}
+				
+				tm.On("Get", mock.Anything, "250131-120000-closed-ticket").Return(testTicket, nil)
+			},
+			expectedError: true,
+			errorContains: "already closed",
+		},
+		{
+			name:     "error when reason missing for unmerged branch",
+			ticketID: "250131-120000-test-ticket",
+			reason:   "",
+			setupMocks: func(tm *mocks.MockTicketManager, gc *mocks.MockGitClient) {
+				testTicket := &ticket.Ticket{
+					ID:          "250131-120000-test-ticket",
+					Path:        "tickets/todo/250131-120000-test-ticket.md",
+					Priority:    2,
+					Description: "Test ticket",
+					CreatedAt:   ticket.RFC3339Time{Time: time.Now()},
+					Content:     "# Test Ticket\n\nContent here.",
+				}
+				
+				tm.On("Get", mock.Anything, "250131-120000-test-ticket").Return(testTicket, nil)
+				
+				// Mock branch merge check (not merged)
+				gc.On("GetDefaultBranch", mock.Anything).Return("main", nil)
+				gc.On("IsBranchMerged", mock.Anything, "250131-120000-test-ticket", "main").Return(false, nil)
+			},
+			expectedError: true,
+			errorContains: "requires a reason",
+		},
+	}
+	
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Setup mocks
+			mockManager := &mocks.MockTicketManager{}
+			mockGit := &mocks.MockGitClient{}
+			
+			// Setup test mocks
+			tt.setupMocks(mockManager, mockGit)
+			
+			// Create app with mocks
+			app := &App{
+				Manager: mockManager,
+				Git:     mockGit,
+				Config: &config.Config{
+					Git: config.GitConfig{
+						DefaultBranch: "main",
+					},
+				},
+				Output: NewOutputWriter(os.Stdout, os.Stderr, FormatText),
+			}
+			
+			// Execute
+			err := app.CloseTicketByID(context.Background(), tt.ticketID, tt.reason, false)
+			
+			// Verify
+			if tt.expectedError {
+				assert.Error(t, err)
+				if tt.errorContains != "" {
+					assert.Contains(t, err.Error(), tt.errorContains)
+				}
+			} else {
+				assert.NoError(t, err)
+			}
+			
+			mockManager.AssertExpectations(t)
+			mockGit.AssertExpectations(t)
+		})
+	}
+}
+
+func TestApp_CloseTicketWithReason(t *testing.T) {
+	t.Parallel()
+	
+	tests := []struct {
+		name          string
+		reason        string
+		setupMocks    func(*mocks.MockTicketManager, *mocks.MockGitClient)
+		expectedError bool
+		errorContains string
+	}{
+		{
+			name:   "close current ticket with reason",
+			reason: "Cancelled due to requirements change",
+			setupMocks: func(tm *mocks.MockTicketManager, gc *mocks.MockGitClient) {
+				testTicket := &ticket.Ticket{
+					ID:          "250131-120000-current-ticket",
+					Path:        "tickets/doing/250131-120000-current-ticket.md",
+					Priority:    2,
+					Description: "Current ticket",
+					CreatedAt:   ticket.RFC3339Time{Time: time.Now()},
+					StartedAt:   ticket.NewRFC3339TimePtr(&time.Time{}),
+					Content:     "# Current Ticket\n\nWork in progress.",
+				}
+				
+				// Mock getting current ticket (called twice - once for validation, once for actual close)
+				tm.On("GetCurrentTicket", mock.Anything).Return(testTicket, nil).Times(2)
+				
+				// Mock updating ticket with reason
+				tm.On("Update", mock.Anything, testTicket).Return(nil).Run(func(args mock.Arguments) {
+					tkt := args.Get(1).(*ticket.Ticket)
+					// Verify the ticket was closed with reason
+					assert.NotNil(t, tkt.ClosedAt.Time)
+					assert.Equal(t, "Cancelled due to requirements change", tkt.ClosureReason)
+					assert.Contains(t, tkt.Content, "## Closure Note")
+				})
+				
+				// Mock git operations
+				gc.On("HasUncommittedChanges", mock.Anything).Return(false, nil)
+				gc.On("CurrentBranch", mock.Anything).Return("250131-120000-current-ticket", nil)
+				gc.On("Add", mock.Anything, "tickets/doing/250131-120000-current-ticket.md").Return(nil)
+				gc.On("Commit", mock.Anything, mock.MatchedBy(func(msg string) bool {
+					return msg == "Close ticket: 250131-120000-current-ticket (Cancelled due to requirements change)"
+				})).Return(nil)
+			},
+			expectedError: false,
+		},
+		{
+			name:   "error when no current ticket",
+			reason: "Some reason",
+			setupMocks: func(tm *mocks.MockTicketManager, gc *mocks.MockGitClient) {
+				tm.On("GetCurrent", mock.Anything).Return(nil, nil)
+			},
+			expectedError: true,
+			errorContains: "no active ticket",
+		},
+		{
+			name:   "error when uncommitted changes",
+			reason: "Some reason",
+			setupMocks: func(tm *mocks.MockTicketManager, gc *mocks.MockGitClient) {
+				testTicket := &ticket.Ticket{
+					ID:          "250131-120000-current-ticket",
+					Path:        "tickets/doing/250131-120000-current-ticket.md",
+					Priority:    2,
+					Description: "Current ticket",
+					CreatedAt:   ticket.RFC3339Time{Time: time.Now()},
+					StartedAt:   ticket.NewRFC3339TimePtr(&time.Time{}),
+					Content:     "# Current Ticket\n\nWork in progress.",
+				}
+				
+				tm.On("GetCurrent", mock.Anything).Return(testTicket, nil)
+				gc.On("HasUncommittedChanges", mock.Anything).Return(true, nil)
+			},
+			expectedError: true,
+			errorContains: "uncommitted changes",
+		},
+	}
+	
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Setup mocks
+			mockManager := &mocks.MockTicketManager{}
+			mockGit := &mocks.MockGitClient{}
+			
+			// Setup test mocks
+			tt.setupMocks(mockManager, mockGit)
+			
+			// Create app with mocks
+			app := &App{
+				Manager: mockManager,
+				Git:     mockGit,
+				Config: &config.Config{
+					Git: config.GitConfig{
+						DefaultBranch: "main",
+					},
+				},
+				Output: NewOutputWriter(os.Stdout, os.Stderr, FormatText),
+			}
+			
+			// Execute
+			err := app.CloseTicketWithReason(context.Background(), tt.reason, false)
+			
+			// Verify
+			if tt.expectedError {
+				assert.Error(t, err)
+				if tt.errorContains != "" {
+					assert.Contains(t, err.Error(), tt.errorContains)
+				}
+			} else {
+				assert.NoError(t, err)
+			}
+			
+			mockManager.AssertExpectations(t)
+			mockGit.AssertExpectations(t)
+		})
+	}
+}

@@ -327,8 +327,10 @@ func (g *Git) IsBranchMerged(ctx context.Context, branch, targetBranch string) (
 	// Use git branch --merged to check if branch is merged
 	output, err := g.Exec(ctx, "branch", "--merged", targetBranch)
 	if err != nil {
-		// If the branch doesn't exist, it's not merged
-		if strings.Contains(err.Error(), "not a valid ref") {
+		// If the target branch doesn't exist, it's not merged
+		// Git returns "fatal: malformed object name" or "not a valid ref"
+		errStr := err.Error()
+		if strings.Contains(errStr, "not a valid ref") || strings.Contains(errStr, "malformed object name") {
 			return false, nil
 		}
 		return false, err
@@ -338,7 +340,12 @@ func (g *Git) IsBranchMerged(ctx context.Context, branch, targetBranch string) (
 	lines := strings.Split(strings.TrimSpace(output), "\n")
 	for _, line := range lines {
 		// Remove leading/trailing spaces and branch markers (* or +)
-		trimmed := strings.TrimSpace(strings.TrimPrefix(strings.TrimPrefix(line, "*"), "+"))
+		trimmed := strings.TrimSpace(line)
+		// Remove branch markers - handle both * and + prefixes
+		trimmed = strings.TrimPrefix(trimmed, "*")
+		trimmed = strings.TrimPrefix(trimmed, "+")
+		trimmed = strings.TrimSpace(trimmed) // Trim again after removing prefixes
+		
 		if trimmed == branch {
 			return true, nil
 		}

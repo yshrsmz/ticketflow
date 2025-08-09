@@ -195,7 +195,8 @@ func (t *Ticket) CloseWithReason(reason string) error {
 	// Add closure note to content
 	closureNote := fmt.Sprintf("\n\n## Closure Note\n**Closed on**: %s\n**Reason**: %s\n", 
 		now.Format("2006-01-02"), reason)
-	t.Content = t.Content + closureNote
+	// Ensure proper formatting by trimming trailing newlines before appending
+	t.Content = strings.TrimRight(t.Content, "\n") + closureNote
 	
 	return nil
 }
