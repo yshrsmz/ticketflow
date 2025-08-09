@@ -1,11 +1,11 @@
 ---
 priority: 2
-description: Standardize quoting of related field values to prevent false-positive code reviews
+description: "Standardize quoting of related field values to prevent false-positive code reviews"
 created_at: "2025-08-09T12:17:23+09:00"
 started_at: "2025-08-09T13:20:42+09:00"
 closed_at: null
 related:
-    - parent:250806-172829-improve-worktree-error-messages
+    - "parent:250806-172829-improve-worktree-error-messages"
 ---
 
 # Improve Related Field Quoting
