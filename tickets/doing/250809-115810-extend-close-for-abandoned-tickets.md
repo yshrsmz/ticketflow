@@ -1,8 +1,8 @@
 ---
 priority: 2
-description: "Extend close command to handle abandoned/invalid tickets without requiring worktree"
+description: Extend close command to handle abandoned/invalid tickets without requiring worktree
 created_at: "2025-08-09T11:58:10+09:00"
-started_at: null
+started_at: "2025-08-09T14:47:49+09:00"
 closed_at: null
 related:
     - parent:250806-172829-improve-worktree-error-messages
