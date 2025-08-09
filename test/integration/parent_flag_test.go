@@ -81,7 +81,7 @@ func TestNewCommandWithParentFlag(t *testing.T) {
 		subTicket := readTicketFromFile(t, subFiles[0])
 
 		require.NotNil(t, subTicket.Related, "Sub-ticket should have Related field")
-		assert.Contains(t, subTicket.Related, `"parent:`+parentID+`"`)
+		assert.Contains(t, subTicket.Related, "parent:"+parentID)
 	})
 
 	t.Run("create sub-ticket with -p flag (short form)", func(t *testing.T) {
@@ -99,7 +99,7 @@ func TestNewCommandWithParentFlag(t *testing.T) {
 		subTicket := readTicketFromFile(t, subFiles[0])
 
 		require.NotNil(t, subTicket.Related, "Sub-ticket should have Related field")
-		assert.Contains(t, subTicket.Related, `"parent:`+parentID+`"`)
+		assert.Contains(t, subTicket.Related, "parent:"+parentID)
 	})
 
 	t.Run("error on non-existent parent", func(t *testing.T) {
@@ -143,9 +143,9 @@ func TestNewCommandWithParentFlag(t *testing.T) {
 		subTicket := readTicketFromFile(t, subFiles[0])
 
 		require.NotNil(t, subTicket.Related)
-		assert.Contains(t, subTicket.Related, `"parent:`+anotherParentID+`"`)
+		assert.Contains(t, subTicket.Related, "parent:"+anotherParentID)
 		// Should not have the first parent
-		assert.NotContains(t, subTicket.Related, `"parent:`+parentID+`"`)
+		assert.NotContains(t, subTicket.Related, "parent:"+parentID)
 	})
 
 	t.Run("use ticket ID as parent", func(t *testing.T) {
@@ -163,6 +163,6 @@ func TestNewCommandWithParentFlag(t *testing.T) {
 		subTicket := readTicketFromFile(t, subFiles[0])
 		require.NotNil(t, subTicket)
 
-		assert.Contains(t, subTicket.Related, `"parent:`+parentID+`"`)
+		assert.Contains(t, subTicket.Related, "parent:"+parentID)
 	})
 }

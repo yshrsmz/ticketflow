@@ -372,8 +372,8 @@ func (app *App) NewTicket(ctx context.Context, slug string, explicitParent strin
 	// If this is a sub-ticket, update its metadata
 	if parentTicketID != "" {
 		logger.Debug("creating sub-ticket", "parent", parentTicketID)
-		// Add parent relationship with quoted format
-		t.Related = append(t.Related, fmt.Sprintf(`"parent:%s"`, parentTicketID))
+		// Add parent relationship
+		t.Related = append(t.Related, fmt.Sprintf("parent:%s", parentTicketID))
 		if err := app.Manager.Update(ctx, t); err != nil {
 			logger.WithError(err).Error("failed to update ticket metadata", slog.String("ticket_id", t.ID), slog.String("parent", parentTicketID))
 			return fmt.Errorf("failed to update ticket metadata: %w", err)
@@ -923,12 +923,11 @@ func (app *App) setupTicketBranch(ctx context.Context, t *ticket.Ticket, current
 // updateParentRelationship updates the parent relationship if needed
 func (app *App) updateParentRelationship(ctx context.Context, t *ticket.Ticket, parentBranch string, currentBranch string) error {
 	if parentBranch != "" && parentBranch != currentBranch {
-		// Add parent to Related field with quoted format
-		parentRef := fmt.Sprintf(`"parent:%s"`, parentBranch)
+		// Add parent to Related field
+		parentRef := fmt.Sprintf("parent:%s", parentBranch)
 		hasParent := false
 		for _, rel := range t.Related {
-			// Check both quoted and unquoted formats for backward compatibility
-			if rel == parentRef || rel == fmt.Sprintf("parent:%s", parentBranch) {
+			if rel == parentRef {
 				hasParent = true
 				break
 			}
@@ -1410,11 +1409,8 @@ func (app *App) calculateWorkDuration(t *ticket.Ticket) string {
 }
 
 // extractParentTicketID extracts the parent ticket ID from the related field
-// Handles both quoted ("parent:id") and unquoted (parent:id) formats for backward compatibility
 func (app *App) extractParentTicketID(t *ticket.Ticket) string {
 	for _, rel := range t.Related {
-		// Remove quotes if present (new format)
-		rel = strings.Trim(rel, `"`)
 		if strings.HasPrefix(rel, "parent:") {
 			return strings.TrimPrefix(rel, "parent:")
 		}
