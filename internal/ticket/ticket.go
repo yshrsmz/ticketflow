@@ -22,12 +22,13 @@ const (
 // Ticket represents a ticket with metadata and content
 type Ticket struct {
 	// Metadata (YAML frontmatter)
-	Priority    int            `yaml:"priority"`
-	Description string         `yaml:"description"`
-	CreatedAt   RFC3339Time    `yaml:"created_at"`
-	StartedAt   RFC3339TimePtr `yaml:"started_at"`
-	ClosedAt    RFC3339TimePtr `yaml:"closed_at"`
-	Related     []string       `yaml:"related,omitempty"`
+	Priority      int            `yaml:"priority"`
+	Description   string         `yaml:"description"`
+	CreatedAt     RFC3339Time    `yaml:"created_at"`
+	StartedAt     RFC3339TimePtr `yaml:"started_at"`
+	ClosedAt      RFC3339TimePtr `yaml:"closed_at"`
+	ClosureReason string         `yaml:"closure_reason,omitempty"`
+	Related       []string       `yaml:"related,omitempty"`
 
 	// Computed fields
 	ID      string `yaml:"-"`
@@ -176,5 +177,32 @@ func (t *Ticket) Close() error {
 
 	now := time.Now()
 	t.ClosedAt = NewRFC3339TimePtr(&now)
+	return nil
+}
+
+// CloseWithReason marks the ticket as closed with a reason
+// This method allows closing tickets that haven't been started (for cancellation)
+// or tickets that have been started (for abandonment)
+func (t *Ticket) CloseWithReason(reason string) error {
+	if t.ClosedAt.Time != nil {
+		return ticketerrors.ErrTicketAlreadyClosed
+	}
+
+	// Validate reason is not empty or whitespace-only
+	trimmedReason := strings.TrimSpace(reason)
+	if trimmedReason == "" {
+		return fmt.Errorf("closure reason cannot be empty")
+	}
+
+	now := time.Now()
+	t.ClosedAt = NewRFC3339TimePtr(&now)
+	t.ClosureReason = trimmedReason
+
+	// Add closure note to content
+	closureNote := fmt.Sprintf("\n\n## Closure Note\n**Closed on**: %s\n**Reason**: %s\n",
+		now.Format("2006-01-02"), trimmedReason)
+	// Ensure proper formatting by trimming trailing newlines before appending
+	t.Content = strings.TrimRight(t.Content, "\n") + closureNote
+
 	return nil
 }

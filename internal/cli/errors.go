@@ -34,6 +34,7 @@ const (
 	ErrConfigNotFound   = "CONFIG_NOT_FOUND"
 	ErrConfigInvalid    = "CONFIG_INVALID"
 	ErrPermissionDenied = "PERMISSION_DENIED"
+	ErrValidation       = "VALIDATION_ERROR"
 
 	// Ticket errors
 	ErrTicketNotFound       = "TICKET_NOT_FOUND"

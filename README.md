@@ -201,6 +201,26 @@ ticketflow cleanup 250124-150000-implement-feature
 # Removes worktree and deletes local branch
 ```
 
+### Closing Abandoned or Invalid Tickets
+
+Sometimes tickets need to be closed without merging (e.g., requirements changed, duplicate work, invalid approach). TicketFlow supports closing tickets with a reason:
+
+```bash
+# Close current ticket with reason
+ticketflow close --reason "Requirements changed"
+
+# Close specific ticket from main repository
+ticketflow close 250124-150000-abandoned-feature --reason "Duplicate of #123"
+
+# Close ticket from anywhere with reason
+ticketflow close 250124-150000-invalid-approach --reason "Better solution found in ticket #456"
+```
+
+When closing with a reason:
+- The reason is stored in the ticket's frontmatter as `closure_reason`
+- A closure note is added to the ticket content
+- The git commit message includes the reason
+
 ### Auto-cleanup
 
 Remove orphaned worktrees and stale branches for done tickets:
@@ -230,7 +250,7 @@ The auto-cleanup command will:
 | `ticketflow list [options]` | List tickets |
 | `ticketflow show <id> [options]` | Show ticket details |
 | `ticketflow start <id>` | Start working on a ticket |
-| `ticketflow close [options]` | Close the current ticket |
+| `ticketflow close [ticket] [options]` | Close current or specific ticket |
 | `ticketflow restore` | Restore current-ticket symlink |
 | `ticketflow status [options]` | Show current status |
 | `ticketflow cleanup <id> [options]` | Clean up specific ticket after PR merge |
@@ -257,7 +277,16 @@ The auto-cleanup command will:
 - `-p TICKET_ID` - Short form of --parent
 
 **Note:** Flags must come before the ticket slug (e.g., `ticketflow new --parent parent-id my-ticket`)
-- `--help, -h` - Show command help
+
+**close command:**
+- `--force, -f` - Force close with uncommitted changes
+- `--reason` - Reason for closing the ticket (required when closing abandoned/invalid tickets)
+
+**cleanup command:**
+- `--force` - Skip confirmation prompts (for specific ticket cleanup)
+- `--dry-run` - Show what would be cleaned without making changes (for auto-cleanup)
+
+- `--help, -h` - Show command help for any command
 
 ## Configuration
 

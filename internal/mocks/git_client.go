@@ -161,3 +161,9 @@ func (m *MockGitClient) GetBranchDivergenceInfo(ctx context.Context, branch, bas
 	args := m.Called(ctx, branch, baseBranch)
 	return args.Int(0), args.Int(1), args.Error(2)
 }
+
+// IsBranchMerged checks if a branch has been merged into the target branch
+func (m *MockGitClient) IsBranchMerged(ctx context.Context, branch, targetBranch string) (bool, error) {
+	args := m.Called(ctx, branch, targetBranch)
+	return args.Bool(0), args.Error(1)
+}

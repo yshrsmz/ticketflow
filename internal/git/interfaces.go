@@ -42,4 +42,5 @@ type GitClient interface {
 	BranchDivergedFrom(ctx context.Context, branch, baseBranch string) (bool, error)
 	GetBranchCommit(ctx context.Context, branch string) (string, error)
 	GetBranchDivergenceInfo(ctx context.Context, branch, baseBranch string) (ahead, behind int, err error)
+	IsBranchMerged(ctx context.Context, branch, targetBranch string) (bool, error)
 }

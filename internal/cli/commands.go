@@ -21,6 +21,11 @@ import (
 	"github.com/yshrsmz/ticketflow/internal/worktree"
 )
 
+// Constants for messages
+const (
+	msgBranchAlreadyMerged = "Branch was already merged"
+)
+
 // App represents the CLI application
 type App struct {
 	Config      *config.Config
@@ -484,9 +489,13 @@ func (app *App) StartTicket(ctx context.Context, ticketID string, force bool) er
 	return nil
 }
 
-// CloseTicket closes the current ticket
-func (app *App) CloseTicket(ctx context.Context, force bool) error {
-	logger := log.Global().WithOperation("close_ticket")
+// closeCurrentTicketInternal handles the common logic for closing the current ticket
+func (app *App) closeCurrentTicketInternal(ctx context.Context, reason string, force bool) error {
+	operation := "close_ticket"
+	if reason != "" {
+		operation = "close_ticket_with_reason"
+	}
+	logger := log.Global().WithOperation(operation)
 
 	// Validate current ticket for close
 	current, worktreePath, err := app.validateTicketForClose(ctx, force)
@@ -496,15 +505,22 @@ func (app *App) CloseTicket(ctx context.Context, force bool) error {
 	}
 
 	logger = logger.WithTicket(current.ID)
-	logger.Info("closing ticket")
 
 	// Update ticket status
-	if err := current.Close(); err != nil {
-		return err
+	if reason != "" {
+		logger.Info("closing ticket with reason", "reason", reason)
+		if err := current.CloseWithReason(reason); err != nil {
+			return fmt.Errorf("failed to close ticket with reason: %w", err)
+		}
+	} else {
+		logger.Info("closing ticket")
+		if err := current.Close(); err != nil {
+			return err
+		}
 	}
 
-	// Move ticket to done status
-	if err := app.moveTicketToDone(ctx, current); err != nil {
+	// Move ticket to done status (this also commits with the reason)
+	if err := app.moveTicketToDoneWithReason(ctx, current, reason); err != nil {
 		return err
 	}
 
@@ -517,7 +533,166 @@ func (app *App) CloseTicket(ctx context.Context, force bool) error {
 	// Print success message with next steps
 	app.printCloseSuccessMessage(current, duration, parentTicketID, worktreePath)
 
-	logger.Info("ticket closed successfully", "duration", duration)
+	if reason != "" {
+		logger.Info("ticket closed successfully with reason", "duration", duration, "reason", reason)
+	} else {
+		logger.Info("ticket closed successfully", "duration", duration)
+	}
+	return nil
+}
+
+// CloseTicket closes the current ticket
+func (app *App) CloseTicket(ctx context.Context, force bool) error {
+	return app.closeCurrentTicketInternal(ctx, "", force)
+}
+
+// CloseTicketWithReason closes the current ticket with a reason
+func (app *App) CloseTicketWithReason(ctx context.Context, reason string, force bool) error {
+	// Validate that reason is not empty or just whitespace
+	if strings.TrimSpace(reason) == "" {
+		return NewError(ErrValidation, "Empty reason",
+			"Reason cannot be empty or just whitespace",
+			[]string{"Provide a meaningful reason for closing the ticket"})
+	}
+	return app.closeCurrentTicketInternal(ctx, reason, force)
+}
+
+// checkBranchMerged checks if a branch has been merged to the default branch
+func (app *App) checkBranchMerged(ctx context.Context, ticketID string) (bool, error) {
+	if app.Config.Git.DefaultBranch == "" {
+		return false, nil
+	}
+	return app.Git.IsBranchMerged(ctx, ticketID, app.Config.Git.DefaultBranch)
+}
+
+// validateTicketByID validates that a ticket can be closed by ID
+func (app *App) validateTicketByID(ctx context.Context, ticketID string) (*ticket.Ticket, error) {
+	ticket, err := app.Manager.Get(ctx, ticketID)
+	if err != nil {
+		return nil, NewError(ErrTicketNotFound, "Ticket not found",
+			fmt.Sprintf("Ticket '%s' does not exist", ticketID),
+			[]string{"Check ticket ID and try again", "List available tickets: ticketflow list"})
+	}
+
+	if ticket.ClosedAt.Time != nil {
+		return nil, NewError(ErrTicketAlreadyClosed, "Ticket already closed",
+			fmt.Sprintf("Ticket '%s' is already closed", ticketID),
+			nil)
+	}
+
+	return ticket, nil
+}
+
+// closeAndCommitTicket closes the ticket, saves it, and commits the changes
+func (app *App) closeAndCommitTicket(ctx context.Context, ticket *ticket.Ticket, reason string, branchMerged bool) error {
+	logger := log.Global().WithOperation("close_and_commit").WithTicket(ticket.ID)
+
+	// Close the ticket
+	if reason != "" {
+		logger.Info("closing ticket with reason", "reason", reason)
+		if err := ticket.CloseWithReason(reason); err != nil {
+			return fmt.Errorf("failed to close ticket with reason: %w", err)
+		}
+	} else if branchMerged {
+		logger.Info("closing ticket", "note", msgBranchAlreadyMerged)
+		// Branch is merged, close normally without implicit reason
+		if err := ticket.Close(); err != nil {
+			return fmt.Errorf("failed to close merged ticket: %w", err)
+		}
+	} else {
+		// Should not reach here as validation should prevent this
+		return errors.New("cannot close ticket without reason when branch is not merged")
+	}
+
+	// Move ticket to done status (this also saves the ticket and commits with the reason)
+	// Note: moveTicketToDoneWithReason will call Update, so we don't need to do it here
+	if err := app.moveTicketToDoneWithReason(ctx, ticket, reason); err != nil {
+		return fmt.Errorf("failed to move ticket to done: %w", err)
+	}
+
+	return nil
+}
+
+// printCloseByIDSuccessMessage prints the success message after closing a ticket by ID
+func (app *App) printCloseByIDSuccessMessage(ticket *ticket.Ticket, reason string, branchMerged bool, worktreePath string) {
+	duration := app.calculateWorkDuration(ticket)
+
+	app.Output.Printf("\n✅ Ticket closed: %s\n", ticket.ID)
+	app.Output.Printf("   Description: %s\n", ticket.Description)
+	if reason != "" {
+		app.Output.Printf("   Reason: %s\n", reason)
+	} else if branchMerged {
+		app.Output.Printf("   Note: %s\n", msgBranchAlreadyMerged)
+	}
+	if duration != "" {
+		app.Output.Printf("   Duration: %s\n", duration)
+	}
+	app.Output.Printf("   Committed: \"Close ticket: %s\"\n", ticket.ID)
+
+	// Suggest cleanup if worktree exists
+	if worktreePath != "" {
+		app.Output.Printf("\n💡 Ticket has a worktree. Run this to clean up:\n")
+		app.Output.Printf("   ticketflow cleanup %s\n", ticket.ID)
+	}
+}
+
+// CloseTicketByID closes a specific ticket by ID
+func (app *App) CloseTicketByID(ctx context.Context, ticketID, reason string, force bool) error {
+	logger := log.Global().WithOperation("close_ticket_by_id").WithTicket(ticketID)
+
+	// First check if this is the current ticket
+	current, _ := app.Manager.GetCurrentTicket(ctx)
+	if current != nil && current.ID == ticketID {
+		// This is the current ticket, use normal close logic
+		if reason != "" {
+			return app.CloseTicketWithReason(ctx, reason, force)
+		}
+		return app.CloseTicket(ctx, force)
+	}
+
+	// Validate the ticket
+	ticket, err := app.validateTicketByID(ctx, ticketID)
+	if err != nil {
+		return err
+	}
+
+	// Check if branch is merged
+	branchMerged := false
+	merged, err := app.checkBranchMerged(ctx, ticketID)
+	if err != nil {
+		logger.WithError(err).Warn("failed to check if branch is merged, assuming not merged")
+	} else {
+		branchMerged = merged
+	}
+
+	// If no reason provided and branch not merged, require reason
+	if reason == "" && !branchMerged {
+		return NewError(ErrValidation, "Reason required",
+			"Closing a ticket without being in its worktree requires a reason",
+			[]string{
+				fmt.Sprintf("Provide a reason: ticketflow close %s --reason \"explanation\"", ticketID),
+				"Or switch to the ticket's worktree to close normally",
+			})
+	}
+
+	// Check for worktree
+	var worktreePath string
+	if app.Config.Worktree.Enabled {
+		wt, err := app.Git.FindWorktreeByBranch(ctx, ticketID)
+		if err == nil && wt != nil {
+			worktreePath = wt.Path
+		}
+	}
+
+	// Close and commit the ticket
+	if err := app.closeAndCommitTicket(ctx, ticket, reason, branchMerged); err != nil {
+		return err
+	}
+
+	// Print success message
+	app.printCloseByIDSuccessMessage(ticket, reason, branchMerged, worktreePath)
+
+	logger.Info("ticket closed successfully", "duration", app.calculateWorkDuration(ticket), "reason", reason, "branchMerged", branchMerged)
 	return nil
 }
 
@@ -1103,8 +1278,13 @@ func (app *App) validateTicketForClose(ctx context.Context, force bool) (*ticket
 	return current, worktreePath, nil
 }
 
-// moveTicketToDone moves the ticket to done status and commits the change
-func (app *App) moveTicketToDone(ctx context.Context, current *ticket.Ticket) error {
+// moveTicketToDoneWithReason moves a ticket to done and commits with optional reason
+func (app *App) moveTicketToDoneWithReason(ctx context.Context, current *ticket.Ticket, reason string) error {
+	// Check context before starting
+	if err := ctx.Err(); err != nil {
+		return fmt.Errorf("operation cancelled: %w", err)
+	}
+
 	// Move ticket file from doing to done
 	oldPath := current.Path
 	donePath := app.Config.GetDonePath(app.ProjectRoot)
@@ -1130,13 +1310,22 @@ func (app *App) moveTicketToDone(ctx context.Context, current *ticket.Ticket) er
 		return fmt.Errorf("failed to update ticket %s close time: %w", current.ID, err)
 	}
 
+	// Check context before git operations
+	if err := ctx.Err(); err != nil {
+		return fmt.Errorf("operation cancelled before git operations: %w", err)
+	}
+
 	// Git add the changes (use -A to handle the rename properly)
 	if err := app.Git.Add(ctx, "-A", filepath.Dir(oldPath), filepath.Dir(newPath)); err != nil {
 		return fmt.Errorf("failed to stage ticket move: %w", err)
 	}
 
-	// Commit the move
-	if err := app.Git.Commit(ctx, fmt.Sprintf("Close ticket: %s", current.ID)); err != nil {
+	// Commit the move with reason if provided
+	commitMsg := fmt.Sprintf("Close ticket: %s", current.ID)
+	if reason != "" {
+		commitMsg = fmt.Sprintf("Close ticket: %s (%s)", current.ID, reason)
+	}
+	if err := app.Git.Commit(ctx, commitMsg); err != nil {
 		return fmt.Errorf("failed to commit ticket move: %w", err)
 	}
 
