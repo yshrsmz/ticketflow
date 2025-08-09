@@ -5,7 +5,7 @@ created_at: "2025-08-09T14:08:30+09:00"
 started_at: "2025-08-09T14:09:13+09:00"
 closed_at: null
 related:
-    - parent:250809-121723-improve-related-field-quoting
+    - "parent:250809-121723-improve-related-field-quoting"
 ---
 
 # Ticket Overview
