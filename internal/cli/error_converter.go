@@ -3,6 +3,7 @@ package cli
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	ticketerrors "github.com/yshrsmz/ticketflow/internal/errors"
 )
@@ -88,11 +89,22 @@ func ConvertError(err error) error {
 
 	var gitErr *ticketerrors.GitError
 	if errors.As(err, &gitErr) {
+		// Check for worktree-specific git errors
+		if gitErr.Op == "worktree" || strings.Contains(gitErr.Err.Error(), "worktree") {
+			if enhanced := enhanceWorktreeGitError(gitErr); enhanced != nil {
+				return enhanced
+			}
+		}
 		return NewError(ErrGitMergeFailed, fmt.Sprintf("Git operation failed: %s", gitErr.Op), err.Error(), nil)
 	}
 
 	var worktreeErr *ticketerrors.WorktreeError
 	if errors.As(err, &worktreeErr) {
+		// Try to enhance worktree error first
+		if enhanced := enhanceWorktreeError(worktreeErr); enhanced != nil {
+			return enhanced
+		}
+
 		code := ErrWorktreeCreateFailed
 		if worktreeErr.Op == "remove" {
 			code = ErrWorktreeRemoveFailed
@@ -109,4 +121,90 @@ func ConvertError(err error) error {
 
 	// Generic error
 	return err
+}
+
+// enhanceWorktreeGitError enhances git errors related to worktree operations
+func enhanceWorktreeGitError(gitErr *ticketerrors.GitError) *CLIError {
+	if gitErr == nil || gitErr.Err == nil {
+		return nil
+	}
+
+	return enhanceWorktreeErrorString(gitErr.Err.Error(), gitErr.Error())
+}
+
+// enhanceWorktreeError enhances worktree-specific errors
+func enhanceWorktreeError(worktreeErr *ticketerrors.WorktreeError) *CLIError {
+	if worktreeErr == nil || worktreeErr.Err == nil {
+		return nil
+	}
+
+	return enhanceWorktreeErrorString(worktreeErr.Err.Error(), worktreeErr.Error())
+}
+
+// enhanceWorktreeErrorString provides common enhancement logic for worktree error messages
+func enhanceWorktreeErrorString(errStr, fullError string) *CLIError {
+	// Pattern matching for common worktree errors
+	switch {
+	case strings.Contains(errStr, "is not a working tree"):
+		return NewError(ErrWorktreeRemoveFailed, "Worktree appears to be corrupted",
+			fullError,
+			[]string{
+				"Run 'git worktree prune' to clean up corrupted references",
+				"Then retry your command",
+			})
+
+	case strings.Contains(errStr, "already exists"):
+		return NewError(ErrWorktreeExists, "Worktree directory already exists",
+			fullError,
+			[]string{
+				"Remove the directory manually: rm -rf <path>",
+				"Or use 'ticketflow cleanup' if it's an old ticket",
+			})
+
+	case strings.Contains(errStr, "is already checked out"):
+		return NewError(ErrWorktreeExists, "Branch is already checked out in another worktree",
+			fullError,
+			[]string{
+				"Use 'git worktree list' to find where it's checked out",
+				"Remove the other worktree if it's no longer needed",
+			})
+
+	case strings.Contains(errStr, "could not create work tree dir"):
+		return NewError(ErrWorktreeCreateFailed, "Cannot create worktree directory",
+			fullError,
+			[]string{
+				"Check directory permissions",
+				"Ensure you have enough disk space",
+				"Try 'git worktree prune' if references are corrupted",
+			})
+
+	case strings.Contains(errStr, "invalid reference"):
+		return NewError(ErrWorktreeCreateFailed, "Invalid git reference for worktree",
+			fullError,
+			[]string{
+				"Ensure the branch name is valid",
+				"Check if the base branch exists",
+				"Try 'git fetch' to update remote references",
+			})
+
+	case strings.Contains(errStr, "permission denied"):
+		return NewError(ErrPermissionDenied, "Permission denied for worktree operation",
+			fullError,
+			[]string{
+				"Check file and directory permissions",
+				"Ensure you have write access to the parent directory",
+				"Try running with appropriate permissions",
+			})
+
+	case strings.Contains(errStr, "locked"):
+		return NewError(ErrWorktreeRemoveFailed, "Worktree is locked",
+			fullError,
+			[]string{
+				"Check if another process is using the worktree",
+				"Remove lock file manually if stale: .git/worktrees/<name>/locked",
+				"Use 'git worktree remove --force' if necessary",
+			})
+	}
+
+	return nil // No enhancement needed
 }
