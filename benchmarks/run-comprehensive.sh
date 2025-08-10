@@ -159,7 +159,8 @@ if [ -f "${BASELINE_FILE}" ]; then
             baseline_val=$(echo "${baseline_time}" | sed 's/ns\/op//')
             
             # Use awk for floating point arithmetic (more portable than bc)
-            if [ -n "${baseline_val}" ] && [ "${baseline_val}" != "0" ]; then
+            # Check if baseline_val exists and is not zero using awk for numeric comparison
+            if [ -n "${baseline_val}" ] && [ "$(awk -v val="${baseline_val}" 'BEGIN { print (val != 0) ? 1 : 0 }')" -eq 1 ]; then
                 result=$(awk -v curr="${current_val}" -v base="${baseline_val}" -v thresh="${REGRESSION_THRESHOLD}" '
                 BEGIN {
                     if (base != 0) {

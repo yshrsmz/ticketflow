@@ -128,7 +128,7 @@ func CreateBenchmarkTicketsWithPrefix(b *testing.B, env *BenchmarkEnvironment, c
 		// Check for context cancellation
 		select {
 		case <-ctx.Done():
-			b.Fatalf("Ticket creation timed out after creating %d tickets: %v", i, ctx.Err())
+			b.Fatalf("Ticket creation phase timed out after creating %d of %d tickets with prefix '%s' in status '%s': %v", i, count, prefix, status, ctx.Err())
 		default:
 		}
 
@@ -212,7 +212,7 @@ func (bt *BenchmarkTimer) Start() {
 		bt.b.StartTimer()
 		bt.stopped = false
 		bt.startTime = time.Now()
-		bt.elapsedTime = 0 // Reset elapsed time when restarting
+		// Don't reset elapsedTime here - keep accumulated time for tracking total elapsed
 	}
 }
 
