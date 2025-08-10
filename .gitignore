@@ -32,3 +32,5 @@ tmp/
 
 # Test artifacts that shouldn't be in source tree
 internal/cli/tickets/
+
+/baseline.txt
