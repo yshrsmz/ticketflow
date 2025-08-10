@@ -8,7 +8,10 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-echo -e "${GREEN}Running quick benchmarks...${NC}"
+# Allow BENCH_TIME to be configured via environment variable (default: 1s)
+BENCH_TIME="${BENCH_TIME:-1s}"
+
+echo -e "${GREEN}Running quick benchmarks (BENCH_TIME=${BENCH_TIME})...${NC}"
 echo
 
 # Quick benchmarks with shorter runtime
@@ -20,7 +23,7 @@ PACKAGES=(
 
 for pkg in "${PACKAGES[@]}"; do
     echo -e "${YELLOW}Benchmarking ${pkg}...${NC}"
-    go test -bench=. -benchmem -benchtime=1s -run=^$ "${pkg}" | grep -E "^Benchmark|^ok|^PASS|^FAIL" || true
+    go test -bench=. -benchmem -benchtime="${BENCH_TIME}" -run=^$ "${pkg}" | grep -E "^Benchmark|^ok|^PASS|^FAIL" || true
     echo
 done
 

@@ -57,8 +57,8 @@ improvements_found=false
 grep "^Benchmark" "${CURRENT_FILE}" | while IFS= read -r current_line; do
     bench_name=$(extract_value "$current_line" 1)
     
-    # Find corresponding baseline
-    baseline_line=$(grep "^${bench_name}" "${BASELINE_FILE}" 2>/dev/null || true)
+    # Find corresponding baseline using awk for exact matching
+    baseline_line=$(awk -v name="$bench_name" '$1 == name' "${BASELINE_FILE}" 2>/dev/null || true)
     
     if [ -z "${baseline_line}" ]; then
         echo -e "${YELLOW}NEW:${NC} ${bench_name} (no baseline)"

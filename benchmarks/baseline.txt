@@ -35,16 +35,6 @@ BenchmarkListTicketsLargeRepository/1000-all-json-10        	      28	 121471665
     commands_advanced_benchmark_test.go:111: 1000-all-json - Memory: Alloc=3.194244384765625 MB, TotalAlloc=5301.212249755859 MB, Sys=17.95435333251953 MB, NumGC=1846
     commands_advanced_benchmark_test.go:88: Creating large repository: 400 todo, 200 doing, 400 done
     commands_advanced_benchmark_test.go:111: 1000-all-json - Memory: Alloc=2.5557937622070312 MB, TotalAlloc=6149.962074279785 MB, Sys=17.95435333251953 MB, NumGC=2233
---- FAIL: BenchmarkListTicketsLargeRepository/1000-active-text
-    commands_advanced_benchmark_test.go:88: Creating large repository: 400 todo, 200 doing, 400 done
-    commands_advanced_benchmark_test.go:106: 
-        	Error Trace:	/Users/a12897/repos/github.com/yshrsmz/ticketflow.worktrees/250810-002848-refactor-benchmark-infrastructure/internal/cli/commands_advanced_benchmark_test.go:106
-        	            				/Users/a12897/.local/share/mise/installs/go/1.24.6/src/testing/benchmark.go:219
-        	            				/Users/a12897/.local/share/mise/installs/go/1.24.6/src/testing/benchmark.go:245
-        	            				/Users/a12897/.local/share/mise/installs/go/1.24.6/src/runtime/asm_arm64.s:1223
-        	Error:      	Received unexpected error:
-        	            	invalid status filter: active
-        	Test:       	BenchmarkListTicketsLargeRepository/1000-active-text
 BenchmarkListTicketsLargeRepository/1000-todo-text-10       	     156	  22988484 ns/op	 4663986 B/op	   38039 allocs/op
 --- BENCH: BenchmarkListTicketsLargeRepository/1000-todo-text-10
     commands_advanced_benchmark_test.go:88: Creating large repository: 400 todo, 200 doing, 400 done

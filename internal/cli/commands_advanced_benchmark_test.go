@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 
@@ -368,7 +369,7 @@ func BenchmarkSearchAndFilter(b *testing.B) {
 				var matched []ticket.Ticket
 				for _, t := range tickets {
 					content, err := app.Manager.ReadContent(ctx, t.ID)
-					if err == nil && contains(content, scenario.searchTerm) {
+					if err == nil && strings.Contains(content, scenario.searchTerm) {
 						matched = append(matched, t)
 					}
 				}
@@ -379,27 +380,6 @@ func BenchmarkSearchAndFilter(b *testing.B) {
 			}
 		})
 	}
-}
-
-// contains checks if a string contains a substring
-func contains(s, substr string) bool {
-	return len(s) >= len(substr) && findSubstring(s, substr) >= 0
-}
-
-// findSubstring finds the index of substr in s, or -1 if not found
-func findSubstring(s, substr string) int {
-	if len(substr) == 0 {
-		return 0
-	}
-	if len(s) < len(substr) {
-		return -1
-	}
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return i
-		}
-	}
-	return -1
 }
 
 // BenchmarkMemoryPressure benchmarks operations under memory pressure
@@ -485,4 +465,3 @@ func BenchmarkMemoryPressure(b *testing.B) {
 		})
 	}
 }
-

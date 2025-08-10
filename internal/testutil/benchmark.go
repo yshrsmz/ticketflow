@@ -299,4 +299,3 @@ func CreateLargeRepository(b *testing.B, env *BenchmarkEnvironment, totalTickets
 
 	timer.Start()
 }
-
