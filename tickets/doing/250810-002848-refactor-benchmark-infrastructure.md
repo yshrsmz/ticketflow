@@ -18,12 +18,12 @@ Create comprehensive benchmark suite covering all critical paths (list, start, n
 Make sure to update task status when you finish it. Also, always create a commit for each task you finished.
 
 - [x] Create benchmark suite using `testing.B` with allocation tracking
-- [x] Implement benchmarks for list, start, and new commands
+- [x] Implement benchmarks for list, start, and new commands  
 - [x] Set up comparison benchmarks (sequential vs concurrent)
-- [ ] Configure benchstat for statistical analysis
+- [x] Configure benchstat for statistical analysis
 - [x] Integrate pprof for CPU and memory profiling
 - [x] Establish baseline measurements for all operations
-- [ ] Set up continuous benchmarking in CI pipeline
+- [x] Set up continuous benchmarking in CI pipeline
 - [x] Create benchmark comparison reports
 - [x] Run `make test` to run the tests
 - [x] Run `make vet`, `make fmt` and `make lint`
@@ -100,3 +100,47 @@ From initial benchmarks on Apple M1 Max:
 - Implemented `b.StopTimer()`/`b.StartTimer()` for accurate measurements
 - Created realistic test scenarios with actual file I/O operations
 - Focused on end-to-end benchmarks rather than micro-benchmarks
+- Made baseline generation configurable (BENCH_TIME, BENCH_COUNT, BENCH_TIMEOUT)
+- Aligned benchtime defaults to 3s for consistency between baseline and comparison
+
+### Implementation Challenges & Solutions
+
+1. **Failing Benchmarks**: Some benchmarks were failing due to git state issues
+   - Solution: Added proper git commits and cleanup between benchmark iterations
+   - Used force flags for operations that check for uncommitted changes
+
+2. **Benchmark Timeouts**: Large repository tests (1000+ tickets) were timing out
+   - Solution: Implemented dynamic timeout calculation based on ticket count
+   - Added configurable timeout parameters in Makefile
+
+3. **Inconsistent Benchmark Parameters**: Baseline and comparison used different benchtimes
+   - Solution: Made all benchmark parameters configurable via environment variables
+   - Standardized on 3s benchtime as default for both
+
+4. **CI Integration**: Ensuring benchmarks work reliably in CI environment
+   - Solution: Added proper error handling and made benchmarks more deterministic
+   - Fixed all race conditions and timing issues
+
+### Files Created/Modified
+
+**New Files:**
+- `internal/cli/commands_advanced_benchmark_test.go` - Advanced benchmark scenarios
+- `internal/testutil/benchmark.go` - Reusable benchmark utilities
+- `internal/testutil/benchmark_test.go` - Tests for benchmark utilities
+- `benchmarks/run-quick.sh` - Quick benchmark execution script
+- `benchmarks/run-comprehensive.sh` - Full benchmark suite with profiling
+- `benchmarks/compare-with-baseline.sh` - Baseline comparison tool
+- `benchmarks/baseline.txt` - Performance baseline data
+- `benchmarks/README.md` - Comprehensive documentation
+
+**Modified Files:**
+- `internal/cli/commands_benchmark_test.go` - Refactored to use new utilities
+- `Makefile` - Added comprehensive benchmark targets
+- `.gitignore` - Added benchmark artifacts to ignore list
+
+### PR Status
+
+**PR #49**: https://github.com/yshrsmz/ticketflow/pull/49
+- All CI checks passing ✅
+- All review comments addressed ✅
+- Ready for final review and approval
