@@ -281,9 +281,20 @@ func CreateLargeRepository(b *testing.B, env *BenchmarkEnvironment, totalTickets
 	timer := NewBenchmarkTimer(b)
 	timer.Stop()
 
+	// Calculate dynamic timeout based on ticket count
+	// 1 second per ticket, minimum 2 minutes, maximum 30 minutes
+	timeoutSeconds := totalTickets
+	if timeoutSeconds < 120 {
+		timeoutSeconds = 120 // Minimum 2 minutes
+	} else if timeoutSeconds > 1800 {
+		timeoutSeconds = 1800 // Maximum 30 minutes
+	}
+	
 	// Use context with timeout for long-running operations
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeoutSeconds)*time.Second)
 	defer cancel()
+	
+	b.Logf("Using timeout of %v for %d tickets", time.Duration(timeoutSeconds)*time.Second, totalTickets)
 
 	// Distribute tickets across statuses
 	todoCount := totalTickets * 40 / 100

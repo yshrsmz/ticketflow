@@ -23,8 +23,8 @@ fi
 
 BASELINE_FILE="benchmarks/baseline.txt"
 CURRENT_FILE="benchmarks/current.txt"
-THRESHOLD_TIME=10  # 10% regression threshold for time
-THRESHOLD_ALLOC=20 # 20% regression threshold for allocations
+THRESHOLD_TIME="${THRESHOLD_TIME:-10}"   # Default 10% regression threshold for time
+THRESHOLD_ALLOC="${THRESHOLD_ALLOC:-20}" # Default 20% regression threshold for allocations
 BENCH_TIME="${BENCH_TIME:-3s}" # Benchmark duration (default: 3s)
 
 # Check if baseline exists
@@ -35,6 +35,7 @@ if [ ! -f "${BASELINE_FILE}" ]; then
 fi
 
 echo -e "${GREEN}Comparing current performance with baseline...${NC}"
+echo "Using thresholds: Time=${THRESHOLD_TIME}%, Allocations=${THRESHOLD_ALLOC}%"
 echo
 
 # Run current benchmarks

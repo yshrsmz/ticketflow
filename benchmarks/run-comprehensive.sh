@@ -27,6 +27,7 @@ RESULTS_DIR="benchmarks/results/${TIMESTAMP}"
 BASELINE_FILE="benchmarks/baseline.txt"
 BENCH_TIME="${BENCH_TIME:-10s}"
 BENCH_COUNT="${BENCH_COUNT:-3}"
+REGRESSION_THRESHOLD="${REGRESSION_THRESHOLD:-10}"  # Default 10% regression threshold
 
 # Create results directory
 mkdir -p "${RESULTS_DIR}"
@@ -134,6 +135,7 @@ echo -e "${GREEN}Summary report generated: ${RESULTS_DIR}/summary.md${NC}"
 if [ -f "${BASELINE_FILE}" ]; then
     echo
     echo -e "${YELLOW}Comparing with baseline...${NC}"
+    echo "Using regression threshold: ${REGRESSION_THRESHOLD}%"
     
     # Simple comparison - check if any benchmarks got significantly slower
     # This is a basic implementation - could be enhanced with proper statistical analysis
@@ -162,9 +164,9 @@ if [ -f "${BASELINE_FILE}" ]; then
                     change=$(echo "scale=2; ((${current_val} - ${baseline_val}) / ${baseline_val}) * 100" | bc)
                     
                     # Determine if it's a regression (positive change means slower)
-                    if (( $(echo "${change} > 10" | bc -l) )); then
+                    if (( $(echo "${change} > ${REGRESSION_THRESHOLD}" | bc -l) )); then
                         echo -e "  ${bench_name}: current=${current_time} baseline=${baseline_time} ${RED}(+${change}% REGRESSION)${NC}"
-                    elif (( $(echo "${change} < -10" | bc -l) )); then
+                    elif (( $(echo "${change} < -${REGRESSION_THRESHOLD}" | bc -l) )); then
                         echo -e "  ${bench_name}: current=${current_time} baseline=${baseline_time} ${GREEN}(${change}% improvement)${NC}"
                     else
                         echo "  ${bench_name}: current=${current_time} baseline=${baseline_time} (${change}%)"

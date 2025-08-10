@@ -8,7 +8,6 @@ import (
 	"strings"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/yshrsmz/ticketflow/internal/testutil"
@@ -31,14 +30,6 @@ func BenchmarkNewTicketWithVariousSizes(b *testing.B) {
 		b.Run(scenario.name, func(b *testing.B) {
 			env := testutil.SetupBenchmarkEnvironment(b)
 
-			app := &App{
-				Manager:     env.Manager,
-				Git:         env.Git,
-				Config:      env.Config,
-				ProjectRoot: env.ProjectRoot,
-				Output:      NewOutputWriter(io.Discard, io.Discard, FormatText),
-			}
-
 			ctx := context.Background()
 			content := testutil.GenerateTicketContent(scenario.contentSize)
 
@@ -48,13 +39,12 @@ func BenchmarkNewTicketWithVariousSizes(b *testing.B) {
 			for i := 0; i < b.N; i++ {
 				slug := fmt.Sprintf("bench-ticket-%d", i)
 
-				// Create ticket
-				err := app.NewTicket(ctx, slug, "", FormatText)
+				// Create ticket and get the actual ticket ID
+				ticket, err := env.Manager.Create(ctx, slug)
 				require.NoError(b, err)
 
 				// Write content to simulate realistic usage
-				ticketID := generateTicketID(slug)
-				err = env.Manager.WriteContent(ctx, ticketID, content)
+				err = env.Manager.WriteContent(ctx, ticket.ID, content)
 				require.NoError(b, err)
 			}
 		})
@@ -463,12 +453,3 @@ func BenchmarkMemoryPressure(b *testing.B) {
 	}
 }
 
-// generateTicketID generates a ticket ID from a slug
-func generateTicketID(slug string) string {
-	return generateTimestamp() + "-" + slug
-}
-
-// generateTimestamp generates a timestamp for ticket IDs
-func generateTimestamp() string {
-	return time.Now().Format("060102-150405")
-}
