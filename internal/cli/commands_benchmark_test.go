@@ -145,6 +145,11 @@ func BenchmarkCloseTicket(b *testing.B) {
 		if err != nil {
 			b.Fatalf("Failed to start ticket %s: %v", ticketIDs[i], err)
 		}
+		
+		// Commit the changes on the feature branch (ticket moved to doing)
+		_, _ = app.Git.Exec(ctx, "add", ".")
+		_, _ = app.Git.Exec(ctx, "commit", "-m", fmt.Sprintf("Start ticket %s", ticketIDs[i]))
+		
 		// Switch back to main for next ticket
 		_, _ = app.Git.Exec(ctx, "checkout", "main")
 	}

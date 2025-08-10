@@ -208,6 +208,10 @@ func BenchmarkCloseTicketWithReason(b *testing.B) {
 				err = app.StartTicket(ctx, t.ID, false)
 				require.NoError(b, err)
 				
+				// Commit the changes on the feature branch (ticket moved to doing)
+				_, _ = app.Git.Exec(ctx, "add", ".")
+				_, _ = app.Git.Exec(ctx, "commit", "-m", fmt.Sprintf("Start ticket %s", t.ID))
+				
 				// Switch back to main for next iteration
 				_, _ = app.Git.Exec(ctx, "checkout", "main")
 				
