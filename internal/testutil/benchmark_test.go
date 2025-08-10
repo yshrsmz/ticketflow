@@ -40,10 +40,10 @@ func TestBenchmarkTimer(t *testing.T) {
 		// Let some time pass
 		time.Sleep(50 * time.Millisecond)
 		timer.Stop()
-		
+
 		// Restart the timer
 		timer.Start()
-		
+
 		// Immediately check elapsed - should be very small
 		elapsed := timer.Elapsed()
 		assert.Less(t, elapsed, 10*time.Millisecond, "Elapsed time should be reset after restart")
