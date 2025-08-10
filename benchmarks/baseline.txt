@@ -1,0 +1,64 @@
+goos: darwin
+goarch: arm64
+pkg: github.com/yshrsmz/ticketflow/internal/cli
+cpu: Apple M1 Max
+BenchmarkListTicketsLargeRepository/100-all-text-10         	     603	   5972488 ns/op	 1161607 B/op	    9554 allocs/op
+--- BENCH: BenchmarkListTicketsLargeRepository/100-all-text-10
+    commands_advanced_benchmark_test.go:88: Creating large repository: 40 todo, 20 doing, 40 done
+    commands_advanced_benchmark_test.go:88: Creating large repository: 40 todo, 20 doing, 40 done
+    commands_advanced_benchmark_test.go:88: Creating large repository: 40 todo, 20 doing, 40 done
+BenchmarkListTicketsLargeRepository/100-all-json-10         	     296	  12308075 ns/op	 2737047 B/op	   21562 allocs/op
+--- BENCH: BenchmarkListTicketsLargeRepository/100-all-json-10
+    commands_advanced_benchmark_test.go:88: Creating large repository: 40 todo, 20 doing, 40 done
+    commands_advanced_benchmark_test.go:88: Creating large repository: 40 todo, 20 doing, 40 done
+    commands_advanced_benchmark_test.go:88: Creating large repository: 40 todo, 20 doing, 40 done
+BenchmarkListTicketsLargeRepository/500-all-text-10         	     123	  28762529 ns/op	 5933756 B/op	   47574 allocs/op
+--- BENCH: BenchmarkListTicketsLargeRepository/500-all-text-10
+    commands_advanced_benchmark_test.go:88: Creating large repository: 200 todo, 100 doing, 200 done
+    commands_advanced_benchmark_test.go:88: Creating large repository: 200 todo, 100 doing, 200 done
+    commands_advanced_benchmark_test.go:88: Creating large repository: 200 todo, 100 doing, 200 done
+BenchmarkListTicketsLargeRepository/500-all-json-10         	      56	  60435584 ns/op	14300356 B/op	  107236 allocs/op
+--- BENCH: BenchmarkListTicketsLargeRepository/500-all-json-10
+    commands_advanced_benchmark_test.go:88: Creating large repository: 200 todo, 100 doing, 200 done
+    commands_advanced_benchmark_test.go:88: Creating large repository: 200 todo, 100 doing, 200 done
+BenchmarkListTicketsLargeRepository/1000-all-text-10        	      60	  58033728 ns/op	11787841 B/op	   95094 allocs/op
+--- BENCH: BenchmarkListTicketsLargeRepository/1000-all-text-10
+    commands_advanced_benchmark_test.go:88: Creating large repository: 400 todo, 200 doing, 400 done
+    commands_advanced_benchmark_test.go:111: 1000-all-text - Memory: Alloc=2.6725616455078125 MB, TotalAlloc=4098.968765258789 MB, Sys=17.95435333251953 MB, NumGC=1407
+    commands_advanced_benchmark_test.go:88: Creating large repository: 400 todo, 200 doing, 400 done
+    commands_advanced_benchmark_test.go:111: 1000-all-text - Memory: Alloc=3.413604736328125 MB, TotalAlloc=4858.450386047363 MB, Sys=17.95435333251953 MB, NumGC=1668
+BenchmarkListTicketsLargeRepository/1000-all-json-10        	      28	 121471665 ns/op	28602720 B/op	  214310 allocs/op
+--- BENCH: BenchmarkListTicketsLargeRepository/1000-all-json-10
+    commands_advanced_benchmark_test.go:88: Creating large repository: 400 todo, 200 doing, 400 done
+    commands_advanced_benchmark_test.go:111: 1000-all-json - Memory: Alloc=2.3371810913085938 MB, TotalAlloc=4970.742813110352 MB, Sys=17.95435333251953 MB, NumGC=1707
+    commands_advanced_benchmark_test.go:88: Creating large repository: 400 todo, 200 doing, 400 done
+    commands_advanced_benchmark_test.go:111: 1000-all-json - Memory: Alloc=3.194244384765625 MB, TotalAlloc=5301.212249755859 MB, Sys=17.95435333251953 MB, NumGC=1846
+    commands_advanced_benchmark_test.go:88: Creating large repository: 400 todo, 200 doing, 400 done
+    commands_advanced_benchmark_test.go:111: 1000-all-json - Memory: Alloc=2.5557937622070312 MB, TotalAlloc=6149.962074279785 MB, Sys=17.95435333251953 MB, NumGC=2233
+--- FAIL: BenchmarkListTicketsLargeRepository/1000-active-text
+    commands_advanced_benchmark_test.go:88: Creating large repository: 400 todo, 200 doing, 400 done
+    commands_advanced_benchmark_test.go:106: 
+        	Error Trace:	/Users/a12897/repos/github.com/yshrsmz/ticketflow.worktrees/250810-002848-refactor-benchmark-infrastructure/internal/cli/commands_advanced_benchmark_test.go:106
+        	            				/Users/a12897/.local/share/mise/installs/go/1.24.6/src/testing/benchmark.go:219
+        	            				/Users/a12897/.local/share/mise/installs/go/1.24.6/src/testing/benchmark.go:245
+        	            				/Users/a12897/.local/share/mise/installs/go/1.24.6/src/runtime/asm_arm64.s:1223
+        	Error:      	Received unexpected error:
+        	            	invalid status filter: active
+        	Test:       	BenchmarkListTicketsLargeRepository/1000-active-text
+BenchmarkListTicketsLargeRepository/1000-todo-text-10       	     156	  22988484 ns/op	 4663986 B/op	   38039 allocs/op
+--- BENCH: BenchmarkListTicketsLargeRepository/1000-todo-text-10
+    commands_advanced_benchmark_test.go:88: Creating large repository: 400 todo, 200 doing, 400 done
+    commands_advanced_benchmark_test.go:111: 1000-todo-text - Memory: Alloc=0.75738525390625 MB, TotalAlloc=6324.502914428711 MB, Sys=17.95435333251953 MB, NumGC=2287
+    commands_advanced_benchmark_test.go:88: Creating large repository: 400 todo, 200 doing, 400 done
+    commands_advanced_benchmark_test.go:111: 1000-todo-text - Memory: Alloc=3.0270233154296875 MB, TotalAlloc=6854.2768478393555 MB, Sys=17.95435333251953 MB, NumGC=2460
+    commands_advanced_benchmark_test.go:88: Creating large repository: 400 todo, 200 doing, 400 done
+    commands_advanced_benchmark_test.go:111: 1000-todo-text - Memory: Alloc=2.6990737915039062 MB, TotalAlloc=7633.128974914551 MB, Sys=17.95435333251953 MB, NumGC=2716
+BenchmarkListTicketsLargeRepository/1000-doing-text-10      	     315	  11466899 ns/op	 2335687 B/op	   19031 allocs/op
+--- BENCH: BenchmarkListTicketsLargeRepository/1000-doing-text-10
+    commands_advanced_benchmark_test.go:88: Creating large repository: 400 todo, 200 doing, 400 done
+    commands_advanced_benchmark_test.go:111: 1000-doing-text - Memory: Alloc=1.0927581787109375 MB, TotalAlloc=7720.3737716674805 MB, Sys=17.95435333251953 MB, NumGC=2743
+    commands_advanced_benchmark_test.go:88: Creating large repository: 400 todo, 200 doing, 400 done
+    commands_advanced_benchmark_test.go:111: 1000-doing-text - Memory: Alloc=3.228759765625 MB, TotalAlloc=8010.3040771484375 MB, Sys=17.95435333251953 MB, NumGC=2836
+    commands_advanced_benchmark_test.go:88: Creating large repository: 400 todo, 200 doing, 400 done
+    commands_advanced_benchmark_test.go:111: 1000-doing-text - Memory: Alloc=2.7471160888671875 MB, TotalAlloc=8796.963928222656 MB, Sys=17.95435333251953 MB, NumGC=3091
+BenchmarkListTicketsLargeRepository/1000-done-text-10       	
