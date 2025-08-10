@@ -301,11 +301,11 @@ func CreateLargeRepository(b *testing.B, env *BenchmarkEnvironment, totalTickets
 	} else if timeoutSeconds > 1800 {
 		timeoutSeconds = 1800 // Maximum 30 minutes
 	}
-	
+
 	// Use context with timeout for long-running operations
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeoutSeconds)*time.Second)
 	defer cancel()
-	
+
 	b.Logf("Using timeout of %v for %d tickets", time.Duration(timeoutSeconds)*time.Second, totalTickets)
 
 	// Distribute tickets across statuses

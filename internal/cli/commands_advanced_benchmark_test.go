@@ -199,7 +199,7 @@ func BenchmarkCloseTicketWithReason(b *testing.B) {
 				require.NoError(b, err)
 
 				ticketIDs[i] = t.ID
-				
+
 				// Commit the created ticket before starting it
 				_, _ = app.Git.Exec(ctx, "add", ".")
 				_, _ = app.Git.Exec(ctx, "commit", "-m", fmt.Sprintf("Add ticket %s", t.ID))
@@ -207,14 +207,14 @@ func BenchmarkCloseTicketWithReason(b *testing.B) {
 				// Start the ticket (this automatically commits the changes and leaves us on the ticket branch)
 				err = app.StartTicket(ctx, t.ID, false)
 				require.NoError(b, err)
-				
+
 				// Commit the changes on the feature branch (ticket moved to doing)
 				_, _ = app.Git.Exec(ctx, "add", ".")
 				_, _ = app.Git.Exec(ctx, "commit", "-m", fmt.Sprintf("Start ticket %s", t.ID))
-				
+
 				// Switch back to main for next iteration
 				_, _ = app.Git.Exec(ctx, "checkout", "main")
-				
+
 				// Small sleep to ensure different timestamps
 				if i < b.N-1 {
 					time.Sleep(time.Millisecond)
@@ -466,4 +466,3 @@ func BenchmarkMemoryPressure(b *testing.B) {
 		})
 	}
 }
-

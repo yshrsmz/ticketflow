@@ -139,12 +139,12 @@ func BenchmarkCloseTicket(b *testing.B) {
 	if numTickets > 100 {
 		numTickets = 100
 	}
-	
+
 	b.StopTimer()
-	
+
 	// Create and prepare tickets only once
 	ticketIDs := testutil.CreateBenchmarkTicketsWithPrefix(b, env, numTickets, "todo", fmt.Sprintf("close-bench-%d", time.Now().Unix()))
-	
+
 	// Commit the created tickets - check for errors
 	if _, err := app.Git.Exec(ctx, "add", "."); err != nil {
 		b.Fatalf("Failed to add tickets: %v", err)
@@ -159,7 +159,7 @@ func BenchmarkCloseTicket(b *testing.B) {
 		if err != nil {
 			b.Fatalf("Failed to start ticket %s: %v", ticketIDs[i], err)
 		}
-		
+
 		// Commit the changes on the feature branch (ticket moved to doing)
 		if _, err := app.Git.Exec(ctx, "add", "."); err != nil {
 			b.Fatalf("Failed to add changes for ticket %s: %v", ticketIDs[i], err)
@@ -167,13 +167,13 @@ func BenchmarkCloseTicket(b *testing.B) {
 		if _, err := app.Git.Exec(ctx, "commit", "-m", fmt.Sprintf("Start ticket %s", ticketIDs[i])); err != nil {
 			b.Fatalf("Failed to commit changes for ticket %s: %v", ticketIDs[i], err)
 		}
-		
+
 		// Switch back to main for next ticket
 		if _, err := app.Git.Exec(ctx, "checkout", "main"); err != nil {
 			b.Fatalf("Failed to checkout main: %v", err)
 		}
 	}
-	
+
 	b.StartTimer()
 	b.ResetTimer()
 	b.ReportAllocs()
@@ -181,7 +181,7 @@ func BenchmarkCloseTicket(b *testing.B) {
 	// Benchmark only the close operation
 	for i := 0; i < b.N; i++ {
 		ticketIdx := i % numTickets
-		
+
 		// Switch to ticket branch
 		_, err := app.Git.Exec(ctx, "checkout", ticketIDs[ticketIdx])
 		if err != nil {
