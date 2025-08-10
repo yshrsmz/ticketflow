@@ -153,29 +153,35 @@ if [ -f "${BASELINE_FILE}" ]; then
         if [ -n "${baseline_line}" ]; then
             baseline_time=$(echo "${baseline_line}" | awk '{print $3}')
             
-            # Calculate percentage change using awk for floating point arithmetic
-            if command -v bc >/dev/null 2>&1; then
-                # Extract numeric values (remove ns/op suffix)
-                current_val=$(echo "${current_time}" | sed 's/ns\/op//')
-                baseline_val=$(echo "${baseline_time}" | sed 's/ns\/op//')
+            # Calculate percentage change using awk for better portability
+            # Extract numeric values (remove ns/op suffix and handle scientific notation)
+            current_val=$(echo "${current_time}" | sed 's/ns\/op//')
+            baseline_val=$(echo "${baseline_time}" | sed 's/ns\/op//')
+            
+            # Use awk for floating point arithmetic (more portable than bc)
+            if [ -n "${baseline_val}" ] && [ "${baseline_val}" != "0" ]; then
+                result=$(awk -v curr="${current_val}" -v base="${baseline_val}" -v thresh="${REGRESSION_THRESHOLD}" '
+                BEGIN {
+                    if (base != 0) {
+                        change = ((curr - base) / base) * 100
+                        printf "%.2f", change
+                    } else {
+                        print "0"
+                    }
+                }')
                 
-                # Calculate percentage change: ((current - baseline) / baseline) * 100
-                if [ "${baseline_val}" != "0" ]; then
-                    change=$(echo "scale=2; ((${current_val} - ${baseline_val}) / ${baseline_val}) * 100" | bc)
-                    
-                    # Determine if it's a regression (positive change means slower)
-                    if (( $(echo "${change} > ${REGRESSION_THRESHOLD}" | bc -l) )); then
-                        echo -e "  ${bench_name}: current=${current_time} baseline=${baseline_time} ${RED}(+${change}% REGRESSION)${NC}"
-                    elif (( $(echo "${change} < -${REGRESSION_THRESHOLD}" | bc -l) )); then
-                        echo -e "  ${bench_name}: current=${current_time} baseline=${baseline_time} ${GREEN}(${change}% improvement)${NC}"
-                    else
-                        echo "  ${bench_name}: current=${current_time} baseline=${baseline_time} (${change}%)"
-                    fi
+                # Use awk for comparison as well
+                regression_check=$(awk -v change="${result}" -v thresh="${REGRESSION_THRESHOLD}" 'BEGIN { print (change > thresh) ? 1 : 0 }')
+                improvement_check=$(awk -v change="${result}" -v thresh="${REGRESSION_THRESHOLD}" 'BEGIN { print (change < -thresh) ? 1 : 0 }')
+                
+                if [ "${regression_check}" -eq 1 ]; then
+                    echo -e "  ${bench_name}: current=${current_time} baseline=${baseline_time} ${RED}(+${result}% REGRESSION)${NC}"
+                elif [ "${improvement_check}" -eq 1 ]; then
+                    echo -e "  ${bench_name}: current=${current_time} baseline=${baseline_time} ${GREEN}(${result}% improvement)${NC}"
                 else
-                    echo "  ${bench_name}: current=${current_time} baseline=${baseline_time}"
+                    echo "  ${bench_name}: current=${current_time} baseline=${baseline_time} (${result}%)"
                 fi
             else
-                # Fallback to simple comparison without bc
                 echo "  ${bench_name}: current=${current_time} baseline=${baseline_time}"
             fi
         fi

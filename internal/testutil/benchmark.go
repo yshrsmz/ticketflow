@@ -181,17 +181,19 @@ func GenerateTicketContent(size int) string {
 
 // BenchmarkTimer provides utilities for controlling benchmark timing
 type BenchmarkTimer struct {
-	b         *testing.B
-	startTime time.Time
-	stopped   bool
+	b           *testing.B
+	startTime   time.Time
+	stopped     bool
+	elapsedTime time.Duration // Store elapsed time when stopped
 }
 
 // NewBenchmarkTimer creates a new benchmark timer
 func NewBenchmarkTimer(b *testing.B) *BenchmarkTimer {
 	return &BenchmarkTimer{
-		b:         b,
-		startTime: time.Now(),
-		stopped:   false,
+		b:           b,
+		startTime:   time.Now(),
+		stopped:     false,
+		elapsedTime: 0,
 	}
 }
 
@@ -199,6 +201,7 @@ func NewBenchmarkTimer(b *testing.B) *BenchmarkTimer {
 func (bt *BenchmarkTimer) Stop() {
 	if !bt.stopped {
 		bt.b.StopTimer()
+		bt.elapsedTime = time.Since(bt.startTime) // Store elapsed time when stopping
 		bt.stopped = true
 	}
 }
@@ -209,13 +212,14 @@ func (bt *BenchmarkTimer) Start() {
 		bt.b.StartTimer()
 		bt.stopped = false
 		bt.startTime = time.Now()
+		bt.elapsedTime = 0 // Reset elapsed time when restarting
 	}
 }
 
 // Elapsed returns the elapsed time since the timer was started
 func (bt *BenchmarkTimer) Elapsed() time.Duration {
 	if bt.stopped {
-		return 0
+		return bt.elapsedTime // Return stored elapsed time when stopped
 	}
 	return time.Since(bt.startTime)
 }
@@ -320,7 +324,7 @@ func CreateLargeRepository(b *testing.B, env *BenchmarkEnvironment, totalTickets
 		// Check for context cancellation
 		select {
 		case <-ctx.Done():
-			b.Fatalf("Repository creation timed out (todo tickets): %v", ctx.Err())
+			b.Fatalf("Repository creation timed out while creating TODO tickets (created %d of %d): %v", i, todoCount, ctx.Err())
 		default:
 		}
 
@@ -334,7 +338,7 @@ func CreateLargeRepository(b *testing.B, env *BenchmarkEnvironment, totalTickets
 		// Check for context cancellation
 		select {
 		case <-ctx.Done():
-			b.Fatalf("Repository creation timed out (doing tickets): %v", ctx.Err())
+			b.Fatalf("Repository creation timed out while creating DOING tickets (created %d of %d): %v", i, doingCount, ctx.Err())
 		default:
 		}
 
@@ -353,7 +357,7 @@ func CreateLargeRepository(b *testing.B, env *BenchmarkEnvironment, totalTickets
 		// Check for context cancellation
 		select {
 		case <-ctx.Done():
-			b.Fatalf("Repository creation timed out (done tickets): %v", ctx.Err())
+			b.Fatalf("Repository creation timed out while creating DONE tickets (created %d of %d): %v", i, doneCount, ctx.Err())
 		default:
 		}
 

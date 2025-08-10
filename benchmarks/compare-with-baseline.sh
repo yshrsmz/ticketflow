@@ -5,7 +5,6 @@ set -euo pipefail
 
 # Check for required commands
 command -v go >/dev/null 2>&1 || { echo "Error: 'go' command not found. Please install Go."; exit 1; }
-command -v bc >/dev/null 2>&1 || { echo "Error: 'bc' command not found. Please install bc."; exit 1; }
 command -v awk >/dev/null 2>&1 || { echo "Error: 'awk' command not found."; exit 1; }
 
 # Colors for output (with color support detection)
@@ -49,15 +48,17 @@ extract_value() {
     echo "$line" | awk "{print \$${field}}"
 }
 
-# Function to calculate percentage change
+# Function to calculate percentage change using awk (more portable)
 calc_percentage() {
     local old=$1
     local new=$2
-    if [ "$old" == "0" ]; then
-        echo "0"
-    else
-        echo "scale=2; ((${new} - ${old}) / ${old}) * 100" | bc
-    fi
+    awk -v old="$old" -v new="$new" 'BEGIN {
+        if (old == 0) {
+            print "0"
+        } else {
+            printf "%.2f", ((new - old) / old) * 100
+        }
+    }'
 }
 
 # Compare benchmarks
@@ -87,16 +88,19 @@ grep "^Benchmark" "${CURRENT_FILE}" | while IFS= read -r current_line; do
     current_ns=${current_ns%ns/op}
     baseline_ns=${baseline_ns%ns/op}
     
-    # Calculate percentage change
-    if [[ "$current_ns" =~ ^[0-9]+\.?[0-9]*$ ]] && [[ "$baseline_ns" =~ ^[0-9]+\.?[0-9]*$ ]]; then
+    # Calculate percentage change (handle scientific notation like 1.23e+06)
+    if [[ "$current_ns" =~ ^[0-9]+\.?[0-9]*([eE][+-]?[0-9]+)?$ ]] && [[ "$baseline_ns" =~ ^[0-9]+\.?[0-9]*([eE][+-]?[0-9]+)?$ ]]; then
         change=$(calc_percentage "$baseline_ns" "$current_ns")
         
-        # Format output based on change
-        if (( $(echo "$change > ${THRESHOLD_TIME}" | bc -l) )); then
+        # Format output based on change (use awk for comparisons)
+        regression_check=$(awk -v change="$change" -v thresh="${THRESHOLD_TIME}" 'BEGIN { print (change > thresh) ? 1 : 0 }')
+        improvement_check=$(awk -v change="$change" 'BEGIN { print (change < -5) ? 1 : 0 }')
+        
+        if [ "$regression_check" -eq 1 ]; then
             echo -e "${RED}REGRESSION:${NC} ${bench_name}"
             echo "  Time: ${baseline_ns} ns/op → ${current_ns} ns/op (+${change}%)"
             regression_found=true
-        elif (( $(echo "$change < -5" | bc -l) )); then
+        elif [ "$improvement_check" -eq 1 ]; then
             echo -e "${GREEN}IMPROVED:${NC} ${bench_name}"
             echo "  Time: ${baseline_ns} ns/op → ${current_ns} ns/op (${change}%)"
             improvements_found=true
@@ -111,10 +115,13 @@ grep "^Benchmark" "${CURRENT_FILE}" | while IFS= read -r current_line; do
         if [ -n "$current_allocs" ] && [ -n "$baseline_allocs" ]; then
             alloc_change=$(calc_percentage "$baseline_allocs" "$current_allocs")
             
-            if (( $(echo "$alloc_change > ${THRESHOLD_ALLOC}" | bc -l) )); then
+            alloc_regression=$(awk -v change="$alloc_change" -v thresh="${THRESHOLD_ALLOC}" 'BEGIN { print (change > thresh) ? 1 : 0 }')
+            alloc_improvement=$(awk -v change="$alloc_change" 'BEGIN { print (change < -10) ? 1 : 0 }')
+            
+            if [ "$alloc_regression" -eq 1 ]; then
                 echo "  ${RED}Allocations: ${baseline_allocs} → ${current_allocs} (+${alloc_change}%)${NC}"
                 regression_found=true
-            elif (( $(echo "$alloc_change < -10" | bc -l) )); then
+            elif [ "$alloc_improvement" -eq 1 ]; then
                 echo "  ${GREEN}Allocations: ${baseline_allocs} → ${current_allocs} (${alloc_change}%)${NC}"
             fi
         fi
