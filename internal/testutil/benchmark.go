@@ -111,6 +111,12 @@ func SetupBenchmarkGitRepo(b *testing.B, tmpDir string) {
 // CreateBenchmarkTickets creates a specified number of tickets for benchmarking
 func CreateBenchmarkTickets(b *testing.B, env *BenchmarkEnvironment, count int, status string) []string {
 	b.Helper()
+	return CreateBenchmarkTicketsWithPrefix(b, env, count, status, "bench-ticket")
+}
+
+// CreateBenchmarkTicketsWithPrefix creates tickets with a custom prefix to avoid ID collisions
+func CreateBenchmarkTicketsWithPrefix(b *testing.B, env *BenchmarkEnvironment, count int, status string, prefix string) []string {
+	b.Helper()
 
 	// Use context with timeout for long-running operations
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -126,7 +132,8 @@ func CreateBenchmarkTickets(b *testing.B, env *BenchmarkEnvironment, count int, 
 		default:
 		}
 
-		slug := fmt.Sprintf("bench-ticket-%d", i)
+		// Use prefix and add nanosecond precision to ensure uniqueness
+		slug := fmt.Sprintf("%s-%d-%d", prefix, i, time.Now().UnixNano())
 		t, err := env.Manager.Create(ctx, slug)
 		require.NoError(b, err)
 		ticketIDs[i] = t.ID
@@ -136,6 +143,11 @@ func CreateBenchmarkTickets(b *testing.B, env *BenchmarkEnvironment, count int, 
 			oldPath := filepath.Join(env.TicketsDir, "todo", t.ID+".md")
 			newPath := filepath.Join(env.TicketsDir, status, t.ID+".md")
 			require.NoError(b, os.Rename(oldPath, newPath))
+		}
+
+		// Small sleep to ensure different timestamps for ticket IDs
+		if i < count-1 {
+			time.Sleep(time.Millisecond)
 		}
 	}
 

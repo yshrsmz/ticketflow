@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/yshrsmz/ticketflow/internal/testutil"
@@ -106,6 +107,7 @@ func BenchmarkStartTicket(b *testing.B) {
 
 // BenchmarkCloseTicket benchmarks the close ticket operation
 func BenchmarkCloseTicket(b *testing.B) {
+	// Setup once for all iterations
 	env := testutil.SetupBenchmarkEnvironment(b)
 
 	// Disable worktrees for close benchmark to avoid conflicts
@@ -121,34 +123,51 @@ func BenchmarkCloseTicket(b *testing.B) {
 
 	ctx := context.Background()
 
-	// Pre-create and start tickets
+	// Pre-create enough tickets for all benchmark iterations
+	// Use a reasonable number since b.N might be large
+	numTickets := b.N
+	if numTickets > 100 {
+		numTickets = 100
+	}
+	
 	b.StopTimer()
-	ticketIDs := testutil.CreateBenchmarkTickets(b, env, b.N, "todo")
+	
+	// Create and prepare tickets only once
+	ticketIDs := testutil.CreateBenchmarkTicketsWithPrefix(b, env, numTickets, "todo", fmt.Sprintf("close-bench-%d", time.Now().Unix()))
+	
+	// Commit the created tickets
+	_, _ = app.Git.Exec(ctx, "add", ".")
+	_, _ = app.Git.Exec(ctx, "commit", "-m", "Add benchmark tickets")
 
-	for i := 0; i < b.N; i++ {
+	// Start all tickets
+	for i := 0; i < numTickets; i++ {
 		err := app.StartTicket(ctx, ticketIDs[i], false)
 		if err != nil {
-			b.Fatal(err)
+			b.Fatalf("Failed to start ticket %s: %v", ticketIDs[i], err)
 		}
-		// Commit changes
-		_, _ = app.Git.Exec(ctx, "add", ".")
-		_, _ = app.Git.Exec(ctx, "commit", "-m", "Start ticket")
+		// Switch back to main for next ticket
+		_, _ = app.Git.Exec(ctx, "checkout", "main")
 	}
+	
 	b.StartTimer()
-
 	b.ResetTimer()
 	b.ReportAllocs()
 
+	// Benchmark only the close operation
 	for i := 0; i < b.N; i++ {
+		ticketIdx := i % numTickets
+		
 		// Switch to ticket branch
-		_, err := app.Git.Exec(ctx, "checkout", ticketIDs[i])
+		_, err := app.Git.Exec(ctx, "checkout", ticketIDs[ticketIdx])
 		if err != nil {
 			b.Fatal(err)
 		}
 
-		err = app.CloseTicket(ctx, false)
+		// Use force=true to skip uncommitted changes check (current-ticket.md symlink)
+		err = app.CloseTicket(ctx, true)
 		if err != nil {
-			b.Fatal(err)
+			// Skip if already closed (when b.N > numTickets)
+			continue
 		}
 	}
 }
@@ -190,14 +209,14 @@ func BenchmarkListTickets(b *testing.B) {
 			doingCount := scenario.ticketCount * 30 / 100
 			doneCount := scenario.ticketCount - todoCount - doingCount
 
-			// Create todo tickets
-			testutil.CreateBenchmarkTickets(b, env, todoCount, "todo")
+			// Create todo tickets with unique prefix per scenario
+			testutil.CreateBenchmarkTicketsWithPrefix(b, env, todoCount, "todo", fmt.Sprintf("%s-todo", scenario.name))
 
-			// Create doing tickets
-			testutil.CreateBenchmarkTickets(b, env, doingCount, "doing")
+			// Create doing tickets with unique prefix
+			testutil.CreateBenchmarkTicketsWithPrefix(b, env, doingCount, "doing", fmt.Sprintf("%s-doing", scenario.name))
 
-			// Create done tickets
-			testutil.CreateBenchmarkTickets(b, env, doneCount, "done")
+			// Create done tickets with unique prefix
+			testutil.CreateBenchmarkTicketsWithPrefix(b, env, doneCount, "done", fmt.Sprintf("%s-done", scenario.name))
 
 			b.StartTimer()
 

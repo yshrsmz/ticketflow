@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/yshrsmz/ticketflow/internal/testutil"
@@ -192,19 +194,28 @@ func BenchmarkCloseTicketWithReason(b *testing.B) {
 			b.StopTimer()
 			ticketIDs := make([]string, b.N)
 			for i := 0; i < b.N; i++ {
-				slug := fmt.Sprintf("bench-ticket-%d", i)
+				// Use unique slug with timestamp to avoid collisions
+				slug := fmt.Sprintf("bench-ticket-%s-%d-%d", rs.name, i, time.Now().UnixNano())
 				t, err := env.Manager.Create(ctx, slug)
 				require.NoError(b, err)
 
 				ticketIDs[i] = t.ID
+				
+				// Commit the created ticket before starting it
+				_, _ = app.Git.Exec(ctx, "add", ".")
+				_, _ = app.Git.Exec(ctx, "commit", "-m", fmt.Sprintf("Add ticket %s", t.ID))
 
-				// Start the ticket
+				// Start the ticket (this automatically commits the changes and leaves us on the ticket branch)
 				err = app.StartTicket(ctx, t.ID, false)
 				require.NoError(b, err)
-
-				// Commit changes
-				_, _ = app.Git.Exec(ctx, "add", ".")
-				_, _ = app.Git.Exec(ctx, "commit", "-m", "Start ticket")
+				
+				// Switch back to main for next iteration
+				_, _ = app.Git.Exec(ctx, "checkout", "main")
+				
+				// Small sleep to ensure different timestamps
+				if i < b.N-1 {
+					time.Sleep(time.Millisecond)
+				}
 			}
 
 			// Generate reason if needed
@@ -217,15 +228,15 @@ func BenchmarkCloseTicketWithReason(b *testing.B) {
 			b.ReportAllocs()
 
 			for i := 0; i < b.N; i++ {
-				// Switch to ticket branch
-				_, err := app.Git.Exec(ctx, "checkout", ticketIDs[i])
+				// Force checkout to avoid conflicts with current-ticket.md
+				_, err := app.Git.Exec(ctx, "checkout", "-f", ticketIDs[i])
 				require.NoError(b, err)
 
-				// Close with reason
+				// Close with reason (use force=true to skip uncommitted changes check for current-ticket.md symlink)
 				if reason != "" {
-					err = app.CloseTicketWithReason(ctx, reason, false)
+					err = app.CloseTicketWithReason(ctx, reason, true)
 				} else {
-					err = app.CloseTicket(ctx, false)
+					err = app.CloseTicket(ctx, true)
 				}
 				require.NoError(b, err)
 			}

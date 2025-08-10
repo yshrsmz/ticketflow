@@ -1,0 +1,405 @@
+Starting auto-cleanup...
+
+Cleaning orphaned worktrees...
+  Removing orphaned worktree: /worktrees/old-feature (branch: 250101-120000-old-feature)
+  Cleaned 1 orphaned worktree(s)
+
+Cleaning stale branches...
+  Removing branch for done ticket: 250101-120000-old-feature
+  Removing branch for done ticket: 250103-120000-done-ticket
+  Cleaned 2 stale branch(es)
+Auto-cleanup completed.
+Starting auto-cleanup...
+
+Cleaning orphaned worktrees...
+  Removing orphaned worktree: /worktrees/orphaned (branch: 250101-120000-orphaned)
+  Cleaned 1 orphaned worktree(s)
+
+Cleaning stale branches...
+  Removing branch for done ticket: 250102-120000-done-ticket
+  Cleaned 1 stale branch(es)
+Auto-cleanup completed.
+Starting auto-cleanup...
+
+Cleaning stale branches...
+  Removing branch for done ticket: 250101-120000-done-ticket
+  Cleaned 1 stale branch(es)
+Auto-cleanup completed.
+Starting auto-cleanup...
+
+Cleaning orphaned worktrees...
+Warning: Failed to clean worktrees: failed to list worktrees: git error
+
+Cleaning stale branches...
+Warning: Failed to clean branches: failed to list branches: branch list failed
+Auto-cleanup completed.
+
+Cleaning orphaned worktrees...
+  Removing orphaned worktree: /worktrees/orphaned (branch: 250101-120000-orphaned)
+  Cleaned 1 orphaned worktree(s)
+
+Cleaning orphaned worktrees...
+  Removing orphaned worktree: /feature (branch: 250101-120000-feature)
+  Cleaned 1 orphaned worktree(s)
+
+Cleaning orphaned worktrees...
+  Cleaned 0 orphaned worktree(s)
+
+Cleaning orphaned worktrees...
+  Removing orphaned worktree: /worktrees/old1 (branch: 250101-120000-old1)
+  Removing orphaned worktree: /worktrees/old2 (branch: 250102-120000-old2)
+  Cleaned 2 orphaned worktree(s)
+Cleanup Statistics:
+==================
+
+Done tickets: 1
+Orphaned worktrees: 1
+Stale branches (done tickets): 1
+Cleanup Statistics:
+==================
+
+Done tickets: 0
+Stale branches (done tickets): 0
+Starting auto-cleanup...
+
+Cleaning orphaned worktrees...
+Warning: Failed to clean worktrees: failed to list worktrees: permission denied
+
+Cleaning stale branches...
+Warning: Failed to clean branches: failed to list branches: git not found
+Auto-cleanup completed.
+
+🎫 Created new ticket: 250131-120000-test-feature
+   File: /path/to/ticket.md
+
+📋 Next steps:
+1. Edit the ticket file to add details:
+   $EDITOR /path/to/ticket.md
+   
+2. Commit the ticket file:
+   git add /path/to/ticket.md
+   git commit -m "Add ticket: test-feature"
+   
+3. Start working on it:
+   ticketflow start 250131-120000-test-feature
+ID       STATUS  PRI  DESCRIPTION
+---------------------------------------------------------
+ticket1  todo    1    
+ticket2  todo    2    
+{
+  "summary": {
+    "doing": 0,
+    "done": 0,
+    "todo": 1,
+    "total": 1
+  },
+  "tickets": [
+    {
+      "closed_at": null,
+      "created_at": "2021-01-01T00:00:00Z",
+      "description": "",
+      "has_worktree": false,
+      "id": "todo1",
+      "path": "",
+      "priority": 1,
+      "related": null,
+      "started_at": null,
+      "status": "todo"
+    }
+  ]
+}
+
+✅ Started work on ticket: 250131-120000-test
+   Description: 
+
+🌿 Switched to branch: 250131-120000-test
+   Status: todo → doing
+   Committed: "Start ticket: 250131-120000-test"
+
+📋 Next steps:
+1. Make your changes and commit regularly
+   
+2. Push branch to create PR:
+   git push -u origin 250131-120000-test
+   
+3. When done, close the ticket:
+   ticketflow close
+
+✅ Started work on ticket: 250131-120000-test
+   Description: Test ticket
+
+📁 Worktree created: /var/folders/0w/sff60qpj5b39qk2mt2b6rdc43l5srr/T/TestApp_StartTicket_WorktreeMode_NoMainRepoSymlink2018216156/test.worktrees/250131-120000-test
+   Status: todo → doing
+   Committed: "Start ticket: 250131-120000-test"
+
+📋 Next steps:
+1. Navigate to worktree:
+   cd /var/folders/0w/sff60qpj5b39qk2mt2b6rdc43l5srr/T/TestApp_StartTicket_WorktreeMode_NoMainRepoSymlink2018216156/test.worktrees/250131-120000-test
+   
+2. Make your changes and commit regularly
+   
+3. Push branch to create PR:
+   git push -u origin 250131-120000-test
+   
+4. When done, close the ticket:
+   ticketflow close
+
+✅ Started work on ticket: 250131-120000-test
+   Description: Test ticket
+
+🌿 Switched to branch: 250131-120000-test
+   Status: todo → doing
+   Committed: "Start ticket: 250131-120000-test"
+
+📋 Next steps:
+1. Make your changes and commit regularly
+   
+2. Push branch to create PR:
+   git push -u origin 250131-120000-test
+   
+3. When done, close the ticket:
+   ticketflow close
+Initialized ticket system successfully
+Configuration saved to: /private/var/folders/0w/sff60qpj5b39qk2mt2b6rdc43l5srr/T/TestNewApp_DefaultWorkingDirectory2618600769/001/.ticketflow.yaml
+Tickets directory: /private/var/folders/0w/sff60qpj5b39qk2mt2b6rdc43l5srr/T/TestNewApp_DefaultWorkingDirectory2618600769/001/tickets
+{
+  "status": "success"
+}
+{
+  "ticket": {
+    "id": "test-123",
+    "priority": 1,
+    "tags": [
+      "bug",
+      "urgent"
+    ]
+  }
+}
+{}
+{
+  "value": null
+}
+Non-interactive mode detected. Using default option: b
+Non-interactive mode detected. Using default: Yes
+Non-interactive mode detected. Using default: No
+
+✅ Ticket closed: 250131-120000-current-ticket
+   Description: Current ticket
+   Status: doing → done
+   Duration: 106751d 23h 47m
+   Committed: "Close ticket: 250131-120000-current-ticket"
+
+📋 Next steps:
+1. Push your branch to create/update PR:
+
+✅ Ticket closed: 250131-120000-test-ticket
+   Description: Test ticket
+   Reason: Abandoned due to priority change
+   Committed: "Close ticket: 250131-120000-test-ticket"
+   git push origin 250131-120000-current-ticket
+   
+2. Create Pull Request on your Git service
+   - Title: Current ticket
+   - Target: main
+   
+3. After PR is merged, clean up:
+   ticketflow cleanup 250131-120000-current-ticket
+
+✅ Ticket closed: 250131-120000-merged-ticket
+   Description: Merged ticket
+   Note: Branch was already merged
+   Duration: 106751d 23h 47m
+   Committed: "Close ticket: 250131-120000-merged-ticket"
+Starting auto-cleanup...
+
+Cleaning stale branches...
+  Removing branch for done ticket: ticket-1
+  Removing branch for done ticket: ticket-2
+  Cleaned 2 stale branch(es)
+Auto-cleanup completed.
+Starting auto-cleanup...
+
+Cleaning stale branches...
+  Removing branch for done ticket: ticket-1
+  Removing branch for done ticket: ticket-2
+  Cleaned 2 stale branch(es)
+Auto-cleanup completed.
+goos: darwin
+goarch: arm64
+pkg: github.com/yshrsmz/ticketflow/internal/cli
+cpu: Apple M1 Max
+BenchmarkNewTicketWithVariousSizes/small-100B-10         	       3	    451861 ns/op	   36373 B/op	     250 allocs/op
+BenchmarkNewTicketWithVariousSizes/medium-1KB-10         	       3	    535847 ns/op	   37269 B/op	     250 allocs/op
+BenchmarkNewTicketWithVariousSizes/large-10KB-10         	       3	    500055 ns/op	   47082 B/op	     251 allocs/op
+BenchmarkNewTicketWithVariousSizes/xlarge-100KB-10       	       3	    500070 ns/op	  142613 B/op	     250 allocs/op
+BenchmarkListTicketsLargeRepository/100-all-text-10      	       3	   5313028 ns/op	 1161642 B/op	    9555 allocs/op
+--- BENCH: BenchmarkListTicketsLargeRepository/100-all-text-10
+    commands_advanced_benchmark_test.go:81: Using timeout of 2m0s for 100 tickets
+    commands_advanced_benchmark_test.go:81: Creating large repository: 40 todo, 20 doing, 40 done
+    commands_advanced_benchmark_test.go:81: Using timeout of 2m0s for 100 tickets
+    commands_advanced_benchmark_test.go:81: Creating large repository: 40 todo, 20 doing, 40 done
+BenchmarkListTicketsLargeRepository/100-all-json-10      	       3	  11024583 ns/op	 2769797 B/op	   21571 allocs/op
+--- BENCH: BenchmarkListTicketsLargeRepository/100-all-json-10
+    commands_advanced_benchmark_test.go:81: Using timeout of 2m0s for 100 tickets
+    commands_advanced_benchmark_test.go:81: Creating large repository: 40 todo, 20 doing, 40 done
+    commands_advanced_benchmark_test.go:81: Using timeout of 2m0s for 100 tickets
+    commands_advanced_benchmark_test.go:81: Creating large repository: 40 todo, 20 doing, 40 done
+BenchmarkListTicketsLargeRepository/500-all-text-10      	       3	  26602570 ns/op	 5933509 B/op	   47574 allocs/op
+--- BENCH: BenchmarkListTicketsLargeRepository/500-all-text-10
+    commands_advanced_benchmark_test.go:81: Using timeout of 8m20s for 500 tickets
+    commands_advanced_benchmark_test.go:81: Creating large repository: 200 todo, 100 doing, 200 done
+    commands_advanced_benchmark_test.go:81: Using timeout of 8m20s for 500 tickets
+    commands_advanced_benchmark_test.go:81: Creating large repository: 200 todo, 100 doing, 200 done
+BenchmarkListTicketsLargeRepository/500-all-json-10      	       3	  57161486 ns/op	14301472 B/op	  107233 allocs/op
+--- BENCH: BenchmarkListTicketsLargeRepository/500-all-json-10
+    commands_advanced_benchmark_test.go:81: Using timeout of 8m20s for 500 tickets
+    commands_advanced_benchmark_test.go:81: Creating large repository: 200 todo, 100 doing, 200 done
+    commands_advanced_benchmark_test.go:81: Using timeout of 8m20s for 500 tickets
+    commands_advanced_benchmark_test.go:81: Creating large repository: 200 todo, 100 doing, 200 done
+BenchmarkListTicketsLargeRepository/1000-all-text-10     	       3	  56944833 ns/op	11788530 B/op	   95097 allocs/op
+--- BENCH: BenchmarkListTicketsLargeRepository/1000-all-text-10
+    commands_advanced_benchmark_test.go:81: Using timeout of 16m40s for 1000 tickets
+    commands_advanced_benchmark_test.go:81: Creating large repository: 400 todo, 200 doing, 400 done
+    commands_advanced_benchmark_test.go:104: 1000-all-text - Memory: Alloc=1.3830642700195312 MB, TotalAlloc=304.9280319213867 MB, Sys=14.391853332519531 MB, NumGC=112
+    commands_advanced_benchmark_test.go:81: Using timeout of 16m40s for 1000 tickets
+    commands_advanced_benchmark_test.go:81: Creating large repository: 400 todo, 200 doing, 400 done
+    commands_advanced_benchmark_test.go:104: 1000-all-text - Memory: Alloc=1.2209854125976562 MB, TotalAlloc=423.6186218261719 MB, Sys=14.391853332519531 MB, NumGC=150
+BenchmarkListTicketsLargeRepository/1000-all-json-10     	       3	 119136653 ns/op	28604589 B/op	  214322 allocs/op
+--- BENCH: BenchmarkListTicketsLargeRepository/1000-all-json-10
+    commands_advanced_benchmark_test.go:81: Using timeout of 16m40s for 1000 tickets
+    commands_advanced_benchmark_test.go:81: Creating large repository: 400 todo, 200 doing, 400 done
+    commands_advanced_benchmark_test.go:104: 1000-all-json - Memory: Alloc=3.1368484497070312 MB, TotalAlloc=535.8952026367188 MB, Sys=18.39185333251953 MB, NumGC=188
+    commands_advanced_benchmark_test.go:81: Using timeout of 16m40s for 1000 tickets
+    commands_advanced_benchmark_test.go:81: Creating large repository: 400 todo, 200 doing, 400 done
+    commands_advanced_benchmark_test.go:104: 1000-all-json - Memory: Alloc=2.3505706787109375 MB, TotalAlloc=702.6961135864258 MB, Sys=18.39185333251953 MB, NumGC=254
+BenchmarkListTicketsLargeRepository/1000-todo-text-10    	       3	  23994972 ns/op	 4664525 B/op	   38043 allocs/op
+--- BENCH: BenchmarkListTicketsLargeRepository/1000-todo-text-10
+    commands_advanced_benchmark_test.go:81: Using timeout of 16m40s for 1000 tickets
+    commands_advanced_benchmark_test.go:81: Creating large repository: 400 todo, 200 doing, 400 done
+    commands_advanced_benchmark_test.go:104: 1000-todo-text - Memory: Alloc=1.4886703491210938 MB, TotalAlloc=792.1565856933594 MB, Sys=18.39185333251953 MB, NumGC=282
+    commands_advanced_benchmark_test.go:81: Using timeout of 16m40s for 1000 tickets
+    commands_advanced_benchmark_test.go:81: Creating large repository: 400 todo, 200 doing, 400 done
+    commands_advanced_benchmark_test.go:104: 1000-todo-text - Memory: Alloc=2.6910629272460938 MB, TotalAlloc=890.4710159301758 MB, Sys=18.39185333251953 MB, NumGC=312
+BenchmarkListTicketsLargeRepository/1000-doing-text-10   	       3	  11598403 ns/op	 2336274 B/op	   19035 allocs/op
+--- BENCH: BenchmarkListTicketsLargeRepository/1000-doing-text-10
+    commands_advanced_benchmark_test.go:81: Using timeout of 16m40s for 1000 tickets
+    commands_advanced_benchmark_test.go:81: Creating large repository: 400 todo, 200 doing, 400 done
+    commands_advanced_benchmark_test.go:104: 1000-doing-text - Memory: Alloc=1.4303512573242188 MB, TotalAlloc=977.732421875 MB, Sys=18.39185333251953 MB, NumGC=339
+    commands_advanced_benchmark_test.go:81: Using timeout of 16m40s for 1000 tickets
+    commands_advanced_benchmark_test.go:81: Creating large repository: 400 todo, 200 doing, 400 done
+    commands_advanced_benchmark_test.go:104: 1000-doing-text - Memory: Alloc=2.3935775756835938 MB, TotalAlloc=1069.4065322875977 MB, Sys=18.39185333251953 MB, NumGC=367
+BenchmarkListTicketsLargeRepository/1000-done-text-10    	       3	  58866972 ns/op	 4665290 B/op	   38048 allocs/op
+--- BENCH: BenchmarkListTicketsLargeRepository/1000-done-text-10
+    commands_advanced_benchmark_test.go:81: Using timeout of 16m40s for 1000 tickets
+    commands_advanced_benchmark_test.go:81: Creating large repository: 400 todo, 200 doing, 400 done
+    commands_advanced_benchmark_test.go:104: 1000-done-text - Memory: Alloc=0.7584686279296875 MB, TotalAlloc=1158.867286682129 MB, Sys=18.39185333251953 MB, NumGC=395
+    commands_advanced_benchmark_test.go:81: Using timeout of 16m40s for 1000 tickets
+    commands_advanced_benchmark_test.go:81: Creating large repository: 400 todo, 200 doing, 400 done
+    commands_advanced_benchmark_test.go:104: 1000-done-text - Memory: Alloc=1.4577484130859375 MB, TotalAlloc=1257.1831130981445 MB, Sys=18.39185333251953 MB, NumGC=426
+BenchmarkListTicketsConcurrent/concurrency-1-10          	       3	   7037069 ns/op	  620754 B/op	    5102 allocs/op
+--- BENCH: BenchmarkListTicketsConcurrent/concurrency-1-10
+    commands_advanced_benchmark_test.go:130: Using timeout of 2m0s for 100 tickets
+    commands_advanced_benchmark_test.go:130: Creating large repository: 40 todo, 20 doing, 40 done
+    commands_advanced_benchmark_test.go:130: Using timeout of 2m0s for 100 tickets
+    commands_advanced_benchmark_test.go:130: Creating large repository: 40 todo, 20 doing, 40 done
+BenchmarkListTicketsConcurrent/concurrency-2-10          	       3	   3225722 ns/op	  621336 B/op	    5108 allocs/op
+--- BENCH: BenchmarkListTicketsConcurrent/concurrency-2-10
+    commands_advanced_benchmark_test.go:130: Using timeout of 2m0s for 100 tickets
+    commands_advanced_benchmark_test.go:130: Creating large repository: 40 todo, 20 doing, 40 done
+    commands_advanced_benchmark_test.go:130: Using timeout of 2m0s for 100 tickets
+    commands_advanced_benchmark_test.go:130: Creating large repository: 40 todo, 20 doing, 40 done
+BenchmarkListTicketsConcurrent/concurrency-4-10          	       3	   2618347 ns/op	  621485 B/op	    5111 allocs/op
+--- BENCH: BenchmarkListTicketsConcurrent/concurrency-4-10
+    commands_advanced_benchmark_test.go:130: Using timeout of 2m0s for 100 tickets
+    commands_advanced_benchmark_test.go:130: Creating large repository: 40 todo, 20 doing, 40 done
+    commands_advanced_benchmark_test.go:130: Using timeout of 2m0s for 100 tickets
+    commands_advanced_benchmark_test.go:130: Creating large repository: 40 todo, 20 doing, 40 done
+BenchmarkListTicketsConcurrent/concurrency-8-10          	       3	   2514389 ns/op	  621341 B/op	    5109 allocs/op
+--- BENCH: BenchmarkListTicketsConcurrent/concurrency-8-10
+    commands_advanced_benchmark_test.go:130: Using timeout of 2m0s for 100 tickets
+    commands_advanced_benchmark_test.go:130: Creating large repository: 40 todo, 20 doing, 40 done
+    commands_advanced_benchmark_test.go:130: Using timeout of 2m0s for 100 tickets
+    commands_advanced_benchmark_test.go:130: Creating large repository: 40 todo, 20 doing, 40 done
+--- FAIL: BenchmarkCloseTicketWithReason/no-reason
+    commands_advanced_benchmark_test.go:244: 
+        	Error Trace:	/Users/a12897/repos/github.com/yshrsmz/ticketflow.worktrees/250810-002848-refactor-benchmark-infrastructure/internal/cli/commands_advanced_benchmark_test.go:244
+        	            				/Users/a12897/.local/share/mise/installs/go/1.24.6/src/testing/benchmark.go:219
+        	            				/Users/a12897/.local/share/mise/installs/go/1.24.6/src/testing/benchmark.go:245
+        	            				/Users/a12897/.local/share/mise/installs/go/1.24.6/src/runtime/asm_arm64.s:1223
+        	Error:      	Received unexpected error:
+        	            	No active ticket
+        	Test:       	BenchmarkCloseTicketWithReason/no-reason
+--- FAIL: BenchmarkCloseTicketWithReason/short-reason
+    commands_advanced_benchmark_test.go:244: 
+        	Error Trace:	/Users/a12897/repos/github.com/yshrsmz/ticketflow.worktrees/250810-002848-refactor-benchmark-infrastructure/internal/cli/commands_advanced_benchmark_test.go:244
+        	            				/Users/a12897/.local/share/mise/installs/go/1.24.6/src/testing/benchmark.go:219
+        	            				/Users/a12897/.local/share/mise/installs/go/1.24.6/src/testing/benchmark.go:245
+        	            				/Users/a12897/.local/share/mise/installs/go/1.24.6/src/runtime/asm_arm64.s:1223
+        	Error:      	Received unexpected error:
+        	            	No active ticket
+        	Test:       	BenchmarkCloseTicketWithReason/short-reason
+--- FAIL: BenchmarkCloseTicketWithReason/medium-reason
+    commands_advanced_benchmark_test.go:244: 
+        	Error Trace:	/Users/a12897/repos/github.com/yshrsmz/ticketflow.worktrees/250810-002848-refactor-benchmark-infrastructure/internal/cli/commands_advanced_benchmark_test.go:244
+        	            				/Users/a12897/.local/share/mise/installs/go/1.24.6/src/testing/benchmark.go:219
+        	            				/Users/a12897/.local/share/mise/installs/go/1.24.6/src/testing/benchmark.go:245
+        	            				/Users/a12897/.local/share/mise/installs/go/1.24.6/src/runtime/asm_arm64.s:1223
+        	Error:      	Received unexpected error:
+        	            	No active ticket
+        	Test:       	BenchmarkCloseTicketWithReason/medium-reason
+--- FAIL: BenchmarkCloseTicketWithReason/long-reason
+    commands_advanced_benchmark_test.go:244: 
+        	Error Trace:	/Users/a12897/repos/github.com/yshrsmz/ticketflow.worktrees/250810-002848-refactor-benchmark-infrastructure/internal/cli/commands_advanced_benchmark_test.go:244
+        	            				/Users/a12897/.local/share/mise/installs/go/1.24.6/src/testing/benchmark.go:219
+        	            				/Users/a12897/.local/share/mise/installs/go/1.24.6/src/testing/benchmark.go:245
+        	            				/Users/a12897/.local/share/mise/installs/go/1.24.6/src/runtime/asm_arm64.s:1223
+        	Error:      	Received unexpected error:
+        	            	No active ticket
+        	Test:       	BenchmarkCloseTicketWithReason/long-reason
+--- FAIL: BenchmarkCloseTicketWithReason
+BenchmarkWorktreeOperations/create-worktree-10           	       3	 135034597 ns/op	  195642 B/op	     998 allocs/op
+BenchmarkWorktreeOperations/sync-worktree-10             	       3	   7782792 ns/op	   18792 B/op	      91 allocs/op
+BenchmarkSearchAndFilter/100-tickets-10pct-match-10      	       3	  11411736 ns/op	 2348557 B/op	   19146 allocs/op
+BenchmarkSearchAndFilter/500-tickets-10pct-match-10      	       3	  57736861 ns/op	11865533 B/op	   95573 allocs/op
+BenchmarkSearchAndFilter/1000-tickets-10pct-match-10     	       3	 118839139 ns/op	23647018 B/op	  191109 allocs/op
+BenchmarkSearchAndFilter/1000-tickets-1pct-match-10      	       3	 116375514 ns/op	23602149 B/op	  191100 allocs/op
+BenchmarkMemoryPressure/low-pressure-10                  	       3	   3454445 ns/op	 1337117 B/op	    9452 allocs/op
+--- BENCH: BenchmarkMemoryPressure/low-pressure-10
+    commands_advanced_benchmark_test.go:431: before - Memory: Alloc=1.3810501098632812 MB, TotalAlloc=2012.015739440918 MB, Sys=18.89185333251953 MB, NumGC=693
+    commands_advanced_benchmark_test.go:465: after - Memory: Alloc=2.6575698852539062 MB, TotalAlloc=2013.2922592163086 MB, Sys=18.89185333251953 MB, NumGC=693
+    commands_advanced_benchmark_test.go:431: before - Memory: Alloc=1.4828948974609375 MB, TotalAlloc=2017.6189346313477 MB, Sys=18.89185333251953 MB, NumGC=695
+    commands_advanced_benchmark_test.go:465: after - Memory: Alloc=2.5914230346679688 MB, TotalAlloc=2021.4441833496094 MB, Sys=18.89185333251953 MB, NumGC=696
+BenchmarkMemoryPressure/medium-pressure-10               	       3	  45844319 ns/op	16467962 B/op	   46290 allocs/op
+--- BENCH: BenchmarkMemoryPressure/medium-pressure-10
+    commands_advanced_benchmark_test.go:431: before - Memory: Alloc=0.882568359375 MB, TotalAlloc=2060.643280029297 MB, Sys=18.89185333251953 MB, NumGC=709
+    commands_advanced_benchmark_test.go:465: after - Memory: Alloc=7.178291320800781 MB, TotalAlloc=2076.3529891967773 MB, Sys=18.89185333251953 MB, NumGC=714
+    commands_advanced_benchmark_test.go:431: before - Memory: Alloc=1.0217208862304688 MB, TotalAlloc=2115.5489807128906 MB, Sys=18.89185333251953 MB, NumGC=727
+    commands_advanced_benchmark_test.go:465: after - Memory: Alloc=22.850318908691406 MB, TotalAlloc=2162.665084838867 MB, Sys=35.14185333251953 MB, NumGC=737
+BenchmarkMemoryPressure/high-pressure-10                 	       3	  44925042 ns/op	224395274 B/op	   92318 allocs/op
+--- BENCH: BenchmarkMemoryPressure/high-pressure-10
+    commands_advanced_benchmark_test.go:431: before - Memory: Alloc=3.6821060180664062 MB, TotalAlloc=2365.0496978759766 MB, Sys=35.14185333251953 MB, NumGC=802
+    commands_advanced_benchmark_test.go:465: after - Memory: Alloc=113.15457916259766 MB, TotalAlloc=2579.0622329711914 MB, Sys=135.2072982788086 MB, NumGC=814
+    commands_advanced_benchmark_test.go:431: before - Memory: Alloc=2.7922515869140625 MB, TotalAlloc=2781.452835083008 MB, Sys=135.2072982788086 MB, NumGC=879
+    commands_advanced_benchmark_test.go:465: after - Memory: Alloc=413.9082260131836 MB, TotalAlloc=3423.4534454345703 MB, Sys=424.3470230102539 MB, NumGC=893
+BenchmarkCreateTicket-10                                 	       3	   7613042 ns/op	   36178 B/op	     211 allocs/op
+BenchmarkStartTicket/with-worktree-10                    	       3	 260994681 ns/op	  230989 B/op	    1134 allocs/op
+BenchmarkStartTicket/without-worktree-10                 	       3	 190312555 ns/op	  211056 B/op	    1030 allocs/op
+BenchmarkCloseTicket-10                                  	--- FAIL: BenchmarkCloseTicket-10
+    commands_benchmark_test.go:146: Failed to start ticket 250810-130900-close-bench-1754798940-1-1754798940285324000: Uncommitted changes detected
+BenchmarkListTickets/10-tickets-all-text-10              	       3	    747514 ns/op	  128605 B/op	     990 allocs/op
+BenchmarkListTickets/10-tickets-all-json-10              	       3	   2114333 ns/op	  296941 B/op	    2257 allocs/op
+BenchmarkListTickets/100-tickets-all-text-10             	       3	   6929236 ns/op	 1174602 B/op	    9555 allocs/op
+BenchmarkListTickets/100-tickets-all-json-10             	       3	  12930583 ns/op	 2795573 B/op	   21566 allocs/op
+BenchmarkListTickets/100-tickets-todo-10                 	       3	   2992931 ns/op	  466426 B/op	    3826 allocs/op
+BenchmarkListTickets/100-tickets-doing-10                	       3	   1767389 ns/op	  353616 B/op	    2874 allocs/op
+BenchmarkListTickets/100-tickets-done-10                 	       3	   1965889 ns/op	  352170 B/op	    2874 allocs/op
+BenchmarkSearchTickets/10-tickets-10                     	       3	    715500 ns/op	  126605 B/op	     986 allocs/op
+BenchmarkSearchTickets/50-tickets-10                     	       3	   2799625 ns/op	  575173 B/op	    4789 allocs/op
+BenchmarkSearchTickets/100-tickets-10                    	       3	   5723958 ns/op	 1154144 B/op	    9543 allocs/op
+BenchmarkFormatDuration-10                               	       3	      4167 ns/op	     594 B/op	      11 allocs/op
+BenchmarkTicketToJSON-10                                 	       3	      2292 ns/op	     776 B/op	      10 allocs/op
+BenchmarkParseOutputFormat-10                            	       3	      1500 ns/op	      16 B/op	       2 allocs/op
+FAIL
+exit status 1
+FAIL	github.com/yshrsmz/ticketflow/internal/cli	33.973s
+FAIL
