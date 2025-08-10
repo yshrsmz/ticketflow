@@ -1,8 +1,0 @@
-goos: darwin
-goarch: arm64
-pkg: github.com/yshrsmz/ticketflow/internal/cli
-cpu: Apple M1 Max
-BenchmarkNewTicketWithVariousSizes/small-100B-10         	    9810	   3697362 ns/op	  885233 B/op	   10073 allocs/op
-BenchmarkNewTicketWithVariousSizes/medium-1KB-10         	    8658	   3281605 ns/op	  773937 B/op	    8921 allocs/op
-BenchmarkNewTicketWithVariousSizes/large-10KB-10         	    8889	   3286560 ns/op	  806390 B/op	    9152 allocs/op
-BenchmarkNewTicketWithVariousSizes/xlarge-100KB-10       	
