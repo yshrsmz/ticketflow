@@ -71,7 +71,7 @@ func BenchmarkStartTicket(b *testing.B) {
 			// Pre-create tickets for benchmarking
 			b.StopTimer()
 			ticketIDs := testutil.CreateBenchmarkTickets(b, env, b.N, "todo")
-			
+
 			// Commit the created tickets to avoid uncommitted changes
 			_, _ = app.Git.Exec(ctx, "add", ".")
 			_, _ = app.Git.Exec(ctx, "commit", "-m", "Add benchmark tickets")
@@ -124,7 +124,7 @@ func BenchmarkCloseTicket(b *testing.B) {
 	// Pre-create and start tickets
 	b.StopTimer()
 	ticketIDs := testutil.CreateBenchmarkTickets(b, env, b.N, "todo")
-	
+
 	for i := 0; i < b.N; i++ {
 		err := app.StartTicket(ctx, ticketIDs[i], false)
 		if err != nil {
@@ -243,7 +243,7 @@ func BenchmarkSearchTickets(b *testing.B) {
 			// Pre-create tickets with searchable content
 			b.StopTimer()
 			ticketIDs := testutil.CreateBenchmarkTickets(b, env, scenario.ticketCount, "todo")
-			
+
 			// Add content to tickets
 			for _, id := range ticketIDs {
 				content := fmt.Sprintf("This is a benchmark ticket with search term: %s", scenario.searchTerm)
