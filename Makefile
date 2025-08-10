@@ -99,7 +99,7 @@ bench-comprehensive:
 bench-baseline:
 	@echo "Creating benchmark baseline..."
 	@mkdir -p benchmarks
-	$(GOTEST) -bench=. -benchmem -benchtime=10s -count=3 -run=^$$ ./internal/cli ./internal/ticket ./internal/git > benchmarks/baseline.txt 2>&1
+	$(GOTEST) -bench=. -benchmem -benchtime=10s -count=3 -run=^$$ ./... > benchmarks/baseline.txt 2>&1
 	@echo "Baseline created: benchmarks/baseline.txt"
 
 # Compare current performance with baseline

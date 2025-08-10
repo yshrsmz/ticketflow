@@ -145,14 +145,37 @@ if [ -f "${BASELINE_FILE}" ]; then
         bench_name=$(echo "$line" | awk '{print $1}')
         current_time=$(echo "$line" | awk '{print $3}')
         
-        # Find same benchmark in baseline
-        baseline_line=$(grep "^${bench_name}" "${BASELINE_FILE}" 2>/dev/null || true)
+        # Find same benchmark in baseline using awk for safer matching
+        baseline_line=$(awk -v bench="${bench_name}" '$1 == bench' "${BASELINE_FILE}" 2>/dev/null || true)
         
         if [ -n "${baseline_line}" ]; then
             baseline_time=$(echo "${baseline_line}" | awk '{print $3}')
             
-            # Simple comparison (could be improved with proper percentage calculation)
-            echo "  ${bench_name}: current=${current_time} baseline=${baseline_time}"
+            # Calculate percentage change using awk for floating point arithmetic
+            if command -v bc >/dev/null 2>&1; then
+                # Extract numeric values (remove ns/op suffix)
+                current_val=$(echo "${current_time}" | sed 's/ns\/op//')
+                baseline_val=$(echo "${baseline_time}" | sed 's/ns\/op//')
+                
+                # Calculate percentage change: ((current - baseline) / baseline) * 100
+                if [ "${baseline_val}" != "0" ]; then
+                    change=$(echo "scale=2; ((${current_val} - ${baseline_val}) / ${baseline_val}) * 100" | bc)
+                    
+                    # Determine if it's a regression (positive change means slower)
+                    if (( $(echo "${change} > 10" | bc -l) )); then
+                        echo -e "  ${bench_name}: current=${current_time} baseline=${baseline_time} ${RED}(+${change}% REGRESSION)${NC}"
+                    elif (( $(echo "${change} < -10" | bc -l) )); then
+                        echo -e "  ${bench_name}: current=${current_time} baseline=${baseline_time} ${GREEN}(${change}% improvement)${NC}"
+                    else
+                        echo "  ${bench_name}: current=${current_time} baseline=${baseline_time} (${change}%)"
+                    fi
+                else
+                    echo "  ${bench_name}: current=${current_time} baseline=${baseline_time}"
+                fi
+            else
+                # Fallback to simple comparison without bc
+                echo "  ${bench_name}: current=${current_time} baseline=${baseline_time}"
+            fi
         fi
     done
 else

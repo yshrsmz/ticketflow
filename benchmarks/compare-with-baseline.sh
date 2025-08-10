@@ -25,6 +25,7 @@ BASELINE_FILE="benchmarks/baseline.txt"
 CURRENT_FILE="benchmarks/current.txt"
 THRESHOLD_TIME=10  # 10% regression threshold for time
 THRESHOLD_ALLOC=20 # 20% regression threshold for allocations
+BENCH_TIME="${BENCH_TIME:-3s}" # Benchmark duration (default: 3s)
 
 # Check if baseline exists
 if [ ! -f "${BASELINE_FILE}" ]; then
@@ -37,8 +38,8 @@ echo -e "${GREEN}Comparing current performance with baseline...${NC}"
 echo
 
 # Run current benchmarks
-echo -e "${YELLOW}Running current benchmarks...${NC}"
-go test -bench=. -benchmem -benchtime=3s -run=^$ ./internal/cli ./internal/ticket ./internal/git > "${CURRENT_FILE}" 2>&1
+echo -e "${YELLOW}Running current benchmarks (benchtime=${BENCH_TIME})...${NC}"
+go test -bench=. -benchmem -benchtime="${BENCH_TIME}" -run=^$ ./internal/cli ./internal/ticket ./internal/git > "${CURRENT_FILE}" 2>&1
 
 # Function to extract benchmark value
 extract_value() {
