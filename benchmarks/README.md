@@ -97,6 +97,21 @@ This script:
 - **BenchmarkAddWorktree**: Worktree creation
 - **BenchmarkCommit**: Commit operations
 
+## CI Integration
+
+Pull requests automatically trigger a dedicated "Benchmark Check" job that:
+- Runs as a separate GitHub Actions job for better visibility
+- Uses `BENCH_TIME=100ms` for fast feedback (~30 seconds)
+- Runs only on core packages (cli, ticket, git) for speed
+- Shows warnings for potential regressions but doesn't block merging
+- Uploads benchmark results as artifacts for detailed review
+- Runs in parallel with other CI checks, not blocking critical tests
+
+For comprehensive benchmarking, run locally before merging significant changes:
+```bash
+make bench-compare  # Full comparison with baseline
+```
+
 ## Performance Baselines
 
 Current performance baselines (as of latest run):

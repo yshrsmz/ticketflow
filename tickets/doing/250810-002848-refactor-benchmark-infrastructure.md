@@ -138,9 +138,34 @@ From initial benchmarks on Apple M1 Max:
 - `Makefile` - Added comprehensive benchmark targets
 - `.gitignore` - Added benchmark artifacts to ignore list
 
+### CI Integration Status
+
+**Implemented**: Added dedicated benchmark job for PRs
+- Runs as a separate job for better visibility
+- Doesn't block critical checks (test, lint, format)
+- Uses `BENCH_TIME=100ms` for fast feedback (~30s)
+- Non-blocking (continue-on-error) to avoid disrupting development
+- Only runs on core packages (cli, ticket, git) for speed
+- Uploads benchmark results as artifacts for review
+- Shows clear status messages and warnings
+
+**Benefits of Separate Job**:
+- Critical checks complete quickly and show status immediately
+- Benchmark results are clearly visible in PR checks
+- Can be rerun independently if needed
+- Better parallelization with other CI jobs
+
+**Deferred for Future**:
+- Comprehensive benchmark runs (would take 25-30 minutes)
+- Benchmark result storage and historical tracking
+- Automated performance trend analysis
+- Scheduled nightly/weekly full benchmark runs
+
+**Rationale**: Quick checks provide value without slowing CI. Full benchmarking better suited for scheduled runs or release process.
+
 ### PR Status
 
 **PR #49**: https://github.com/yshrsmz/ticketflow/pull/49
-- All CI checks passing ✅
+- CI integration added (quick benchmark checks on PRs) ✅
 - All review comments addressed ✅
 - Ready for final review and approval
