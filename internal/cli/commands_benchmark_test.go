@@ -74,8 +74,12 @@ func BenchmarkStartTicket(b *testing.B) {
 			ticketIDs := testutil.CreateBenchmarkTickets(b, env, b.N, "todo")
 
 			// Commit the created tickets to avoid uncommitted changes
-			_, _ = app.Git.Exec(ctx, "add", ".")
-			_, _ = app.Git.Exec(ctx, "commit", "-m", "Add benchmark tickets")
+			if _, err := app.Git.Exec(ctx, "add", "."); err != nil {
+				b.Fatalf("Failed to add tickets: %v", err)
+			}
+			if _, err := app.Git.Exec(ctx, "commit", "-m", "Add benchmark tickets"); err != nil {
+				b.Fatalf("Failed to commit tickets: %v", err)
+			}
 			b.StartTimer()
 
 			b.ReportAllocs()
@@ -88,12 +92,18 @@ func BenchmarkStartTicket(b *testing.B) {
 
 				// For non-worktree mode, commit the changes to avoid uncommitted changes error
 				if !scenario.worktreeEnabled {
-					_, _ = app.Git.Exec(ctx, "add", ".")
-					_, _ = app.Git.Exec(ctx, "commit", "-m", "Benchmark commit")
+					if _, err := app.Git.Exec(ctx, "add", "."); err != nil {
+						b.Logf("Warning: Failed to add changes: %v", err)
+					}
+					if _, err := app.Git.Exec(ctx, "commit", "-m", "Benchmark commit"); err != nil {
+						b.Logf("Warning: Failed to commit changes: %v", err)
+					}
 				}
 
 				// Clean up by switching back to main branch
-				_, _ = app.Git.Exec(ctx, "checkout", "main")
+				if _, err := app.Git.Exec(ctx, "checkout", "main"); err != nil {
+					b.Logf("Warning: Failed to checkout main: %v", err)
+				}
 
 				// Remove worktree if created
 				if scenario.worktreeEnabled {
@@ -135,9 +145,13 @@ func BenchmarkCloseTicket(b *testing.B) {
 	// Create and prepare tickets only once
 	ticketIDs := testutil.CreateBenchmarkTicketsWithPrefix(b, env, numTickets, "todo", fmt.Sprintf("close-bench-%d", time.Now().Unix()))
 	
-	// Commit the created tickets
-	_, _ = app.Git.Exec(ctx, "add", ".")
-	_, _ = app.Git.Exec(ctx, "commit", "-m", "Add benchmark tickets")
+	// Commit the created tickets - check for errors
+	if _, err := app.Git.Exec(ctx, "add", "."); err != nil {
+		b.Fatalf("Failed to add tickets: %v", err)
+	}
+	if _, err := app.Git.Exec(ctx, "commit", "-m", "Add benchmark tickets"); err != nil {
+		b.Fatalf("Failed to commit tickets: %v", err)
+	}
 
 	// Start all tickets
 	for i := 0; i < numTickets; i++ {
@@ -147,11 +161,17 @@ func BenchmarkCloseTicket(b *testing.B) {
 		}
 		
 		// Commit the changes on the feature branch (ticket moved to doing)
-		_, _ = app.Git.Exec(ctx, "add", ".")
-		_, _ = app.Git.Exec(ctx, "commit", "-m", fmt.Sprintf("Start ticket %s", ticketIDs[i]))
+		if _, err := app.Git.Exec(ctx, "add", "."); err != nil {
+			b.Fatalf("Failed to add changes for ticket %s: %v", ticketIDs[i], err)
+		}
+		if _, err := app.Git.Exec(ctx, "commit", "-m", fmt.Sprintf("Start ticket %s", ticketIDs[i])); err != nil {
+			b.Fatalf("Failed to commit changes for ticket %s: %v", ticketIDs[i], err)
+		}
 		
 		// Switch back to main for next ticket
-		_, _ = app.Git.Exec(ctx, "checkout", "main")
+		if _, err := app.Git.Exec(ctx, "checkout", "main"); err != nil {
+			b.Fatalf("Failed to checkout main: %v", err)
+		}
 	}
 	
 	b.StartTimer()
