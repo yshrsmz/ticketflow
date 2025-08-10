@@ -23,6 +23,11 @@ LDFLAGS=-ldflags "-X main.Version=$(VERSION) -X 'main.BuildTime=$(BUILD_TIME)' -
 CURRENT_OS := $(shell go env GOOS)
 CURRENT_ARCH := $(shell go env GOARCH)
 
+# Benchmark variables
+BENCH_TIME ?= 3s
+BENCH_COUNT ?= 3
+BENCH_TIMEOUT ?= 30m
+
 .PHONY: all build test clean install run run-tui build-current build-linux build-mac build-all release-archives init-worktree
 
 # Default target
@@ -97,9 +102,9 @@ bench-comprehensive:
 
 # Create or update baseline benchmarks
 bench-baseline:
-	@echo "Creating benchmark baseline..."
+	@echo "Creating benchmark baseline (benchtime=$(BENCH_TIME), count=$(BENCH_COUNT), timeout=$(BENCH_TIMEOUT))..."
 	@mkdir -p benchmarks
-	$(GOTEST) -bench=. -benchmem -benchtime=4s -count=3 -timeout=30m -run=^$$ ./... > benchmarks/baseline.txt 2>&1
+	$(GOTEST) -bench=. -benchmem -benchtime=$(BENCH_TIME) -count=$(BENCH_COUNT) -timeout=$(BENCH_TIMEOUT) -run=^$$ ./... > benchmarks/baseline.txt 2>&1
 	@echo "Baseline created: benchmarks/baseline.txt"
 
 # Compare current performance with baseline
@@ -256,6 +261,7 @@ help:
 	@echo "  make bench-quick   - Run quick benchmarks for rapid feedback"
 	@echo "  make bench-comprehensive - Run comprehensive benchmark suite"
 	@echo "  make bench-baseline - Create or update baseline benchmarks"
+	@echo "                       (BENCH_TIME=3s BENCH_COUNT=3 BENCH_TIMEOUT=30m)"
 	@echo "  make bench-compare - Compare current performance with baseline"
 	@echo "  make bench-cpu     - Run benchmarks with CPU profiling"
 	@echo "  make bench-mem     - Run benchmarks with memory profiling"
