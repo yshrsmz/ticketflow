@@ -1,13 +1,25 @@
 #!/bin/bash
 
 # compare-with-baseline.sh - Compare current performance with baseline
-set -e
+set -euo pipefail
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
+# Check for required commands
+command -v go >/dev/null 2>&1 || { echo "Error: 'go' command not found. Please install Go."; exit 1; }
+command -v bc >/dev/null 2>&1 || { echo "Error: 'bc' command not found. Please install bc."; exit 1; }
+command -v awk >/dev/null 2>&1 || { echo "Error: 'awk' command not found."; exit 1; }
+
+# Colors for output (with color support detection)
+if [ -t 1 ] && [ "${TERM:-}" != "dumb" ] && command -v tput >/dev/null 2>&1 && [ "$(tput colors 2>/dev/null || echo 0)" -ge 8 ]; then
+    RED='\033[0;31m'
+    GREEN='\033[0;32m'
+    YELLOW='\033[1;33m'
+    NC='\033[0m' # No Color
+else
+    RED=''
+    GREEN=''
+    YELLOW=''
+    NC=''
+fi
 
 BASELINE_FILE="benchmarks/baseline.txt"
 CURRENT_FILE="benchmarks/current.txt"

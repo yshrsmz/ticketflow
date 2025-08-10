@@ -6,6 +6,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
+	"strings"
 	"testing"
 	"time"
 
@@ -13,7 +15,6 @@ import (
 	"github.com/yshrsmz/ticketflow/internal/config"
 	"github.com/yshrsmz/ticketflow/internal/git"
 	"github.com/yshrsmz/ticketflow/internal/ticket"
-	"runtime"
 )
 
 // BenchmarkEnvironment represents a complete benchmark test environment
@@ -111,10 +112,20 @@ func SetupBenchmarkGitRepo(b *testing.B, tmpDir string) {
 func CreateBenchmarkTickets(b *testing.B, env *BenchmarkEnvironment, count int, status string) []string {
 	b.Helper()
 
-	ctx := context.Background()
+	// Use context with timeout for long-running operations
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
 	ticketIDs := make([]string, count)
 
 	for i := 0; i < count; i++ {
+		// Check for context cancellation
+		select {
+		case <-ctx.Done():
+			b.Fatalf("Ticket creation timed out after creating %d tickets: %v", i, ctx.Err())
+		default:
+		}
+
 		slug := fmt.Sprintf("bench-ticket-%d", i)
 		t, err := env.Manager.Create(ctx, slug)
 		require.NoError(b, err)
@@ -140,16 +151,20 @@ func GenerateTicketContent(size int) string {
 		return chunk[:size]
 	}
 
-	result := ""
-	for len(result) < size {
-		if size-len(result) >= chunkLen {
-			result += chunk
+	// Use strings.Builder for efficient string concatenation
+	var builder strings.Builder
+	builder.Grow(size) // Pre-allocate capacity
+
+	for builder.Len() < size {
+		remaining := size - builder.Len()
+		if remaining >= chunkLen {
+			builder.WriteString(chunk)
 		} else {
-			result += chunk[:size-len(result)]
+			builder.WriteString(chunk[:remaining])
 		}
 	}
 
-	return result
+	return builder.String()
 }
 
 // BenchmarkTimer provides utilities for controlling benchmark timing
@@ -162,8 +177,9 @@ type BenchmarkTimer struct {
 // NewBenchmarkTimer creates a new benchmark timer
 func NewBenchmarkTimer(b *testing.B) *BenchmarkTimer {
 	return &BenchmarkTimer{
-		b:       b,
-		stopped: false,
+		b:         b,
+		startTime: time.Now(),
+		stopped:   false,
 	}
 }
 
@@ -182,6 +198,14 @@ func (bt *BenchmarkTimer) Start() {
 		bt.stopped = false
 		bt.startTime = time.Now()
 	}
+}
+
+// Elapsed returns the elapsed time since the timer was started
+func (bt *BenchmarkTimer) Elapsed() time.Duration {
+	if bt.stopped {
+		return 0
+	}
+	return time.Since(bt.startTime)
 }
 
 // TimeOp times a single operation within a benchmark
@@ -257,7 +281,9 @@ func CreateLargeRepository(b *testing.B, env *BenchmarkEnvironment, totalTickets
 	timer := NewBenchmarkTimer(b)
 	timer.Stop()
 
-	ctx := context.Background()
+	// Use context with timeout for long-running operations
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer cancel()
 
 	// Distribute tickets across statuses
 	todoCount := totalTickets * 40 / 100
@@ -268,6 +294,13 @@ func CreateLargeRepository(b *testing.B, env *BenchmarkEnvironment, totalTickets
 
 	// Create todo tickets
 	for i := 0; i < todoCount; i++ {
+		// Check for context cancellation
+		select {
+		case <-ctx.Done():
+			b.Fatalf("Repository creation timed out (todo tickets): %v", ctx.Err())
+		default:
+		}
+
 		slug := fmt.Sprintf("todo-ticket-%d", i)
 		_, err := env.Manager.Create(ctx, slug)
 		require.NoError(b, err)
@@ -275,6 +308,13 @@ func CreateLargeRepository(b *testing.B, env *BenchmarkEnvironment, totalTickets
 
 	// Create doing tickets
 	for i := 0; i < doingCount; i++ {
+		// Check for context cancellation
+		select {
+		case <-ctx.Done():
+			b.Fatalf("Repository creation timed out (doing tickets): %v", ctx.Err())
+		default:
+		}
+
 		slug := fmt.Sprintf("doing-ticket-%d", i)
 		t, err := env.Manager.Create(ctx, slug)
 		require.NoError(b, err)
@@ -287,6 +327,13 @@ func CreateLargeRepository(b *testing.B, env *BenchmarkEnvironment, totalTickets
 
 	// Create done tickets
 	for i := 0; i < doneCount; i++ {
+		// Check for context cancellation
+		select {
+		case <-ctx.Done():
+			b.Fatalf("Repository creation timed out (done tickets): %v", ctx.Err())
+		default:
+		}
+
 		slug := fmt.Sprintf("done-ticket-%d", i)
 		t, err := env.Manager.Create(ctx, slug)
 		require.NoError(b, err)

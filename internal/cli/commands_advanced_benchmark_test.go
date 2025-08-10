@@ -8,6 +8,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/yshrsmz/ticketflow/internal/testutil"
@@ -114,16 +115,13 @@ func BenchmarkListTicketsLargeRepository(b *testing.B) {
 	}
 }
 
-// BenchmarkStartTicketConcurrent benchmarks concurrent ticket start operations
-func BenchmarkStartTicketConcurrent(b *testing.B) {
+// BenchmarkListTicketsConcurrent benchmarks concurrent ticket listing operations
+func BenchmarkListTicketsConcurrent(b *testing.B) {
 	concurrencyLevels := []int{1, 2, 4, 8}
 
 	for _, concurrency := range concurrencyLevels {
 		b.Run(fmt.Sprintf("concurrency-%d", concurrency), func(b *testing.B) {
 			env := testutil.SetupBenchmarkEnvironment(b)
-
-			// Disable worktrees for concurrent testing
-			env.Config.Worktree.Enabled = false
 
 			app := &App{
 				Manager:     env.Manager,
@@ -135,9 +133,9 @@ func BenchmarkStartTicketConcurrent(b *testing.B) {
 
 			ctx := context.Background()
 
-			// Pre-create tickets
+			// Pre-create a large set of tickets
 			b.StopTimer()
-			ticketIDs := testutil.CreateBenchmarkTickets(b, env, b.N, "todo")
+			testutil.CreateLargeRepository(b, env, 100)
 			b.StartTimer()
 
 			b.ResetTimer()
@@ -155,15 +153,14 @@ func BenchmarkStartTicketConcurrent(b *testing.B) {
 					defer wg.Done()
 					defer func() { <-sem }() // Release semaphore
 
-					err := app.StartTicket(ctx, ticketIDs[idx], false)
+					// Randomly choose a filter
+					filters := []ticket.Status{"all", "todo", "doing", "done"}
+					filter := filters[idx%len(filters)]
+
+					err := app.ListTickets(ctx, filter, 0, FormatText)
 					if err != nil {
 						b.Error(err)
 					}
-
-					// Clean up
-					_, _ = app.Git.Exec(ctx, "add", ".")
-					_, _ = app.Git.Exec(ctx, "commit", "-m", fmt.Sprintf("Start ticket %d", idx))
-					_, _ = app.Git.Exec(ctx, "checkout", "main")
 				}(i)
 			}
 
@@ -464,4 +461,14 @@ func BenchmarkMemoryPressure(b *testing.B) {
 			testutil.MeasureMemoryUsage(b, "after")
 		})
 	}
+}
+
+// generateTicketID generates a ticket ID from a slug
+func generateTicketID(slug string) string {
+	return generateTimestamp() + "-" + slug
+}
+
+// generateTimestamp generates a timestamp for ticket IDs
+func generateTimestamp() string {
+	return time.Now().Format("060102-150405")
 }

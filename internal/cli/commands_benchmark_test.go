@@ -4,28 +4,22 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"os"
-	"os/exec"
-	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/yshrsmz/ticketflow/internal/config"
-	"github.com/yshrsmz/ticketflow/internal/git"
+	"github.com/yshrsmz/ticketflow/internal/testutil"
 	"github.com/yshrsmz/ticketflow/internal/ticket"
-	"time"
 )
 
 // BenchmarkCreateTicket benchmarks the full create ticket command
 func BenchmarkCreateTicket(b *testing.B) {
-	tmpDir := b.TempDir()
-	setupBenchmarkGitRepo(b, tmpDir)
+	env := testutil.SetupBenchmarkEnvironment(b)
 
 	app := &App{
-		Manager:     ticket.NewManager(config.Default(), tmpDir),
-		Git:         git.New(tmpDir),
-		Config:      config.Default(),
-		ProjectRoot: tmpDir,
+		Manager:     env.Manager,
+		Git:         env.Git,
+		Config:      env.Config,
+		ProjectRoot: env.ProjectRoot,
 		Output:      NewOutputWriter(io.Discard, io.Discard, FormatText),
 	}
 
@@ -55,22 +49,20 @@ func BenchmarkStartTicket(b *testing.B) {
 
 	for _, scenario := range scenarios {
 		b.Run(scenario.name, func(b *testing.B) {
-			tmpDir := b.TempDir()
-			setupBenchmarkGitRepo(b, tmpDir)
+			env := testutil.SetupBenchmarkEnvironment(b)
 
-			cfg := config.Default()
-			cfg.Worktree.Enabled = scenario.worktreeEnabled
+			env.Config.Worktree.Enabled = scenario.worktreeEnabled
 			if scenario.worktreeEnabled {
-				cfg.Worktree.BaseDir = "../.worktrees"
+				env.Config.Worktree.BaseDir = "../.worktrees"
 				// Disable init commands for benchmark
-				cfg.Worktree.InitCommands = []string{}
+				env.Config.Worktree.InitCommands = []string{}
 			}
 
 			app := &App{
-				Manager:     ticket.NewManager(cfg, tmpDir),
-				Git:         git.New(tmpDir),
-				Config:      cfg,
-				ProjectRoot: tmpDir,
+				Manager:     env.Manager,
+				Git:         env.Git,
+				Config:      env.Config,
+				ProjectRoot: env.ProjectRoot,
 				Output:      NewOutputWriter(io.Discard, io.Discard, FormatText),
 			}
 
@@ -78,15 +70,11 @@ func BenchmarkStartTicket(b *testing.B) {
 
 			// Pre-create tickets for benchmarking
 			b.StopTimer()
-			ticketIDs := make([]string, b.N)
-			for i := 0; i < b.N; i++ {
-				slug := fmt.Sprintf("benchmark-ticket-%d", i)
-				err := app.NewTicket(ctx, slug, "", FormatText)
-				if err != nil {
-					b.Fatal(err)
-				}
-				ticketIDs[i] = generateTicketID(slug)
-			}
+			ticketIDs := testutil.CreateBenchmarkTickets(b, env, b.N, "todo")
+			
+			// Commit the created tickets to avoid uncommitted changes
+			_, _ = app.Git.Exec(ctx, "add", ".")
+			_, _ = app.Git.Exec(ctx, "commit", "-m", "Add benchmark tickets")
 			b.StartTimer()
 
 			b.ReportAllocs()
@@ -108,7 +96,7 @@ func BenchmarkStartTicket(b *testing.B) {
 
 				// Remove worktree if created
 				if scenario.worktreeEnabled {
-					worktreePath := filepath.Join(tmpDir, cfg.Worktree.BaseDir, ticketIDs[i])
+					worktreePath := fmt.Sprintf("%s/../.worktrees/%s", env.ProjectRoot, ticketIDs[i])
 					_ = app.Git.RemoveWorktree(ctx, worktreePath)
 				}
 			}
@@ -118,18 +106,16 @@ func BenchmarkStartTicket(b *testing.B) {
 
 // BenchmarkCloseTicket benchmarks the close ticket operation
 func BenchmarkCloseTicket(b *testing.B) {
-	tmpDir := b.TempDir()
-	setupBenchmarkGitRepo(b, tmpDir)
+	env := testutil.SetupBenchmarkEnvironment(b)
 
-	cfg := config.Default()
 	// Disable worktrees for close benchmark to avoid conflicts
-	cfg.Worktree.Enabled = false
+	env.Config.Worktree.Enabled = false
 
 	app := &App{
-		Manager:     ticket.NewManager(cfg, tmpDir),
-		Git:         git.New(tmpDir),
-		Config:      cfg,
-		ProjectRoot: tmpDir,
+		Manager:     env.Manager,
+		Git:         env.Git,
+		Config:      env.Config,
+		ProjectRoot: env.ProjectRoot,
 		Output:      NewOutputWriter(io.Discard, io.Discard, FormatText),
 	}
 
@@ -137,48 +123,24 @@ func BenchmarkCloseTicket(b *testing.B) {
 
 	// Pre-create and start tickets
 	b.StopTimer()
-	ticketIDs := make([]string, b.N)
+	ticketIDs := testutil.CreateBenchmarkTickets(b, env, b.N, "todo")
+	
 	for i := 0; i < b.N; i++ {
-		slug := fmt.Sprintf("benchmark-ticket-%d", i)
-		err := app.NewTicket(ctx, slug, "", FormatText)
+		err := app.StartTicket(ctx, ticketIDs[i], false)
 		if err != nil {
 			b.Fatal(err)
 		}
-
-		// Get the actual ticket ID
-		tickets, err := app.Manager.List(ctx, ticket.StatusFilterTodo)
-		if err != nil {
-			b.Fatal(err)
-		}
-
-		// Find the ticket we just created
-		var ticketID string
-		for _, t := range tickets {
-			if t.Slug == slug {
-				ticketID = t.ID
-				break
-			}
-		}
-		if ticketID == "" {
-			b.Fatalf("Could not find ticket with slug %s", slug)
-		}
-		ticketIDs[i] = ticketID
-
-		// Start the ticket to move it to doing status
-		err = app.StartTicket(ctx, ticketID, false)
-		if err != nil {
-			b.Fatal(err)
-		}
-
-		// Commit the changes to avoid uncommitted changes error
+		// Commit changes
 		_, _ = app.Git.Exec(ctx, "add", ".")
 		_, _ = app.Git.Exec(ctx, "commit", "-m", "Start ticket")
 	}
 	b.StartTimer()
+
+	b.ResetTimer()
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		// Switch to the ticket branch
+		// Switch to ticket branch
 		_, err := app.Git.Exec(ctx, "checkout", ticketIDs[i])
 		if err != nil {
 			b.Fatal(err)
@@ -191,54 +153,59 @@ func BenchmarkCloseTicket(b *testing.B) {
 	}
 }
 
-// BenchmarkListTickets benchmarks listing tickets with different counts
+// BenchmarkListTickets benchmarks listing tickets with different filters
 func BenchmarkListTickets(b *testing.B) {
 	scenarios := []struct {
 		name        string
+		filter      ticket.Status
 		ticketCount int
 		format      OutputFormat
 	}{
-		{"10-tickets-text", 10, FormatText},
-		{"10-tickets-json", 10, FormatJSON},
-		{"50-tickets-text", 50, FormatText},
-		{"50-tickets-json", 50, FormatJSON},
-		{"100-tickets-text", 100, FormatText},
-		{"100-tickets-json", 100, FormatJSON},
+		{"10-tickets-all-text", ticket.Status("all"), 10, FormatText},
+		{"10-tickets-all-json", ticket.Status("all"), 10, FormatJSON},
+		{"100-tickets-all-text", ticket.Status("all"), 100, FormatText},
+		{"100-tickets-all-json", ticket.Status("all"), 100, FormatJSON},
+		{"100-tickets-todo", ticket.StatusTodo, 100, FormatText},
+		{"100-tickets-doing", ticket.StatusDoing, 100, FormatText},
+		{"100-tickets-done", ticket.StatusDone, 100, FormatText},
 	}
 
 	for _, scenario := range scenarios {
 		b.Run(scenario.name, func(b *testing.B) {
-			tmpDir := b.TempDir()
-			setupBenchmarkGitRepo(b, tmpDir)
+			env := testutil.SetupBenchmarkEnvironment(b)
 
 			app := &App{
-				Manager:     ticket.NewManager(config.Default(), tmpDir),
-				Git:         git.New(tmpDir),
-				Config:      config.Default(),
-				ProjectRoot: tmpDir,
-				Output:      NewOutputWriter(io.Discard, io.Discard, FormatText),
+				Manager:     env.Manager,
+				Git:         env.Git,
+				Config:      env.Config,
+				ProjectRoot: env.ProjectRoot,
+				Output:      NewOutputWriter(io.Discard, io.Discard, scenario.format),
 			}
 
 			ctx := context.Background()
 
-			// Create tickets
-			for i := 0; i < scenario.ticketCount; i++ {
-				slug := fmt.Sprintf("benchmark-ticket-%d", i)
-				err := app.NewTicket(ctx, slug, "", FormatText)
-				if err != nil {
-					b.Fatal(err)
-				}
-			}
+			// Pre-create tickets with different statuses
+			b.StopTimer()
+			todoCount := scenario.ticketCount * 40 / 100
+			doingCount := scenario.ticketCount * 30 / 100
+			doneCount := scenario.ticketCount - todoCount - doingCount
 
-			// Output is already set to io.Discard in app creation
-			// Update it with the specific format for this scenario
-			app.Output = NewOutputWriter(io.Discard, io.Discard, scenario.format)
+			// Create todo tickets
+			testutil.CreateBenchmarkTickets(b, env, todoCount, "todo")
+
+			// Create doing tickets
+			testutil.CreateBenchmarkTickets(b, env, doingCount, "doing")
+
+			// Create done tickets
+			testutil.CreateBenchmarkTickets(b, env, doneCount, "done")
+
+			b.StartTimer()
 
 			b.ResetTimer()
 			b.ReportAllocs()
 
 			for i := 0; i < b.N; i++ {
-				err := app.ListTickets(ctx, "all", 0, scenario.format)
+				err := app.ListTickets(ctx, scenario.filter, 0, scenario.format)
 				if err != nil {
 					b.Fatal(err)
 				}
@@ -247,56 +214,53 @@ func BenchmarkListTickets(b *testing.B) {
 	}
 }
 
-// generateTicketID generates a ticket ID from a slug
-func generateTicketID(slug string) string {
-	return generateTimestamp() + "-" + slug
-}
-
-// generateTimestamp generates a timestamp for ticket IDs
-func generateTimestamp() string {
-	return time.Now().Format("060102-150405")
-}
-
-// setupBenchmarkGitRepo creates a minimal git repository for benchmarking
-func setupBenchmarkGitRepo(b *testing.B, tmpDir string) {
-	b.Helper()
-
-	// Initialize git repo
-	cmd := exec.Command("git", "init")
-	cmd.Dir = tmpDir
-	require.NoError(b, cmd.Run())
-
-	// Configure git locally (not globally)
-	cmd = exec.Command("git", "config", "user.name", "Benchmark User")
-	cmd.Dir = tmpDir
-	require.NoError(b, cmd.Run())
-
-	cmd = exec.Command("git", "config", "user.email", "benchmark@example.com")
-	cmd.Dir = tmpDir
-	require.NoError(b, cmd.Run())
-
-	// Create .ticketflow.yaml
-	configContent := `
-worktree:
-  enabled: false
-tickets:
-  dir: tickets
-`
-	configPath := filepath.Join(tmpDir, ".ticketflow.yaml")
-	require.NoError(b, os.WriteFile(configPath, []byte(configContent), 0644))
-
-	// Create ticket directories
-	ticketsDir := filepath.Join(tmpDir, "tickets")
-	for _, dir := range []string{"todo", "doing", "done"} {
-		require.NoError(b, os.MkdirAll(filepath.Join(ticketsDir, dir), 0755))
+// BenchmarkSearchTickets benchmarks searching tickets by content
+func BenchmarkSearchTickets(b *testing.B) {
+	scenarios := []struct {
+		name        string
+		ticketCount int
+		searchTerm  string
+	}{
+		{"10-tickets", 10, "benchmark"},
+		{"50-tickets", 50, "benchmark"},
+		{"100-tickets", 100, "benchmark"},
 	}
 
-	// Initial commit
-	cmd = exec.Command("git", "add", ".")
-	cmd.Dir = tmpDir
-	require.NoError(b, cmd.Run())
+	for _, scenario := range scenarios {
+		b.Run(scenario.name, func(b *testing.B) {
+			env := testutil.SetupBenchmarkEnvironment(b)
 
-	cmd = exec.Command("git", "commit", "-m", "Initial commit")
-	cmd.Dir = tmpDir
-	require.NoError(b, cmd.Run())
+			app := &App{
+				Manager:     env.Manager,
+				Git:         env.Git,
+				Config:      env.Config,
+				ProjectRoot: env.ProjectRoot,
+				Output:      NewOutputWriter(io.Discard, io.Discard, FormatText),
+			}
+
+			ctx := context.Background()
+
+			// Pre-create tickets with searchable content
+			b.StopTimer()
+			ticketIDs := testutil.CreateBenchmarkTickets(b, env, scenario.ticketCount, "todo")
+			
+			// Add content to tickets
+			for _, id := range ticketIDs {
+				content := fmt.Sprintf("This is a benchmark ticket with search term: %s", scenario.searchTerm)
+				err := env.Manager.WriteContent(ctx, id, content)
+				require.NoError(b, err)
+			}
+			b.StartTimer()
+
+			b.ResetTimer()
+			b.ReportAllocs()
+
+			for i := 0; i < b.N; i++ {
+				err := app.ListTickets(ctx, "all", 0, FormatText)
+				if err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
+	}
 }
