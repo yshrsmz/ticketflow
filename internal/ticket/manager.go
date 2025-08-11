@@ -39,6 +39,10 @@ const (
 	// initialMatchCapacity is the initial capacity for search match slices
 	// Most searches result in 0-1 matches, rarely more than 5
 	initialMatchCapacity = 5
+
+	// concurrencyThreshold is the minimum number of files before using concurrent loading
+	// Benchmark results show goroutine overhead becomes worthwhile at this point
+	concurrencyThreshold = 10
 )
 
 // Manager manages ticket operations
@@ -134,10 +138,7 @@ func (m *Manager) List(ctx context.Context, statusFilter StatusFilter) ([]Ticket
 	for _, dir := range dirs {
 		entries, err := os.ReadDir(dir)
 		if err != nil {
-			if !os.IsNotExist(err) {
-				// Log error but continue with other directories
-				continue
-			}
+			// Skip directories that don't exist or can't be read
 			continue
 		}
 		for _, entry := range entries {
@@ -148,8 +149,7 @@ func (m *Manager) List(ctx context.Context, statusFilter StatusFilter) ([]Ticket
 	}
 
 	// Use concurrent loading if we have enough files to benefit from it
-	// Threshold is set to 10 files based on typical overhead of goroutines
-	if totalFiles >= 10 {
+	if totalFiles >= concurrencyThreshold {
 		return m.listConcurrent(ctx, dirs)
 	}
 
