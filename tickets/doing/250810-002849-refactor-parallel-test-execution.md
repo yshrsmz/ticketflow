@@ -1,8 +1,8 @@
 ---
 priority: 2
-description: "Enable parallel test execution for unit tests"
+description: Enable parallel test execution for unit tests
 created_at: "2025-08-10T00:28:49+09:00"
-started_at: null
+started_at: "2025-08-11T23:58:03+09:00"
 closed_at: null
 ---
 
@@ -39,9 +39,16 @@ Make sure to update task status when you finish it. Also, always create a commit
 - Integration tests cannot be parallelized due to `os.Chdir` usage
 - Ensure no shared state between parallel tests
 - Run with `-race` flag to detect issues
+- Key files: All *_test.go files except integration tests
+- Note: Integration tests use os.Chdir and cannot be parallelized
 
 ## Expected Outcomes
 
 - 50-70% reduction in test execution time
 - Clear documentation on test parallelization
 - Improved CI pipeline performance
+
+## Related Documentation:
+- Full refactoring discussion: docs/20250810-refactor-discussion.md
+- Executive summary: docs/20250810-refactor-summary.md
+- Ticket overview: docs/20250810-refactor-tickets.md
