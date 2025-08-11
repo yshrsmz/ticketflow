@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"strings"
 	"testing"
 	"time"
 
@@ -191,8 +192,12 @@ func BenchmarkCloseTicket(b *testing.B) {
 		// Use force=true to skip uncommitted changes check (current-ticket.md symlink)
 		err = app.CloseTicket(ctx, true)
 		if err != nil {
-			// Skip if already closed (when b.N > numTickets)
-			continue
+			// Only skip if the error is due to ticket already being closed
+			// This happens when b.N > numTickets
+			if strings.Contains(err.Error(), "already closed") || strings.Contains(err.Error(), "no current ticket") {
+				continue
+			}
+			b.Fatalf("Failed to close ticket: %v", err)
 		}
 	}
 }

@@ -57,14 +57,12 @@ run_package_benchmarks() {
         -cpuprofile="${cpu_profile}" \
         -memprofile="${mem_profile}" \
         -run=^$ \
-        "${package}" > "${output_file}" 2>&1
-    
-    if [ $? -eq 0 ]; then
+        "${package}" > "${output_file}" 2>&1; then
         echo -e "${GREEN}✓ ${name} benchmarks completed${NC}"
         
         # Extract summary statistics
         echo "  Results summary:"
-        grep "Benchmark" "${output_file}" | head -5 | while read line; do
+        grep "Benchmark" "${output_file}" | head -5 | while IFS= read -r line; do
             echo "    ${line}"
         done
     else
@@ -143,7 +141,7 @@ if [ -f "${BASELINE_FILE}" ]; then
     echo "Checking for performance regressions..."
     
     # Extract benchmark names and times from current run
-    grep -E "^Benchmark" "${RESULTS_DIR}/all_benchmarks.txt" | while read line; do
+    grep -E "^Benchmark" "${RESULTS_DIR}/all_benchmarks.txt" | while IFS= read -r line; do
         bench_name=$(echo "$line" | awk '{print $1}')
         current_time=$(echo "$line" | awk '{print $3}')
         

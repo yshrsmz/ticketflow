@@ -136,7 +136,7 @@ func CreateBenchmarkTicketsWithPrefix(b *testing.B, env *BenchmarkEnvironment, c
 		// Use prefix and add nanosecond precision to ensure uniqueness
 		slug := fmt.Sprintf("%s-%d-%d", prefix, i, time.Now().UnixNano())
 		t, err := env.Manager.Create(ctx, slug)
-		require.NoError(b, err)
+		require.NoError(b, err, "failed to create ticket with slug: %s", slug)
 		ticketIDs[i] = t.ID
 
 		// Move to specified status if not "todo"
@@ -334,7 +334,7 @@ func CreateLargeRepository(b *testing.B, env *BenchmarkEnvironment, totalTickets
 
 		slug := fmt.Sprintf("todo-ticket-%d", i)
 		_, err := env.Manager.Create(ctx, slug)
-		require.NoError(b, err)
+		require.NoError(b, err, "failed to create ticket with slug: %s", slug)
 	}
 
 	// Create doing tickets
@@ -348,7 +348,7 @@ func CreateLargeRepository(b *testing.B, env *BenchmarkEnvironment, totalTickets
 
 		slug := fmt.Sprintf("doing-ticket-%d", i)
 		t, err := env.Manager.Create(ctx, slug)
-		require.NoError(b, err)
+		require.NoError(b, err, "failed to create ticket with slug: %s", slug)
 
 		// Move to doing
 		oldPath := filepath.Join(env.TicketsDir, "todo", t.ID+".md")
@@ -367,7 +367,7 @@ func CreateLargeRepository(b *testing.B, env *BenchmarkEnvironment, totalTickets
 
 		slug := fmt.Sprintf("done-ticket-%d", i)
 		t, err := env.Manager.Create(ctx, slug)
-		require.NoError(b, err)
+		require.NoError(b, err, "failed to create ticket with slug: %s", slug)
 
 		// Move to done
 		oldPath := filepath.Join(env.TicketsDir, "todo", t.ID+".md")
