@@ -25,6 +25,66 @@ func setupTestManager(t *testing.T) (*Manager, string) {
 	return manager, tmpDir
 }
 
+func TestCalculateOptimalWorkers(t *testing.T) {
+	tests := []struct {
+		name      string
+		numCPU    int
+		fileCount int
+		expected  int
+	}{
+		{
+			name:      "fewer files than CPUs",
+			numCPU:    8,
+			fileCount: 4,
+			expected:  4,
+		},
+		{
+			name:      "more files than CPUs",
+			numCPU:    4,
+			fileCount: 10,
+			expected:  4,
+		},
+		{
+			name:      "exceeds max workers",
+			numCPU:    16,
+			fileCount: 100,
+			expected:  maxConcurrentWorkers,
+		},
+		{
+			name:      "single file",
+			numCPU:    8,
+			fileCount: 1,
+			expected:  1,
+		},
+		{
+			name:      "single CPU many files",
+			numCPU:    1,
+			fileCount: 50,
+			expected:  1,
+		},
+		{
+			name:      "exact max workers",
+			numCPU:    maxConcurrentWorkers,
+			fileCount: 100,
+			expected:  maxConcurrentWorkers,
+		},
+		{
+			name:      "zero files edge case",
+			numCPU:    8,
+			fileCount: 0,
+			expected:  0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := calculateOptimalWorkers(tt.numCPU, tt.fileCount)
+			assert.Equal(t, tt.expected, result, "calculateOptimalWorkers(%d, %d) should return %d",
+				tt.numCPU, tt.fileCount, tt.expected)
+		})
+	}
+}
+
 func TestManagerCreate(t *testing.T) {
 	manager, _ := setupTestManager(t)
 	ctx := context.Background()

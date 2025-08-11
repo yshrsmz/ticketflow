@@ -7,11 +7,18 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strings"
+	"sync"
+	"time"
+
+	"golang.org/x/sync/errgroup"
+	"golang.org/x/sync/semaphore"
 
 	"github.com/yshrsmz/ticketflow/internal/config"
 	ticketerrors "github.com/yshrsmz/ticketflow/internal/errors"
+	"github.com/yshrsmz/ticketflow/internal/log"
 )
 
 // StatusFilter represents the filter type for listing tickets
@@ -34,6 +41,14 @@ const (
 	// initialMatchCapacity is the initial capacity for search match slices
 	// Most searches result in 0-1 matches, rarely more than 5
 	initialMatchCapacity = 5
+
+	// concurrencyThreshold is the minimum number of files before using concurrent loading
+	// Benchmark results show goroutine overhead becomes worthwhile at this point
+	concurrencyThreshold = 10
+
+	// maxConcurrentWorkers is the maximum number of concurrent workers for file operations
+	// This prevents excessive file handles and resource exhaustion
+	maxConcurrentWorkers = 8
 )
 
 // Manager manages ticket operations
@@ -48,6 +63,25 @@ func NewManager(cfg *config.Config, projectRoot string) *Manager {
 		config:      cfg,
 		projectRoot: projectRoot,
 	}
+}
+
+// calculateOptimalWorkers determines the optimal number of workers for concurrent operations
+// based on available CPUs and the number of files to process
+func calculateOptimalWorkers(numCPU, fileCount int) int {
+	// Start with the number of CPUs
+	workers := numCPU
+
+	// Don't use more workers than files
+	if workers > fileCount {
+		workers = fileCount
+	}
+
+	// Cap at maximum to avoid excessive file handles
+	if workers > maxConcurrentWorkers {
+		workers = maxConcurrentWorkers
+	}
+
+	return workers
 }
 
 // Create creates a new ticket in the todo directory
@@ -124,6 +158,40 @@ func (m *Manager) List(ctx context.Context, statusFilter StatusFilter) ([]Ticket
 		return nil, fmt.Errorf("invalid status filter: %s", statusFilter)
 	}
 
+	// Count total files first to better estimate capacity
+	totalFiles := 0
+	for _, dir := range dirs {
+		entries, err := os.ReadDir(dir)
+		if err != nil {
+			// Skip directories that don't exist or can't be read
+			continue
+		}
+		for _, entry := range entries {
+			if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".md") {
+				totalFiles++
+			}
+		}
+	}
+
+	// Use concurrent loading if we have enough files to benefit from it
+	if totalFiles >= concurrencyThreshold {
+		log.Debug("Using concurrent loading strategy",
+			"totalFiles", totalFiles,
+			"threshold", concurrencyThreshold)
+		return m.listConcurrent(ctx, dirs)
+	}
+
+	// Fall back to sequential for small numbers of tickets
+	log.Debug("Using sequential loading strategy",
+		"totalFiles", totalFiles,
+		"threshold", concurrencyThreshold)
+	return m.listSequential(ctx, dirs)
+}
+
+// listSequential lists tickets sequentially (original implementation)
+func (m *Manager) listSequential(ctx context.Context, dirs []string) ([]Ticket, error) {
+	startTime := time.Now()
+
 	// Pre-allocate tickets slice with reasonable capacity based on typical usage
 	// This avoids multiple reallocations during append operations without double-reading directories
 	tickets := make([]Ticket, 0, initialTicketCapacity)
@@ -149,6 +217,9 @@ func (m *Manager) List(ctx context.Context, statusFilter StatusFilter) ([]Ticket
 			ticket, err := m.loadTicket(ctx, ticketPath)
 			if err != nil {
 				// Skip invalid tickets
+				log.Debug("Skipping invalid ticket",
+					"path", ticketPath,
+					"error", err)
 				continue
 			}
 
@@ -163,6 +234,110 @@ func (m *Manager) List(ctx context.Context, statusFilter StatusFilter) ([]Ticket
 		}
 		return tickets[i].CreatedAt.After(tickets[j].CreatedAt.Time)
 	})
+
+	log.Debug("Sequential loading completed",
+		"tickets", len(tickets),
+		"duration", time.Since(startTime))
+
+	return tickets, nil
+}
+
+// listConcurrent lists tickets using concurrent file operations
+func (m *Manager) listConcurrent(ctx context.Context, dirs []string) ([]Ticket, error) {
+	startTime := time.Now()
+
+	// Collect all ticket files to process
+	var ticketPaths []string
+	for _, dir := range dirs {
+		entries, err := os.ReadDir(dir)
+		if err != nil {
+			if os.IsNotExist(err) {
+				continue
+			}
+			return nil, fmt.Errorf("failed to read directory %s: %w", dir, err)
+		}
+
+		for _, entry := range entries {
+			if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".md") {
+				ticketPaths = append(ticketPaths, filepath.Join(dir, entry.Name()))
+			}
+		}
+	}
+
+	if len(ticketPaths) == 0 {
+		return []Ticket{}, nil
+	}
+
+	// Determine optimal number of workers
+	numWorkers := calculateOptimalWorkers(runtime.NumCPU(), len(ticketPaths))
+
+	log.Debug("Starting concurrent loading",
+		"files", len(ticketPaths),
+		"workers", numWorkers,
+		"cpus", runtime.NumCPU())
+
+	// Create semaphore to limit concurrent file operations
+	sem := semaphore.NewWeighted(int64(numWorkers))
+
+	// Pre-allocate result slice with exact capacity
+	tickets := make([]Ticket, 0, len(ticketPaths))
+	var mu sync.Mutex
+
+	// Use errgroup for structured concurrency
+	g, ctx := errgroup.WithContext(ctx)
+
+	for _, path := range ticketPaths {
+		path := path // Capture for goroutine
+
+		g.Go(func() error {
+			// Acquire semaphore
+			if err := sem.Acquire(ctx, 1); err != nil {
+				return fmt.Errorf("failed to acquire semaphore: %w", err)
+			}
+			defer sem.Release(1)
+
+			// Check context before loading
+			if err := ctx.Err(); err != nil {
+				return fmt.Errorf("operation cancelled: %w", err)
+			}
+
+			// Load ticket
+			ticket, err := m.loadTicket(ctx, path)
+			if err != nil {
+				// Skip invalid tickets - don't fail the entire operation
+				log.Debug("Skipping invalid ticket",
+					"path", path,
+					"error", err)
+				return nil
+			}
+
+			// Add to results with mutex protection
+			mu.Lock()
+			tickets = append(tickets, *ticket)
+			mu.Unlock()
+
+			return nil
+		})
+	}
+
+	// Wait for all goroutines to complete
+	if err := g.Wait(); err != nil {
+		return nil, err
+	}
+
+	// Sort by priority first, then by creation time (newest first)
+	sort.Slice(tickets, func(i, j int) bool {
+		if tickets[i].Priority != tickets[j].Priority {
+			return tickets[i].Priority < tickets[j].Priority
+		}
+		return tickets[i].CreatedAt.After(tickets[j].CreatedAt.Time)
+	})
+
+	log.Debug("Concurrent loading completed",
+		"tickets", len(tickets),
+		"duration", time.Since(startTime),
+		"files", len(ticketPaths),
+		"workers", numWorkers)
 
 	return tickets, nil
 }
