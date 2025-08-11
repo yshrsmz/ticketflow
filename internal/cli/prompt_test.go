@@ -9,6 +9,7 @@ import (
 )
 
 func TestIsInteractive(t *testing.T) {
+	// Cannot use t.Parallel() - tests modify environment variables
 	tests := []struct {
 		name     string
 		setup    func()
@@ -81,6 +82,7 @@ func TestIsInteractive(t *testing.T) {
 }
 
 func TestPromptNonInteractive(t *testing.T) {
+	// Cannot use t.Parallel() - tests modify environment variables
 	// Save original env var
 	originalCI := os.Getenv("CI")
 	defer func() {
@@ -144,6 +146,7 @@ func TestPromptNonInteractive(t *testing.T) {
 }
 
 func TestConfirmPromptNonInteractive(t *testing.T) {
+	// Cannot use t.Parallel() - tests modify environment variables
 	// Save original env var
 	originalCI := os.Getenv("CI")
 	defer func() {

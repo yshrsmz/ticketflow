@@ -9,6 +9,7 @@ import (
 )
 
 func TestTicketError(t *testing.T) {
+	t.Parallel()
 	underlyingErr := errors.New("underlying error")
 	err := NewTicketError("create", "ticket-123", underlyingErr)
 
@@ -22,6 +23,7 @@ func TestTicketError(t *testing.T) {
 }
 
 func TestTicketErrorWithContext(t *testing.T) {
+	t.Parallel()
 	underlyingErr := errors.New("underlying error")
 	err := NewTicketErrorWithContext("create", "ticket-123", underlyingErr, "worktree", "init")
 
@@ -36,6 +38,7 @@ func TestTicketErrorWithContext(t *testing.T) {
 }
 
 func TestGitError(t *testing.T) {
+	t.Parallel()
 	underlyingErr := errors.New("git command failed")
 	err := NewGitError("push", "feature-branch", underlyingErr)
 
@@ -49,6 +52,7 @@ func TestGitError(t *testing.T) {
 }
 
 func TestWorktreeError(t *testing.T) {
+	t.Parallel()
 	underlyingErr := errors.New("directory exists")
 	err := NewWorktreeError("create", "/path/to/worktree", underlyingErr)
 
@@ -62,6 +66,7 @@ func TestWorktreeError(t *testing.T) {
 }
 
 func TestConfigError(t *testing.T) {
+	t.Parallel()
 	underlyingErr := errors.New("invalid value")
 	err := NewConfigError("output.format", "xml", underlyingErr)
 
@@ -75,6 +80,7 @@ func TestConfigError(t *testing.T) {
 }
 
 func TestIsNotFound(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name string
 		err  error
@@ -135,6 +141,7 @@ func TestIsNotFound(t *testing.T) {
 }
 
 func TestIsAlreadyExists(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name string
 		err  error
@@ -195,6 +202,7 @@ func TestIsAlreadyExists(t *testing.T) {
 }
 
 func TestConstructorValidation(t *testing.T) {
+	t.Parallel()
 	t.Run("NewTicketError validation", func(t *testing.T) {
 		// Empty operation
 		err := NewTicketError("", "ticket-123", errors.New("test"))
@@ -270,6 +278,7 @@ func TestConstructorValidation(t *testing.T) {
 }
 
 func TestErrorFormatting(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		err      error

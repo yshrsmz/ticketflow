@@ -12,6 +12,7 @@ import (
 )
 
 func TestNew(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name    string
 		config  Config
@@ -70,6 +71,7 @@ func TestNew(t *testing.T) {
 }
 
 func TestLoggerWithMethods(t *testing.T) {
+	t.Parallel()
 	var buf bytes.Buffer
 
 	logger := &Logger{
@@ -113,6 +115,7 @@ func TestLoggerWithMethods(t *testing.T) {
 }
 
 func TestParseLevel(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		input     string
 		expected  slog.Level
@@ -143,6 +146,7 @@ func TestParseLevel(t *testing.T) {
 }
 
 func TestTextFormat(t *testing.T) {
+	t.Parallel()
 	var buf bytes.Buffer
 
 	logger := &Logger{
@@ -160,6 +164,7 @@ func TestTextFormat(t *testing.T) {
 }
 
 func TestLogLevels(t *testing.T) {
+	t.Parallel()
 	var buf bytes.Buffer
 
 	logger := &Logger{
@@ -189,6 +194,7 @@ func TestLogLevels(t *testing.T) {
 }
 
 func TestGlobalLogger(t *testing.T) {
+	t.Parallel()
 	// Test default global logger
 	assert.NotNil(t, Global())
 
@@ -214,6 +220,7 @@ func TestGlobalLogger(t *testing.T) {
 }
 
 func TestClose(t *testing.T) {
+	t.Parallel()
 	// Test Close with no closer (stdout/stderr)
 	logger := &Logger{
 		Logger: slog.New(slog.NewTextHandler(os.Stdout, nil)),

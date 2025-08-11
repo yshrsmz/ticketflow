@@ -12,6 +12,7 @@ import (
 )
 
 func TestValidateTicketForStart(t *testing.T) {
+	t.Parallel()
 	now := time.Now()
 
 	tests := []struct {
@@ -66,6 +67,7 @@ func TestValidateTicketForStart(t *testing.T) {
 }
 
 func TestCheckWorkspaceForStart(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name            string
 		worktreeEnabled bool
@@ -138,6 +140,7 @@ func TestCheckWorkspaceForStart(t *testing.T) {
 }
 
 func TestValidateTicketForClose(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name          string
 		currentTicket *ticket.Ticket

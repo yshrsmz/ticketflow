@@ -11,6 +11,7 @@ import (
 )
 
 func TestConvertError(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name           string
 		err            error
@@ -171,6 +172,7 @@ func TestConvertError(t *testing.T) {
 }
 
 func TestConvertError_WrappedErrors(t *testing.T) {
+	t.Parallel()
 	// Test that wrapped errors are properly detected
 	tests := []struct {
 		name         string
@@ -201,6 +203,7 @@ func TestConvertError_WrappedErrors(t *testing.T) {
 }
 
 func TestConvertError_PreservesContext(t *testing.T) {
+	t.Parallel()
 	// Test that error context is preserved in details
 	originalErr := ticketerrors.NewTicketErrorWithContext(
 		"update",
@@ -218,6 +221,7 @@ func TestConvertError_PreservesContext(t *testing.T) {
 }
 
 func TestConvertError_ConfigFieldSuggestion(t *testing.T) {
+	t.Parallel()
 	// Test that config errors include field-specific suggestions
 	configErr := ticketerrors.NewConfigError("git.timeout", "invalid-duration", errors.New("invalid duration"))
 
@@ -231,6 +235,7 @@ func TestConvertError_ConfigFieldSuggestion(t *testing.T) {
 }
 
 func TestEnhanceWorktreeGitError(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name               string
 		gitErr             *ticketerrors.GitError
@@ -342,6 +347,7 @@ func TestEnhanceWorktreeGitError(t *testing.T) {
 }
 
 func TestEnhanceWorktreeError(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name               string
 		worktreeErr        *ticketerrors.WorktreeError
@@ -437,6 +443,7 @@ func TestEnhanceWorktreeError(t *testing.T) {
 }
 
 func TestConvertError_WorktreeEnhancement(t *testing.T) {
+	t.Parallel()
 	// Test that worktree errors are enhanced through ConvertError
 	tests := []struct {
 		name          string

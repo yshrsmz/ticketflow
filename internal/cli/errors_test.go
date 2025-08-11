@@ -7,6 +7,7 @@ import (
 )
 
 func TestNewError(t *testing.T) {
+	t.Parallel()
 	err := NewError(
 		ErrNotGitRepo,
 		"Not in a git repository",
@@ -21,6 +22,7 @@ func TestNewError(t *testing.T) {
 }
 
 func TestCLIError_Error(t *testing.T) {
+	t.Parallel()
 	err := &CLIError{
 		Code:    ErrTicketNotFound,
 		Message: "Ticket not found",

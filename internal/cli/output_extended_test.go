@@ -11,6 +11,7 @@ import (
 )
 
 func TestTicketToJSON(t *testing.T) {
+	t.Parallel()
 	now := time.Now()
 	startTime := now.Add(-1 * time.Hour)
 	closeTime := now
@@ -131,6 +132,7 @@ func TestTicketToJSON(t *testing.T) {
 }
 
 func TestFormatDuration_EdgeCases(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		duration time.Duration
@@ -207,6 +209,7 @@ func TestFormatDuration_EdgeCases(t *testing.T) {
 }
 
 func TestOutputJSON_Function(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		data     interface{}

@@ -11,6 +11,7 @@ import (
 )
 
 func TestRFC3339TimeMarshalYAML(t *testing.T) {
+	t.Parallel()
 	// Test time with nanoseconds
 	testTime := time.Date(2025, 1, 27, 19, 38, 54, 927166000, time.FixedZone("JST", 9*60*60))
 	rt := NewRFC3339Time(testTime)
@@ -25,6 +26,7 @@ func TestRFC3339TimeMarshalYAML(t *testing.T) {
 }
 
 func TestRFC3339TimeUnmarshalYAML(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		yaml     string
@@ -69,6 +71,7 @@ func TestRFC3339TimeUnmarshalYAML(t *testing.T) {
 }
 
 func TestRFC3339TimePtrMarshalYAML(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		ptr      RFC3339TimePtr
@@ -99,6 +102,7 @@ func TestRFC3339TimePtrMarshalYAML(t *testing.T) {
 }
 
 func TestRFC3339TimePtrUnmarshalYAML(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		yaml     string
@@ -144,6 +148,7 @@ func TestRFC3339TimePtrUnmarshalYAML(t *testing.T) {
 }
 
 func TestTicketDateFormatting(t *testing.T) {
+	t.Parallel()
 	// Create a ticket with nanosecond precision times
 	now := time.Date(2025, 1, 27, 19, 38, 54, 927166000, time.FixedZone("JST", 9*60*60))
 	startTime := now.Add(5 * time.Minute)

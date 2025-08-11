@@ -20,6 +20,7 @@ import (
 )
 
 func TestApp_NewTicket(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name          string
 		slug          string
@@ -111,6 +112,7 @@ func TestApp_NewTicket(t *testing.T) {
 }
 
 func TestApp_ListTickets(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name          string
 		status        ticket.Status
@@ -210,6 +212,7 @@ func TestApp_ListTickets(t *testing.T) {
 }
 
 func TestApp_StartTicket_WithMocks(t *testing.T) {
+	t.Parallel()
 	tmpDir := t.TempDir()
 
 	tests := []struct {
@@ -322,6 +325,7 @@ Test ticket content`
 }
 
 func TestApp_StartTicket_WorktreeMode_NoMainRepoSymlink(t *testing.T) {
+	t.Parallel()
 	tmpDir := t.TempDir()
 
 	// Create the required directory structure
@@ -407,6 +411,7 @@ Test ticket content`
 }
 
 func TestApp_StartTicket_NonWorktreeMode_CreatesMainRepoSymlink(t *testing.T) {
+	t.Parallel()
 	tmpDir := t.TempDir()
 
 	// Create the required directory structure
@@ -524,6 +529,7 @@ func TestNewApp_DefaultWorkingDirectory(t *testing.T) {
 // TestValidateTicketForClose_SymlinkError tests that symlink errors are properly detected
 // using error type checking instead of string matching
 func TestValidateTicketForClose_SymlinkError(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name            string
 		setupManager    func(m *mocks.MockTicketManager)

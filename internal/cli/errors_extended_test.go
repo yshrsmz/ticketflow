@@ -13,6 +13,7 @@ import (
 )
 
 func TestHandleError(t *testing.T) {
+	// Cannot use t.Parallel() - modifies global os.Stderr
 	tests := []struct {
 		name           string
 		err            error
@@ -94,6 +95,7 @@ func TestHandleError(t *testing.T) {
 }
 
 func TestHandleCLIError_EnvironmentVariable(t *testing.T) {
+	// Cannot use t.Parallel() with t.Setenv
 	// Test that environment variable overrides format
 	testErr := NewError(
 		ErrConfigNotFound,
@@ -142,6 +144,7 @@ func TestHandleCLIError_EnvironmentVariable(t *testing.T) {
 }
 
 func TestOutputJSONError(t *testing.T) {
+	// Cannot use t.Parallel() - modifies global os.Stderr
 	tests := []struct {
 		name     string
 		err      *CLIError
@@ -214,6 +217,7 @@ func TestOutputJSONError(t *testing.T) {
 }
 
 func TestCLIError_ErrorMethod(t *testing.T) {
+	t.Parallel()
 	err := NewError(
 		ErrGitDirtyWorkspace,
 		"Workspace has uncommitted changes",
@@ -225,6 +229,7 @@ func TestCLIError_ErrorMethod(t *testing.T) {
 }
 
 func TestNewError_Creation(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name        string
 		code        string
@@ -262,6 +267,7 @@ func TestNewError_Creation(t *testing.T) {
 
 // Test all error codes are defined properly
 func TestErrorCodes(t *testing.T) {
+	t.Parallel()
 	// This test ensures all error codes are unique strings
 	errorCodes := []string{
 		ErrNotGitRepo,
@@ -296,6 +302,7 @@ func TestErrorCodes(t *testing.T) {
 }
 
 func TestHandleError_EdgeCases(t *testing.T) {
+	// Cannot use t.Parallel() - modifies global os.Stderr
 	tests := []struct {
 		name         string
 		setupFunc    func()

@@ -14,6 +14,7 @@ import (
 )
 
 func TestCountTicketsByStatus(t *testing.T) {
+	t.Parallel()
 	now := time.Now()
 
 	tests := []struct {
@@ -68,6 +69,7 @@ func TestCountTicketsByStatus(t *testing.T) {
 }
 
 func TestCalculateWorkDuration(t *testing.T) {
+	t.Parallel()
 	now := time.Now()
 	oneHourAgo := now.Add(-1 * time.Hour)
 	twoHoursAgo := now.Add(-2 * time.Hour)
@@ -121,6 +123,7 @@ func TestCalculateWorkDuration(t *testing.T) {
 }
 
 func TestExtractParentTicketID(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name   string
 		ticket *ticket.Ticket
@@ -166,6 +169,7 @@ func TestExtractParentTicketID(t *testing.T) {
 }
 
 func TestCheckExistingWorktree(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name            string
 		worktreeEnabled bool

@@ -26,6 +26,7 @@ func setupTestManager(t *testing.T) (*Manager, string) {
 }
 
 func TestCalculateOptimalWorkers(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name      string
 		numCPU    int
@@ -86,6 +87,7 @@ func TestCalculateOptimalWorkers(t *testing.T) {
 }
 
 func TestManagerCreate(t *testing.T) {
+	t.Parallel()
 	manager, _ := setupTestManager(t)
 	ctx := context.Background()
 
@@ -109,6 +111,7 @@ func TestManagerCreate(t *testing.T) {
 }
 
 func TestManagerCreateInvalidSlug(t *testing.T) {
+	t.Parallel()
 	manager, _ := setupTestManager(t)
 	ctx := context.Background()
 
@@ -129,6 +132,7 @@ func TestManagerCreateInvalidSlug(t *testing.T) {
 }
 
 func TestManagerGet(t *testing.T) {
+	t.Parallel()
 	manager, _ := setupTestManager(t)
 	ctx := context.Background()
 
@@ -146,6 +150,7 @@ func TestManagerGet(t *testing.T) {
 }
 
 func TestManagerGetByPrefix(t *testing.T) {
+	t.Parallel()
 	manager, _ := setupTestManager(t)
 	ctx := context.Background()
 
@@ -162,6 +167,7 @@ func TestManagerGetByPrefix(t *testing.T) {
 }
 
 func TestManagerGetNotFound(t *testing.T) {
+	t.Parallel()
 	manager, _ := setupTestManager(t)
 	ctx := context.Background()
 
@@ -171,6 +177,7 @@ func TestManagerGetNotFound(t *testing.T) {
 }
 
 func TestManagerGetAmbiguous(t *testing.T) {
+	t.Parallel()
 	manager, tmpDir := setupTestManager(t)
 	ctx := context.Background()
 
@@ -195,6 +202,7 @@ func TestManagerGetAmbiguous(t *testing.T) {
 }
 
 func TestManagerList(t *testing.T) {
+	t.Parallel()
 	manager, tmpDir := setupTestManager(t)
 	ctx := context.Background()
 
@@ -240,6 +248,7 @@ func TestManagerList(t *testing.T) {
 }
 
 func TestManagerUpdate(t *testing.T) {
+	t.Parallel()
 	manager, _ := setupTestManager(t)
 	ctx := context.Background()
 
@@ -262,6 +271,7 @@ func TestManagerUpdate(t *testing.T) {
 }
 
 func TestManagerCurrentTicket(t *testing.T) {
+	t.Parallel()
 	manager, tmpDir := setupTestManager(t)
 	ctx := context.Background()
 
@@ -298,6 +308,7 @@ func TestManagerCurrentTicket(t *testing.T) {
 }
 
 func TestReadFileWithContext(t *testing.T) {
+	t.Parallel()
 	tmpDir := t.TempDir()
 	testFile := filepath.Join(tmpDir, "test.txt")
 	testContent := []byte("test content")
@@ -379,6 +390,7 @@ func TestReadFileWithContext(t *testing.T) {
 }
 
 func TestWriteFileWithContext(t *testing.T) {
+	t.Parallel()
 	tmpDir := t.TempDir()
 
 	t.Run("successful write", func(t *testing.T) {
@@ -460,6 +472,7 @@ func TestWriteFileWithContext(t *testing.T) {
 }
 
 func TestContextCancellationScenarios(t *testing.T) {
+	t.Parallel()
 	tmpDir := t.TempDir()
 
 	t.Run("read with cancelled context before operation", func(t *testing.T) {
@@ -561,6 +574,7 @@ func TestContextCancellationScenarios(t *testing.T) {
 }
 
 func TestManagerWithContextCancellation(t *testing.T) {
+	t.Parallel()
 	manager, tmpDir := setupTestManager(t)
 
 	// Create a test ticket first

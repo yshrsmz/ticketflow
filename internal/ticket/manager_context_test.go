@@ -17,6 +17,7 @@ import (
 
 // TestManagerOperationsWithCancelledContext tests all manager operations with cancelled context
 func TestManagerOperationsWithCancelledContext(t *testing.T) {
+	t.Parallel()
 	manager, _ := setupTestManager(t)
 
 	// Create a ticket for operations that need one
@@ -112,6 +113,7 @@ func TestManagerOperationsWithCancelledContext(t *testing.T) {
 
 // TestFileOperationsWithCancelledContext tests file operation helpers with cancelled context
 func TestFileOperationsWithCancelledContext(t *testing.T) {
+	t.Parallel()
 	tmpDir := t.TempDir()
 	testFile := filepath.Join(tmpDir, "test.txt")
 	testContent := []byte("test content")
@@ -154,6 +156,7 @@ func TestFileOperationsWithCancelledContext(t *testing.T) {
 
 // TestConcurrentManagerOperations tests concurrent manager operations with cancellation
 func TestConcurrentManagerOperations(t *testing.T) {
+	t.Parallel()
 	manager, _ := setupTestManager(t)
 
 	// Create some tickets first
@@ -252,6 +255,7 @@ func TestConcurrentManagerOperations(t *testing.T) {
 
 // TestContextTimeoutScenarios tests various timeout scenarios
 func TestContextTimeoutScenarios(t *testing.T) {
+	t.Parallel()
 	manager, _ := setupTestManager(t)
 
 	tests := []struct {
@@ -315,6 +319,7 @@ func TestContextTimeoutScenarios(t *testing.T) {
 
 // TestPartialOperationHandling tests handling of partial operations when cancelled
 func TestPartialOperationHandling(t *testing.T) {
+	t.Parallel()
 	_, _ = setupTestManager(t)
 
 	// Test partial operation cancellation
@@ -340,6 +345,7 @@ func TestPartialOperationHandling(t *testing.T) {
 
 // TestContextWithValues tests that context values are preserved through operations
 func TestContextWithValues(t *testing.T) {
+	t.Parallel()
 	type contextKey string
 	const userKey contextKey = "user"
 	const requestIDKey contextKey = "request-id"
