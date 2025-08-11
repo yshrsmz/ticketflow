@@ -1,8 +1,8 @@
 ---
 priority: 2
-description: "Implement object pooling for Ticket structs and buffers"
+description: Implement object pooling for Ticket structs and buffers
 created_at: "2025-08-10T00:28:49+09:00"
-started_at: null
+started_at: "2025-08-11T22:36:08+09:00"
 closed_at: null
 ---
 
