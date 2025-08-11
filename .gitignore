@@ -40,3 +40,5 @@ benchmarks/results/
 benchmarks/*.prof
 benchmarks/*.svg
 benchmarks/current.txt
+
+.env
