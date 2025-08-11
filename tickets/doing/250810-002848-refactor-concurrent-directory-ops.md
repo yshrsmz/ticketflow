@@ -1,8 +1,8 @@
 ---
 priority: 2
-description: "Implement concurrent directory operations for List command"
+description: Implement concurrent directory operations for List command
 created_at: "2025-08-10T00:28:48+09:00"
-started_at: null
+started_at: "2025-08-11T18:01:03+09:00"
 closed_at: null
 ---
 
