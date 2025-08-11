@@ -42,3 +42,6 @@ benchmarks/*.svg
 benchmarks/current.txt
 
 .env
+
+# Profiling artifacts
+*.prof
