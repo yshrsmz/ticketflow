@@ -26,24 +26,36 @@ fi
 
 echo "Initializing worktree at: $WORKTREE_DIR"
 
-# Create .claude directory if it doesn't exist
-if [ ! -d "$WORKTREE_DIR/.claude" ]; then
-    mkdir -p "$WORKTREE_DIR/.claude"
-fi
+# Define files to symlink from main repository
+# Add more files here as needed
+SYMLINK_TARGETS=(
+    ".claude/settings.local.json"
+    ".env"
+)
 
-# Create symlink for .claude/settings.local.json
-MAIN_SETTINGS="$MAIN_REPO_DIR/.claude/settings.local.json"
-WORKTREE_SETTINGS="$WORKTREE_DIR/.claude/settings.local.json"
+# Create symlinks for all target files
+for TARGET in "${SYMLINK_TARGETS[@]}"; do
+    # Get directory part of the target path
+    TARGET_DIR="$(dirname "$TARGET")"
 
-if [ -f "$MAIN_SETTINGS" ]; then
-    if [ ! -e "$WORKTREE_SETTINGS" ]; then
-        ln -s "$MAIN_SETTINGS" "$WORKTREE_SETTINGS"
-        echo "Created symlink: .claude/settings.local.json -> $MAIN_SETTINGS"
-    else
-        echo ".claude/settings.local.json already exists, skipping symlink creation"
+    # Create directory if needed and it doesn't exist
+    if [ "$TARGET_DIR" != "." ] && [ ! -d "$WORKTREE_DIR/$TARGET_DIR" ]; then
+        mkdir -p "$WORKTREE_DIR/$TARGET_DIR"
     fi
-else
-    echo "Warning: $MAIN_SETTINGS not found, skipping symlink creation"
-fi
+
+    MAIN_FILE="$MAIN_REPO_DIR/$TARGET"
+    WORKTREE_FILE="$WORKTREE_DIR/$TARGET"
+
+    if [ -f "$MAIN_FILE" ]; then
+        if [ ! -e "$WORKTREE_FILE" ]; then
+            ln -s "$MAIN_FILE" "$WORKTREE_FILE"
+            echo "Created symlink: $TARGET -> $MAIN_FILE"
+        else
+            echo "$TARGET already exists, skipping symlink creation"
+        fi
+    else
+        echo "Warning: $MAIN_FILE not found, skipping symlink creation"
+    fi
+done
 
 echo "Worktree initialization complete"
