@@ -248,7 +248,7 @@ func (m *Manager) listConcurrent(ctx context.Context, dirs []string) ([]Ticket, 
 
 	for _, path := range ticketPaths {
 		path := path // Capture for goroutine
-		
+
 		g.Go(func() error {
 			// Acquire semaphore
 			if err := sem.Acquire(ctx, 1); err != nil {
