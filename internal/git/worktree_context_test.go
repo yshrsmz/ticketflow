@@ -260,7 +260,7 @@ func TestWorktreeStateConsistency(t *testing.T) {
 	err := <-errChan
 
 	// If operation was cancelled, verify state
-	if err != nil && contains(err.Error(), "operation cancelled") {
+	if err != nil && strings.Contains(err.Error(), "operation cancelled") {
 		// Verify worktree list is consistent
 		worktrees, listErr := git.ListWorktrees(context.Background())
 		assert.NoError(t, listErr)
@@ -291,9 +291,4 @@ func TestWorktreeContextInheritance(t *testing.T) {
 	_, err := git.ListWorktrees(childCtx)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "operation cancelled")
-}
-
-// contains is a helper function to check if a string contains a substring
-func contains(s, substr string) bool {
-	return strings.Contains(s, substr)
 }

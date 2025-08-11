@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+
 	"github.com/yshrsmz/ticketflow/internal/config"
 	"github.com/yshrsmz/ticketflow/internal/git"
 	"github.com/yshrsmz/ticketflow/internal/ticket"
@@ -216,7 +217,10 @@ func (bt *BenchmarkTimer) Start() {
 	}
 }
 
-// Elapsed returns the elapsed time since the timer was started
+// Elapsed returns the elapsed time since the timer was started.
+// When the timer is stopped, it returns the elapsed time that was captured at the moment Stop() was called.
+// When the timer is running, it returns the current elapsed time since Start() was last called.
+// This allows accurate measurement of specific code sections without including setup/cleanup time.
 func (bt *BenchmarkTimer) Elapsed() time.Duration {
 	if bt.stopped {
 		return bt.elapsedTime // Return stored elapsed time when stopped
