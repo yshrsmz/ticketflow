@@ -400,6 +400,18 @@ Check version and build info:
 ticketflow version
 ```
 
+## Performance
+
+TicketFlow is optimized for handling large numbers of tickets efficiently:
+
+- **Concurrent file operations**: List operations use parallel loading for 10+ tickets
+- **Smart resource management**: Automatic worker pooling based on CPU cores
+- **Optimized for scale**: 50%+ faster listing for 100+ tickets compared to sequential loading
+- **Memory efficient**: Pre-allocated buffers and minimal allocations in hot paths
+- **Context-aware**: All operations support cancellation for responsive UI
+
+See [benchmark results](docs/benchmark-results.md) for detailed performance metrics.
+
 ## Development
 
 ```bash
