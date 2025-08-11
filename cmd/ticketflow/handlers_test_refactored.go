@@ -6,11 +6,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
 	"github.com/yshrsmz/ticketflow/internal/cli"
 )
 
@@ -115,10 +117,10 @@ func TestHandleNewRefactored(t *testing.T) {
 				if tt.errorContains != "" {
 					// Check both the error and stderr for the error message
 					errorFound := false
-					if cmdErr != nil && contains(cmdErr.Error(), tt.errorContains) {
+					if cmdErr != nil && strings.Contains(cmdErr.Error(), tt.errorContains) {
 						errorFound = true
 					}
-					if !errorFound && contains(stderr.String(), tt.errorContains) {
+					if !errorFound && strings.Contains(stderr.String(), tt.errorContains) {
 						errorFound = true
 					}
 					assert.True(t, errorFound, "Expected error containing '%s', got error: %v, stderr: %s",
@@ -267,8 +269,8 @@ func TestHandleShowRefactored(t *testing.T) {
 			if tt.expectedError {
 				assert.Error(t, cmdErr)
 				if tt.errorContains != "" {
-					errorFound := cmdErr != nil && contains(cmdErr.Error(), tt.errorContains) ||
-						contains(stderr.String(), tt.errorContains)
+					errorFound := cmdErr != nil && strings.Contains(cmdErr.Error(), tt.errorContains) ||
+						strings.Contains(stderr.String(), tt.errorContains)
 					assert.True(t, errorFound, "Expected error containing '%s'", tt.errorContains)
 				}
 			} else {
@@ -352,21 +354,4 @@ func TestErrorsExtendedRefactored(t *testing.T) {
 			}
 		})
 	}
-}
-
-// Helper function
-func contains(s, substr string) bool {
-	return len(substr) > 0 && len(s) >= len(substr) &&
-		(s == substr || len(s) > len(substr) &&
-			(s[:len(substr)] == substr || s[len(s)-len(substr):] == substr ||
-				len(s) > len(substr) && findSubstring(s, substr)))
-}
-
-func findSubstring(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
 }

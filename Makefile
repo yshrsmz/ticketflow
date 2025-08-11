@@ -23,6 +23,11 @@ LDFLAGS=-ldflags "-X main.Version=$(VERSION) -X 'main.BuildTime=$(BUILD_TIME)' -
 CURRENT_OS := $(shell go env GOOS)
 CURRENT_ARCH := $(shell go env GOARCH)
 
+# Benchmark variables
+BENCH_TIME ?= 3s
+BENCH_COUNT ?= 3
+BENCH_TIMEOUT ?= 30m
+
 .PHONY: all build test clean install run run-tui build-current build-linux build-mac build-all release-archives init-worktree
 
 # Default target
@@ -68,24 +73,61 @@ coverage:
 
 # Run benchmarks
 bench:
-	$(GOTEST) -bench=. -benchmem ./...
+	$(GOTEST) -bench=. -benchmem -run=^$$ ./...
 
 # Run benchmarks for specific package
 bench-ticket:
-	$(GOTEST) -bench=. -benchmem ./internal/ticket/...
+	$(GOTEST) -bench=. -benchmem -run=^$$ ./internal/ticket/...
 
 bench-cli:
-	$(GOTEST) -bench=. -benchmem ./internal/cli/...
+	$(GOTEST) -bench=. -benchmem -run=^$$ ./internal/cli/...
 
 bench-git:
-	$(GOTEST) -bench=. -benchmem ./internal/git/...
+	$(GOTEST) -bench=. -benchmem -run=^$$ ./internal/git/...
 
 bench-ui:
-	$(GOTEST) -bench=. -benchmem ./internal/ui/...
+	$(GOTEST) -bench=. -benchmem -run=^$$ ./internal/ui/...
 
 # Run benchmarks with detailed output
 bench-verbose:
-	$(GOTEST) -bench=. -benchmem -benchtime=10s -v ./...
+	$(GOTEST) -bench=. -benchmem -benchtime=10s -v -run=^$$ ./...
+
+# Run quick benchmarks for rapid feedback
+bench-quick:
+	@bash benchmarks/run-quick.sh
+
+# Run comprehensive benchmark suite
+bench-comprehensive:
+	@bash benchmarks/run-comprehensive.sh
+
+# Create or update baseline benchmarks
+bench-baseline:
+	@echo "Creating benchmark baseline (benchtime=$(BENCH_TIME), count=$(BENCH_COUNT), timeout=$(BENCH_TIMEOUT))..."
+	@mkdir -p benchmarks
+	$(GOTEST) -bench=. -benchmem -benchtime=$(BENCH_TIME) -count=$(BENCH_COUNT) -timeout=$(BENCH_TIMEOUT) -run=^$$ ./... > benchmarks/baseline.txt 2>&1
+	@echo "Baseline created: benchmarks/baseline.txt"
+
+# Compare current performance with baseline
+bench-compare:
+	@bash benchmarks/compare-with-baseline.sh
+
+# Run benchmarks with CPU profiling
+bench-cpu:
+	@mkdir -p benchmarks/profiles
+	$(GOTEST) -bench=. -benchmem -cpuprofile=benchmarks/profiles/cpu.prof -run=^$$ ./internal/cli
+	@echo "CPU profile saved to benchmarks/profiles/cpu.prof"
+	@echo "View with: go tool pprof benchmarks/profiles/cpu.prof"
+
+# Run benchmarks with memory profiling
+bench-mem:
+	@mkdir -p benchmarks/profiles
+	$(GOTEST) -bench=. -benchmem -memprofile=benchmarks/profiles/mem.prof -run=^$$ ./internal/ticket
+	@echo "Memory profile saved to benchmarks/profiles/mem.prof"
+	@echo "View with: go tool pprof benchmarks/profiles/mem.prof"
+
+# Clean benchmark artifacts
+bench-clean:
+	rm -rf benchmarks/results benchmarks/profiles benchmarks/current.txt
 
 # Run go fmt
 fmt:
@@ -216,6 +258,14 @@ help:
 	@echo "  make bench-cli     - Run CLI benchmarks"
 	@echo "  make bench-git     - Run git benchmarks"
 	@echo "  make bench-ui      - Run UI benchmarks"
+	@echo "  make bench-quick   - Run quick benchmarks for rapid feedback"
+	@echo "  make bench-comprehensive - Run comprehensive benchmark suite"
+	@echo "  make bench-baseline - Create or update baseline benchmarks"
+	@echo "                       (BENCH_TIME=3s BENCH_COUNT=3 BENCH_TIMEOUT=30m)"
+	@echo "  make bench-compare - Compare current performance with baseline"
+	@echo "  make bench-cpu     - Run benchmarks with CPU profiling"
+	@echo "  make bench-mem     - Run benchmarks with memory profiling"
+	@echo "  make bench-clean   - Clean benchmark artifacts"
 	@echo "  make run           - Build and run the application"
 	@echo "  make clean         - Remove build artifacts"
 	@echo "  make deps          - Download dependencies"

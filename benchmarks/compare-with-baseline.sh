@@ -1,0 +1,153 @@
+#!/bin/bash
+
+# compare-with-baseline.sh - Compare current performance with baseline
+set -euo pipefail
+
+# Check for required commands
+command -v go >/dev/null 2>&1 || { echo "Error: 'go' command not found. Please install Go."; exit 1; }
+command -v awk >/dev/null 2>&1 || { echo "Error: 'awk' command not found."; exit 1; }
+
+# Colors for output (with color support detection)
+if [ -t 1 ] && [ "${TERM:-}" != "dumb" ] && command -v tput >/dev/null 2>&1 && [ "$(tput colors 2>/dev/null || echo 0)" -ge 8 ]; then
+    RED='\033[0;31m'
+    GREEN='\033[0;32m'
+    YELLOW='\033[1;33m'
+    NC='\033[0m' # No Color
+else
+    RED=''
+    GREEN=''
+    YELLOW=''
+    NC=''
+fi
+
+BASELINE_FILE="benchmarks/baseline.txt"
+CURRENT_FILE="benchmarks/current.txt"
+THRESHOLD_TIME="${THRESHOLD_TIME:-10}"   # Default 10% regression threshold for time
+THRESHOLD_ALLOC="${THRESHOLD_ALLOC:-20}" # Default 20% regression threshold for allocations
+BENCH_TIME="${BENCH_TIME:-3s}" # Benchmark duration (default: 3s)
+
+# Check if baseline exists
+if [ ! -f "${BASELINE_FILE}" ]; then
+    echo -e "${RED}Error: No baseline file found at ${BASELINE_FILE}${NC}"
+    echo "Run 'make bench-baseline' to create a baseline first."
+    exit 1
+fi
+
+echo -e "${GREEN}Comparing current performance with baseline...${NC}"
+echo "Using thresholds: Time=${THRESHOLD_TIME}%, Allocations=${THRESHOLD_ALLOC}%"
+echo
+
+# Run current benchmarks
+echo -e "${YELLOW}Running current benchmarks (benchtime=${BENCH_TIME})...${NC}"
+go test -bench=. -benchmem -benchtime="${BENCH_TIME}" -run=^$ ./internal/cli ./internal/ticket ./internal/git > "${CURRENT_FILE}" 2>&1
+
+# Function to extract benchmark value
+extract_value() {
+    local line=$1
+    local field=$2
+    echo "$line" | awk "{print \$${field}}"
+}
+
+# Function to calculate percentage change using awk (more portable)
+calc_percentage() {
+    local old=$1
+    local new=$2
+    awk -v old="$old" -v new="$new" 'BEGIN {
+        if (old == 0) {
+            print "0"
+        } else {
+            printf "%.2f", ((new - old) / old) * 100
+        }
+    }'
+}
+
+# Compare benchmarks
+echo -e "${YELLOW}Analyzing results...${NC}"
+echo
+
+regression_found=false
+improvements_found=false
+
+# Process each benchmark in current results
+grep "^Benchmark" "${CURRENT_FILE}" | while IFS= read -r current_line; do
+    bench_name=$(extract_value "$current_line" 1)
+    
+    # Find corresponding baseline using awk for exact matching
+    baseline_line=$(awk -v name="$bench_name" '$1 == name' "${BASELINE_FILE}" 2>/dev/null || true)
+    
+    if [ -z "${baseline_line}" ]; then
+        echo -e "${YELLOW}NEW:${NC} ${bench_name} (no baseline)"
+        continue
+    fi
+    
+    # Extract metrics
+    current_ns=$(extract_value "$current_line" 3)
+    baseline_ns=$(extract_value "$baseline_line" 3)
+    
+    # Remove units (ns/op) if present
+    current_ns=${current_ns%ns/op}
+    baseline_ns=${baseline_ns%ns/op}
+    
+    # Calculate percentage change (handle scientific notation like 1.23e+06)
+    if [[ "$current_ns" =~ ^[0-9]+\.?[0-9]*([eE][+-]?[0-9]+)?$ ]] && [[ "$baseline_ns" =~ ^[0-9]+\.?[0-9]*([eE][+-]?[0-9]+)?$ ]]; then
+        change=$(calc_percentage "$baseline_ns" "$current_ns")
+        
+        # Format output based on change (use awk for comparisons)
+        regression_check=$(awk -v change="$change" -v thresh="${THRESHOLD_TIME}" 'BEGIN { print (change > thresh) ? 1 : 0 }')
+        improvement_check=$(awk -v change="$change" 'BEGIN { print (change < -5) ? 1 : 0 }')
+        
+        if [ "$regression_check" -eq 1 ]; then
+            echo -e "${RED}REGRESSION:${NC} ${bench_name}"
+            echo "  Time: ${baseline_ns} ns/op → ${current_ns} ns/op (+${change}%)"
+            regression_found=true
+        elif [ "$improvement_check" -eq 1 ]; then
+            echo -e "${GREEN}IMPROVED:${NC} ${bench_name}"
+            echo "  Time: ${baseline_ns} ns/op → ${current_ns} ns/op (${change}%)"
+            improvements_found=true
+        fi
+    fi
+    
+    # Check allocations if present
+    if [[ "$current_line" == *"allocs/op"* ]] && [[ "$baseline_line" == *"allocs/op"* ]]; then
+        current_allocs=$(echo "$current_line" | grep -oE '[0-9]+ allocs/op' | awk '{print $1}')
+        baseline_allocs=$(echo "$baseline_line" | grep -oE '[0-9]+ allocs/op' | awk '{print $1}')
+        
+        if [ -n "$current_allocs" ] && [ -n "$baseline_allocs" ]; then
+            alloc_change=$(calc_percentage "$baseline_allocs" "$current_allocs")
+            
+            alloc_regression=$(awk -v change="$alloc_change" -v thresh="${THRESHOLD_ALLOC}" 'BEGIN { print (change > thresh) ? 1 : 0 }')
+            alloc_improvement=$(awk -v change="$alloc_change" 'BEGIN { print (change < -10) ? 1 : 0 }')
+            
+            if [ "$alloc_regression" -eq 1 ]; then
+                echo "  ${RED}Allocations: ${baseline_allocs} → ${current_allocs} (+${alloc_change}%)${NC}"
+                regression_found=true
+            elif [ "$alloc_improvement" -eq 1 ]; then
+                echo "  ${GREEN}Allocations: ${baseline_allocs} → ${current_allocs} (${alloc_change}%)${NC}"
+            fi
+        fi
+    fi
+done
+
+# Summary
+echo
+echo -e "${YELLOW}=== Summary ===${NC}"
+
+if [ "$regression_found" = true ]; then
+    echo -e "${RED}Performance regressions detected!${NC}"
+    echo "Some benchmarks are slower than the baseline by more than ${THRESHOLD_TIME}%"
+    exit_code=1
+else
+    echo -e "${GREEN}No significant regressions detected.${NC}"
+    exit_code=0
+fi
+
+if [ "$improvements_found" = true ]; then
+    echo -e "${GREEN}Performance improvements found!${NC}"
+    echo "Consider updating the baseline with: make bench-baseline"
+fi
+
+echo
+echo "Full results saved to: ${CURRENT_FILE}"
+echo "Baseline file: ${BASELINE_FILE}"
+
+exit $exit_code

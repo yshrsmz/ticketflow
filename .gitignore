@@ -32,3 +32,11 @@ tmp/
 
 # Test artifacts that shouldn't be in source tree
 internal/cli/tickets/
+
+/baseline.txt
+
+# Benchmark artifacts
+benchmarks/results/
+benchmarks/*.prof
+benchmarks/*.svg
+benchmarks/current.txt
