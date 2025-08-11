@@ -100,6 +100,10 @@ Based on initial benchmarks, potential areas for optimization:
 - **Worker management**: Uses `runtime.NumCPU()` with max 8 workers to avoid excessive file handles
 - **Results**: Achieved 50-53% performance improvement for 100+ tickets
 - **Memory impact**: Minimal increase in allocations (~5%) with similar memory usage
+- **Debug logging**: Set log level to debug to see strategy selection and performance metrics
+  ```bash
+  ticketflow --log-level debug list
+  ```
 
 ## How to Interpret Results
 

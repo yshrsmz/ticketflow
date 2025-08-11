@@ -11,12 +11,14 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"time"
 
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/semaphore"
 
 	"github.com/yshrsmz/ticketflow/internal/config"
 	ticketerrors "github.com/yshrsmz/ticketflow/internal/errors"
+	"github.com/yshrsmz/ticketflow/internal/log"
 )
 
 // StatusFilter represents the filter type for listing tickets
@@ -150,15 +152,23 @@ func (m *Manager) List(ctx context.Context, statusFilter StatusFilter) ([]Ticket
 
 	// Use concurrent loading if we have enough files to benefit from it
 	if totalFiles >= concurrencyThreshold {
+		log.Debug("Using concurrent loading strategy",
+			"totalFiles", totalFiles,
+			"threshold", concurrencyThreshold)
 		return m.listConcurrent(ctx, dirs)
 	}
 
 	// Fall back to sequential for small numbers of tickets
+	log.Debug("Using sequential loading strategy",
+		"totalFiles", totalFiles,
+		"threshold", concurrencyThreshold)
 	return m.listSequential(ctx, dirs)
 }
 
 // listSequential lists tickets sequentially (original implementation)
 func (m *Manager) listSequential(ctx context.Context, dirs []string) ([]Ticket, error) {
+	startTime := time.Now()
+
 	// Pre-allocate tickets slice with reasonable capacity based on typical usage
 	// This avoids multiple reallocations during append operations without double-reading directories
 	tickets := make([]Ticket, 0, initialTicketCapacity)
@@ -199,11 +209,17 @@ func (m *Manager) listSequential(ctx context.Context, dirs []string) ([]Ticket, 
 		return tickets[i].CreatedAt.After(tickets[j].CreatedAt.Time)
 	})
 
+	log.Debug("Sequential loading completed",
+		"tickets", len(tickets),
+		"duration", time.Since(startTime))
+
 	return tickets, nil
 }
 
 // listConcurrent lists tickets using concurrent file operations
 func (m *Manager) listConcurrent(ctx context.Context, dirs []string) ([]Ticket, error) {
+	startTime := time.Now()
+
 	// Collect all ticket files to process
 	var ticketPaths []string
 	for _, dir := range dirs {
@@ -235,6 +251,11 @@ func (m *Manager) listConcurrent(ctx context.Context, dirs []string) ([]Ticket, 
 	if numWorkers > 8 {
 		numWorkers = 8
 	}
+
+	log.Debug("Starting concurrent loading",
+		"files", len(ticketPaths),
+		"workers", numWorkers,
+		"cpus", runtime.NumCPU())
 
 	// Create semaphore to limit concurrent file operations
 	sem := semaphore.NewWeighted(int64(numWorkers))
@@ -289,6 +310,12 @@ func (m *Manager) listConcurrent(ctx context.Context, dirs []string) ([]Ticket, 
 		}
 		return tickets[i].CreatedAt.After(tickets[j].CreatedAt.Time)
 	})
+
+	log.Debug("Concurrent loading completed",
+		"tickets", len(tickets),
+		"duration", time.Since(startTime),
+		"files", len(ticketPaths),
+		"workers", numWorkers)
 
 	return tickets, nil
 }
