@@ -45,6 +45,10 @@ const (
 	// concurrencyThreshold is the minimum number of files before using concurrent loading
 	// Benchmark results show goroutine overhead becomes worthwhile at this point
 	concurrencyThreshold = 10
+
+	// maxConcurrentWorkers is the maximum number of concurrent workers for file operations
+	// This prevents excessive file handles and resource exhaustion
+	maxConcurrentWorkers = 8
 )
 
 // Manager manages ticket operations
@@ -59,6 +63,25 @@ func NewManager(cfg *config.Config, projectRoot string) *Manager {
 		config:      cfg,
 		projectRoot: projectRoot,
 	}
+}
+
+// calculateOptimalWorkers determines the optimal number of workers for concurrent operations
+// based on available CPUs and the number of files to process
+func calculateOptimalWorkers(numCPU, fileCount int) int {
+	// Start with the number of CPUs
+	workers := numCPU
+
+	// Don't use more workers than files
+	if workers > fileCount {
+		workers = fileCount
+	}
+
+	// Cap at maximum to avoid excessive file handles
+	if workers > maxConcurrentWorkers {
+		workers = maxConcurrentWorkers
+	}
+
+	return workers
 }
 
 // Create creates a new ticket in the todo directory
@@ -194,6 +217,9 @@ func (m *Manager) listSequential(ctx context.Context, dirs []string) ([]Ticket, 
 			ticket, err := m.loadTicket(ctx, ticketPath)
 			if err != nil {
 				// Skip invalid tickets
+				log.Debug("Skipping invalid ticket",
+					"path", ticketPath,
+					"error", err)
 				continue
 			}
 
@@ -243,14 +269,7 @@ func (m *Manager) listConcurrent(ctx context.Context, dirs []string) ([]Ticket, 
 	}
 
 	// Determine optimal number of workers
-	numWorkers := runtime.NumCPU()
-	if numWorkers > len(ticketPaths) {
-		numWorkers = len(ticketPaths)
-	}
-	// Cap at 8 workers to avoid excessive file handles
-	if numWorkers > 8 {
-		numWorkers = 8
-	}
+	numWorkers := calculateOptimalWorkers(runtime.NumCPU(), len(ticketPaths))
 
 	log.Debug("Starting concurrent loading",
 		"files", len(ticketPaths),
@@ -286,6 +305,9 @@ func (m *Manager) listConcurrent(ctx context.Context, dirs []string) ([]Ticket, 
 			ticket, err := m.loadTicket(ctx, path)
 			if err != nil {
 				// Skip invalid tickets - don't fail the entire operation
+				log.Debug("Skipping invalid ticket",
+					"path", path,
+					"error", err)
 				return nil
 			}
 
