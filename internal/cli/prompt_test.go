@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -9,61 +8,43 @@ import (
 )
 
 func TestIsInteractive(t *testing.T) {
+	// Cannot use t.Parallel() - tests use t.Setenv() which is incompatible with t.Parallel()
 	tests := []struct {
 		name     string
-		setup    func()
-		teardown func()
+		envVar   string
+		envValue string
 		want     bool
 	}{
 		{
-			name: "CI environment variable set",
-			setup: func() {
-				_ = os.Setenv("CI", "true")
-			},
-			teardown: func() {
-				_ = os.Unsetenv("CI")
-			},
-			want: false,
+			name:     "CI environment variable set",
+			envVar:   "CI",
+			envValue: "true",
+			want:     false,
 		},
 		{
-			name: "GITHUB_ACTIONS environment variable set",
-			setup: func() {
-				_ = os.Setenv("GITHUB_ACTIONS", "true")
-			},
-			teardown: func() {
-				_ = os.Unsetenv("GITHUB_ACTIONS")
-			},
-			want: false,
+			name:     "GITHUB_ACTIONS environment variable set",
+			envVar:   "GITHUB_ACTIONS",
+			envValue: "true",
+			want:     false,
 		},
 		{
-			name: "TICKETFLOW_NON_INTERACTIVE set to true",
-			setup: func() {
-				_ = os.Setenv("TICKETFLOW_NON_INTERACTIVE", "true")
-			},
-			teardown: func() {
-				_ = os.Unsetenv("TICKETFLOW_NON_INTERACTIVE")
-			},
-			want: false,
+			name:     "TICKETFLOW_NON_INTERACTIVE set to true",
+			envVar:   "TICKETFLOW_NON_INTERACTIVE",
+			envValue: "true",
+			want:     false,
 		},
 		{
-			name: "TICKETFLOW_NON_INTERACTIVE set to false",
-			setup: func() {
-				_ = os.Setenv("TICKETFLOW_NON_INTERACTIVE", "false")
-			},
-			teardown: func() {
-				_ = os.Unsetenv("TICKETFLOW_NON_INTERACTIVE")
-			},
-			want: true, // Should be interactive because the value is not "true"
+			name:     "TICKETFLOW_NON_INTERACTIVE set to false",
+			envVar:   "TICKETFLOW_NON_INTERACTIVE",
+			envValue: "false",
+			want:     true, // Should be interactive because the value is not "true"
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if tt.setup != nil {
-				tt.setup()
-			}
-			if tt.teardown != nil {
-				defer tt.teardown()
+			if tt.envVar != "" {
+				t.Setenv(tt.envVar, tt.envValue)
 			}
 
 			// Note: We can't easily test the terminal detection part in unit tests
@@ -81,18 +62,9 @@ func TestIsInteractive(t *testing.T) {
 }
 
 func TestPromptNonInteractive(t *testing.T) {
-	// Save original env var
-	originalCI := os.Getenv("CI")
-	defer func() {
-		if originalCI != "" {
-			_ = os.Setenv("CI", originalCI)
-		} else {
-			_ = os.Unsetenv("CI")
-		}
-	}()
-
+	// Cannot use t.Parallel() - test uses t.Setenv() which is incompatible with t.Parallel()
 	// Set CI environment to simulate non-interactive mode
-	_ = os.Setenv("CI", "true")
+	t.Setenv("CI", "true")
 
 	tests := []struct {
 		name        string
@@ -144,18 +116,9 @@ func TestPromptNonInteractive(t *testing.T) {
 }
 
 func TestConfirmPromptNonInteractive(t *testing.T) {
-	// Save original env var
-	originalCI := os.Getenv("CI")
-	defer func() {
-		if originalCI != "" {
-			_ = os.Setenv("CI", originalCI)
-		} else {
-			_ = os.Unsetenv("CI")
-		}
-	}()
-
+	// Cannot use t.Parallel() - test uses t.Setenv() which is incompatible with t.Parallel()
 	// Set CI environment to simulate non-interactive mode
-	_ = os.Setenv("CI", "true")
+	t.Setenv("CI", "true")
 
 	tests := []struct {
 		name       string

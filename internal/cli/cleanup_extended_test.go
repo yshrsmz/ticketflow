@@ -14,6 +14,7 @@ import (
 )
 
 func TestCleanupResult_HasErrors(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		result   CleanupResult
@@ -52,6 +53,7 @@ func TestCleanupResult_HasErrors(t *testing.T) {
 }
 
 func TestAutoCleanup(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name            string
 		dryRun          bool
@@ -198,6 +200,7 @@ func TestAutoCleanup(t *testing.T) {
 }
 
 func TestCleanOrphanedWorktrees(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name          string
 		dryRun        bool
@@ -306,6 +309,7 @@ func TestCleanOrphanedWorktrees(t *testing.T) {
 }
 
 func TestSplitLines(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		input    string
@@ -352,6 +356,7 @@ func TestSplitLines(t *testing.T) {
 }
 
 func TestCleanupStats(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name          string
 		setupMocks    func(*mocks.MockGitClient, *mocks.MockTicketManager)
@@ -430,6 +435,7 @@ func TestCleanupStats(t *testing.T) {
 
 // Test error scenarios
 func TestAutoCleanup_ErrorHandling(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 
 	mockGit := new(mocks.MockGitClient)

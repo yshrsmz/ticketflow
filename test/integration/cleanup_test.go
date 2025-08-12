@@ -13,7 +13,7 @@ import (
 )
 
 func TestCleanupTicketWithForceFlag(t *testing.T) {
-	t.Parallel()
+	// Cannot use t.Parallel() - TestCleanupTicketWithWorktreeAndForceFlag in same file uses os.Chdir
 
 	// Setup test repository
 	repoPath := setupTestRepo(t)

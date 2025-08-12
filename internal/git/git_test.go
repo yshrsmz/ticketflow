@@ -10,6 +10,7 @@ import (
 )
 
 func TestNewWithTimeout(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name        string
 		repoPath    string
@@ -57,6 +58,7 @@ func TestNewWithTimeout(t *testing.T) {
 }
 
 func TestNew(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		repoPath string
@@ -84,6 +86,7 @@ func TestNew(t *testing.T) {
 }
 
 func TestExecWithTimeout(t *testing.T) {
+	t.Parallel()
 	// Create a git instance with a short but reasonable timeout
 	// Using 50ms to reduce flakiness while still testing timeout behavior
 	g := NewWithTimeout(".", 50*time.Millisecond)
@@ -106,6 +109,7 @@ func TestExecWithTimeout(t *testing.T) {
 }
 
 func TestExecWithContextTimeout(t *testing.T) {
+	t.Parallel()
 	// Create a git instance with a long timeout
 	g := NewWithTimeout(".", 30*time.Second)
 
@@ -128,6 +132,7 @@ func TestExecWithContextTimeout(t *testing.T) {
 }
 
 func TestRunInWorktreePreservesTimeout(t *testing.T) {
+	t.Parallel()
 	// Create a git instance with custom timeout
 	g := NewWithTimeout(".", 45*time.Second)
 
@@ -139,6 +144,7 @@ func TestRunInWorktreePreservesTimeout(t *testing.T) {
 }
 
 func TestIsValidBranchCharEdgeCases(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name string
 		ch   rune
@@ -164,6 +170,7 @@ func TestIsValidBranchCharEdgeCases(t *testing.T) {
 }
 
 func TestIsValidBranchName(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		branch   string
@@ -218,6 +225,7 @@ func TestIsValidBranchName(t *testing.T) {
 }
 
 func TestBranchExists(t *testing.T) {
+	t.Parallel()
 	// Setup test git repo
 	tmpDir := t.TempDir()
 	git := New(tmpDir)

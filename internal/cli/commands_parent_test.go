@@ -15,6 +15,7 @@ import (
 )
 
 func TestApp_NewTicket_WithParent(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name           string
 		slug           string

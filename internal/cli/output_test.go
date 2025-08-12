@@ -8,6 +8,7 @@ import (
 )
 
 func TestParseOutputFormat(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		input    string
 		expected OutputFormat
@@ -29,6 +30,7 @@ func TestParseOutputFormat(t *testing.T) {
 }
 
 func TestFormatDuration(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		duration time.Duration
 		expected string
