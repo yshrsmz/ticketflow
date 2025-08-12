@@ -16,28 +16,28 @@ func TestIsInteractive(t *testing.T) {
 		want     bool
 	}{
 		{
-			name: "CI environment variable set",
-			envVar: "CI",
+			name:     "CI environment variable set",
+			envVar:   "CI",
 			envValue: "true",
-			want: false,
+			want:     false,
 		},
 		{
-			name: "GITHUB_ACTIONS environment variable set",
-			envVar: "GITHUB_ACTIONS",
+			name:     "GITHUB_ACTIONS environment variable set",
+			envVar:   "GITHUB_ACTIONS",
 			envValue: "true",
-			want: false,
+			want:     false,
 		},
 		{
-			name: "TICKETFLOW_NON_INTERACTIVE set to true",
-			envVar: "TICKETFLOW_NON_INTERACTIVE",
+			name:     "TICKETFLOW_NON_INTERACTIVE set to true",
+			envVar:   "TICKETFLOW_NON_INTERACTIVE",
 			envValue: "true",
-			want: false,
+			want:     false,
 		},
 		{
-			name: "TICKETFLOW_NON_INTERACTIVE set to false",
-			envVar: "TICKETFLOW_NON_INTERACTIVE",
+			name:     "TICKETFLOW_NON_INTERACTIVE set to false",
+			envVar:   "TICKETFLOW_NON_INTERACTIVE",
 			envValue: "false",
-			want: true, // Should be interactive because the value is not "true"
+			want:     true, // Should be interactive because the value is not "true"
 		},
 	}
 
