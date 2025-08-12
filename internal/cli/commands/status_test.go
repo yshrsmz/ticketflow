@@ -9,7 +9,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/yshrsmz/ticketflow/internal/cli"
-	"github.com/yshrsmz/ticketflow/internal/command"
 )
 
 // MockApp is a mock implementation of cli.App for testing
@@ -26,7 +25,7 @@ func TestStatusCommand_Interface(t *testing.T) {
 	cmd := NewStatusCommand()
 
 	// Verify it implements the Command interface
-	var _ command.Command = cmd
+	var _ = cmd
 
 	assert.Equal(t, "status", cmd.Name())
 	assert.Nil(t, cmd.Aliases())
@@ -82,28 +81,58 @@ func TestStatusCommand_SetupFlags(t *testing.T) {
 func TestStatusCommand_Validate(t *testing.T) {
 	cmd := &StatusCommand{}
 
-	// Status command accepts no arguments, so validation should always pass
 	tests := []struct {
-		name  string
-		flags interface{}
-		args  []string
+		name      string
+		flags     interface{}
+		args      []string
+		wantError bool
+		errorMsg  string
 	}{
 		{
-			name:  "no arguments",
-			flags: &statusFlags{format: "text"},
-			args:  []string{},
+			name:      "valid text format",
+			flags:     &statusFlags{format: "text"},
+			args:      []string{},
+			wantError: false,
 		},
 		{
-			name:  "with unexpected arguments",
-			flags: &statusFlags{format: "json"},
-			args:  []string{"extra", "args"},
+			name:      "valid json format",
+			flags:     &statusFlags{format: "json"},
+			args:      []string{},
+			wantError: false,
+		},
+		{
+			name:      "invalid format",
+			flags:     &statusFlags{format: "xml"},
+			args:      []string{},
+			wantError: true,
+			errorMsg:  `invalid format: "xml" (must be 'text' or 'json')`,
+		},
+		{
+			name:      "empty format defaults to text",
+			flags:     &statusFlags{format: ""},
+			args:      []string{},
+			wantError: true,
+			errorMsg:  `invalid format: "" (must be 'text' or 'json')`,
+		},
+		{
+			name:      "with unexpected arguments but valid format",
+			flags:     &statusFlags{format: "json"},
+			args:      []string{"extra", "args"},
+			wantError: false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := cmd.Validate(tt.flags, tt.args)
-			assert.NoError(t, err)
+			if tt.wantError {
+				assert.Error(t, err)
+				if tt.errorMsg != "" {
+					assert.EqualError(t, err, tt.errorMsg)
+				}
+			} else {
+				assert.NoError(t, err)
+			}
 		})
 	}
 }
@@ -187,4 +216,3 @@ func TestStatusCommand_Execute_WithMockApp(t *testing.T) {
 		})
 	}
 }
-

@@ -3,6 +3,7 @@ package commands
 import (
 	"context"
 	"flag"
+	"fmt"
 
 	"github.com/yshrsmz/ticketflow/internal/cli"
 	"github.com/yshrsmz/ticketflow/internal/command"
@@ -50,8 +51,14 @@ func (c *StatusCommand) SetupFlags(fs *flag.FlagSet) interface{} {
 
 // Validate checks if the command arguments are valid
 func (c *StatusCommand) Validate(flags interface{}, args []string) error {
-	// No validation needed - status command accepts no arguments
-	// and format flag validation is handled by ParseOutputFormat
+	// Extract flags
+	f := flags.(*statusFlags)
+
+	// Validate format flag
+	if f.format != "text" && f.format != "json" {
+		return fmt.Errorf("invalid format: %q (must be 'text' or 'json')", f.format)
+	}
+
 	return nil
 }
 
@@ -70,4 +77,3 @@ func (c *StatusCommand) Execute(ctx context.Context, flags interface{}, args []s
 	// Delegate to App's Status method
 	return app.Status(ctx, outputFormat)
 }
-
