@@ -46,7 +46,11 @@ func TestInitCommand(t *testing.T) {
 		// Create a temporary directory for testing
 		tmpDir, err := os.MkdirTemp("", "ticketflow-init-test-*")
 		require.NoError(t, err)
-		defer os.RemoveAll(tmpDir)
+		defer func() {
+			if err := os.RemoveAll(tmpDir); err != nil {
+				t.Logf("failed to remove temp dir %s: %v", tmpDir, err)
+			}
+		}()
 
 		// Change to temp directory
 		originalWd, err := os.Getwd()
@@ -94,7 +98,11 @@ func TestInitCommand(t *testing.T) {
 		// Create a temporary directory for testing
 		tmpDir, err := os.MkdirTemp("", "ticketflow-init-test-already-*")
 		require.NoError(t, err)
-		defer os.RemoveAll(tmpDir)
+		defer func() {
+			if err := os.RemoveAll(tmpDir); err != nil {
+				t.Logf("failed to remove temp dir %s: %v", tmpDir, err)
+			}
+		}()
 
 		// Change to temp directory
 		originalWd, err := os.Getwd()
@@ -134,7 +142,11 @@ func TestInitCommand(t *testing.T) {
 		// Create a temporary directory for testing (without git init)
 		tmpDir, err := os.MkdirTemp("", "ticketflow-init-test-no-git-*")
 		require.NoError(t, err)
-		defer os.RemoveAll(tmpDir)
+		defer func() {
+			if err := os.RemoveAll(tmpDir); err != nil {
+				t.Logf("failed to remove temp dir %s: %v", tmpDir, err)
+			}
+		}()
 
 		// Change to temp directory
 		originalWd, err := os.Getwd()
