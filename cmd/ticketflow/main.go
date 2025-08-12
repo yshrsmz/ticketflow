@@ -12,6 +12,8 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/yshrsmz/ticketflow/internal/cli"
+	"github.com/yshrsmz/ticketflow/internal/cli/commands"
+	"github.com/yshrsmz/ticketflow/internal/command"
 	"github.com/yshrsmz/ticketflow/internal/config"
 	"github.com/yshrsmz/ticketflow/internal/git"
 	"github.com/yshrsmz/ticketflow/internal/ticket"
@@ -24,6 +26,18 @@ var (
 	BuildTime = "unknown"
 	GitCommit = "unknown"
 )
+
+// commandRegistry holds all migrated commands
+var commandRegistry = command.NewRegistry()
+
+func init() {
+	// Register migrated commands
+	if err := commandRegistry.Register(commands.NewVersionCommand(Version, GitCommit, BuildTime)); err != nil {
+		// Log error but continue - allow program to run with degraded functionality
+		// This should never happen in practice but we handle it gracefully
+		fmt.Fprintf(os.Stderr, "Warning: failed to register version command: %v\n", err)
+	}
+}
 
 func main() {
 	// Set up graceful shutdown handling:
@@ -139,7 +153,13 @@ func runCLI(ctx context.Context) error {
 		return nil
 	}
 
-	// Parse command
+	// Check if command is in the new registry (for migrated commands)
+	// This now handles both direct commands and aliases
+	if cmd, ok := commandRegistry.Get(os.Args[1]); ok {
+		return executeNewCommand(ctx, cmd, os.Args[2:])
+	}
+
+	// Fall back to old switch statement for unmigrated commands
 	switch os.Args[1] {
 	case "init":
 		return parseAndExecute(ctx, Command{
@@ -315,13 +335,8 @@ func runCLI(ctx context.Context) error {
 		printUsage()
 		return nil
 
-	case "version", "-v", "--version":
-		fmt.Printf("ticketflow version %s\n", Version)
-		if Version != "dev" || GitCommit != "unknown" {
-			fmt.Printf("  Git commit: %s\n", GitCommit)
-			fmt.Printf("  Built at:   %s\n", BuildTime)
-		}
-		return nil
+	// version command has been migrated to the registry
+	// Handled above with aliases
 
 	default:
 		return fmt.Errorf("unknown command: %s", os.Args[1])
