@@ -90,7 +90,6 @@ func (c *HelpCommand) showGeneralHelp() error {
 		usage       string
 		description string
 	}{
-		{"init", "Initialize ticket system"},
 		{"new <slug> [options]", "Create new ticket"},
 		{"list [options]", "List tickets"},
 		{"show <ticket> [options]", "Show ticket details"},
