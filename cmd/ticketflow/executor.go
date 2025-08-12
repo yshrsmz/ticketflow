@@ -37,4 +37,3 @@ func executeNewCommand(ctx context.Context, cmd command.Command, args []string) 
 	// Execute command
 	return cmd.Execute(ctx, cmdFlags, fs.Args())
 }
-

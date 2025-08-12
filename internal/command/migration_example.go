@@ -242,4 +242,3 @@ func MigrationStep3_RemoveOldCommandStruct() {
 //
 //     return cmd.Execute(ctx, flags, fs.Args())
 // }
-

@@ -92,4 +92,3 @@ func TestVersionCommand(t *testing.T) {
 		assert.False(t, strings.Contains(output, "Built at"))
 	})
 }
-

@@ -65,4 +65,3 @@ func (c *VersionCommand) Execute(ctx context.Context, flags interface{}, args []
 	}
 	return nil
 }
-
