@@ -3,7 +3,7 @@ priority: 2
 description: Migrate help command to new Command interface
 created_at: "2025-08-12T15:28:24+09:00"
 started_at: "2025-08-12T16:59:50+09:00"
-closed_at: null
+closed_at: "2025-08-12T18:13:34+09:00"
 related:
     - parent:250810-003001-refactor-command-interface
 ---
