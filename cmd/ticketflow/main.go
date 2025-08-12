@@ -44,6 +44,13 @@ func init() {
 		// This should never happen in practice but we handle it gracefully
 		fmt.Fprintf(os.Stderr, "Warning: failed to register help command: %v\n", err)
 	}
+
+	// Register init command
+	if err := commandRegistry.Register(commands.NewInitCommand()); err != nil {
+		// Log error but continue - allow program to run with degraded functionality
+		// This should never happen in practice but we handle it gracefully
+		fmt.Fprintf(os.Stderr, "Warning: failed to register init command: %v\n", err)
+	}
 }
 
 func main() {
@@ -173,14 +180,6 @@ func runCLI(ctx context.Context) error {
 
 	// Fall back to old switch statement for unmigrated commands
 	switch os.Args[1] {
-	case "init":
-		return parseAndExecute(ctx, Command{
-			Name: "init",
-			Execute: func(ctx context.Context, fs *flag.FlagSet, flags interface{}) error {
-				return handleInit(ctx)
-			},
-		}, os.Args[2:])
-
 	case "new":
 		return parseAndExecute(ctx, Command{
 			Name:         "new",
@@ -351,11 +350,6 @@ func runCLI(ctx context.Context) error {
 	default:
 		return fmt.Errorf("unknown command: %s", os.Args[1])
 	}
-}
-
-func handleInit(ctx context.Context) error {
-	// Special case: init doesn't require existing config
-	return cli.InitCommand(ctx)
 }
 
 func handleNew(ctx context.Context, slug, parent, format string) error {
