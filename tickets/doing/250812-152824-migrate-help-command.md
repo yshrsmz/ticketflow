@@ -1,8 +1,8 @@
 ---
 priority: 2
-description: "Migrate help command to new Command interface"
+description: Migrate help command to new Command interface
 created_at: "2025-08-12T15:28:24+09:00"
-started_at: null
+started_at: "2025-08-12T16:59:50+09:00"
 closed_at: null
 related:
     - parent:250810-003001-refactor-command-interface
@@ -15,15 +15,15 @@ Migrate the `help` command (including `-h` and `--help` aliases) to use the new 
 ## Tasks
 Make sure to update task status when you finish it. Also, always create a commit for each task you finished.
 
-- [ ] Create `internal/cli/commands/help.go` implementing the Command interface
-- [ ] Implement help text generation from registered commands
-- [ ] Add unit tests for help command
-- [ ] Update main.go to handle help aliases through registry
-- [ ] Remove help case from switch statement
-- [ ] Test all help command variations (help, -h, --help)
-- [ ] Run `make test` to run the tests
-- [ ] Run `make vet`, `make fmt` and `make lint`
-- [ ] Update migration guide with completion status
+- [x] Create `internal/cli/commands/help.go` implementing the Command interface
+- [x] Implement help text generation from registered commands
+- [x] Add unit tests for help command
+- [x] Update main.go to handle help aliases through registry
+- [x] Remove help case from switch statement
+- [x] Test all help command variations (help, -h, --help)
+- [x] Run `make test` to run the tests
+- [x] Run `make vet`, `make fmt` and `make lint`
+- [x] Update migration guide with completion status
 - [ ] Get developer approval before closing
 
 ## Implementation Notes
