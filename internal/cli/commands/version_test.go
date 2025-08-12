@@ -54,11 +54,12 @@ func TestVersionCommand(t *testing.T) {
 		err := cmd.Execute(context.Background(), nil, []string{})
 		require.NoError(t, err)
 
-		w.Close()
+		require.NoError(t, w.Close())
 		os.Stdout = old
 
 		var buf bytes.Buffer
-		io.Copy(&buf, r)
+		_, err = io.Copy(&buf, r)
+		require.NoError(t, err)
 		output := buf.String()
 
 		assert.Contains(t, output, "ticketflow version 1.2.3")
@@ -77,11 +78,12 @@ func TestVersionCommand(t *testing.T) {
 		err := cmd.Execute(context.Background(), nil, []string{})
 		require.NoError(t, err)
 
-		w.Close()
+		require.NoError(t, w.Close())
 		os.Stdout = old
 
 		var buf bytes.Buffer
-		io.Copy(&buf, r)
+		_, err = io.Copy(&buf, r)
+		require.NoError(t, err)
 		output := buf.String()
 
 		assert.Contains(t, output, "ticketflow version dev")
@@ -90,3 +92,4 @@ func TestVersionCommand(t *testing.T) {
 		assert.False(t, strings.Contains(output, "Built at"))
 	})
 }
+

@@ -14,8 +14,7 @@ func executeNewCommand(ctx context.Context, cmd command.Command, args []string) 
 	fs := flag.NewFlagSet(cmd.Name(), flag.ExitOnError)
 
 	// Setup command-specific flags
-	var cmdFlags interface{}
-	cmdFlags = cmd.SetupFlags(fs)
+	cmdFlags := cmd.SetupFlags(fs)
 
 	// Add logging flags (same as existing system)
 	loggingOpts := cli.AddLoggingFlags(fs)
@@ -38,3 +37,4 @@ func executeNewCommand(ctx context.Context, cmd command.Command, args []string) 
 	// Execute command
 	return cmd.Execute(ctx, cmdFlags, fs.Args())
 }
+

@@ -19,7 +19,7 @@ type mockCommand struct {
 }
 
 func (m *mockCommand) Name() string        { return m.name }
-func (m *mockCommand) Aliases() []string  { return m.aliases }
+func (m *mockCommand) Aliases() []string   { return m.aliases }
 func (m *mockCommand) Description() string { return m.description }
 func (m *mockCommand) Usage() string       { return m.usage }
 

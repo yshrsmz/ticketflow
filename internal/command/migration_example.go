@@ -7,8 +7,8 @@ import (
 	"context"
 	"flag"
 	"fmt"
-
-	"github.com/yshrsmz/ticketflow/internal/cli"
+	// Note: This import would be needed for real implementation
+	// "github.com/yshrsmz/ticketflow/internal/cli"
 )
 
 // Example 1: Migrate the "version" command (simplest case)
@@ -19,7 +19,7 @@ type VersionCommand struct {
 }
 
 func (c *VersionCommand) Name() string        { return "version" }
-func (c *VersionCommand) Aliases() []string  { return []string{"-v", "--version"} }
+func (c *VersionCommand) Aliases() []string   { return []string{"-v", "--version"} }
 func (c *VersionCommand) Description() string { return "Show version information" }
 func (c *VersionCommand) Usage() string       { return "version" }
 
@@ -44,7 +44,8 @@ func (c *VersionCommand) Execute(ctx context.Context, flags interface{}, args []
 
 // Example 2: Migrate the "list" command (with flags)
 type ListCommand struct {
-	app *cli.App
+	// app would be used in real implementation
+	// app *cli.App
 }
 
 type listFlags struct {
@@ -54,7 +55,7 @@ type listFlags struct {
 }
 
 func (c *ListCommand) Name() string        { return "list" }
-func (c *ListCommand) Aliases() []string  { return nil }
+func (c *ListCommand) Aliases() []string   { return nil }
 func (c *ListCommand) Description() string { return "List tickets" }
 func (c *ListCommand) Usage() string       { return "list [flags]" }
 
@@ -88,7 +89,8 @@ func (c *ListCommand) Execute(ctx context.Context, flags interface{}, args []str
 
 // Example 3: Migrate the "new" command (with required arguments)
 type NewCommand struct {
-	app *cli.App
+	// app would be used in real implementation
+	// app *cli.App
 }
 
 type newFlags struct {
@@ -98,7 +100,7 @@ type newFlags struct {
 }
 
 func (c *NewCommand) Name() string        { return "new" }
-func (c *NewCommand) Aliases() []string  { return nil }
+func (c *NewCommand) Aliases() []string   { return nil }
 func (c *NewCommand) Description() string { return "Create a new ticket" }
 func (c *NewCommand) Usage() string       { return "new [flags] <slug>" }
 
@@ -120,7 +122,7 @@ func (c *NewCommand) Validate(flags interface{}, args []string) error {
 
 func (c *NewCommand) Execute(ctx context.Context, flags interface{}, args []string) error {
 	_ = flags.(*newFlags) // Would be used in real implementation
-	_ = args[0]            // slug - Would be used in real implementation
+	_ = args[0]           // slug - Would be used in real implementation
 	// This would call the existing handleNew function or inline its logic
 	// NOTE: In real implementation, you'd need to convert string to proper types
 	// return c.app.NewTicket(ctx, slug, parent, cli.OutputFormat(f.format))
@@ -168,27 +170,30 @@ func (a *CommandAdapter) ToLegacyCommand() interface{} {
 func MigrationStep1_UseRegistryForDispatch() {
 	// Step 1: Create registry and register commands
 	registry := NewRegistry()
-	
+
 	// Register migrated commands
-	registry.Register(&VersionCommand{
+	if err := registry.Register(&VersionCommand{
 		Version:   "1.0.0",
 		GitCommit: "abc123",
 		BuildTime: "2024-01-01",
-	})
-	
+	}); err != nil {
+		// Handle error in real implementation
+		_ = err
+	}
+
 	// In main.go, replace the switch statement with:
 	/*
-	if cmd, ok := registry.Get(os.Args[1]); ok {
-		// Use the new command
-		return executeCommand(ctx, cmd, os.Args[2:])
-	} else {
-		// Fall back to old switch for unmigrated commands
-		switch os.Args[1] {
-		case "list":
-			// old implementation
-		// ... other unmigrated commands
+		if cmd, ok := registry.Get(os.Args[1]); ok {
+			// Use the new command
+			return executeCommand(ctx, cmd, os.Args[2:])
+		} else {
+			// Fall back to old switch for unmigrated commands
+			switch os.Args[1] {
+			case "list":
+				// old implementation
+			// ... other unmigrated commands
+			}
 		}
-	}
 	*/
 }
 
@@ -198,12 +203,12 @@ func MigrationStep2_MoveCommandsToSeparateFiles() {
 	// internal/cli/commands/list.go
 	// internal/cli/commands/new.go
 	// etc.
-	
+
 	// Each file would have an init() function that registers itself:
 	/*
-	func init() {
-		DefaultRegistry.Register(&VersionCommand{...})
-	}
+		func init() {
+			DefaultRegistry.Register(&VersionCommand{...})
+		}
 	*/
 }
 
@@ -215,33 +220,26 @@ func MigrationStep3_RemoveOldCommandStruct() {
 	// - Remove the large switch statement from main.go
 }
 
-// executeCommand is the new unified command executor
-func executeCommand(ctx context.Context, cmd Command, args []string) error {
-	// Create flag set
-	fs := flag.NewFlagSet(cmd.Name(), flag.ExitOnError)
-	
-	// Setup flags
-	var flags interface{}
-	flags = cmd.SetupFlags(fs)
-	
-	// Add logging flags (this would need to be refactored to work with the new system)
-	loggingOpts := cli.AddLoggingFlags(fs)
-	
-	// Parse flags
-	if err := fs.Parse(args); err != nil {
-		return err
-	}
-	
-	// Configure logging
-	if err := cli.ConfigureLogging(loggingOpts); err != nil {
-		return err
-	}
-	
-	// Validate
-	if err := cmd.Validate(flags, fs.Args()); err != nil {
-		return err
-	}
-	
-	// Execute
-	return cmd.Execute(ctx, flags, fs.Args())
-}
+// The executeCommand function would be the new unified command executor
+// Example implementation (after migration is complete):
+//
+// func executeCommand(ctx context.Context, cmd Command, args []string) error {
+//     fs := flag.NewFlagSet(cmd.Name(), flag.ExitOnError)
+//     flags := cmd.SetupFlags(fs)
+//     loggingOpts := cli.AddLoggingFlags(fs)
+//
+//     if err := fs.Parse(args); err != nil {
+//         return err
+//     }
+//
+//     if err := cli.ConfigureLogging(loggingOpts); err != nil {
+//         return err
+//     }
+//
+//     if err := cmd.Validate(flags, fs.Args()); err != nil {
+//         return err
+//     }
+//
+//     return cmd.Execute(ctx, flags, fs.Args())
+// }
+

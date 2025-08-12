@@ -27,7 +27,7 @@ type testFlags struct {
 }
 
 func (c *testCommand) Name() string        { return c.name }
-func (c *testCommand) Aliases() []string  { return c.aliases }
+func (c *testCommand) Aliases() []string   { return c.aliases }
 func (c *testCommand) Description() string { return c.description }
 func (c *testCommand) Usage() string       { return c.usage }
 
