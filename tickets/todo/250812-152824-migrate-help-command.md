@@ -32,3 +32,9 @@ Make sure to update task status when you finish it. Also, always create a commit
 - Help command should list all available commands from registry
 - Consider adding command descriptions to the help output
 - Ensure backward compatibility during migration
+
+## References
+
+- See `docs/COMMAND_MIGRATION_GUIDE.md` for detailed migration instructions
+- Review `internal/cli/commands/version.go` for example implementation
+- Check `cmd/ticketflow/executor.go` for command execution pattern

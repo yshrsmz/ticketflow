@@ -32,3 +32,10 @@ Make sure to update task status when you finish it. Also, always create a commit
 - Currently calls `cli.InitCommand(ctx)` directly
 - Need to handle this special case in the command implementation
 - Follow the version command pattern for the basic structure
+
+## References
+
+- See `docs/COMMAND_MIGRATION_GUIDE.md` for detailed migration instructions
+- Review `internal/cli/commands/version.go` for example implementation
+- Check `cmd/ticketflow/executor.go` for command execution pattern
+- Note: Init command has special handling in the migration guide

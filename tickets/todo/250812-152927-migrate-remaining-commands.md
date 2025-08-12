@@ -75,3 +75,12 @@ Complete the migration of all remaining commands to the new Command interface an
 - Clean separation of concerns
 - Each command in its own file with tests
 - Documentation fully updated
+
+## References
+
+- **Migration Guide**: `docs/COMMAND_MIGRATION_GUIDE.md` - Complete step-by-step instructions
+- **Example Implementation**: `internal/cli/commands/version.go` - First migrated command
+- **Command Executor**: `cmd/ticketflow/executor.go` - Handles new command execution
+- **Migration Examples**: `internal/command/migration_example.go` - Pattern examples
+- **Interface Definition**: `internal/command/interface.go` - Command interface to implement
+- **Registry**: `internal/command/registry.go` - Command registration system
