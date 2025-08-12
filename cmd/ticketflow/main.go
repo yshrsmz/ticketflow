@@ -37,6 +37,13 @@ func init() {
 		// This should never happen in practice but we handle it gracefully
 		fmt.Fprintf(os.Stderr, "Warning: failed to register version command: %v\n", err)
 	}
+	
+	// Register help command with registry access
+	if err := commandRegistry.Register(commands.NewHelpCommand(commandRegistry, Version)); err != nil {
+		// Log error but continue - allow program to run with degraded functionality
+		// This should never happen in practice but we handle it gracefully
+		fmt.Fprintf(os.Stderr, "Warning: failed to register help command: %v\n", err)
+	}
 }
 
 func main() {
@@ -149,8 +156,13 @@ type startFlags struct {
 func runCLI(ctx context.Context) error {
 	// Parse command
 	if len(os.Args) < 2 {
-		printUsage()
-		return nil
+		// Show help when no command is provided
+		if cmd, ok := commandRegistry.Get("help"); ok {
+			return executeNewCommand(ctx, cmd, []string{})
+		}
+		// Fallback if help command is not registered (should never happen)
+		fmt.Fprintln(os.Stderr, "Error: help command not available")
+		return fmt.Errorf("help command not available")
 	}
 
 	// Check if command is in the new registry (for migrated commands)
@@ -331,10 +343,8 @@ func runCLI(ctx context.Context) error {
 			},
 		}, os.Args[2:])
 
-	case "help", "-h", "--help":
-		printUsage()
-		return nil
-
+	// help command has been migrated to the registry
+	// Handled above with aliases
 	// version command has been migrated to the registry
 	// Handled above with aliases
 
@@ -515,107 +525,6 @@ func isValidStatus(status ticket.Status) bool {
 	}
 }
 
-func printUsage() {
-	fmt.Printf(`TicketFlow - Git worktree-based ticket management system (v%s)
-
-USAGE:
-  ticketflow                          Start TUI (interactive mode)
-  ticketflow init                     Initialize ticket system
-  ticketflow new <slug> [options]     Create new ticket
-  ticketflow list [options]           List tickets
-  ticketflow show <ticket> [options]  Show ticket details
-  ticketflow start <ticket> [options] Start working on ticket
-  ticketflow close [ticket] [options] Close current or specific ticket
-  ticketflow restore                  Restore current-ticket link
-  ticketflow status [options]         Show current status
-  ticketflow worktree <command>       Manage worktrees
-  ticketflow cleanup [options] <ticket> Clean up after PR merge
-  ticketflow cleanup [options]        Auto-cleanup orphaned worktrees and stale branches
-  ticketflow migrate [options]        Migrate ticket dates to new format
-  ticketflow help                     Show this help
-  ticketflow version                  Show version
-
-OPTIONS:
-  All commands support logging options:
-    --log-level LEVEL   Log level (debug, info, warn, error)
-    --log-format FORMAT Log format (text, json)
-    --log-output OUTPUT Log output (stderr, stdout, or file path)
-
-  new:
-    --parent TICKET    Specify parent ticket ID
-    -p TICKET          Short form of --parent
-    --format FORMAT    Output format: text|json (default: text)
-
-  list:
-    --status STATUS    Filter by status (todo|doing|done)
-    --count N          Maximum number of tickets to show (default: 20)
-    --format FORMAT    Output format: text|json (default: text)
-
-  show:
-    --format FORMAT    Output format: text|json (default: text)
-
-  start:
-    --force            Force recreate worktree if it already exists
-
-  close:
-    --force, -f        Force close with uncommitted changes
-    --reason           Reason for closing ticket (required when closing abnormally)
-
-  status:
-    --format FORMAT    Output format: text|json (default: text)
-
-  worktree:
-    list [--format FORMAT]  List all worktrees
-    clean                   Remove orphaned worktrees
-
-  cleanup <ticket>:
-    --force                Skip confirmation prompts
-
-  cleanup (auto):
-    --dry-run              Show what would be cleaned without making changes
-
-  migrate:
-    --dry-run              Show what would be updated without making changes
-
-EXAMPLES:
-  # Initialize in current git repository
-  ticketflow init
-
-  # Create a new ticket
-  ticketflow new implement-auth
-
-  # Create a sub-ticket (from within a worktree)
-  cd ../.worktrees/250124-150000-implement-auth
-  ticketflow new auth-database
-
-  # List all todo tickets
-  ticketflow list --status todo
-
-  # Start working on a ticket
-  ticketflow start 250124-150000-implement-auth
-
-  # Close the current ticket
-  ticketflow close
-  
-  # Close current ticket with reason (for abandonment)
-  ticketflow close --reason "Requirements changed"
-  
-  # Close specific ticket with reason (from main repo)
-  ticketflow close 250124-150000-fix-bug --reason "Duplicate of #123"
-
-  # Get current status as JSON
-  ticketflow status --format json
-
-  # Clean up after PR merge (with force flag)
-  ticketflow cleanup --force 250124-150000-implement-auth
-
-  # Auto-cleanup orphaned worktrees and stale branches for done tickets
-  ticketflow cleanup --dry-run  # Preview what would be cleaned
-  ticketflow cleanup            # Perform cleanup
-
-Use 'ticketflow <command> -h' for command-specific help.
-`, Version)
-}
 
 func printWorktreeUsage() {
 	fmt.Println(`TicketFlow Worktree Management
