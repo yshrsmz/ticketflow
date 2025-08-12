@@ -1,8 +1,8 @@
 ---
 priority: 2
-description: "Migrate status command to new Command interface"
+description: Migrate status command to new Command interface
 created_at: "2025-08-12T18:55:38+09:00"
-started_at: null
+started_at: "2025-08-12T20:47:07+09:00"
 closed_at: null
 related:
     - parent:250810-003001-refactor-command-interface
