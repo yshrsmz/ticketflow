@@ -1,8 +1,8 @@
 ---
 priority: 2
-description: "Define Command interface hierarchy with performance metadata"
+description: Define Command interface hierarchy with performance metadata
 created_at: "2025-08-10T00:30:01+09:00"
-started_at: null
+started_at: "2025-08-12T13:55:32+09:00"
 closed_at: null
 ---
 
