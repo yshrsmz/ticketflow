@@ -1,6 +1,8 @@
 # Command Interface Migration Guide
 
-This guide explains how to migrate from the current switch-based command system to the new Command interface.
+> **Status**: Version command migrated ✅ | Other commands pending migration
+
+This guide documents the migration from the switch-based command system to the new Command interface.
 
 ## Current Architecture
 
@@ -257,22 +259,44 @@ func TestListCommand(t *testing.T) {
 5. **Plugin Ready**: Registry pattern makes it easy to add external commands
 6. **Type Safety**: Compile-time checking of command implementations
 
-## Migration Checklist
+## Migration Status
 
-- [ ] Create `internal/cli/commands/` directory
-- [ ] Implement registry initialization in main.go
-- [ ] Add executeNewCommand function
-- [ ] For each command:
-  - [ ] Create command file in `internal/cli/commands/`
-  - [ ] Implement Command interface
-  - [ ] Write unit tests
-  - [ ] Register in init()
-  - [ ] Remove from switch statement
-  - [ ] Test integration
+### Completed ✅
+- [x] Create `internal/cli/commands/` directory
+- [x] Implement registry initialization in main.go
+- [x] Add executeNewCommand function
+- [x] **version** command (including -v, --version aliases)
+
+### In Progress 🚧
+- [ ] Create migration tickets for remaining commands
+
+### Pending Migration 📋
+
+#### Simple Commands (No Dependencies)
+- [ ] **help** - Display usage information
+- [ ] **init** - Initialize ticket system
+
+#### Read-Only Commands
+- [ ] **status** - Show current ticket status
+- [ ] **list** - List tickets with filters
+- [ ] **show** - Display ticket details
+
+#### State-Changing Commands
+- [ ] **new** - Create new ticket
+- [ ] **start** - Start working on ticket
+- [ ] **close** - Close current/specified ticket
+- [ ] **restore** - Restore closed ticket
+
+#### Complex Commands
+- [ ] **worktree** - Manage git worktrees
+- [ ] **cleanup** - Clean up worktrees and branches
+- [ ] **migrate** - Migrate ticket dates
+
+### Final Cleanup
 - [ ] Remove old Command struct from command.go
 - [ ] Remove parseAndExecute function
 - [ ] Remove switch statement from main.go
-- [ ] Update documentation
+- [ ] Update all documentation
 
 ## Rollback Plan
 
