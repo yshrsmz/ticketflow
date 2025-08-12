@@ -148,7 +148,8 @@ func TestHelpCommand_Execute_GeneralHelp(t *testing.T) {
 	err = cmd.Execute(context.Background(), nil, []string{})
 	require.NoError(t, err)
 
-	w.Close()
+	err = w.Close()
+	require.NoError(t, err)
 	os.Stdout = oldStdout
 
 	var buf bytes.Buffer
@@ -191,7 +192,8 @@ func TestHelpCommand_Execute_SpecificCommand(t *testing.T) {
 		err := cmd.Execute(context.Background(), nil, []string{"version"})
 		require.NoError(t, err)
 
-		w.Close()
+		err = w.Close()
+		require.NoError(t, err)
 		os.Stdout = oldStdout
 
 		var buf bytes.Buffer
@@ -214,7 +216,8 @@ func TestHelpCommand_Execute_SpecificCommand(t *testing.T) {
 		err := cmd.Execute(context.Background(), nil, []string{"init"})
 		require.NoError(t, err)
 
-		w.Close()
+		err = w.Close()
+		require.NoError(t, err)
 		os.Stdout = oldStdout
 
 		var buf bytes.Buffer
@@ -285,7 +288,8 @@ func TestHelpCommand_ShowCommandHelp(t *testing.T) {
 		err := cmd.showCommandHelp("test")
 		require.NoError(t, err)
 
-		w.Close()
+		err = w.Close()
+		require.NoError(t, err)
 		os.Stdout = oldStdout
 
 		var buf bytes.Buffer
@@ -307,7 +311,8 @@ func TestHelpCommand_ShowCommandHelp(t *testing.T) {
 		err := cmd.showCommandHelp("-t")
 		require.NoError(t, err)
 
-		w.Close()
+		err = w.Close()
+		require.NoError(t, err)
 		os.Stdout = oldStdout
 
 		var buf bytes.Buffer
@@ -336,7 +341,8 @@ func TestHelpCommand_OutputFormat(t *testing.T) {
 	err := cmd.Execute(context.Background(), nil, []string{})
 	require.NoError(t, err)
 
-	w.Close()
+	err = w.Close()
+	require.NoError(t, err)
 	os.Stdout = oldStdout
 
 	var buf bytes.Buffer
