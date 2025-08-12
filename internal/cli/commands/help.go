@@ -75,10 +75,10 @@ func (c *HelpCommand) showGeneralHelp() error {
 	fmt.Println("  ticketflow                          Start TUI (interactive mode)")
 	fmt.Println("  ticketflow <command> [options]      Run a command")
 	fmt.Println()
-	
+
 	// Get migrated commands from registry
 	migratedCommands := c.getMigratedCommands()
-	
+
 	// Define unmigrated commands in order
 	unmigratedCommands := []struct {
 		usage       string
@@ -97,14 +97,14 @@ func (c *HelpCommand) showGeneralHelp() error {
 		{"cleanup [options]", "Auto-cleanup orphaned worktrees and stale branches"},
 		{"migrate [options]", "Migrate ticket dates to new format"},
 	}
-	
+
 	fmt.Println("COMMANDS:")
-	
+
 	// Show unmigrated commands
 	for _, cmd := range unmigratedCommands {
 		fmt.Printf("  %-30s %s\n", cmd.usage, cmd.description)
 	}
-	
+
 	// Show migrated commands
 	for _, cmd := range migratedCommands {
 		usage := cmd.Name()
@@ -113,7 +113,7 @@ func (c *HelpCommand) showGeneralHelp() error {
 		}
 		fmt.Printf("  %-30s %s\n", usage, cmd.Description())
 	}
-	
+
 	fmt.Println()
 	fmt.Println("OPTIONS:")
 	fmt.Println("  All commands support logging options:")
@@ -164,7 +164,7 @@ func (c *HelpCommand) showGeneralHelp() error {
 	fmt.Println()
 	fmt.Println("For more information about a command, use:")
 	fmt.Println("  ticketflow help <command>")
-	
+
 	return nil
 }
 
@@ -173,14 +173,14 @@ func (c *HelpCommand) getMigratedCommands() []command.Command {
 	if c.registry == nil {
 		return nil
 	}
-	
+
 	commands := c.registry.List()
-	
+
 	// Sort commands by name for consistent output
 	sort.Slice(commands, func(i, j int) bool {
 		return commands[i].Name() < commands[j].Name()
 	})
-	
+
 	return commands
 }
 
@@ -192,19 +192,19 @@ func (c *HelpCommand) showCommandHelp(cmdName string) error {
 			fmt.Printf("Command: %s\n", cmd.Name())
 			fmt.Printf("Description: %s\n", cmd.Description())
 			fmt.Printf("Usage: ticketflow %s\n", cmd.Usage())
-			
+
 			if aliases := cmd.Aliases(); len(aliases) > 0 {
 				fmt.Printf("Aliases: %s\n", strings.Join(aliases, ", "))
 			}
-			
+
 			return nil
 		}
 	}
-	
+
 	// For unmigrated commands, show a simple message
 	switch cmdName {
-	case "init", "new", "list", "show", "start", "close", "restore", 
-	     "status", "worktree", "cleanup", "migrate":
+	case "init", "new", "list", "show", "start", "close", "restore",
+		"status", "worktree", "cleanup", "migrate":
 		fmt.Printf("Command: %s\n", cmdName)
 		fmt.Println("Use 'ticketflow help' to see available options for this command.")
 		return nil

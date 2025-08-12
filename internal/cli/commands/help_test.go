@@ -22,12 +22,12 @@ type mockCommand struct {
 	usage       string
 }
 
-func (m *mockCommand) Name() string                                          { return m.name }
-func (m *mockCommand) Aliases() []string                                     { return m.aliases }
-func (m *mockCommand) Description() string                                   { return m.description }
-func (m *mockCommand) Usage() string                                         { return m.usage }
-func (m *mockCommand) SetupFlags(fs *flag.FlagSet) interface{}               { return nil }
-func (m *mockCommand) Validate(flags interface{}, args []string) error       { return nil }
+func (m *mockCommand) Name() string                                    { return m.name }
+func (m *mockCommand) Aliases() []string                               { return m.aliases }
+func (m *mockCommand) Description() string                             { return m.description }
+func (m *mockCommand) Usage() string                                   { return m.usage }
+func (m *mockCommand) SetupFlags(fs *flag.FlagSet) interface{}         { return nil }
+func (m *mockCommand) Validate(flags interface{}, args []string) error { return nil }
 func (m *mockCommand) Execute(ctx context.Context, flags interface{}, args []string) error {
 	return nil
 }
@@ -102,7 +102,7 @@ func TestHelpCommand_SetupFlags(t *testing.T) {
 
 func TestHelpCommand_Validate(t *testing.T) {
 	cmd := NewHelpCommand(nil, "1.0.0")
-	
+
 	tests := []struct {
 		name string
 		args []string
@@ -111,7 +111,7 @@ func TestHelpCommand_Validate(t *testing.T) {
 		{"with command", []string{"version"}},
 		{"with multiple args", []string{"version", "extra"}},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := cmd.Validate(nil, tt.args)
@@ -123,36 +123,39 @@ func TestHelpCommand_Validate(t *testing.T) {
 func TestHelpCommand_Execute_GeneralHelp(t *testing.T) {
 	// Create a mock registry with some commands
 	registry := newMockRegistry()
-	registry.Register(&mockCommand{
+	err := registry.Register(&mockCommand{
 		name:        "version",
 		aliases:     []string{"-v", "--version"},
 		description: "Show version information",
 		usage:       "version",
 	})
-	registry.Register(&mockCommand{
+	require.NoError(t, err)
+	err = registry.Register(&mockCommand{
 		name:        "help",
 		aliases:     []string{"-h", "--help"},
 		description: "Show help information",
 		usage:       "help [command]",
 	})
-	
+	require.NoError(t, err)
+
 	cmd := NewHelpCommand(registry, "1.0.0")
-	
+
 	// Capture stdout
 	oldStdout := os.Stdout
 	r, w, _ := os.Pipe()
 	os.Stdout = w
-	
-	err := cmd.Execute(context.Background(), nil, []string{})
+
+	err = cmd.Execute(context.Background(), nil, []string{})
 	require.NoError(t, err)
-	
+
 	w.Close()
 	os.Stdout = oldStdout
-	
+
 	var buf bytes.Buffer
-	io.Copy(&buf, r)
+	_, err = io.Copy(&buf, r)
+	require.NoError(t, err)
 	output := buf.String()
-	
+
 	// Check that output contains expected content
 	assert.Contains(t, output, "TicketFlow - Git worktree-based ticket management system")
 	assert.Contains(t, output, "v1.0.0")
@@ -169,57 +172,60 @@ func TestHelpCommand_Execute_GeneralHelp(t *testing.T) {
 func TestHelpCommand_Execute_SpecificCommand(t *testing.T) {
 	// Create a mock registry with some commands
 	registry := newMockRegistry()
-	registry.Register(&mockCommand{
+	err := registry.Register(&mockCommand{
 		name:        "version",
 		aliases:     []string{"-v", "--version"},
 		description: "Show version information",
 		usage:       "version",
 	})
-	
+	require.NoError(t, err)
+
 	cmd := NewHelpCommand(registry, "1.0.0")
-	
+
 	// Test showing help for a migrated command
 	t.Run("migrated command", func(t *testing.T) {
 		oldStdout := os.Stdout
 		r, w, _ := os.Pipe()
 		os.Stdout = w
-		
+
 		err := cmd.Execute(context.Background(), nil, []string{"version"})
 		require.NoError(t, err)
-		
+
 		w.Close()
 		os.Stdout = oldStdout
-		
+
 		var buf bytes.Buffer
-		io.Copy(&buf, r)
+		_, err = io.Copy(&buf, r)
+		require.NoError(t, err)
 		output := buf.String()
-		
+
 		assert.Contains(t, output, "Command: version")
 		assert.Contains(t, output, "Description: Show version information")
 		assert.Contains(t, output, "Usage: ticketflow version")
 		assert.Contains(t, output, "Aliases: -v, --version")
 	})
-	
+
 	// Test showing help for an unmigrated command
 	t.Run("unmigrated command", func(t *testing.T) {
 		oldStdout := os.Stdout
 		r, w, _ := os.Pipe()
 		os.Stdout = w
-		
+
 		err := cmd.Execute(context.Background(), nil, []string{"init"})
 		require.NoError(t, err)
-		
+
 		w.Close()
 		os.Stdout = oldStdout
-		
+
 		var buf bytes.Buffer
-		io.Copy(&buf, r)
+		_, err = io.Copy(&buf, r)
+		require.NoError(t, err)
 		output := buf.String()
-		
+
 		assert.Contains(t, output, "Command: init")
 		assert.Contains(t, output, "Use 'ticketflow help' to see available options")
 	})
-	
+
 	// Test showing help for an unknown command
 	t.Run("unknown command", func(t *testing.T) {
 		err := cmd.Execute(context.Background(), nil, []string{"unknown"})
@@ -234,23 +240,23 @@ func TestHelpCommand_GetMigratedCommands(t *testing.T) {
 		commands := cmd.getMigratedCommands()
 		assert.Empty(t, commands)
 	})
-	
+
 	t.Run("with empty registry", func(t *testing.T) {
 		registry := newMockRegistry()
 		cmd := &HelpCommand{registry: registry, version: "1.0.0"}
 		commands := cmd.getMigratedCommands()
 		assert.Empty(t, commands)
 	})
-	
+
 	t.Run("with commands", func(t *testing.T) {
 		registry := newMockRegistry()
-		registry.Register(&mockCommand{name: "zebra", description: "Z command"})
-		registry.Register(&mockCommand{name: "alpha", description: "A command"})
-		registry.Register(&mockCommand{name: "beta", description: "B command"})
-		
+		require.NoError(t, registry.Register(&mockCommand{name: "zebra", description: "Z command"}))
+		require.NoError(t, registry.Register(&mockCommand{name: "alpha", description: "A command"}))
+		require.NoError(t, registry.Register(&mockCommand{name: "beta", description: "B command"}))
+
 		cmd := &HelpCommand{registry: registry, version: "1.0.0"}
 		commands := cmd.getMigratedCommands()
-		
+
 		assert.Len(t, commands, 3)
 		// Check that commands are sorted alphabetically
 		assert.Equal(t, "alpha", commands[0].Name())
@@ -261,54 +267,57 @@ func TestHelpCommand_GetMigratedCommands(t *testing.T) {
 
 func TestHelpCommand_ShowCommandHelp(t *testing.T) {
 	registry := newMockRegistry()
-	registry.Register(&mockCommand{
+	err := registry.Register(&mockCommand{
 		name:        "test",
 		aliases:     []string{"-t", "--test"},
 		description: "Test command",
 		usage:       "test [options]",
 	})
-	
+	require.NoError(t, err)
+
 	cmd := &HelpCommand{registry: registry, version: "1.0.0"}
-	
+
 	t.Run("existing command", func(t *testing.T) {
 		oldStdout := os.Stdout
 		r, w, _ := os.Pipe()
 		os.Stdout = w
-		
+
 		err := cmd.showCommandHelp("test")
 		require.NoError(t, err)
-		
+
 		w.Close()
 		os.Stdout = oldStdout
-		
+
 		var buf bytes.Buffer
-		io.Copy(&buf, r)
+		_, err = io.Copy(&buf, r)
+		require.NoError(t, err)
 		output := buf.String()
-		
+
 		assert.Contains(t, output, "Command: test")
 		assert.Contains(t, output, "Description: Test command")
 		assert.Contains(t, output, "Usage: ticketflow test [options]")
 		assert.Contains(t, output, "Aliases: -t, --test")
 	})
-	
+
 	t.Run("command via alias", func(t *testing.T) {
 		oldStdout := os.Stdout
 		r, w, _ := os.Pipe()
 		os.Stdout = w
-		
+
 		err := cmd.showCommandHelp("-t")
 		require.NoError(t, err)
-		
+
 		w.Close()
 		os.Stdout = oldStdout
-		
+
 		var buf bytes.Buffer
-		io.Copy(&buf, r)
+		_, err = io.Copy(&buf, r)
+		require.NoError(t, err)
 		output := buf.String()
-		
+
 		assert.Contains(t, output, "Command: test")
 	})
-	
+
 	t.Run("unknown command", func(t *testing.T) {
 		err := cmd.showCommandHelp("nonexistent")
 		assert.Error(t, err)
@@ -319,28 +328,29 @@ func TestHelpCommand_ShowCommandHelp(t *testing.T) {
 func TestHelpCommand_OutputFormat(t *testing.T) {
 	registry := newMockRegistry()
 	cmd := NewHelpCommand(registry, "2.0.0")
-	
+
 	oldStdout := os.Stdout
 	r, w, _ := os.Pipe()
 	os.Stdout = w
-	
+
 	err := cmd.Execute(context.Background(), nil, []string{})
 	require.NoError(t, err)
-	
+
 	w.Close()
 	os.Stdout = oldStdout
-	
+
 	var buf bytes.Buffer
-	io.Copy(&buf, r)
+	_, err = io.Copy(&buf, r)
+	require.NoError(t, err)
 	output := buf.String()
-	
+
 	// Verify the output structure
 	lines := strings.Split(output, "\n")
-	
+
 	// Check first line contains version
 	assert.True(t, strings.HasPrefix(lines[0], "TicketFlow"))
 	assert.Contains(t, lines[0], "v2.0.0")
-	
+
 	// Check major sections are present
 	var hasUsage, hasCommands, hasOptions, hasExamples bool
 	for _, line := range lines {
@@ -357,7 +367,7 @@ func TestHelpCommand_OutputFormat(t *testing.T) {
 			hasExamples = true
 		}
 	}
-	
+
 	assert.True(t, hasUsage, "Should have USAGE section")
 	assert.True(t, hasCommands, "Should have COMMANDS section")
 	assert.True(t, hasOptions, "Should have OPTIONS section")

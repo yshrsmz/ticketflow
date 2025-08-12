@@ -37,7 +37,7 @@ func init() {
 		// This should never happen in practice but we handle it gracefully
 		fmt.Fprintf(os.Stderr, "Warning: failed to register version command: %v\n", err)
 	}
-	
+
 	// Register help command with registry access
 	if err := commandRegistry.Register(commands.NewHelpCommand(commandRegistry, Version)); err != nil {
 		// Log error but continue - allow program to run with degraded functionality
@@ -524,7 +524,6 @@ func isValidStatus(status ticket.Status) bool {
 		return false
 	}
 }
-
 
 func printWorktreeUsage() {
 	fmt.Println(`TicketFlow Worktree Management
