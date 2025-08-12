@@ -1,8 +1,8 @@
 ---
 priority: 2
-description: "Migrate init command to new Command interface"
+description: Migrate init command to new Command interface
 created_at: "2025-08-12T15:29:02+09:00"
-started_at: null
+started_at: "2025-08-12T18:21:49+09:00"
 closed_at: null
 related:
     - parent:250810-003001-refactor-command-interface
