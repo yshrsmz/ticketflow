@@ -11,7 +11,8 @@ import (
 // executeNewCommand executes commands that implement the new Command interface
 func executeNewCommand(ctx context.Context, cmd command.Command, args []string) error {
 	// Create flag set for this command
-	fs := flag.NewFlagSet(cmd.Name(), flag.ExitOnError)
+	// Use ContinueOnError to handle errors explicitly rather than exiting
+	fs := flag.NewFlagSet(cmd.Name(), flag.ContinueOnError)
 
 	// Setup command-specific flags
 	cmdFlags := cmd.SetupFlags(fs)

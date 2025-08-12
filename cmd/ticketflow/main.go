@@ -33,9 +33,9 @@ var commandRegistry = command.NewRegistry()
 func init() {
 	// Register migrated commands
 	if err := commandRegistry.Register(commands.NewVersionCommand(Version, GitCommit, BuildTime)); err != nil {
-		// This should never happen with properly implemented commands,
-		// but handle it just in case
-		panic(fmt.Sprintf("failed to register version command: %v", err))
+		// Log error but continue - allow program to run with degraded functionality
+		// This should never happen in practice but we handle it gracefully
+		fmt.Fprintf(os.Stderr, "Warning: failed to register version command: %v\n", err)
 	}
 }
 

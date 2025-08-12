@@ -34,7 +34,8 @@ type Command interface {
 	Execute(ctx context.Context, flags interface{}, args []string) error
 }
 
-// Metadata holds basic information about a command
+// Metadata holds basic information about a command.
+// This can be used for generating help text or documentation.
 type Metadata struct {
 	Name        string
 	Description string
@@ -42,20 +43,25 @@ type Metadata struct {
 	Examples    []Example
 }
 
-// Example represents a usage example for a command
+// Example represents a usage example for a command.
+// Each example includes a description and the actual command to run.
 type Example struct {
 	Description string
 	Command     string
 }
 
-// Result represents the outcome of a command execution
+// Result represents the outcome of a command execution.
+// Note: This type is currently unused but provided for future use
+// when commands need to return structured results.
 type Result struct {
 	Success bool
 	Message string
 	Data    interface{} // Optional data for JSON output
 }
 
-// Registry manages the collection of available commands
+// Registry manages the collection of available commands.
+// It provides thread-safe registration and retrieval of commands,
+// including support for command aliases.
 type Registry interface {
 	// Register adds a command to the registry
 	Register(cmd Command) error
