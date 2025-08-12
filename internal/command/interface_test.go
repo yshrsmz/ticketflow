@@ -13,6 +13,7 @@ import (
 // testCommand is a full implementation for testing interface contracts
 type testCommand struct {
 	name        string
+	aliases     []string
 	description string
 	usage       string
 	validateErr error
@@ -26,6 +27,7 @@ type testFlags struct {
 }
 
 func (c *testCommand) Name() string        { return c.name }
+func (c *testCommand) Aliases() []string  { return c.aliases }
 func (c *testCommand) Description() string { return c.description }
 func (c *testCommand) Usage() string       { return c.usage }
 

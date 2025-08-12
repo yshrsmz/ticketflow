@@ -12,12 +12,14 @@ import (
 // mockCommand is a test implementation of Command
 type mockCommand struct {
 	name        string
+	aliases     []string
 	description string
 	usage       string
 	executed    bool
 }
 
 func (m *mockCommand) Name() string        { return m.name }
+func (m *mockCommand) Aliases() []string  { return m.aliases }
 func (m *mockCommand) Description() string { return m.description }
 func (m *mockCommand) Usage() string       { return m.usage }
 
@@ -145,6 +147,61 @@ func TestRegistry_List(t *testing.T) {
 	assert.True(t, names["cmd1"])
 	assert.True(t, names["cmd2"])
 	assert.True(t, names["cmd3"])
+}
+
+func TestRegistry_Aliases(t *testing.T) {
+	r := NewRegistry()
+
+	// Register command with aliases
+	cmd := &mockCommand{
+		name:        "version",
+		aliases:     []string{"-v", "--version"},
+		description: "Show version",
+	}
+
+	err := r.Register(cmd)
+	require.NoError(t, err)
+
+	// Should get command by name
+	got, exists := r.Get("version")
+	assert.True(t, exists)
+	assert.Equal(t, cmd, got)
+
+	// Should get command by first alias
+	got, exists = r.Get("-v")
+	assert.True(t, exists)
+	assert.Equal(t, cmd, got)
+
+	// Should get command by second alias
+	got, exists = r.Get("--version")
+	assert.True(t, exists)
+	assert.Equal(t, cmd, got)
+
+	// Should not find non-existent alias
+	got, exists = r.Get("-version")
+	assert.False(t, exists)
+	assert.Nil(t, got)
+}
+
+func TestRegistry_DuplicateAlias(t *testing.T) {
+	r := NewRegistry()
+
+	// Register first command with alias
+	cmd1 := &mockCommand{
+		name:    "version",
+		aliases: []string{"-v"},
+	}
+	err := r.Register(cmd1)
+	require.NoError(t, err)
+
+	// Try to register second command with same alias
+	cmd2 := &mockCommand{
+		name:    "verbose",
+		aliases: []string{"-v"},
+	}
+	err = r.Register(cmd2)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "alias \"-v\" already registered")
 }
 
 func TestRegistry_ThreadSafety(t *testing.T) {

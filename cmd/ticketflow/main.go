@@ -150,15 +150,9 @@ func runCLI(ctx context.Context) error {
 	}
 
 	// Check if command is in the new registry (for migrated commands)
+	// This now handles both direct commands and aliases
 	if cmd, ok := commandRegistry.Get(os.Args[1]); ok {
 		return executeNewCommand(ctx, cmd, os.Args[2:])
-	}
-
-	// Handle version aliases that aren't in registry
-	if os.Args[1] == "-v" || os.Args[1] == "--version" {
-		if cmd, ok := commandRegistry.Get("version"); ok {
-			return executeNewCommand(ctx, cmd, os.Args[2:])
-		}
 	}
 
 	// Fall back to old switch statement for unmigrated commands

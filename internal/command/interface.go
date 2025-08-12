@@ -10,6 +10,9 @@ type Command interface {
 	// Name returns the command name (e.g., "new", "start", "list")
 	Name() string
 
+	// Aliases returns alternative names for this command (e.g., ["-v", "--version"] for version)
+	Aliases() []string
+
 	// Description returns a short description of what the command does
 	Description() string
 

@@ -18,6 +18,7 @@ func TestVersionCommand(t *testing.T) {
 		cmd := NewVersionCommand("1.2.3", "abc123", "2024-01-01")
 
 		assert.Equal(t, "version", cmd.Name())
+		assert.Equal(t, []string{"-v", "--version"}, cmd.Aliases())
 		assert.Equal(t, "Show version information", cmd.Description())
 		assert.Equal(t, "version", cmd.Usage())
 	})

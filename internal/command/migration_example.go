@@ -19,6 +19,7 @@ type VersionCommand struct {
 }
 
 func (c *VersionCommand) Name() string        { return "version" }
+func (c *VersionCommand) Aliases() []string  { return []string{"-v", "--version"} }
 func (c *VersionCommand) Description() string { return "Show version information" }
 func (c *VersionCommand) Usage() string       { return "version" }
 
@@ -53,6 +54,7 @@ type listFlags struct {
 }
 
 func (c *ListCommand) Name() string        { return "list" }
+func (c *ListCommand) Aliases() []string  { return nil }
 func (c *ListCommand) Description() string { return "List tickets" }
 func (c *ListCommand) Usage() string       { return "list [flags]" }
 
@@ -96,6 +98,7 @@ type newFlags struct {
 }
 
 func (c *NewCommand) Name() string        { return "new" }
+func (c *NewCommand) Aliases() []string  { return nil }
 func (c *NewCommand) Description() string { return "Create a new ticket" }
 func (c *NewCommand) Usage() string       { return "new [flags] <slug>" }
 

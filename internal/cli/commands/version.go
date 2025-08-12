@@ -29,6 +29,11 @@ func (c *VersionCommand) Name() string {
 	return "version"
 }
 
+// Aliases returns alternative names for this command
+func (c *VersionCommand) Aliases() []string {
+	return []string{"-v", "--version"}
+}
+
 // Description returns a short description of the command
 func (c *VersionCommand) Description() string {
 	return "Show version information"

@@ -9,12 +9,14 @@ import (
 type registry struct {
 	mu       sync.RWMutex
 	commands map[string]Command
+	aliases  map[string]string // maps alias to command name
 }
 
 // NewRegistry creates a new command registry
 func NewRegistry() Registry {
 	return &registry{
 		commands: make(map[string]Command),
+		aliases:  make(map[string]string),
 	}
 }
 
@@ -37,16 +39,34 @@ func (r *registry) Register(cmd Command) error {
 	}
 
 	r.commands[name] = cmd
+
+	// Register aliases
+	for _, alias := range cmd.Aliases() {
+		if existingCmd, exists := r.aliases[alias]; exists {
+			return fmt.Errorf("alias %q already registered for command %q", alias, existingCmd)
+		}
+		r.aliases[alias] = name
+	}
+
 	return nil
 }
 
-// Get retrieves a command by name
+// Get retrieves a command by name or alias
 func (r *registry) Get(name string) (Command, bool) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	cmd, exists := r.commands[name]
-	return cmd, exists
+	// Check if it's a direct command name
+	if cmd, exists := r.commands[name]; exists {
+		return cmd, true
+	}
+
+	// Check if it's an alias
+	if cmdName, exists := r.aliases[name]; exists {
+		return r.commands[cmdName], true
+	}
+
+	return nil, false
 }
 
 // List returns all registered commands
