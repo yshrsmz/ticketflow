@@ -69,7 +69,12 @@ func (c *HelpCommand) Execute(ctx context.Context, flags interface{}, args []str
 
 // showGeneralHelp displays the general help message
 func (c *HelpCommand) showGeneralHelp() error {
-	fmt.Printf("TicketFlow - Git worktree-based ticket management system (v%s)\n", c.version)
+	// Handle version string that might already have 'v' prefix
+	versionStr := c.version
+	if !strings.HasPrefix(versionStr, "v") {
+		versionStr = "v" + versionStr
+	}
+	fmt.Printf("TicketFlow - Git worktree-based ticket management system (%s)\n", versionStr)
 	fmt.Println()
 	fmt.Println("USAGE:")
 	fmt.Println("  ticketflow                          Start TUI (interactive mode)")
@@ -80,6 +85,7 @@ func (c *HelpCommand) showGeneralHelp() error {
 	migratedCommands := c.getMigratedCommands()
 
 	// Define unmigrated commands in order
+	// TODO: Remove this hardcoded list once all commands are migrated
 	unmigratedCommands := []struct {
 		usage       string
 		description string
