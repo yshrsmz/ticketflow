@@ -267,6 +267,7 @@ func TestListCommand(t *testing.T) {
 - [x] Add executeNewCommand function
 - [x] **version** command (including -v, --version aliases)
 - [x] **help** command (including -h, --help aliases)
+- [x] **init** - Initialize ticket system
 
 ### In Progress 🚧
 - [ ] Create migration tickets for remaining commands
@@ -274,7 +275,6 @@ func TestListCommand(t *testing.T) {
 ### Pending Migration 📋
 
 #### Simple Commands (No Dependencies)
-- [ ] **init** - Initialize ticket system
 
 #### Read-Only Commands
 - [ ] **status** - Show current ticket status
