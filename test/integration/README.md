@@ -16,7 +16,7 @@ The tests have been refactored to:
    - `cli.InitCommandWithWorkingDir(ctx, workingDir)` - Initialize ticketflow in a specific directory
    - `cli.NewAppWithWorkingDir(ctx, t, workingDir)` - Create app instance for a specific directory
 
-2. **Enable Parallel Execution**: All integration tests now use `t.Parallel()` for concurrent execution, providing 3-4x speedup in test runs.
+2. **Enable Parallel Execution Where Possible**: Most integration tests use `t.Parallel()` for concurrent execution, providing 3-4x speedup in test runs. Tests that use `os.Chdir` cannot be parallelized due to global state modification.
 
 3. **Maintain Application Behavior**: The production code still works from the current directory (like git), but tests can specify a working directory without changing the process's working directory.
 
