@@ -13,7 +13,7 @@ import (
 )
 
 func TestHandleError(t *testing.T) {
-	// Cannot use t.Parallel() - modifies global os.Stderr
+	// Cannot use t.Parallel() - captures and redirects os.Stderr output
 	tests := []struct {
 		name           string
 		err            error
@@ -95,7 +95,7 @@ func TestHandleError(t *testing.T) {
 }
 
 func TestHandleCLIError_EnvironmentVariable(t *testing.T) {
-	// Cannot use t.Parallel() with t.Setenv
+	// Cannot use t.Parallel() - test uses t.Setenv() which is incompatible with t.Parallel()
 	// Test that environment variable overrides format
 	testErr := NewError(
 		ErrConfigNotFound,
@@ -144,7 +144,7 @@ func TestHandleCLIError_EnvironmentVariable(t *testing.T) {
 }
 
 func TestOutputJSONError(t *testing.T) {
-	// Cannot use t.Parallel() - modifies global os.Stderr
+	// Cannot use t.Parallel() - captures and redirects os.Stderr output
 	tests := []struct {
 		name     string
 		err      *CLIError
@@ -302,7 +302,7 @@ func TestErrorCodes(t *testing.T) {
 }
 
 func TestHandleError_EdgeCases(t *testing.T) {
-	// Cannot use t.Parallel() - modifies global os.Stderr
+	// Cannot use t.Parallel() - captures and redirects os.Stderr output
 	tests := []struct {
 		name         string
 		setupFunc    func()
