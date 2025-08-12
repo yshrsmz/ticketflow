@@ -100,7 +100,7 @@ func TestStartTicketWithExistingBranch(t *testing.T) {
 }
 
 func TestStartTicketWithExistingBranchAndWorktree(t *testing.T) {
-	t.Parallel()
+	// Cannot use t.Parallel() - TestStartTicketWithExistingBranch in same file has comment about os.Chdir
 
 	// Setup test repository
 	repoPath := setupTestRepo(t)

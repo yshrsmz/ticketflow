@@ -16,7 +16,7 @@ import (
 )
 
 func TestWorktreeWorkflow(t *testing.T) {
-	t.Parallel()
+	// Cannot use t.Parallel() - test uses os.Chdir at line 109
 
 	// Setup test repository
 	repoPath := setupTestRepo(t)
