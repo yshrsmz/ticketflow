@@ -51,6 +51,13 @@ func init() {
 		// This should never happen in practice but we handle it gracefully
 		fmt.Fprintf(os.Stderr, "Warning: failed to register init command: %v\n", err)
 	}
+
+	// Register status command
+	if err := commandRegistry.Register(commands.NewStatusCommand()); err != nil {
+		// Log error but continue - allow program to run with degraded functionality
+		// This should never happen in practice but we handle it gracefully
+		fmt.Fprintf(os.Stderr, "Warning: failed to register status command: %v\n", err)
+	}
 }
 
 func main() {
@@ -133,10 +140,6 @@ type closeFlags struct {
 	force      bool
 	forceShort bool
 	reason     string
-}
-
-type statusFlags struct {
-	format string
 }
 
 type cleanupFlags struct {
@@ -279,20 +282,6 @@ func runCLI(ctx context.Context) error {
 			Name: "restore",
 			Execute: func(ctx context.Context, fs *flag.FlagSet, flags interface{}) error {
 				return handleRestore(ctx)
-			},
-		}, os.Args[2:])
-
-	case "status":
-		return parseAndExecute(ctx, Command{
-			Name: "status",
-			SetupFlags: func(fs *flag.FlagSet) interface{} {
-				flags := &statusFlags{}
-				fs.StringVar(&flags.format, "format", "text", "Output format (text|json)")
-				return flags
-			},
-			Execute: func(ctx context.Context, fs *flag.FlagSet, cmdFlags interface{}) error {
-				flags := cmdFlags.(*statusFlags)
-				return handleStatus(ctx, flags.format)
 			},
 		}, os.Args[2:])
 
@@ -474,16 +463,6 @@ func handleRestore(ctx context.Context) error {
 	}
 
 	return app.RestoreCurrentTicket(ctx)
-}
-
-func handleStatus(ctx context.Context, format string) error {
-	app, err := cli.NewApp(ctx)
-	if err != nil {
-		return err
-	}
-
-	outputFormat := cli.ParseOutputFormat(format)
-	return app.Status(ctx, outputFormat)
 }
 
 func handleWorktree(ctx context.Context, subcommand string, args []string) error {

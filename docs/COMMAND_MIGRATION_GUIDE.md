@@ -268,6 +268,7 @@ func TestListCommand(t *testing.T) {
 - [x] **version** command (including -v, --version aliases)
 - [x] **help** command (including -h, --help aliases)
 - [x] **init** - Initialize ticket system
+- [x] **status** - Show current ticket status (first command with App dependency)
 
 ### In Progress 🚧
 - [ ] Create migration tickets for remaining commands
@@ -277,7 +278,6 @@ func TestListCommand(t *testing.T) {
 #### Simple Commands (No Dependencies)
 
 #### Read-Only Commands
-- [ ] **status** - Show current ticket status
 - [ ] **list** - List tickets with filters
 - [ ] **show** - Display ticket details
 

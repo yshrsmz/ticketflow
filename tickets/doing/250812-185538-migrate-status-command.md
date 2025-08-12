@@ -15,16 +15,16 @@ Migrate the `status` command to use the new Command interface. This is the first
 ## Tasks
 Make sure to update task status when you finish it. Also, always create a commit for each task you finished.
 
-- [ ] Create `internal/cli/commands/status.go` implementing the Command interface
-- [ ] Implement App dependency injection pattern (following migration guide)
-- [ ] Handle the -o/--output flag for JSON output format
-- [ ] Add comprehensive unit tests with mock App
-- [ ] Update main.go to register status command
-- [ ] Remove status case from switch statement
-- [ ] Test status command functionality (with and without current ticket)
-- [ ] Run `make test` to run the tests
-- [ ] Run `make vet`, `make fmt` and `make lint`
-- [ ] Update migration guide with completion status
+- [x] Create `internal/cli/commands/status.go` implementing the Command interface
+- [x] Implement App dependency injection pattern (following migration guide)
+- [x] Handle the -o/--output flag for JSON output format
+- [x] Add comprehensive unit tests with mock App
+- [x] Update main.go to register status command
+- [x] Remove status case from switch statement
+- [x] Test status command functionality (with and without current ticket)
+- [x] Run `make test` to run the tests
+- [x] Run `make vet`, `make fmt` and `make lint`
+- [x] Update migration guide with completion status
 - [ ] Get developer approval before closing
 
 ## Implementation Notes
