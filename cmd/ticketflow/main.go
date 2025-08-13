@@ -206,7 +206,6 @@ func runCLI(ctx context.Context) error {
 			},
 		}, os.Args[2:])
 
-
 	case "show":
 		return parseAndExecute(ctx, Command{
 			Name:         "show",
@@ -336,7 +335,6 @@ func handleNew(ctx context.Context, slug, parent, format string) error {
 	outputFormat := cli.ParseOutputFormat(format)
 	return app.NewTicket(ctx, slug, parent, outputFormat)
 }
-
 
 func handleShow(ctx context.Context, ticketID, format string) error {
 	app, err := cli.NewApp(ctx)

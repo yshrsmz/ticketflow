@@ -110,14 +110,14 @@ func TestListCommand_SetupFlags(t *testing.T) {
 				actualStatus = lf.statusShort
 			}
 			assert.Equal(t, tt.expectedStatus, actualStatus)
-			
+
 			// For count, check both long and short forms
 			actualCount := lf.count
 			if lf.countShort != 20 && lf.countShort != 0 {
 				actualCount = lf.countShort
 			}
 			assert.Equal(t, tt.expectedCount, actualCount)
-			
+
 			assert.Equal(t, tt.expectedFormat, lf.format)
 		})
 	}

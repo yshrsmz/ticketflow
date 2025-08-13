@@ -99,13 +99,13 @@ func (c *ListCommand) Execute(ctx context.Context, flags interface{}, args []str
 
 	// Extract flags
 	f := flags.(*listFlags)
-	
+
 	// Convert status string to ticket.Status
 	var ticketStatus ticket.Status
 	if f.status != "" {
 		ticketStatus = ticket.Status(f.status)
 	}
-	
+
 	outputFormat := cli.ParseOutputFormat(f.format)
 
 	// Delegate to App's ListTickets method
@@ -121,3 +121,4 @@ func isValidListStatus(status string) bool {
 		return false
 	}
 }
+
