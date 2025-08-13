@@ -489,8 +489,8 @@ func (app *App) StartTicket(ctx context.Context, ticketID string, force bool, fo
 	// Output based on format
 	if format == FormatJSON {
 		output := map[string]interface{}{
-			"ticket_id":               t.ID,
-			"status":                  string(t.Status()),
+			"ticket_id":              t.ID,
+			"status":                 string(t.Status()),
 			"worktree_path":          worktreePath,
 			"branch":                 t.ID,
 			"parent_branch":          parentBranch,
