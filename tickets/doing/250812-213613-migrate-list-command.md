@@ -15,20 +15,20 @@ Migrate the `list` command to use the new Command interface, building on the pat
 ## Tasks
 Make sure to update task status when you finish it. Also, always create a commit for each task you finished.
 
-- [ ] Create `internal/cli/commands/list.go` implementing the Command interface
-- [ ] Implement App dependency using `cli.NewApp(ctx)` pattern
-- [ ] Handle multiple flags:
-  - [ ] `--status` flag for filtering (todo/doing/done/all)
-  - [ ] `--count` flag for limiting results (default: 20)
-  - [ ] `--format` flag for output format (text/json)
-- [ ] Add status value validation (todo/doing/done/all/"")
-- [ ] Add comprehensive unit tests with mock App
-- [ ] Update main.go to register list command
-- [ ] Remove list case from switch statement
-- [ ] Test list command functionality with various flag combinations
-- [ ] Run `make test` to run the tests
-- [ ] Run `make vet`, `make fmt` and `make lint`
-- [ ] Update migration guide with completion status
+- [x] Create `internal/cli/commands/list.go` implementing the Command interface
+- [x] Implement App dependency using `cli.NewApp(ctx)` pattern
+- [x] Handle multiple flags:
+  - [x] `--status` flag for filtering (todo/doing/done/all)
+  - [x] `--count` flag for limiting results (default: 20)
+  - [x] `--format` flag for output format (text/json)
+- [x] Add status value validation (todo/doing/done/all/"")
+- [x] Add comprehensive unit tests with mock App
+- [x] Update main.go to register list command
+- [x] Remove list case from switch statement
+- [x] Test list command functionality with various flag combinations
+- [x] Run `make test` to run the tests
+- [x] Run `make vet`, `make fmt` and `make lint`
+- [x] Update migration guide with completion status
 - [ ] Get developer approval before closing
 
 ## Implementation Notes
