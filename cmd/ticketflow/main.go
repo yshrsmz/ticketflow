@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 	"time"
 
@@ -63,6 +62,12 @@ func init() {
 		// Log error but continue - allow program to run with degraded functionality
 		// This should never happen in practice but we handle it gracefully
 		fmt.Fprintf(os.Stderr, "Warning: failed to register list command: %v\n", err)
+	}
+	// Register show command
+	if err := commandRegistry.Register(commands.NewShowCommand()); err != nil {
+		// Log error but continue - allow program to run with degraded functionality
+		// This should never happen in practice but we handle it gracefully
+		fmt.Fprintf(os.Stderr, "Warning: failed to register show command: %v\n", err)
 	}
 }
 
@@ -133,10 +138,6 @@ func runTUI() {
 
 // Define flag structures for commands that need them
 
-type showFlags struct {
-	format string
-}
-
 type closeFlags struct {
 	force      bool
 	forceShort bool
@@ -203,22 +204,6 @@ func runCLI(ctx context.Context) error {
 					parent = flags.parentShort
 				}
 				return handleNew(ctx, fs.Arg(0), parent, flags.format)
-			},
-		}, os.Args[2:])
-
-	case "show":
-		return parseAndExecute(ctx, Command{
-			Name:         "show",
-			MinArgs:      1,
-			MinArgsError: "missing ticket argument",
-			SetupFlags: func(fs *flag.FlagSet) interface{} {
-				flags := &showFlags{}
-				fs.StringVar(&flags.format, "format", "text", "Output format (text|json)")
-				return flags
-			},
-			Execute: func(ctx context.Context, fs *flag.FlagSet, cmdFlags interface{}) error {
-				flags := cmdFlags.(*showFlags)
-				return handleShow(ctx, fs.Arg(0), flags.format)
 			},
 		}, os.Args[2:])
 
@@ -334,61 +319,6 @@ func handleNew(ctx context.Context, slug, parent, format string) error {
 
 	outputFormat := cli.ParseOutputFormat(format)
 	return app.NewTicket(ctx, slug, parent, outputFormat)
-}
-
-func handleShow(ctx context.Context, ticketID, format string) error {
-	app, err := cli.NewApp(ctx)
-	if err != nil {
-		return err
-	}
-
-	// Get the ticket
-	t, err := app.Manager.Get(ctx, ticketID)
-	if err != nil {
-		return err
-	}
-
-	outputFormat := cli.ParseOutputFormat(format)
-	if outputFormat == cli.FormatJSON {
-		// For JSON, just output the ticket data
-		return app.Output.PrintJSON(map[string]interface{}{
-			"ticket": map[string]interface{}{
-				"id":          t.ID,
-				"path":        t.Path,
-				"status":      string(t.Status()),
-				"priority":    t.Priority,
-				"description": t.Description,
-				"created_at":  t.CreatedAt.Time,
-				"started_at":  t.StartedAt.Time,
-				"closed_at":   t.ClosedAt.Time,
-				"related":     t.Related,
-				"content":     t.Content,
-			},
-		})
-	}
-
-	// Text format
-	app.Output.Printf("ID: %s\n", t.ID)
-	app.Output.Printf("Status: %s\n", t.Status())
-	app.Output.Printf("Priority: %d\n", t.Priority)
-	app.Output.Printf("Description: %s\n", t.Description)
-	app.Output.Printf("Created: %s\n", t.CreatedAt.Format(time.RFC3339))
-
-	if t.StartedAt.Time != nil {
-		app.Output.Printf("Started: %s\n", t.StartedAt.Time.Format(time.RFC3339))
-	}
-
-	if t.ClosedAt.Time != nil {
-		app.Output.Printf("Closed: %s\n", t.ClosedAt.Time.Format(time.RFC3339))
-	}
-
-	if len(t.Related) > 0 {
-		app.Output.Printf("Related: %s\n", strings.Join(t.Related, ", "))
-	}
-
-	app.Output.Printf("\n%s\n", t.Content)
-
-	return nil
 }
 
 func handleStart(ctx context.Context, ticketID string, force bool) error {
