@@ -47,7 +47,7 @@ func TestShowCommand_SetupFlags(t *testing.T) {
 func TestShowCommand_Validate(t *testing.T) {
 	tests := []struct {
 		name      string
-		flags     *showFlags
+		flags     interface{} // Changed to interface{} to test type assertions
 		args      []string
 		expectErr bool
 		errMsg    string
@@ -88,8 +88,21 @@ func TestShowCommand_Validate(t *testing.T) {
 			name:      "empty format defaults to text",
 			flags:     &showFlags{format: ""},
 			args:      []string{"123456"},
+			expectErr: false, // Now valid - defaults to "text"
+		},
+		{
+			name:      "too many arguments",
+			flags:     &showFlags{format: "text"},
+			args:      []string{"123456", "extra", "args"},
 			expectErr: true,
-			errMsg:    `invalid format: "" (must be 'text' or 'json')`,
+			errMsg:    `unexpected arguments after ticket ID: [extra args]`,
+		},
+		{
+			name:      "invalid flags type",
+			flags:     "not a showFlags",
+			args:      []string{"123456"},
+			expectErr: true,
+			errMsg:    `invalid flags type: expected *showFlags, got string`,
 		},
 	}
 
@@ -105,6 +118,10 @@ func TestShowCommand_Validate(t *testing.T) {
 				}
 			} else {
 				assert.NoError(t, err)
+				// Check if empty format was defaulted to text
+				if sf, ok := tt.flags.(*showFlags); ok && tt.name == "empty format defaults to text" {
+					assert.Equal(t, "text", sf.format, "empty format should be defaulted to 'text'")
+				}
 			}
 		})
 	}

@@ -58,8 +58,21 @@ func (c *ShowCommand) Validate(flags interface{}, args []string) error {
 		return fmt.Errorf("missing ticket ID argument")
 	}
 
-	// Validate format flag
-	f := flags.(*showFlags)
+	// Check for unexpected extra arguments
+	if len(args) > 1 {
+		return fmt.Errorf("unexpected arguments after ticket ID: %v", args[1:])
+	}
+
+	// Safely assert flags type
+	f, ok := flags.(*showFlags)
+	if !ok {
+		return fmt.Errorf("invalid flags type: expected *showFlags, got %T", flags)
+	}
+
+	// Validate format flag (empty string defaults to "text" for backward compatibility)
+	if f.format == "" {
+		f.format = "text"
+	}
 	if f.format != "text" && f.format != "json" {
 		return fmt.Errorf("invalid format: %q (must be 'text' or 'json')", f.format)
 	}
@@ -75,8 +88,11 @@ func (c *ShowCommand) Execute(ctx context.Context, flags interface{}, args []str
 		return err
 	}
 
-	// Extract flags
-	f := flags.(*showFlags)
+	// Safely extract flags
+	f, ok := flags.(*showFlags)
+	if !ok {
+		return fmt.Errorf("invalid flags type: expected *showFlags, got %T", flags)
+	}
 
 	// Get the ticket using the first positional argument
 	ticketID := args[0]
