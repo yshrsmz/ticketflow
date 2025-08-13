@@ -9,6 +9,12 @@ import (
 	"github.com/yshrsmz/ticketflow/internal/command"
 )
 
+// Format constants for output formats
+const (
+	FormatText = "text"
+	FormatJSON = "json"
+)
+
 // NewCommand implements the new command using the new Command interface
 type NewCommand struct{}
 
@@ -34,7 +40,7 @@ func (c *NewCommand) Description() string {
 
 // Usage returns the usage string for the command
 func (c *NewCommand) Usage() string {
-	return "new <slug> [--parent <ticket-id>] [--format text|json]"
+	return "new [--parent <ticket-id>] [--format text|json] <slug>"
 }
 
 // newFlags holds the flags for the new command
@@ -45,15 +51,25 @@ type newFlags struct {
 	formatShort string
 }
 
+// normalize merges short and long form flags (short form takes precedence)
+func (f *newFlags) normalize() {
+	if f.parentShort != "" {
+		f.parent = f.parentShort
+	}
+	if f.formatShort != "" && f.formatShort != FormatText {
+		f.format = f.formatShort
+	}
+}
+
 // SetupFlags configures flags for the command
 func (c *NewCommand) SetupFlags(fs *flag.FlagSet) interface{} {
 	flags := &newFlags{}
 	// Long forms
 	fs.StringVar(&flags.parent, "parent", "", "Parent ticket ID")
-	fs.StringVar(&flags.format, "format", "text", "Output format (text|json)")
+	fs.StringVar(&flags.format, "format", FormatText, "Output format (text|json)")
 	// Short forms
 	fs.StringVar(&flags.parentShort, "p", "", "Parent ticket ID (short form)")
-	fs.StringVar(&flags.formatShort, "o", "text", "Output format (short form)")
+	fs.StringVar(&flags.formatShort, "o", FormatText, "Output format (short form)")
 	return flags
 }
 
@@ -76,16 +92,11 @@ func (c *NewCommand) Validate(flags interface{}, args []string) error {
 	}
 
 	// Merge short and long forms (short form takes precedence if both provided)
-	if f.parentShort != "" {
-		f.parent = f.parentShort
-	}
-	if f.formatShort != "" && f.formatShort != "text" {
-		f.format = f.formatShort
-	}
+	f.normalize()
 
 	// Validate format flag
-	if f.format != "text" && f.format != "json" {
-		return fmt.Errorf("invalid format: %q (must be 'text' or 'json')", f.format)
+	if f.format != FormatText && f.format != FormatJSON {
+		return fmt.Errorf("invalid format: %q (must be %q or %q)", f.format, FormatText, FormatJSON)
 	}
 
 	return nil
@@ -93,6 +104,13 @@ func (c *NewCommand) Validate(flags interface{}, args []string) error {
 
 // Execute runs the new command
 func (c *NewCommand) Execute(ctx context.Context, flags interface{}, args []string) error {
+	// Check for context cancellation early
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+
 	// Create App instance with dependencies
 	app, err := cli.NewApp(ctx)
 	if err != nil {

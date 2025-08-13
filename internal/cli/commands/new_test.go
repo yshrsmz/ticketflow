@@ -24,7 +24,7 @@ func TestNewCommand_Description(t *testing.T) {
 
 func TestNewCommand_Usage(t *testing.T) {
 	cmd := NewNewCommand()
-	assert.Equal(t, "new <slug> [--parent <ticket-id>] [--format text|json]", cmd.Usage())
+	assert.Equal(t, "new [--parent <ticket-id>] [--format text|json] <slug>", cmd.Usage())
 }
 
 func TestNewCommand_SetupFlags(t *testing.T) {
@@ -131,7 +131,7 @@ func TestNewCommand_Validate(t *testing.T) {
 			flags:     &newFlags{format: "yaml"},
 			args:      []string{"my-ticket"},
 			expectErr: true,
-			errMsg:    `invalid format: "yaml" (must be 'text' or 'json')`,
+			errMsg:    `invalid format: "yaml" (must be "text" or "json")`,
 		},
 		{
 			name:      "invalid flags type",
