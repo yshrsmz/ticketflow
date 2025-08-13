@@ -118,7 +118,7 @@ func (c *ListCommand) Execute(ctx context.Context, flags interface{}, args []str
 // isValidListStatus checks if the status is valid for list command
 func isValidListStatus(status string) bool {
 	switch status {
-	case "", string(ticket.StatusTodo), string(ticket.StatusDoing), string(ticket.StatusDone), "all":
+	case "", string(ticket.StatusTodo), string(ticket.StatusDoing), string(ticket.StatusDone), cli.StatusAll:
 		return true
 	default:
 		return false
