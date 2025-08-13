@@ -17,23 +17,26 @@ Make sure to update task status when you finish it. Also, always create a commit
 
 - [ ] Create `internal/cli/commands/start.go` implementing the Command interface
 - [ ] Implement App dependency using `cli.NewApp(ctx)` pattern
-- [ ] Handle positional argument for ticket ID (MinArgs: 1)
+- [ ] Handle positional argument for ticket ID (MinArgs: 1, MaxArgs: 1)
 - [ ] Implement flags:
-  - [ ] `--force` / `-f` for force recreate worktree
-- [ ] Add ticket validation (exists, not already done)
-- [ ] Handle worktree creation and management
-- [ ] Handle non-worktree mode (branch switching)
+  - [ ] `--force` / `-f` for force recreate worktree (both long and short forms)
+  - [ ] `--format` / `-o` for output format (json/text) for consistency
+- [ ] Add ticket validation in Validate method (exists, not already done)
+- [ ] Keep Execute method thin, delegating to App.StartTicket
 - [ ] Add comprehensive unit tests with mock App
 - [ ] Update main.go to register start command
-- [ ] Remove start case from switch statement
+- [ ] Remove start case from switch statement (lines 187-201)
 - [ ] Test start command functionality with various scenarios:
   - [ ] Valid ticket start with worktree creation
   - [ ] Valid ticket start without worktree (disabled mode)
-  - [ ] Ticket not found error
+  - [ ] Ticket not found error (consistent error message format)
   - [ ] Ticket already done error
+  - [ ] Ticket already in doing status
   - [ ] Force recreate worktree
   - [ ] Parent branch detection for sub-tickets
   - [ ] Init commands execution
+  - [ ] JSON output format
+  - [ ] Uncommitted changes in current directory
 - [ ] Run `make test` to run the tests
 - [ ] Run `make vet`, `make fmt` and `make lint`
 - [ ] Update migration guide with completion status
@@ -42,38 +45,54 @@ Make sure to update task status when you finish it. Also, always create a commit
 ## Implementation Notes
 
 ### Current Implementation
-- Located in switch statement around line 210-230 in main.go
-- Calls `handleStart(ctx, ticketID, force)`
+- Located in switch statement around lines 187-201 in main.go
+- Calls `handleStart(ctx, ticketID, force)` which delegates to `App.StartTicket`
 - Takes one required argument: ticket ID
 - Has one flag: `--force` for recreating existing worktrees
+- Currently lacks JSON output support (unlike some other commands)
 
 ### Migration Requirements
 1. **App Dependency**: Use `cli.NewApp(ctx)` directly to leverage existing `App.StartTicket` method
-2. **Positional Arguments**: Required ticket ID argument with validation
-3. **Ticket Validation**: Ensure ticket exists and is not already done
+2. **Positional Arguments**: Required ticket ID argument with validation (MinArgs: 1, MaxArgs: 1)
+3. **Ticket Validation**: Ensure ticket exists and is not already done (in Validate method)
 4. **Worktree Management**: Handle creation, existence checks, and force recreation
 5. **Git Operations**: Branch creation/switching, worktree setup
-6. **Output Formatting**: Consistent success/error messages
-7. **Error Handling**: Clear messages for various failure scenarios
+6. **Output Formatting**: 
+   - Consistent success/error messages in text format
+   - JSON output support for AI/tooling integration
+   - Format flag (`--format`/`-o`) with json/text options
+7. **Error Handling**: Clear, consistent error messages matching other commands
 
 ### Expected Behavior
 - Validates ticket exists and is not done
-- Moves ticket from todo → doing status
+- Moves ticket from todo → doing status  
 - Sets started_at timestamp
 - Creates git worktree (if enabled in config)
 - Or switches to branch (if worktree disabled)
 - Executes init commands if configured
 - Handles parent branch detection for sub-tickets
 - Supports force recreation of existing worktrees
+- Returns structured JSON output when `--format json` is specified:
+  ```json
+  {
+    "ticket_id": "250813-192015-migrate-start-command",
+    "status": "doing",
+    "worktree_path": "/path/to/worktree",
+    "branch": "250813-192015-migrate-start-command",
+    "parent_branch": "main",
+    "init_commands_executed": true
+  }
+  ```
 
 ## Pattern Building on Previous Migrations
 
 This migration builds on:
 1. **State Modification** (from `new`): Changes ticket state and filesystem
-2. **Positional Arguments** (from `show`): Single required ticket ID
-3. **Boolean Flags**: Simpler than `new`, just --force flag
+2. **Positional Arguments** (from `show`): Single required ticket ID with MinArgs/MaxArgs validation
+3. **Boolean Flags**: --force flag with both long and short forms
 4. **App Method Reuse**: Leverages existing `App.StartTicket`
-5. **New Pattern**: Introduces worktree management patterns
+5. **JSON Output** (from other commands): Consistent format flag pattern
+6. **New Pattern**: Introduces worktree management patterns
 
 ## New Patterns to Establish
 
@@ -107,6 +126,9 @@ This migration builds on:
 5. **Testing Complexity**: Mock git operations and filesystem
 6. **Config Variations**: Test with worktree enabled/disabled
 7. **Init Command Execution**: Handle command failures gracefully
+8. **JSON Output Structure**: Define consistent schema for success and error cases
+9. **Error Message Consistency**: Match format from other migrated commands
+10. **Flag Validation**: Ensure format flag accepts only "json" or "text"
 
 ## Dependencies
 - Builds on patterns from: `new`, `show`, `status` commands
@@ -115,6 +137,7 @@ This migration builds on:
 ## References
 
 - See `docs/COMMAND_MIGRATION_GUIDE.md` for migration patterns
-- Review `internal/cli/commands/new.go` for state-changing patterns
-- Check current `handleStart` implementation in main.go
+- Review `internal/cli/commands/new.go` for state-changing patterns and JSON output
+- Check current `handleStart` implementation in main.go (lines 187-201, 291-298)
+- Review `TestApp_StartTicket_WithMocks` for test patterns
 - New command PR for reference on state-changing commands
