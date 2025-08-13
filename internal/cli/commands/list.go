@@ -10,6 +10,9 @@ import (
 	"github.com/yshrsmz/ticketflow/internal/ticket"
 )
 
+// Default value for count flag
+const defaultCount = 20
+
 // ListCommand implements the list command using the new Command interface
 type ListCommand struct{}
 
@@ -52,8 +55,8 @@ func (c *ListCommand) SetupFlags(fs *flag.FlagSet) interface{} {
 	flags := &listFlags{}
 	fs.StringVar(&flags.status, "status", "", "Filter by status (todo|doing|done|all)")
 	fs.StringVar(&flags.statusShort, "s", "", "Filter by status (todo|doing|done|all)")
-	fs.IntVar(&flags.count, "count", 20, "Number of tickets to show")
-	fs.IntVar(&flags.countShort, "c", 20, "Number of tickets to show")
+	fs.IntVar(&flags.count, "count", defaultCount, "Number of tickets to show")
+	fs.IntVar(&flags.countShort, "c", defaultCount, "Number of tickets to show")
 	fs.StringVar(&flags.format, "format", "text", "Output format (text|json)")
 	return flags
 }
@@ -67,7 +70,7 @@ func (c *ListCommand) Validate(flags interface{}, args []string) error {
 	if f.statusShort != "" {
 		f.status = f.statusShort
 	}
-	if f.countShort != 20 { // 20 is the default
+	if f.countShort != defaultCount {
 		f.count = f.countShort
 	}
 
@@ -115,7 +118,7 @@ func (c *ListCommand) Execute(ctx context.Context, flags interface{}, args []str
 // isValidListStatus checks if the status is valid for list command
 func isValidListStatus(status string) bool {
 	switch status {
-	case "todo", "doing", "done", "all":
+	case string(ticket.StatusTodo), string(ticket.StatusDoing), string(ticket.StatusDone), "all":
 		return true
 	default:
 		return false
