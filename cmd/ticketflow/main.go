@@ -69,6 +69,12 @@ func init() {
 		// This should never happen in practice but we handle it gracefully
 		fmt.Fprintf(os.Stderr, "Warning: failed to register show command: %v\n", err)
 	}
+	// Register new command
+	if err := commandRegistry.Register(commands.NewNewCommand()); err != nil {
+		// Log error but continue - allow program to run with degraded functionality
+		// This should never happen in practice but we handle it gracefully
+		fmt.Fprintf(os.Stderr, "Warning: failed to register new command: %v\n", err)
+	}
 }
 
 func main() {
@@ -153,13 +159,6 @@ type migrateFlags struct {
 	dryRun bool
 }
 
-// newFlags holds command-line flags for the 'new' command
-type newFlags struct {
-	parent      string // Parent ticket ID (long form)
-	parentShort string // Parent ticket ID (short form)
-	format      string // Output format (text or json)
-}
-
 // startFlags holds command-line flags for the 'start' command
 type startFlags struct {
 	force bool // Force recreate worktree if it exists
@@ -185,28 +184,6 @@ func runCLI(ctx context.Context) error {
 
 	// Fall back to old switch statement for unmigrated commands
 	switch os.Args[1] {
-	case "new":
-		return parseAndExecute(ctx, Command{
-			Name:         "new",
-			MinArgs:      1,
-			MinArgsError: "missing slug argument",
-			SetupFlags: func(fs *flag.FlagSet) interface{} {
-				flags := &newFlags{}
-				fs.StringVar(&flags.parent, "parent", "", "Parent ticket ID")
-				fs.StringVar(&flags.parentShort, "p", "", "Parent ticket ID (short form)")
-				fs.StringVar(&flags.format, "format", "text", "Output format (text|json)")
-				return flags
-			},
-			Execute: func(ctx context.Context, fs *flag.FlagSet, cmdFlags interface{}) error {
-				flags := cmdFlags.(*newFlags)
-				parent := flags.parent
-				if parent == "" {
-					parent = flags.parentShort
-				}
-				return handleNew(ctx, fs.Arg(0), parent, flags.format)
-			},
-		}, os.Args[2:])
-
 	case "start":
 		return parseAndExecute(ctx, Command{
 			Name:         "start",
@@ -309,16 +286,6 @@ func runCLI(ctx context.Context) error {
 	default:
 		return fmt.Errorf("unknown command: %s", os.Args[1])
 	}
-}
-
-func handleNew(ctx context.Context, slug, parent, format string) error {
-	app, err := cli.NewApp(ctx)
-	if err != nil {
-		return err
-	}
-
-	outputFormat := cli.ParseOutputFormat(format)
-	return app.NewTicket(ctx, slug, parent, outputFormat)
 }
 
 func handleStart(ctx context.Context, ticketID string, force bool) error {
