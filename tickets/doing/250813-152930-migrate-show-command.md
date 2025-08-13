@@ -15,26 +15,26 @@ Migrate the `show` command to use the new Command interface, continuing the patt
 ## Tasks
 Make sure to update task status when you finish it. Also, always create a commit for each task you finished.
 
-- [ ] Create `internal/cli/commands/show.go` implementing the Command interface
-- [ ] Move show logic from handleShow into ShowCommand.Execute (inline, not as App method)
-- [ ] Implement MinArgs validation for positional ticket ID argument
-- [ ] Implement `--format` flag for output format (text/json)
-- [ ] Preserve exact JSON output structure for compatibility
-- [ ] Handle time formatting with nil checks
-- [ ] Add ticket ID validation and error handling for missing tickets
-- [ ] Add comprehensive unit tests with mock Manager
-- [ ] Update main.go to register show command
-- [ ] Remove show case from switch statement
-- [ ] Test show command functionality with various scenarios:
-  - [ ] Valid full ticket ID
-  - [ ] Valid partial ticket ID
-  - [ ] Ambiguous partial ID (multiple matches)
-  - [ ] Non-existent ticket ID
-  - [ ] Both output formats (text/json)
-  - [ ] Nil timestamp handling
-- [ ] Run `make test` to run the tests
-- [ ] Run `make vet`, `make fmt` and `make lint`
-- [ ] Update migration guide with completion status
+- [x] Create `internal/cli/commands/show.go` implementing the Command interface
+- [x] Move show logic from handleShow into ShowCommand.Execute (inline, not as App method)
+- [x] Implement MinArgs validation for positional ticket ID argument
+- [x] Implement `--format` flag for output format (text/json)
+- [x] Preserve exact JSON output structure for compatibility
+- [x] Handle time formatting with nil checks
+- [x] Add ticket ID validation and error handling for missing tickets
+- [x] Add comprehensive unit tests with mock Manager
+- [x] Update main.go to register show command
+- [x] Remove show case from switch statement
+- [x] Test show command functionality with various scenarios:
+  - [x] Valid full ticket ID
+  - [x] Valid partial ticket ID
+  - [x] Ambiguous partial ID (multiple matches)
+  - [x] Non-existent ticket ID
+  - [x] Both output formats (text/json)
+  - [x] Nil timestamp handling
+- [x] Run `make test` to run the tests
+- [x] Run `make vet`, `make fmt` and `make lint`
+- [x] Update migration guide with completion status
 - [ ] Get developer approval before closing
 
 ## Implementation Notes
