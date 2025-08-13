@@ -1,13 +1,10 @@
 package commands
 
 import (
-	"context"
 	"flag"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
-	"github.com/yshrsmz/ticketflow/internal/cli"
 )
 
 func TestNewCommand_Name(t *testing.T) {
