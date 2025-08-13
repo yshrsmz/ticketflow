@@ -1,6 +1,6 @@
 ---
-priority: 3
-description: "Add progress indicators for long-running operations"
+priority: 2
+description: "Add progress indicator for cleanup command"
 created_at: "2025-08-11T21:54:24+09:00"
 started_at: null
 closed_at: null
@@ -14,25 +14,17 @@ Add optional progress indicators for operations that take more than 1 second.
 
 ## Background
 
-When listing hundreds or thousands of tickets, users have no feedback about operation progress. The golang-cli-architect review suggested adding progress indication for better UX.
+While most TicketFlow operations are instant (3-30ms), the `cleanup` command can legitimately take several seconds when removing many large git worktrees. Users should have feedback during this operation.
 
 ## Tasks
 
-- [ ] Design progress indicator interface that works with both CLI and TUI
-- [ ] Implement progress bar/spinner for CLI mode
-- [ ] Add progress tracking to concurrent operations:
-  - Track files processed vs total
-  - Show current operation (reading, sorting, etc.)
-  - Display elapsed time
-- [ ] Make progress indicators configurable:
-  - Threshold time before showing (default: 1 second)
-  - Enable/disable via config or flag
-  - Respect quiet mode (`-q` flag)
+- [ ] Focus specifically on the `cleanup` command where it's actually needed
+- [ ] Implement simple progress indicator for worktree removal:
+  - Show "Removing worktree X of Y: [worktree-name]"
+  - Simple counter, no need for fancy progress bars
 - [ ] Ensure progress output goes to stderr (not stdout)
-- [ ] Handle terminal capabilities detection
-- [ ] Add cancellation hint (e.g., "Press Ctrl+C to cancel")
-- [ ] Test with various terminal emulators
-- [ ] Document progress indicator behavior
+- [ ] Respect quiet mode if implemented
+- [ ] Keep it simple - no need for complex terminal detection
 - [ ] Run `make test` to run the tests
 - [ ] Run `make vet`, `make fmt` and `make lint`
 - [ ] Update README.md
