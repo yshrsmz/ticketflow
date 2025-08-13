@@ -113,6 +113,13 @@ func TestNewCommand_Validate(t *testing.T) {
 			// After validation, format should be "json"
 		},
 		{
+			name:      "short format text overrides long format json",
+			flags:     &newFlags{format: "json", formatShort: "text"},
+			args:      []string{"my-new-ticket"},
+			expectErr: false,
+			// After validation, format should be "text" (short form takes precedence)
+		},
+		{
 			name:      "missing slug",
 			flags:     &newFlags{format: "text"},
 			args:      []string{},
@@ -173,6 +180,9 @@ func TestNewCommand_Validate(t *testing.T) {
 					}
 					if tt.name == "short format takes precedence" {
 						assert.Equal(t, "json", nf.format, "formatShort should override format")
+					}
+					if tt.name == "short format text overrides long format json" {
+						assert.Equal(t, "text", nf.format, "formatShort text should override format json")
 					}
 					if tt.name == "valid with short format flag" {
 						assert.Equal(t, "json", nf.format, "formatShort should be merged into format")
