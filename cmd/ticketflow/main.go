@@ -58,6 +58,12 @@ func init() {
 		// This should never happen in practice but we handle it gracefully
 		fmt.Fprintf(os.Stderr, "Warning: failed to register status command: %v\n", err)
 	}
+	// Register list command
+	if err := commandRegistry.Register(commands.NewListCommand()); err != nil {
+		// Log error but continue - allow program to run with degraded functionality
+		// This should never happen in practice but we handle it gracefully
+		fmt.Fprintf(os.Stderr, "Warning: failed to register list command: %v\n", err)
+	}
 }
 
 func main() {
@@ -126,11 +132,6 @@ func runTUI() {
 }
 
 // Define flag structures for commands that need them
-type listFlags struct {
-	status string
-	count  int
-	format string
-}
 
 type showFlags struct {
 	format string
@@ -205,21 +206,6 @@ func runCLI(ctx context.Context) error {
 			},
 		}, os.Args[2:])
 
-	case "list":
-		return parseAndExecute(ctx, Command{
-			Name: "list",
-			SetupFlags: func(fs *flag.FlagSet) interface{} {
-				flags := &listFlags{}
-				fs.StringVar(&flags.status, "status", "", "Filter by status (todo|doing|done)")
-				fs.IntVar(&flags.count, "count", 20, "Maximum number of tickets to show")
-				fs.StringVar(&flags.format, "format", "text", "Output format (text|json)")
-				return flags
-			},
-			Execute: func(ctx context.Context, fs *flag.FlagSet, cmdFlags interface{}) error {
-				flags := cmdFlags.(*listFlags)
-				return handleList(ctx, flags.status, flags.count, flags.format)
-			},
-		}, os.Args[2:])
 
 	case "show":
 		return parseAndExecute(ctx, Command{
@@ -351,23 +337,6 @@ func handleNew(ctx context.Context, slug, parent, format string) error {
 	return app.NewTicket(ctx, slug, parent, outputFormat)
 }
 
-func handleList(ctx context.Context, status string, count int, format string) error {
-	app, err := cli.NewApp(ctx)
-	if err != nil {
-		return err
-	}
-
-	var ticketStatus ticket.Status
-	if status != "" {
-		ticketStatus = ticket.Status(status)
-		if !isValidStatus(ticketStatus) {
-			return fmt.Errorf("invalid status: %s", status)
-		}
-	}
-
-	outputFormat := cli.ParseOutputFormat(format)
-	return app.ListTickets(ctx, ticketStatus, count, outputFormat)
-}
 
 func handleShow(ctx context.Context, ticketID, format string) error {
 	app, err := cli.NewApp(ctx)
