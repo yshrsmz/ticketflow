@@ -105,6 +105,7 @@ func (c *ShowCommand) Execute(ctx context.Context, flags interface{}, args []str
 	outputFormat := cli.ParseOutputFormat(f.format)
 	if outputFormat == cli.FormatJSON {
 		// For JSON, output the ticket data with exact structure from original
+		// Note: We preserve the original behavior where nil times are output as null
 		return app.Output.PrintJSON(map[string]interface{}{
 			"ticket": map[string]interface{}{
 				"id":          t.ID,
@@ -112,9 +113,9 @@ func (c *ShowCommand) Execute(ctx context.Context, flags interface{}, args []str
 				"status":      string(t.Status()),
 				"priority":    t.Priority,
 				"description": t.Description,
-				"created_at":  t.CreatedAt.Time,
-				"started_at":  t.StartedAt.Time,
-				"closed_at":   t.ClosedAt.Time,
+				"created_at":  t.CreatedAt.Time, // Always non-nil
+				"started_at":  t.StartedAt.Time, // Can be nil, outputs as null in JSON
+				"closed_at":   t.ClosedAt.Time,  // Can be nil, outputs as null in JSON
 				"related":     t.Related,
 				"content":     t.Content,
 			},
