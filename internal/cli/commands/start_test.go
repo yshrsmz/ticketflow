@@ -115,7 +115,7 @@ func TestStartCommand_Validate(t *testing.T) {
 				format: "text",
 			},
 			args:          []string{"ticket1", "ticket2"},
-			expectedError: "unexpected arguments after ticket ID",
+			expectedError: "unexpected arguments after ticket ID: [ticket2]",
 		},
 		{
 			name: "invalid format",
