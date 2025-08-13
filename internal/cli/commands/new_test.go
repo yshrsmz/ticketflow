@@ -36,9 +36,9 @@ func TestNewCommand_SetupFlags(t *testing.T) {
 	assert.NotNil(t, flags)
 	newFlags, ok := flags.(*newFlags)
 	assert.True(t, ok)
-	assert.Equal(t, "", newFlags.parent)       // Default empty
-	assert.Equal(t, "", newFlags.parentShort)  // Default empty
-	assert.Equal(t, "text", newFlags.format)   // Default value
+	assert.Equal(t, "", newFlags.parent)          // Default empty
+	assert.Equal(t, "", newFlags.parentShort)     // Default empty
+	assert.Equal(t, "text", newFlags.format)      // Default value
 	assert.Equal(t, "text", newFlags.formatShort) // Default value
 
 	// Test that long form flags are registered
@@ -190,7 +190,7 @@ func TestNewCommand_Execute(t *testing.T) {
 	// Note: Full execution testing would require mocking the entire App structure
 	// which is complex. Here we test that Execute properly calls the App.NewTicket method
 	// with the correct parameters. Integration tests will verify the full flow.
-	
+
 	// This is a placeholder for the complex Execute test that would require
 	// significant mocking infrastructure. The actual behavior is tested
 	// through integration tests.

@@ -39,10 +39,10 @@ func (c *NewCommand) Usage() string {
 
 // newFlags holds the flags for the new command
 type newFlags struct {
-	parent       string
-	parentShort  string
-	format       string
-	formatShort  string
+	parent      string
+	parentShort string
+	format      string
+	formatShort string
 }
 
 // SetupFlags configures flags for the command
