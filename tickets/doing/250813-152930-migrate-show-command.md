@@ -16,18 +16,22 @@ Migrate the `show` command to use the new Command interface, continuing the patt
 Make sure to update task status when you finish it. Also, always create a commit for each task you finished.
 
 - [ ] Create `internal/cli/commands/show.go` implementing the Command interface
-- [ ] Implement App dependency using `cli.NewApp(ctx)` pattern
-- [ ] Handle positional argument for ticket ID (MinArgs: 1)
+- [ ] Move show logic from handleShow into ShowCommand.Execute (inline, not as App method)
+- [ ] Implement MinArgs validation for positional ticket ID argument
 - [ ] Implement `--format` flag for output format (text/json)
+- [ ] Preserve exact JSON output structure for compatibility
+- [ ] Handle time formatting with nil checks
 - [ ] Add ticket ID validation and error handling for missing tickets
-- [ ] Add comprehensive unit tests with mock App
+- [ ] Add comprehensive unit tests with mock Manager
 - [ ] Update main.go to register show command
 - [ ] Remove show case from switch statement
 - [ ] Test show command functionality with various scenarios:
-  - [ ] Valid ticket ID
-  - [ ] Invalid/missing ticket ID
-  - [ ] Partial ticket ID matching
-  - [ ] Different output formats
+  - [ ] Valid full ticket ID
+  - [ ] Valid partial ticket ID
+  - [ ] Ambiguous partial ID (multiple matches)
+  - [ ] Non-existent ticket ID
+  - [ ] Both output formats (text/json)
+  - [ ] Nil timestamp handling
 - [ ] Run `make test` to run the tests
 - [ ] Run `make vet`, `make fmt` and `make lint`
 - [ ] Update migration guide with completion status
@@ -43,10 +47,11 @@ Make sure to update task status when you finish it. Also, always create a commit
 
 ### Migration Requirements
 1. **App Dependency**: Use `cli.NewApp(ctx)` directly (following established pattern)
-2. **Positional Arguments**: First command to require a positional argument
+2. **Positional Arguments**: First command to require a positional argument (use MinArgs validation)
 3. **Ticket Resolution**: Handle partial ticket ID matching via Manager.Get()
 4. **Error Handling**: Proper error messages for missing or ambiguous tickets
-5. **Output Formatting**: Support both text and JSON output formats
+5. **Output Formatting**: Support both text and JSON output formats - preserve exact structure
+6. **Implementation**: Move logic directly from handleShow, not via App.ShowTicket method
 
 ### Expected Behavior
 - Shows detailed ticket information including:
@@ -67,11 +72,12 @@ This is the first migrated command that:
 3. **Has complex output** - Full ticket details vs. simple lists
 
 ## Estimated Time
-**20-25 minutes** based on:
+**45-60 minutes** based on:
 - List command took 45 minutes (actual)
-- Show is simpler (fewer flags, no status validation)
-- But adds positional argument handling
-- Similar test complexity
+- First command with positional arguments (new pattern to establish)
+- Complex output formatting with time handling
+- Need to preserve exact JSON structure for compatibility
+- Comprehensive test coverage for various scenarios
 
 ## Why This Command Next?
 
@@ -86,8 +92,10 @@ This is the first migrated command that:
 1. **Argument Validation**: Implement MinArgs checking in Validate method
 2. **Ticket Resolution**: Use app.Manager.Get() which handles partial matching
 3. **Error Messages**: Ensure clear, actionable error messages for common issues
-4. **Output Format**: Reuse existing formatting logic from handleShow
-5. **Testing**: Mock Manager.Get() for various scenarios (found, not found, ambiguous)
+4. **Output Format**: Move formatting logic from handleShow directly into Execute method
+5. **Implementation Note**: No App.ShowTicket method exists - inline the logic
+6. **JSON Compatibility**: Preserve exact structure for tools consuming the output
+7. **Testing**: Mock Manager.Get() for various scenarios (found, not found, ambiguous)
 
 ## References
 
