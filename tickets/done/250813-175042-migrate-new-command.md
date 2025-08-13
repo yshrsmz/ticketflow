@@ -3,7 +3,7 @@ priority: 2
 description: Migrate new command to new Command interface
 created_at: "2025-08-13T17:50:42+09:00"
 started_at: "2025-08-13T18:01:59+09:00"
-closed_at: null
+closed_at: "2025-08-13T19:23:37+09:00"
 related:
     - parent:250812-152927-migrate-remaining-commands
 ---
