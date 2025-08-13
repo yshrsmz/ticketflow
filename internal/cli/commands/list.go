@@ -121,4 +121,3 @@ func isValidListStatus(status string) bool {
 		return false
 	}
 }
-
