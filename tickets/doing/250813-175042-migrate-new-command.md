@@ -21,23 +21,36 @@ Make sure to update task status when you finish it. Also, always create a commit
 - [ ] Implement flags:
   - [ ] `--parent` / `-p` for parent ticket ID
   - [ ] `--format` / `-o` for output format (text/json)
+  - [ ] Ensure short flag forms (-p, -o) work correctly alongside long forms
 - [ ] Add slug validation (alphanumeric and hyphens only)
 - [ ] Handle parent ticket validation and relationship
+- [ ] Preserve backward compatibility of output formats (text and JSON must match exactly)
 - [ ] Add comprehensive unit tests with mock App
 - [ ] Update main.go to register new command
 - [ ] Remove new case from switch statement
 - [ ] Test new command functionality with various scenarios:
   - [ ] Valid slug creation
   - [ ] Invalid slug validation
-  - [ ] Parent ticket relationship
-  - [ ] JSON output format
+  - [ ] Parent ticket relationship (exists, not done, no circular references)
+  - [ ] Short vs long flag forms
+  - [ ] JSON output format (exact format matching)
+  - [ ] Text output format (exact format matching)
   - [ ] Empty/missing slug
+  - [ ] Error message consistency
 - [ ] Run `make test` to run the tests
 - [ ] Run `make vet`, `make fmt` and `make lint`
 - [ ] Update migration guide with completion status
 - [ ] Get developer approval before closing
 
 ## Implementation Notes
+
+### Implementation Strategy
+Based on analysis, the recommended approach is:
+1. Create command structure with all interface methods in `internal/cli/commands/new.go`
+2. Leverage existing `App.NewTicket` method for all business logic (no reimplementation needed)
+3. Focus on argument parsing, validation, and flag handling in the command layer
+4. Ensure helper methods remain accessible through the App struct
+5. Follow the pattern established by `show.go` for positional arguments
 
 ### Current Implementation
 - Located in switch statement around line 191-213 in main.go
@@ -48,12 +61,13 @@ Make sure to update task status when you finish it. Also, always create a commit
   - `--format` / `-o` for output format
 
 ### Migration Requirements
-1. **App Dependency**: Use `cli.NewApp(ctx)` directly
+1. **App Dependency**: Use `cli.NewApp(ctx)` directly to leverage existing `App.NewTicket` method
 2. **Positional Arguments**: Required slug argument with validation
-3. **Parent Ticket**: Handle parent ticket resolution and validation
+3. **Parent Ticket**: Handle parent ticket resolution and validation (exists, not done, no circular references)
 4. **Slug Validation**: Ensure alphanumeric and hyphens only
-5. **Output Formatting**: Support both text and JSON output formats
-6. **Error Handling**: Clear messages for invalid slugs or missing parents
+5. **Output Formatting**: Support both text and JSON output formats with exact backward compatibility
+6. **Error Handling**: Preserve exact error messages for consistency with current implementation
+7. **Flag Handling**: Both long (--parent, --format) and short (-p, -o) forms must work correctly
 
 ### Expected Behavior
 - Creates new ticket with provided slug
@@ -87,12 +101,14 @@ This is the first migrated command that:
 
 ## Technical Considerations
 
-1. **Slug Validation**: Must preserve existing validation rules
-2. **Parent Resolution**: Use app.Manager.Get() for parent validation
+1. **Slug Validation**: Must preserve existing validation rules and error messages
+2. **Parent Resolution**: Use app.Manager.Get() for parent validation with all edge cases
 3. **File Creation**: Ensure atomic file operations
-4. **Flag Merging**: Handle both long and short flag forms
-5. **Testing**: Mock file system operations for unit tests
-6. **Backward Compatibility**: Preserve exact output format
+4. **Flag Merging**: Handle both long and short flag forms correctly (may need separate StringVar calls)
+5. **Testing**: Mock file system operations for unit tests, include table-driven tests
+6. **Backward Compatibility**: Preserve exact output format for both text and JSON
+7. **Business Logic Reuse**: Leverage existing `App.NewTicket` method rather than reimplementing
+8. **Error Consistency**: Maintain exact error messages including helpful suggestions
 
 ## References
 
