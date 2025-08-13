@@ -98,7 +98,7 @@ func TestCloseWithReason(t *testing.T) {
 		require.NoError(t, err)
 
 		// Start the ticket (creates branch)
-		err = app.StartTicket(ctx, testTicket.ID, false)
+		err = app.StartTicket(ctx, testTicket.ID, false, cli.FormatText)
 		require.NoError(t, err)
 
 		// Make a change on the branch
@@ -171,7 +171,7 @@ func TestCloseWithReason(t *testing.T) {
 		require.NoError(t, err)
 
 		// Start the ticket (creates branch)
-		err = app.StartTicket(ctx, testTicket.ID, false)
+		err = app.StartTicket(ctx, testTicket.ID, false, cli.FormatText)
 		require.NoError(t, err)
 
 		// Make a change on the branch but don't merge

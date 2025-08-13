@@ -75,6 +75,12 @@ func init() {
 		// This should never happen in practice but we handle it gracefully
 		fmt.Fprintf(os.Stderr, "Warning: failed to register new command: %v\n", err)
 	}
+	// Register start command
+	if err := commandRegistry.Register(commands.NewStartCommand()); err != nil {
+		// Log error but continue - allow program to run with degraded functionality
+		// This should never happen in practice but we handle it gracefully
+		fmt.Fprintf(os.Stderr, "Warning: failed to register start command: %v\n", err)
+	}
 }
 
 func main() {
@@ -160,10 +166,6 @@ type migrateFlags struct {
 }
 
 // startFlags holds command-line flags for the 'start' command
-type startFlags struct {
-	force bool // Force recreate worktree if it exists
-}
-
 func runCLI(ctx context.Context) error {
 	// Parse command
 	if len(os.Args) < 2 {
@@ -184,22 +186,6 @@ func runCLI(ctx context.Context) error {
 
 	// Fall back to old switch statement for unmigrated commands
 	switch os.Args[1] {
-	case "start":
-		return parseAndExecute(ctx, Command{
-			Name:         "start",
-			MinArgs:      1,
-			MinArgsError: "missing ticket argument",
-			SetupFlags: func(fs *flag.FlagSet) interface{} {
-				flags := &startFlags{}
-				fs.BoolVar(&flags.force, "force", false, "Force recreate worktree if it already exists")
-				return flags
-			},
-			Execute: func(ctx context.Context, fs *flag.FlagSet, cmdFlags interface{}) error {
-				flags := cmdFlags.(*startFlags)
-				return handleStart(ctx, fs.Arg(0), flags.force)
-			},
-		}, os.Args[2:])
-
 	case "close":
 		return parseAndExecute(ctx, Command{
 			Name: "close",
@@ -286,15 +272,6 @@ func runCLI(ctx context.Context) error {
 	default:
 		return fmt.Errorf("unknown command: %s", os.Args[1])
 	}
-}
-
-func handleStart(ctx context.Context, ticketID string, force bool) error {
-	app, err := cli.NewApp(ctx)
-	if err != nil {
-		return err
-	}
-
-	return app.StartTicket(ctx, ticketID, force)
 }
 
 func handleClose(ctx context.Context, reason string, force bool) error {
