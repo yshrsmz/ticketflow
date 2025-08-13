@@ -285,7 +285,7 @@ func TestIsValidListStatus(t *testing.T) {
 		{"doing", true},
 		{"done", true},
 		{"all", true},
-		{"", false},
+		{"", true},
 		{"active", false},
 		{"invalid", false},
 		{string(ticket.StatusTodo), true},
