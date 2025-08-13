@@ -15,31 +15,31 @@ Migrate the `start` command to use the new Command interface, building on patter
 ## Tasks
 Make sure to update task status when you finish it. Also, always create a commit for each task you finished.
 
-- [ ] Create `internal/cli/commands/start.go` implementing the Command interface
-- [ ] Implement App dependency using `cli.NewApp(ctx)` pattern
-- [ ] Handle positional argument for ticket ID (MinArgs: 1, MaxArgs: 1)
-- [ ] Implement flags:
-  - [ ] `--force` / `-f` for force recreate worktree (both long and short forms)
-  - [ ] `--format` / `-o` for output format (json/text) for consistency
-- [ ] Add ticket validation in Validate method (exists, not already done)
-- [ ] Keep Execute method thin, delegating to App.StartTicket
-- [ ] Add comprehensive unit tests with mock App
-- [ ] Update main.go to register start command
-- [ ] Remove start case from switch statement (lines 187-201)
-- [ ] Test start command functionality with various scenarios:
-  - [ ] Valid ticket start with worktree creation
-  - [ ] Valid ticket start without worktree (disabled mode)
-  - [ ] Ticket not found error (consistent error message format)
-  - [ ] Ticket already done error
-  - [ ] Ticket already in doing status
-  - [ ] Force recreate worktree
-  - [ ] Parent branch detection for sub-tickets
-  - [ ] Init commands execution
-  - [ ] JSON output format
-  - [ ] Uncommitted changes in current directory
-- [ ] Run `make test` to run the tests
-- [ ] Run `make vet`, `make fmt` and `make lint`
-- [ ] Update migration guide with completion status
+- [x] Create `internal/cli/commands/start.go` implementing the Command interface
+- [x] Implement App dependency using `cli.NewApp(ctx)` pattern
+- [x] Handle positional argument for ticket ID (MinArgs: 1, MaxArgs: 1)
+- [x] Implement flags:
+  - [x] `--force` / `-f` for force recreate worktree (both long and short forms)
+  - [x] `--format` / `-o` for output format (json/text) for consistency
+- [x] Add ticket validation in Validate method (exists, not already done)
+- [x] Keep Execute method thin, delegating to App.StartTicket
+- [x] Add comprehensive unit tests with mock App
+- [x] Update main.go to register start command
+- [x] Remove start case from switch statement (lines 187-201)
+- [x] Test start command functionality with various scenarios:
+  - [x] Valid ticket start with worktree creation
+  - [x] Valid ticket start without worktree (disabled mode)
+  - [x] Ticket not found error (consistent error message format)
+  - [x] Ticket already done error
+  - [x] Ticket already in doing status
+  - [x] Force recreate worktree
+  - [x] Parent branch detection for sub-tickets
+  - [x] Init commands execution
+  - [x] JSON output format
+  - [x] Uncommitted changes in current directory
+- [x] Run `make test` to run the tests
+- [x] Run `make vet`, `make fmt` and `make lint`
+- [x] Update migration guide with completion status
 - [ ] Get developer approval before closing
 
 ## Implementation Notes
