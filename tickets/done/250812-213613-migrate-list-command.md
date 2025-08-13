@@ -1,9 +1,9 @@
 ---
 priority: 2
-description: "Migrate list command to new Command interface"
+description: Migrate list command to new Command interface
 created_at: "2025-08-12T21:36:13+09:00"
 started_at: "2025-08-13T11:54:16+09:00"
-closed_at: null
+closed_at: "2025-08-13T15:33:04+09:00"
 related:
     - parent:250810-003001-refactor-command-interface
 ---
