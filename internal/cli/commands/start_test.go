@@ -263,10 +263,11 @@ func TestStartCommand_Execute(t *testing.T) {
 				cancel() // Cancel immediately
 			}
 
-			// For most tests we need to skip because they require actual App interaction
-			// These are better covered by integration tests
+			// Skip tests that require actual App interaction (not context cancellation or type validation)
+			// These scenarios are better covered by integration tests
+			// The app creation error test also needs to be skipped as we can't mock cli.NewApp
 			if !tt.ctxCancelled && tt.expectedError != "invalid flags type" {
-				t.Skip("Skipping test that requires actual App interaction - covered by integration tests")
+				t.Skipf("Skipping '%s': requires actual App interaction - covered by integration tests", tt.name)
 			}
 
 			cmd := NewStartCommand()

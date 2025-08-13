@@ -99,6 +99,7 @@ func (c *StartCommand) Validate(flags interface{}, args []string) error {
 // Execute runs the start command
 func (c *StartCommand) Execute(ctx context.Context, flags interface{}, args []string) error {
 	// Check for context cancellation early
+	// This is a defensive programming practice to fail fast if context is already cancelled
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
@@ -111,7 +112,8 @@ func (c *StartCommand) Execute(ctx context.Context, flags interface{}, args []st
 		return err
 	}
 
-	// Safely extract flags
+	// Extract flags - Validate already checked this, but we still need to handle the type assertion
+	// for defensive programming (e.g., if Execute is called directly without Validate)
 	f, ok := flags.(*startFlags)
 	if !ok {
 		return fmt.Errorf("invalid flags type: expected *startFlags, got %T", flags)
@@ -124,6 +126,5 @@ func (c *StartCommand) Execute(ctx context.Context, flags interface{}, args []st
 	outputFormat := cli.ParseOutputFormat(f.format)
 
 	// Use the existing StartTicket method from App which handles all the business logic
-	// We need to modify StartTicket to return the necessary data for JSON output
 	return app.StartTicket(ctx, ticketID, f.force, outputFormat)
 }
