@@ -22,8 +22,8 @@ Complete the migration of all remaining commands to the new Command interface an
 - [x] **show** - Display ticket details (ticket: 250813-152930-migrate-show-command)
 
 ### State-Changing Commands
-- [ ] **new** - Create new ticket (with parent flag handling) (ticket: 250813-175042-migrate-new-command)
-- [ ] **start** - Start working on ticket (with worktree creation)
+- [x] **new** - Create new ticket (with parent flag handling) (ticket: 250813-175042-migrate-new-command) ✅ DONE
+- [ ] **start** - Start working on ticket (with worktree creation) (ticket: 250813-192015-migrate-start-command)
 - [ ] **close** - Close current/specified ticket (with reason handling)
 - [ ] **restore** - Restore closed ticket
 
