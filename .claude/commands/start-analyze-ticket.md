@@ -11,4 +11,5 @@ description: "Analyze current ticket"
       - ultrathink if we really need this feature as a ticketflow, ticket management tool. If you conclude that we don't need this, let me know why
       - plan how we should split the ticket. ultrathink
     - If you find out that there are some prior tasks to be done, we should create tickets for that tasks as well, and should finish them prior to this ticket
+    - You own everything. do your best
 - Finally report how we should proceed with the ticket
