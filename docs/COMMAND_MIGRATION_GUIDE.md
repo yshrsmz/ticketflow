@@ -271,6 +271,7 @@ func TestListCommand(t *testing.T) {
 - [x] **status** - Show current ticket status (first command with App dependency)
 - [x] **list** - List tickets with filters (including ls alias)
 - [x] **show** - Show ticket details (first command with positional arguments)
+- [x] **new** - Create new ticket (first state-changing command, supports --parent/-p and --format/-o flags)
 
 ### In Progress 🚧
 - [ ] Create migration tickets for remaining commands
@@ -282,7 +283,6 @@ func TestListCommand(t *testing.T) {
 #### Read-Only Commands
 
 #### State-Changing Commands
-- [ ] **new** - Create new ticket
 - [ ] **start** - Start working on ticket
 - [ ] **close** - Close current/specified ticket
 - [ ] **restore** - Restore closed ticket
