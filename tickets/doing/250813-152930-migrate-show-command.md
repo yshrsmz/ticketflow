@@ -1,8 +1,8 @@
 ---
 priority: 2
-description: "Migrate show command to new Command interface"
+description: Migrate show command to new Command interface
 created_at: "2025-08-13T15:29:30+09:00"
-started_at: null
+started_at: "2025-08-13T15:49:00+09:00"
 closed_at: null
 related:
     - parent:250812-213613-migrate-list-command
