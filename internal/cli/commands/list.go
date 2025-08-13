@@ -40,18 +40,20 @@ func (c *ListCommand) Usage() string {
 
 // listFlags holds the flags for the list command
 type listFlags struct {
-	status string
-	count  int
-	format string
+	status      string
+	statusShort string
+	count       int
+	countShort  int
+	format      string
 }
 
 // SetupFlags configures flags for the command
 func (c *ListCommand) SetupFlags(fs *flag.FlagSet) interface{} {
 	flags := &listFlags{}
 	fs.StringVar(&flags.status, "status", "", "Filter by status (todo|doing|done|all)")
-	fs.StringVar(&flags.status, "s", "", "Filter by status (todo|doing|done|all)")
+	fs.StringVar(&flags.statusShort, "s", "", "Filter by status (todo|doing|done|all)")
 	fs.IntVar(&flags.count, "count", 20, "Number of tickets to show")
-	fs.IntVar(&flags.count, "c", 20, "Number of tickets to show")
+	fs.IntVar(&flags.countShort, "c", 20, "Number of tickets to show")
 	fs.StringVar(&flags.format, "format", "text", "Output format (text|json)")
 	return flags
 }
@@ -60,6 +62,14 @@ func (c *ListCommand) SetupFlags(fs *flag.FlagSet) interface{} {
 func (c *ListCommand) Validate(flags interface{}, args []string) error {
 	// Extract flags
 	f := flags.(*listFlags)
+
+	// Merge short and long form flags (short takes precedence if both provided)
+	if f.statusShort != "" {
+		f.status = f.statusShort
+	}
+	if f.countShort != 20 { // 20 is the default
+		f.count = f.countShort
+	}
 
 	// Validate format flag
 	if f.format != "text" && f.format != "json" {
