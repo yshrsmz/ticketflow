@@ -186,15 +186,8 @@ func TestNewCommand_Validate(t *testing.T) {
 	}
 }
 
-// MockApp is a mock implementation of the App interface for testing
-type MockApp struct {
-	mock.Mock
-}
-
-func (m *MockApp) NewTicket(ctx context.Context, slug string, explicitParent string, format cli.OutputFormat) error {
-	args := m.Called(ctx, slug, explicitParent, format)
-	return args.Error(0)
-}
+// Note: MockApp is already defined in status_test.go in the same package
+// We would use it here if we needed to test Execute with mocks
 
 func TestNewCommand_Execute(t *testing.T) {
 	// Note: Full execution testing would require mocking the entire App structure
