@@ -15,31 +15,31 @@ Migrate the `new` command to use the new Command interface, continuing the patte
 ## Tasks
 Make sure to update task status when you finish it. Also, always create a commit for each task you finished.
 
-- [ ] Create `internal/cli/commands/new.go` implementing the Command interface
-- [ ] Implement App dependency using `cli.NewApp(ctx)` pattern
-- [ ] Handle positional argument for ticket slug (MinArgs: 1)
-- [ ] Implement flags:
-  - [ ] `--parent` / `-p` for parent ticket ID
-  - [ ] `--format` / `-o` for output format (text/json)
-  - [ ] Ensure short flag forms (-p, -o) work correctly alongside long forms
-- [ ] Add slug validation (alphanumeric and hyphens only)
-- [ ] Handle parent ticket validation and relationship
-- [ ] Preserve backward compatibility of output formats (text and JSON must match exactly)
-- [ ] Add comprehensive unit tests with mock App
-- [ ] Update main.go to register new command
-- [ ] Remove new case from switch statement
-- [ ] Test new command functionality with various scenarios:
-  - [ ] Valid slug creation
-  - [ ] Invalid slug validation
-  - [ ] Parent ticket relationship (exists, not done, no circular references)
-  - [ ] Short vs long flag forms
-  - [ ] JSON output format (exact format matching)
-  - [ ] Text output format (exact format matching)
-  - [ ] Empty/missing slug
-  - [ ] Error message consistency
-- [ ] Run `make test` to run the tests
-- [ ] Run `make vet`, `make fmt` and `make lint`
-- [ ] Update migration guide with completion status
+- [x] Create `internal/cli/commands/new.go` implementing the Command interface
+- [x] Implement App dependency using `cli.NewApp(ctx)` pattern
+- [x] Handle positional argument for ticket slug (MinArgs: 1)
+- [x] Implement flags:
+  - [x] `--parent` / `-p` for parent ticket ID
+  - [x] `--format` / `-o` for output format (text/json)
+  - [x] Ensure short flag forms (-p, -o) work correctly alongside long forms
+- [x] Add slug validation (alphanumeric and hyphens only)
+- [x] Handle parent ticket validation and relationship
+- [x] Preserve backward compatibility of output formats (text and JSON must match exactly)
+- [x] Add comprehensive unit tests with mock App
+- [x] Update main.go to register new command
+- [x] Remove new case from switch statement
+- [x] Test new command functionality with various scenarios:
+  - [x] Valid slug creation
+  - [x] Invalid slug validation
+  - [x] Parent ticket relationship (exists, not done, no circular references)
+  - [x] Short vs long flag forms
+  - [x] JSON output format (exact format matching)
+  - [x] Text output format (exact format matching)
+  - [x] Empty/missing slug
+  - [x] Error message consistency
+- [x] Run `make test` to run the tests
+- [x] Run `make vet`, `make fmt` and `make lint`
+- [x] Update migration guide with completion status
 - [ ] Get developer approval before closing
 
 ## Implementation Notes
