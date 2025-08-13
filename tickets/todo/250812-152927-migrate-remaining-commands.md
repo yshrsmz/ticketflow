@@ -17,12 +17,12 @@ Complete the migration of all remaining commands to the new Command interface an
 ## Commands to Migrate
 
 ### Read-Only Commands
-- [ ] **status** - Show current ticket status
-- [ ] **list** - List tickets with filters
-- [ ] **show** - Display ticket details
+- [x] **status** - Show current ticket status (ticket: 250812-231616-migrate-status-command)
+- [x] **list** - List tickets with filters (ticket: 250812-213613-migrate-list-command)
+- [x] **show** - Display ticket details (ticket: 250813-152930-migrate-show-command)
 
 ### State-Changing Commands
-- [ ] **new** - Create new ticket (with parent flag handling)
+- [ ] **new** - Create new ticket (with parent flag handling) (ticket: 250813-175042-migrate-new-command)
 - [ ] **start** - Start working on ticket (with worktree creation)
 - [ ] **close** - Close current/specified ticket (with reason handling)
 - [ ] **restore** - Restore closed ticket
