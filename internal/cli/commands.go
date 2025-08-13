@@ -433,7 +433,7 @@ func (app *App) ListTickets(ctx context.Context, status ticket.Status, count int
 }
 
 // StartTicket starts working on a ticket
-func (app *App) StartTicket(ctx context.Context, ticketID string, force bool) error {
+func (app *App) StartTicket(ctx context.Context, ticketID string, force bool, format OutputFormat) error {
 	logger := log.Global().WithOperation("start_ticket").WithTicket(ticketID)
 	logger.Info("starting ticket")
 
@@ -483,7 +483,23 @@ func (app *App) StartTicket(ctx context.Context, ticketID string, force bool) er
 		return err
 	}
 
-	// Output success message
+	// Check if init commands were executed
+	initCommandsExecuted := len(app.Config.Worktree.InitCommands) > 0 && worktreePath != ""
+
+	// Output based on format
+	if format == FormatJSON {
+		output := map[string]interface{}{
+			"ticket_id":               t.ID,
+			"status":                  string(t.Status()),
+			"worktree_path":          worktreePath,
+			"branch":                 t.ID,
+			"parent_branch":          parentBranch,
+			"init_commands_executed": initCommandsExecuted,
+		}
+		return app.Output.PrintJSON(output)
+	}
+
+	// Text format - use existing success message
 	app.printStartSuccessMessage(t, worktreePath, parentBranch)
 
 	return nil

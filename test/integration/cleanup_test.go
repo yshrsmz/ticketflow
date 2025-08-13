@@ -56,7 +56,7 @@ func TestCleanupTicketWithForceFlag(t *testing.T) {
 	require.NoError(t, err)
 
 	// Start the ticket (creates branch but no worktree since we disabled it)
-	err = app.StartTicket(context.Background(), ticketID, false)
+	err = app.StartTicket(context.Background(), ticketID, false, cli.FormatText)
 	require.NoError(t, err)
 
 	// Get the ticket to verify it exists
@@ -131,7 +131,7 @@ func TestCleanupTicketWithWorktreeAndForceFlag(t *testing.T) {
 	require.NoError(t, err)
 
 	// Start the ticket (creates branch AND worktree since we enabled it)
-	err = app.StartTicket(context.Background(), ticketID, false)
+	err = app.StartTicket(context.Background(), ticketID, false, cli.FormatText)
 	require.NoError(t, err)
 
 	// Verify worktree was created

@@ -305,7 +305,7 @@ Test ticket content`
 			}
 
 			// Execute
-			err := app.StartTicket(context.Background(), tt.ticketID, false)
+			err := app.StartTicket(context.Background(), tt.ticketID, false, cli.FormatText)
 
 			// Assert
 			if tt.expectedError {
@@ -397,7 +397,7 @@ Test ticket content`
 	}
 
 	// Execute
-	err := app.StartTicket(context.Background(), ticketID, false)
+	err := app.StartTicket(context.Background(), ticketID, false, cli.FormatText)
 	assert.NoError(t, err)
 
 	// Verify that SetCurrentTicket was NOT called (by checking expectations)
@@ -474,7 +474,7 @@ Test ticket content`
 	}
 
 	// Execute
-	err := app.StartTicket(context.Background(), ticketID, false)
+	err := app.StartTicket(context.Background(), ticketID, false, cli.FormatText)
 	assert.NoError(t, err)
 
 	// Verify that SetCurrentTicket WAS called

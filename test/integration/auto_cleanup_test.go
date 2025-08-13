@@ -52,7 +52,7 @@ func TestAutoCleanupStaleBranchesIntegration(t *testing.T) {
 		ticketIDs = append(ticketIDs, ticketID)
 
 		// Start the ticket (creates branch and worktree)
-		err = app.StartTicket(context.Background(), ticketID, false)
+		err = app.StartTicket(context.Background(), ticketID, false, cli.FormatText)
 		require.NoError(t, err)
 	}
 
@@ -144,7 +144,7 @@ func TestAutoCleanupDryRun(t *testing.T) {
 	require.NotEmpty(t, ticketID)
 
 	// Start the ticket
-	err = app.StartTicket(context.Background(), ticketID, false)
+	err = app.StartTicket(context.Background(), ticketID, false, cli.FormatText)
 	require.NoError(t, err)
 
 	// Manually close the ticket

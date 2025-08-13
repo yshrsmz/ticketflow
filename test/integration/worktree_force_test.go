@@ -55,7 +55,7 @@ func TestStartTicketWithForceFlag(t *testing.T) {
 	ticketID := tickets[0].ID
 
 	// Start the ticket (creates worktree)
-	err = app.StartTicket(context.Background(), ticketID, false)
+	err = app.StartTicket(context.Background(), ticketID, false, cli.FormatText)
 	require.NoError(t, err)
 
 	// Verify worktree exists
@@ -68,7 +68,7 @@ func TestStartTicketWithForceFlag(t *testing.T) {
 	require.NoError(t, err)
 
 	// Try to start again without force (should fail)
-	err = app.StartTicket(context.Background(), ticketID, false)
+	err = app.StartTicket(context.Background(), ticketID, false, cli.FormatText)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Ticket already started")
 
@@ -76,7 +76,7 @@ func TestStartTicketWithForceFlag(t *testing.T) {
 	assert.FileExists(t, testFile)
 
 	// Start with force flag (should succeed)
-	err = app.StartTicket(context.Background(), ticketID, true)
+	err = app.StartTicket(context.Background(), ticketID, true, cli.FormatText)
 	assert.NoError(t, err)
 
 	// Verify worktree was recreated (test file should be gone)
@@ -134,11 +134,11 @@ func TestStartTicketForceWithoutWorktree(t *testing.T) {
 	require.NoError(t, err)
 
 	// Start the ticket (no worktree created)
-	err = app.StartTicket(context.Background(), ticketID, false)
+	err = app.StartTicket(context.Background(), ticketID, false, cli.FormatText)
 	require.NoError(t, err)
 
 	// Start again with force flag (should fail since worktrees are disabled)
-	err = app.StartTicket(context.Background(), ticketID, true)
+	err = app.StartTicket(context.Background(), ticketID, true, cli.FormatText)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Ticket already started")
 

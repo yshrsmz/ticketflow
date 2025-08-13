@@ -101,7 +101,7 @@ func TestCompleteWorkflow(t *testing.T) {
 
 	// 4. Start work on ticket
 	ticketID := tickets[0].ID
-	err = app.StartTicket(context.Background(), ticketID, false)
+	err = app.StartTicket(context.Background(), ticketID, false, cli.FormatText)
 	require.NoError(t, err)
 
 	// Verify ticket status changed
@@ -188,7 +188,7 @@ func TestRestoreWorkflow(t *testing.T) {
 	require.NoError(t, err)
 
 	// Start work on ticket
-	err = app.StartTicket(context.Background(), ticketID, false)
+	err = app.StartTicket(context.Background(), ticketID, false, cli.FormatText)
 	require.NoError(t, err)
 
 	// Remove current-ticket link

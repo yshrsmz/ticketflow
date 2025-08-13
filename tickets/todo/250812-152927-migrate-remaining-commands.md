@@ -34,6 +34,7 @@ Complete the migration of all remaining commands to the new Command interface an
 
 ## Final Cleanup Tasks
 
+- [ ] Review all new command code and check if there's any implementation/design inconsistency. Report if any
 - [ ] Remove old Command struct from command.go
 - [ ] Remove parseAndExecute function  
 - [ ] Remove entire switch statement from main.go
