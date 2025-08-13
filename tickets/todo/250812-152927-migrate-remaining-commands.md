@@ -23,8 +23,8 @@ Complete the migration of all remaining commands to the new Command interface an
 
 ### State-Changing Commands
 - [x] **new** - Create new ticket (with parent flag handling) (ticket: 250813-175042-migrate-new-command) ✅ DONE
-- [ ] **start** - Start working on ticket (with worktree creation) (ticket: 250813-192015-migrate-start-command)
-- [ ] **close** - Close current/specified ticket (with reason handling)
+- [ ] **start** - Start working on ticket (with worktree creation) (ticket: 250813-192015-migrate-start-command) 🚧 PR #62 pending approval
+- [ ] **close** - Close current/specified ticket (with reason handling) (ticket: 250814-013846-migrate-close-command)
 - [ ] **restore** - Restore closed ticket
 
 ### Complex Commands
