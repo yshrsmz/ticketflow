@@ -167,7 +167,6 @@ type cleanupFlags struct {
 	force  bool
 }
 
-
 // startFlags holds command-line flags for the 'start' command
 func runCLI(ctx context.Context) error {
 	// Parse command
