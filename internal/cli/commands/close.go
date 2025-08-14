@@ -125,7 +125,7 @@ func (c *CloseCommand) Execute(ctx context.Context, flags interface{}, args []st
 	// Perform the close operation based on whether ticket ID was provided
 	var closeErr error
 	var ticketID string
-	
+
 	if len(f.args) == 0 {
 		// No ticket ID provided - close current ticket
 		if f.reason != "" {
@@ -175,7 +175,7 @@ func outputCloseSuccessJSON(app *cli.App, ticketID string, reason string, force 
 		"force_used":     force,
 		"commit_created": true,
 	}
-	
+
 	// For current ticket mode, we need to determine the ticket ID
 	if isCurrentTicket {
 		// Try to get current ticket ID from worktree directory name
@@ -192,20 +192,20 @@ func outputCloseSuccessJSON(app *cli.App, ticketID string, reason string, force 
 	} else {
 		output["mode"] = "by_id"
 	}
-	
+
 	// Try to get ticket information if we have an ID
 	if ticketID != "" {
 		output["ticket_id"] = ticketID
-		
+
 		// Try to retrieve the ticket for additional information
 		ticket, err := app.Manager.Get(context.Background(), ticketID)
 		if err == nil && ticket != nil {
 			output["status"] = string(ticket.Status())
-			
+
 			if ticket.ClosedAt.Time != nil {
 				output["closed_at"] = ticket.ClosedAt.Time.Format(time.RFC3339)
 			}
-			
+
 			// Calculate duration for current ticket mode
 			if isCurrentTicket && ticket.StartedAt.Time != nil && ticket.ClosedAt.Time != nil {
 				duration := ticket.ClosedAt.Time.Sub(*ticket.StartedAt.Time)
@@ -213,7 +213,7 @@ func outputCloseSuccessJSON(app *cli.App, ticketID string, reason string, force 
 				minutes := int(duration.Minutes()) % 60
 				output["duration"] = fmt.Sprintf("%dh%dm", hours, minutes)
 			}
-			
+
 			// Add parent ticket if available - extract from Related field
 			for _, rel := range ticket.Related {
 				if strings.HasPrefix(rel, "parent:") {
@@ -221,7 +221,7 @@ func outputCloseSuccessJSON(app *cli.App, ticketID string, reason string, force 
 					break
 				}
 			}
-			
+
 			// Add worktree path for current ticket
 			if isCurrentTicket {
 				cwd, err := os.Getwd()
@@ -234,10 +234,10 @@ func outputCloseSuccessJSON(app *cli.App, ticketID string, reason string, force 
 			}
 		}
 	}
-	
+
 	if reason != "" {
 		output["close_reason"] = reason
 	}
-	
+
 	return app.Output.PrintJSON(output)
 }

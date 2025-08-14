@@ -73,10 +73,10 @@ Make sure to update task status when you finish it. Also, always create a commit
 - [x] Verify command appears in help text
 
 ### 9. Code Quality and Documentation
-- [ ] Run `make test` to ensure all tests pass
-- [ ] Run `make vet` for static analysis
-- [ ] Run `make fmt` for code formatting
-- [ ] Run `make lint` for linting issues
+- [x] Run `make test` to ensure all tests pass
+- [x] Run `make vet` for static analysis
+- [x] Run `make fmt` for code formatting
+- [x] Run `make lint` for linting issues
 - [ ] Update `docs/COMMAND_MIGRATION_GUIDE.md` with close command completion status
 - [ ] Add any new patterns discovered to the guide
 

@@ -7,66 +7,65 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/yshrsmz/ticketflow/internal/cli"
 	"github.com/yshrsmz/ticketflow/internal/command"
 )
 
 func TestCloseCommand_Interface(t *testing.T) {
 	t.Parallel()
-	
+
 	cmd := NewCloseCommand()
-	
+
 	// Verify it implements the Command interface
 	var _ command.Command = cmd
-	
+
 	// Test Name
 	assert.Equal(t, "close", cmd.Name())
-	
+
 	// Test Aliases
 	assert.Nil(t, cmd.Aliases())
-	
+
 	// Test Description
 	assert.Equal(t, "Close a ticket", cmd.Description())
-	
+
 	// Test Usage
 	assert.Equal(t, "close [--force] [--reason <message>] [--format text|json] [<ticket-id>]", cmd.Usage())
 }
 
 func TestCloseCommand_SetupFlags(t *testing.T) {
 	t.Parallel()
-	
+
 	cmd := &CloseCommand{}
 	fs := flag.NewFlagSet("test", flag.ContinueOnError)
-	
+
 	flags := cmd.SetupFlags(fs)
-	
+
 	// Verify flags is of correct type
 	closeFlags, ok := flags.(*closeFlags)
 	require.True(t, ok, "flags should be *closeFlags")
-	
+
 	// Test default values
 	assert.False(t, closeFlags.force)
 	assert.False(t, closeFlags.forceShort)
 	assert.Equal(t, "", closeFlags.reason)
 	assert.Equal(t, FormatText, closeFlags.format)
 	assert.Equal(t, FormatText, closeFlags.formatShort)
-	
+
 	// Test that flags are registered
 	forceFlag := fs.Lookup("force")
 	assert.NotNil(t, forceFlag)
 	assert.Equal(t, "false", forceFlag.DefValue)
-	
+
 	forceShortFlag := fs.Lookup("f")
 	assert.NotNil(t, forceShortFlag)
-	
+
 	reasonFlag := fs.Lookup("reason")
 	assert.NotNil(t, reasonFlag)
 	assert.Equal(t, "", reasonFlag.DefValue)
-	
+
 	formatFlag := fs.Lookup("format")
 	assert.NotNil(t, formatFlag)
 	assert.Equal(t, FormatText, formatFlag.DefValue)
-	
+
 	formatShortFlag := fs.Lookup("o")
 	assert.NotNil(t, formatShortFlag)
 	assert.Equal(t, FormatText, formatShortFlag.DefValue)
@@ -74,7 +73,7 @@ func TestCloseCommand_SetupFlags(t *testing.T) {
 
 func TestCloseCommand_Validate(t *testing.T) {
 	t.Parallel()
-	
+
 	tests := []struct {
 		name        string
 		flags       interface{}
@@ -117,8 +116,8 @@ func TestCloseCommand_Validate(t *testing.T) {
 			errorMsg:    "invalid format",
 		},
 		{
-			name: "wrong flags type",
-			flags: struct{}{},
+			name:        "wrong flags type",
+			flags:       struct{}{},
 			args:        []string{},
 			expectError: true,
 			errorMsg:    "invalid flags type",
@@ -143,14 +142,14 @@ func TestCloseCommand_Validate(t *testing.T) {
 			expectError: false,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			
+
 			cmd := &CloseCommand{}
 			err := cmd.Validate(tt.flags, tt.args)
-			
+
 			if tt.expectError {
 				assert.Error(t, err)
 				if tt.errorMsg != "" {
@@ -158,7 +157,7 @@ func TestCloseCommand_Validate(t *testing.T) {
 				}
 			} else {
 				assert.NoError(t, err)
-				
+
 				// Verify normalization happened
 				if f, ok := tt.flags.(*closeFlags); ok {
 					if f.forceShort {
@@ -177,7 +176,7 @@ func TestCloseCommand_Validate(t *testing.T) {
 
 func TestCloseCommand_Execute_Errors(t *testing.T) {
 	// Cannot use t.Parallel() - cli.NewApp modifies global state
-	
+
 	tests := []struct {
 		name        string
 		flags       *closeFlags
@@ -199,7 +198,7 @@ func TestCloseCommand_Execute_Errors(t *testing.T) {
 			expectError: true,
 		},
 		{
-			name: "invalid flags type",
+			name:  "invalid flags type",
 			flags: nil, // Will pass wrong type
 			args:  []string{},
 			setupApp: func() error {
@@ -209,7 +208,7 @@ func TestCloseCommand_Execute_Errors(t *testing.T) {
 			errorMsg:    "invalid flags type",
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Setup any required app state
@@ -217,9 +216,9 @@ func TestCloseCommand_Execute_Errors(t *testing.T) {
 				err := tt.setupApp()
 				require.NoError(t, err, "setup should not fail")
 			}
-			
+
 			cmd := &CloseCommand{}
-			
+
 			var ctx context.Context
 			if tt.name == "context cancelled" {
 				cancelCtx, cancel := context.WithCancel(context.Background())
@@ -228,7 +227,7 @@ func TestCloseCommand_Execute_Errors(t *testing.T) {
 			} else {
 				ctx = context.Background()
 			}
-			
+
 			var err error
 			if tt.flags == nil {
 				// Test with wrong type
@@ -236,7 +235,7 @@ func TestCloseCommand_Execute_Errors(t *testing.T) {
 			} else {
 				err = cmd.Execute(ctx, tt.flags, tt.args)
 			}
-			
+
 			if tt.expectError {
 				assert.Error(t, err)
 				if tt.errorMsg != "" {
@@ -251,14 +250,14 @@ func TestCloseCommand_Execute_Errors(t *testing.T) {
 
 func TestCloseCommand_Execute_Mock(t *testing.T) {
 	// Cannot use t.Parallel() - would need mock App setup
-	
+
 	t.Run("text output calls correct app methods", func(t *testing.T) {
 		// This test would require mocking the App and its methods
 		// For now, we're testing the basic structure
 		// Full mock testing would be done in integration tests
 		t.Skip("Requires mock App implementation")
 	})
-	
+
 	t.Run("JSON output format", func(t *testing.T) {
 		// This test would require mocking the App and capturing JSON output
 		t.Skip("Requires mock App implementation and output capture")
@@ -268,13 +267,13 @@ func TestCloseCommand_Execute_Mock(t *testing.T) {
 // Test helper functions
 func TestCloseCommand_OutputHelpers(t *testing.T) {
 	t.Parallel()
-	
+
 	t.Run("outputCloseErrorJSON formats error correctly", func(t *testing.T) {
 		// This would test the error output format
 		// Requires mocking app.Output.PrintJSON
 		t.Skip("Requires mock Output implementation")
 	})
-	
+
 	t.Run("outputCloseSuccessJSON includes all fields", func(t *testing.T) {
 		// This would test that all expected fields are included
 		// Requires mocking app.Output.PrintJSON and app.Manager.GetTicket
@@ -285,7 +284,7 @@ func TestCloseCommand_OutputHelpers(t *testing.T) {
 // Test flag normalization
 func TestCloseFlags_Normalize(t *testing.T) {
 	t.Parallel()
-	
+
 	tests := []struct {
 		name     string
 		flags    closeFlags
@@ -342,14 +341,14 @@ func TestCloseFlags_Normalize(t *testing.T) {
 			},
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			
+
 			flags := tt.flags
 			flags.normalize()
-			
+
 			assert.Equal(t, tt.expected.force, flags.force)
 			assert.Equal(t, tt.expected.format, flags.format)
 		})
@@ -361,48 +360,24 @@ func TestCloseCommand_Integration(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
 	}
-	
+
 	t.Run("close current ticket", func(t *testing.T) {
 		// This would be an integration test with a real ticket
 		t.Skip("Requires full integration test setup")
 	})
-	
+
 	t.Run("close ticket by ID", func(t *testing.T) {
 		// This would be an integration test with a real ticket
 		t.Skip("Requires full integration test setup")
 	})
-	
+
 	t.Run("force close with uncommitted changes", func(t *testing.T) {
 		// This would test the force flag behavior
 		t.Skip("Requires full integration test setup")
 	})
-	
+
 	t.Run("close with reason", func(t *testing.T) {
 		// This would test the reason flag behavior
 		t.Skip("Requires full integration test setup")
 	})
-}
-
-// Mock App for testing (would be in a separate test helpers file normally)
-type mockApp struct {
-	*cli.App
-	closeTicketCalled           bool
-	closeTicketWithReasonCalled bool
-	closeTicketByIDCalled       bool
-	returnError                 error
-}
-
-func (m *mockApp) CloseTicket(ctx context.Context, force bool) error {
-	m.closeTicketCalled = true
-	return m.returnError
-}
-
-func (m *mockApp) CloseTicketWithReason(ctx context.Context, reason string, force bool) error {
-	m.closeTicketWithReasonCalled = true
-	return m.returnError
-}
-
-func (m *mockApp) CloseTicketByID(ctx context.Context, ticketID, reason string, force bool) error {
-	m.closeTicketByIDCalled = true
-	return m.returnError
 }
