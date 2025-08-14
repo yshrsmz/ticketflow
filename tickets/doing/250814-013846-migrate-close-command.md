@@ -16,36 +16,36 @@ Migrate the `close` command to use the new Command interface, completing the cor
 Make sure to update task status when you finish it. Also, always create a commit for each task you finished.
 
 ### 1. Create Command File and Structure
-- [ ] Create `internal/cli/commands/close.go` implementing the Command interface
-- [ ] Define command struct with fields for force, reason, and format flags
-- [ ] Implement basic Command interface methods (Name, Aliases, Description, Usage)
+- [x] Create `internal/cli/commands/close.go` implementing the Command interface
+- [x] Define command struct with fields for force, reason, and format flags
+- [x] Implement basic Command interface methods (Name, Aliases, Description, Usage)
 
 ### 2. Implement SetupFlags Method
-- [ ] Add `--force` / `-f` boolean flag to force close with uncommitted changes
-- [ ] Add `--reason` string flag for closing reason (added to commit message)
-- [ ] Add `--format` / `-o` string flag for output format (json/text, default: text)
-- [ ] Normalize flag values (merge short and long forms)
+- [x] Add `--force` / `-f` boolean flag to force close with uncommitted changes
+- [x] Add `--reason` string flag for closing reason (added to commit message)
+- [x] Add `--format` / `-o` string flag for output format (json/text, default: text)
+- [x] Normalize flag values (merge short and long forms)
 
 ### 3. Implement Validate Method
-- [ ] Validate argument count (0 or 1 arguments allowed)
-- [ ] Validate format flag value (must be "json" or "text")
-- [ ] Store validated arguments for Execute method
+- [x] Validate argument count (0 or 1 arguments allowed)
+- [x] Validate format flag value (must be "json" or "text")
+- [x] Store validated arguments for Execute method
 
 ### 4. Implement Execute Method with Dual-Mode Logic
-- [ ] Get App instance using `cli.NewApp(ctx)` pattern
-- [ ] Implement dual behavior:
-  - [ ] No args: Call `app.CloseTicket(ctx, force)` or `app.CloseTicketWithReason(ctx, reason, force)`
-  - [ ] With ID: Call `app.CloseTicketByID(ctx, ticketID, reason, force)`
-- [ ] After successful close, retrieve ticket data for JSON formatting
-- [ ] Handle gathering of duration, parent info, and other metadata for JSON output
-- [ ] Format errors as JSON when format flag is set to json
-- [ ] Return appropriate error messages
+- [x] Get App instance using `cli.NewApp(ctx)` pattern
+- [x] Implement dual behavior:
+  - [x] No args: Call `app.CloseTicket(ctx, force)` or `app.CloseTicketWithReason(ctx, reason, force)`
+  - [x] With ID: Call `app.CloseTicketByID(ctx, ticketID, reason, force)`
+- [x] After successful close, retrieve ticket data for JSON formatting
+- [x] Handle gathering of duration, parent info, and other metadata for JSON output
+- [x] Format errors as JSON when format flag is set to json
+- [x] Return appropriate error messages
 
 ### 5. Add JSON Output Support
-- [ ] Define JSON output structures for both modes (current ticket vs by ID)
-- [ ] Include fields: ticket_id, status, closed_at, close_reason, commit_created, force_used
-- [ ] For current ticket mode: also include duration, parent_ticket, worktree_path
-- [ ] Format and marshal JSON response based on format flag
+- [x] Define JSON output structures for both modes (current ticket vs by ID)
+- [x] Include fields: ticket_id, status, closed_at, close_reason, commit_created, force_used
+- [x] For current ticket mode: also include duration, parent_ticket, worktree_path
+- [x] Format and marshal JSON response based on format flag
 
 ### 6. Create Comprehensive Unit Tests
 - [ ] Create `internal/cli/commands/close_test.go`

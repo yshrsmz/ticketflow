@@ -218,3 +218,6 @@ ticketflow close           # This creates commit on wrong branch!
   require.NoError(t, os.Chdir(testDir))
   ```
 - See `test/integration/README.md` for detailed explanation of integration test requirements
+
+### Current-ticket.md Handling
+**IMPORTANT**: `current-ticket.md` is just a symlink that points to a ticket in `tickets/doing/`. When updating or committing ticket changes, always update the actual file in `tickets/doing/`, NOT the symlink. The symlink should remain gitignored.
