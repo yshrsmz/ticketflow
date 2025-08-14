@@ -506,7 +506,8 @@ func (app *App) closeCurrentTicketInternal(ctx context.Context, reason string, f
 	}
 
 	// Move ticket to done status (this also commits with the reason)
-	if err := app.moveTicketToDoneWithReason(ctx, current, reason); err != nil {
+	// Pass true because closeCurrentTicketInternal always operates on the current ticket
+	if err := app.moveTicketToDoneWithReason(ctx, current, reason, true); err != nil {
 		return nil, err
 	}
 
@@ -592,7 +593,8 @@ func (app *App) closeAndCommitTicket(ctx context.Context, ticket *ticket.Ticket,
 
 	// Move ticket to done status (this also saves the ticket and commits with the reason)
 	// Note: moveTicketToDoneWithReason will call Update, so we don't need to do it here
-	if err := app.moveTicketToDoneWithReason(ctx, ticket, reason); err != nil {
+	// Pass false because CloseTicketByID may close any ticket, not necessarily the current one
+	if err := app.moveTicketToDoneWithReason(ctx, ticket, reason, false); err != nil {
 		return fmt.Errorf("failed to move ticket to done: %w", err)
 	}
 
@@ -1265,7 +1267,7 @@ func (app *App) validateTicketForClose(ctx context.Context, force bool) (*ticket
 }
 
 // moveTicketToDoneWithReason moves a ticket to done and commits with optional reason
-func (app *App) moveTicketToDoneWithReason(ctx context.Context, current *ticket.Ticket, reason string) error {
+func (app *App) moveTicketToDoneWithReason(ctx context.Context, current *ticket.Ticket, reason string, isCurrentTicket bool) error {
 	// Check context before starting
 	if err := ctx.Err(); err != nil {
 		return fmt.Errorf("operation cancelled: %w", err)
@@ -1315,9 +1317,11 @@ func (app *App) moveTicketToDoneWithReason(ctx context.Context, current *ticket.
 		return fmt.Errorf("failed to commit ticket move: %w", err)
 	}
 
-	// Remove current ticket link
-	if err := app.Manager.SetCurrentTicket(ctx, nil); err != nil {
-		return fmt.Errorf("failed to remove current ticket link: %w", err)
+	// Remove current ticket link only if this is the current ticket
+	if isCurrentTicket {
+		if err := app.Manager.SetCurrentTicket(ctx, nil); err != nil {
+			return fmt.Errorf("failed to remove current ticket link: %w", err)
+		}
 	}
 
 	return nil
