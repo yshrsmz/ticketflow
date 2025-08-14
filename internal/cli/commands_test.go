@@ -807,6 +807,55 @@ func TestApp_CloseTicketByID(t *testing.T) {
 			expectedError: true,
 			errorContains: "Reason required",
 		},
+		{
+			name:     "preserve current-ticket.md when closing non-current ticket",
+			ticketID: "250131-120000-other-ticket",
+			reason:   "Abandoned",
+			setupMocks: func(tm *mocks.MockTicketManager, gc *mocks.MockGitClient, tmpDir string) {
+				// Setup the ticket being closed
+				otherTicket := &ticket.Ticket{
+					ID:          "250131-120000-other-ticket",
+					Path:        filepath.Join(tmpDir, "tickets/todo/250131-120000-other-ticket.md"),
+					Priority:    2,
+					Description: "Other ticket",
+					CreatedAt:   ticket.RFC3339Time{Time: time.Now()},
+					Content:     "# Other Ticket\n\nContent here.",
+				}
+
+				// Setup the current ticket (different from the one being closed)
+				currentTicket := &ticket.Ticket{
+					ID:          "250131-120000-current-ticket",
+					Path:        filepath.Join(tmpDir, "tickets/doing/250131-120000-current-ticket.md"),
+					Priority:    1,
+					Description: "Current ticket",
+					CreatedAt:   ticket.RFC3339Time{Time: time.Now()},
+					StartedAt:   ticket.NewRFC3339TimePtr(&time.Time{}),
+					Content:     "# Current Ticket\n\nContent here.",
+				}
+
+				// Mock getting the ticket to close
+				tm.On("Get", mock.Anything, "250131-120000-other-ticket").Return(otherTicket, nil)
+
+				// Mock GetCurrentTicket (returns the current ticket which is different)
+				tm.On("GetCurrentTicket", mock.Anything).Return(currentTicket, nil)
+
+				// IMPORTANT: SetCurrentTicket should NOT be called since we're not closing the current ticket
+				// The fix ensures this method is not called when closing a non-current ticket
+
+				// Mock branch merge check (not merged, so reason is required)
+				gc.On("IsBranchMerged", mock.Anything, "250131-120000-other-ticket", "main").Return(false, nil)
+
+				// Mock updating ticket with reason
+				tm.On("Update", mock.Anything, otherTicket).Return(nil).Times(1)
+
+				// Mock git operations
+				gc.On("Add", mock.Anything, "-A", mock.Anything, mock.Anything).Return(nil)
+				gc.On("Commit", mock.Anything, mock.MatchedBy(func(msg string) bool {
+					return strings.Contains(msg, "Close ticket: 250131-120000-other-ticket")
+				})).Return(nil)
+			},
+			expectedError: false,
+		},
 	}
 
 	for _, tt := range tests {
