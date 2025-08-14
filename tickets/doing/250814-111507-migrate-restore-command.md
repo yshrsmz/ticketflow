@@ -10,15 +10,19 @@ related:
 
 # Migrate restore command to new Command interface
 
-Migrate the `restore` command to use the new Command interface, enabling recovery of accidentally closed tickets. This command is the inverse of `close` and completes the core ticket lifecycle management (new → start → close → restore).
+Migrate the `restore` command to use the new Command interface, enabling restoration of the `current-ticket.md` symlink when working in a worktree. This command fixes broken or missing symlinks by detecting the current git branch and re-establishing the link to the corresponding ticket file.
 
 ## Why This Command Next?
 
 1. **Simplest Remaining Command**: Only 7 lines of implementation, making it ideal for a quick win
-2. **Completes Core Lifecycle**: Forms the essential workflow with new/start/close/restore
-3. **High User Value**: Critical safety net for accidental closes
+2. **Essential for Worktree Workflow**: Fixes broken symlinks that can occur during development
+3. **High User Value**: Critical for maintaining worktree context and navigation
 4. **Pattern Establishment**: Sets pattern for zero-argument, current-context commands
 5. **Low Risk**: Minimal complexity reduces implementation risk
+
+## Important Clarification
+
+**This command does NOT restore closed tickets back to "doing" status.** It only restores the `current-ticket.md` symlink that points to the active ticket in a worktree. The symlink can become broken or missing due to various git operations or file system issues.
 
 ## Tasks
 Make sure to update task status when you finish it. Also, always create a commit for each task you finished.
@@ -40,16 +44,16 @@ Make sure to update task status when you finish it. Also, always create a commit
 
 ### 4. Implement Execute Method
 - [ ] Get App instance using `cli.NewApp(ctx)` pattern
-- [ ] Call `app.RestoreTicket(ctx)` to restore the current ticket
-- [ ] After successful restore, retrieve ticket data for JSON formatting
+- [ ] Call `app.RestoreCurrentTicket(ctx)` to restore the symlink
+- [ ] The method now returns `(*ticket.Ticket, error)` so use the returned ticket directly
 - [ ] Handle JSON output formatting
 - [ ] Format errors as JSON when format flag is set to json
 - [ ] Return appropriate success message in text mode
 
 ### 5. Add JSON Output Support
-- [ ] Define JSON output structure for restored ticket
-- [ ] Include fields: ticket_id, status, restored_at, previous_status, duration_in_done
-- [ ] Include worktree_path and parent_ticket if available
+- [ ] Define JSON output structure for symlink restoration
+- [ ] Include fields: ticket_id, status, symlink_restored, worktree_path
+- [ ] Include parent_ticket if available from ticket metadata
 - [ ] Format and marshal JSON response based on format flag
 
 ### 6. Create Comprehensive Unit Tests
@@ -62,11 +66,11 @@ Make sure to update task status when you finish it. Also, always create a commit
 - [ ] Achieve >80% test coverage
 
 ### 7. Integration Testing
-- [ ] Test restore of recently closed ticket
-- [ ] Test error when no current ticket exists
-- [ ] Test error when ticket is not in done status
+- [ ] Test symlink restoration in a worktree
+- [ ] Test error when not in a worktree
+- [ ] Test error when branch doesn't correspond to a ticket
 - [ ] Test JSON output format correctness
-- [ ] Test that worktree is preserved after restore
+- [ ] Test when symlink already exists and is correct
 
 ### 8. Register Command and Clean Up
 - [ ] Register restore command in `main.go` command registry
@@ -83,37 +87,34 @@ Make sure to update task status when you finish it. Also, always create a commit
 - [ ] Document the zero-argument pattern for future commands
 
 ### 10. Final Verification
-- [ ] Manual testing of restore functionality
-- [ ] Verify ticket moves from done → doing correctly
+- [ ] Manual testing of symlink restoration functionality
+- [ ] Verify symlink is created correctly pointing to the right ticket
 - [ ] Ensure error messages are consistent with other commands
 - [ ] Get developer approval before closing
 
 ## Implementation Notes
 
 ### Current Implementation Analysis
-- Located in switch statement around line 220 in main.go
+- Located in switch statement around line 189 in main.go
 - Calls `handleRestore(ctx)` which is only 7 lines
-- Simply delegates to `app.RestoreTicket(ctx)`
+- Simply delegates to `app.RestoreCurrentTicket(ctx)`
 - No flags or arguments currently
 - Error messages are already user-friendly
 
 ### Available App Method
-The App struct provides one method for restoring tickets:
-- `RestoreTicket(ctx context.Context) error` - Restores current ticket from done → doing
+The App struct provides one method for restoring the symlink:
+- `RestoreCurrentTicket(ctx context.Context) (*ticket.Ticket, error)` - Restores the current-ticket.md symlink
 
-**Note**: This method only returns an error. For JSON output, the command must:
-- Call `app.RestoreTicket(ctx)`
-- If successful, retrieve ticket information using ticket manager
-- Format and return the JSON response
+**Note**: After the App refactoring (completed in ticket 250814-121422), this method now returns the ticket entity directly, so there's no need to re-fetch the ticket data for JSON output.
 
 ### Migration Requirements
-1. **App Dependency**: Use `cli.NewApp(ctx)` directly to leverage existing `App.RestoreTicket` method
-2. **No Positional Arguments**: Restore only works on current ticket (enforce zero arguments)
-3. **Simple Behavior**: Always restores current ticket from done → doing
+1. **App Dependency**: Use `cli.NewApp(ctx)` directly to leverage existing `App.RestoreCurrentTicket` method
+2. **No Positional Arguments**: Restore only works in current worktree context (enforce zero arguments)
+3. **Simple Behavior**: Always restores the current-ticket.md symlink based on git branch
 4. **Validation**:
    - No arguments allowed
-   - Current ticket must exist
-   - Ticket must be in done status
+   - Must be in a worktree
+   - Branch must correspond to a valid ticket
 5. **Output Formatting**:
    - Simple success message in text format
    - JSON output support for AI/tooling integration
@@ -121,10 +122,10 @@ The App struct provides one method for restoring tickets:
 6. **Error Handling**: Clear, consistent error messages matching other commands
 
 ### Expected Behavior
-- Validates current ticket exists and is in done status
-- Moves ticket from done → doing status
-- Updates timestamps appropriately
-- Preserves worktree if it exists
+- Validates that we're in a worktree context
+- Determines ticket ID from current git branch
+- Creates or fixes the current-ticket.md symlink
+- Points symlink to the correct ticket file in tickets/doing/
 - Returns structured JSON output when `--format json` is specified
 
 ### JSON Output Structure
@@ -133,29 +134,29 @@ The App struct provides one method for restoring tickets:
 {
   "ticket_id": "250814-111507-migrate-restore-command",
   "status": "doing",
-  "restored_at": "2025-08-14T12:00:00+09:00",
-  "previous_status": "done",
-  "duration_in_done": "2h30m",
+  "symlink_restored": true,
+  "symlink_path": "current-ticket.md",
+  "target_path": "tickets/doing/250814-111507-migrate-restore-command.md",
   "worktree_path": "../ticketflow.worktrees/250814-111507-migrate-restore-command",
   "parent_ticket": "250812-152927-migrate-remaining-commands",
-  "message": "Ticket restored successfully"
+  "message": "Current ticket symlink restored"
 }
 ```
 
 ## Pattern Building on Previous Migrations
 
 This migration builds on:
-1. **State Modification** (from `new`, `start`, `close`): Changes ticket state
+1. **Worktree Operations** (from `start`): Works within worktree context
 2. **Zero Arguments Pattern**: First command with strictly no arguments
-3. **Current Context Only**: Works only with current ticket in worktree
-4. **App Method Reuse**: Leverages existing `App.RestoreTicket`
+3. **Current Context Only**: Works only with current worktree context
+4. **App Method Reuse**: Leverages existing `App.RestoreCurrentTicket`
 5. **JSON Output** (from other commands): Consistent format flag pattern
 
 ## New Patterns to Establish
 
 1. **Zero-Argument Command**: Strictly no positional arguments allowed
 2. **Current-Only Operation**: No option to specify ticket ID
-3. **Recovery/Undo Pattern**: Template for other undo operations
+3. **Symlink Management Pattern**: Template for other symlink-related operations
 4. **Simplified Command**: Intentionally minimal flags for clarity
 
 ## Implementation Code Examples
@@ -175,8 +176,8 @@ func (r *RestoreCommand) Execute(ctx context.Context) error {
         return err
     }
 
-    // Perform the restore operation
-    err = app.RestoreTicket(ctx)
+    // Perform the restore operation - now returns the ticket directly
+    ticket, err := app.RestoreCurrentTicket(ctx)
     
     if err != nil {
         if r.format == FormatJSON {
@@ -189,33 +190,35 @@ func (r *RestoreCommand) Execute(ctx context.Context) error {
         return err
     }
 
-    // For JSON output, gather ticket info after successful restore
+    // For JSON output, use the returned ticket directly
     if r.format == FormatJSON {
-        // NOTE: Currently requires re-fetching ticket data
-        // This will be improved when App methods return entities (see refactoring ticket)
-        ticketID := getCurrentTicketID()
-        ticket, _ := app.TicketManager.GetTicket(ticketID)
-        
         jsonData := map[string]interface{}{
             "ticket_id": ticket.ID,
-            "status": "doing",
-            "restored_at": time.Now().Format(time.RFC3339),
-            "previous_status": "done",
-            // Calculate other fields...
+            "status": string(ticket.Status),
+            "symlink_restored": true,
+            "symlink_path": "current-ticket.md",
+            "target_path": fmt.Sprintf("tickets/doing/%s.md", ticket.ID),
+            "message": "Current ticket symlink restored",
         }
+        
+        // Add optional fields if available
+        if ticket.ParentID != "" {
+            jsonData["parent_ticket"] = ticket.ParentID
+        }
+        
         return outputJSON(jsonData)
     }
 
-    fmt.Println("✅ Ticket restored successfully")
+    fmt.Println("✅ Current ticket symlink restored")
     return nil
 }
 ```
 
 ### Note on App Method Refactoring
-Based on architectural discussions during the close command implementation, we've decided to refactor App methods to return primary entities BEFORE implementing the restore command. This means:
-- The restore command can use the clean pattern from the start
+The App method refactoring (ticket 250814-121422) has been completed, so `RestoreCurrentTicket` now returns `(*ticket.Ticket, error)`. This means:
+- The restore command can use the returned ticket directly for JSON output
 - No need for re-fetching workarounds in the implementation
-- The example code above will be updated to use the returned ticket directly
+- Clean implementation pattern from the start
 
 ### Minimal Flag Setup
 ```go
@@ -251,18 +254,18 @@ func (r *RestoreCommand) Validate(args []string) error {
 
 ## Technical Considerations
 
-1. **Current Ticket Detection**: Must determine if in a worktree with current ticket
-2. **State Validation**: Ensure ticket is actually in done status
-3. **Worktree Preservation**: Verify worktree remains intact after restore
-4. **Timestamp Updates**: Handle appropriate timestamp modifications
-5. **Error Messages**: Clear feedback when no ticket or wrong status
-6. **JSON Data Gathering**: Retrieve ticket info post-restore for JSON output
+1. **Worktree Context**: Must be executed from within a worktree
+2. **Branch Validation**: Current git branch must correspond to a valid ticket
+3. **Symlink Creation**: Handle cases where symlink already exists or is broken
+4. **Path Resolution**: Correctly resolve relative paths for symlink target
+5. **Error Messages**: Clear feedback when not in worktree or no corresponding ticket
+6. **JSON Data**: Use the ticket returned by RestoreCurrentTicket for output
 
 ## Dependencies
 - Builds on patterns from: `new`, `start`, `close` commands
-- Pairs with: `close` command (inverse operation)
-- Will inform patterns for: other recovery/undo operations
-- Related to state management established in previous migrations
+- Related to: `start` command (both work with worktrees and symlinks)
+- Will inform patterns for: other symlink management operations
+- Leverages App refactoring completed in ticket 250814-121422
 
 ## Testing Strategy
 
@@ -270,16 +273,17 @@ func (r *RestoreCommand) Validate(args []string) error {
 1. **Command metadata**: Name, aliases, description validation
 2. **Flag handling**: Format flag values
 3. **Validation logic**: No arguments enforcement
-4. **Mock App interactions**: Verify RestoreTicket called correctly
+4. **Mock App interactions**: Verify RestoreCurrentTicket called correctly
 5. **Output formatting**: Both JSON and text modes
-6. **Error scenarios**: No current ticket, wrong status
+6. **Error scenarios**: Not in worktree, no corresponding ticket
 
 ### Integration Test Scenarios
-1. Restore recently closed ticket
-2. Error when no current ticket
-3. Error when ticket not in done status
+1. Successful symlink restoration in worktree
+2. Error when not in a worktree
+3. Error when branch doesn't match any ticket
 4. JSON output format verification
-5. Worktree preservation check
+5. Behavior when symlink already exists and is correct
+6. Behavior when symlink is broken or points to wrong file
 
 ## Implementation Dependencies
 
@@ -290,11 +294,11 @@ func (r *RestoreCommand) Validate(args []string) error {
 - Need `getCurrentTicketID()` helper for JSON output
 
 ### Data Gathering for JSON Output
-Since App.RestoreTicket doesn't return ticket data, the command must:
-1. Determine which ticket was restored
-2. Use `app.TicketManager.GetTicket()` to retrieve the restored ticket
-3. Calculate duration in done status from timestamps
-4. Include worktree path if available
+With the completed App refactoring, `RestoreCurrentTicket` returns `(*ticket.Ticket, error)`, so:
+1. Use the returned ticket directly for all JSON fields
+2. No need to re-fetch or determine ticket ID separately
+3. Include symlink-specific information (paths, restoration status)
+4. Add parent ticket ID if present in the ticket metadata
 
 ## References
 
