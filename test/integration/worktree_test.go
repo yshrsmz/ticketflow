@@ -117,7 +117,7 @@ func TestWorktreeWorkflow(t *testing.T) {
 	require.NoError(t, err)
 
 	// Now close the ticket from within the worktree
-	err = wtApp.CloseTicket(context.Background(), false)
+	_, err = wtApp.CloseTicket(context.Background(), false)
 	require.NoError(t, err)
 
 	// Change back to original directory

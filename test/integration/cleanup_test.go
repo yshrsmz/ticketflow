@@ -65,7 +65,7 @@ func TestCleanupTicketWithForceFlag(t *testing.T) {
 	assert.Equal(t, ticket.StatusDoing, tkt.Status())
 
 	// Close the ticket to move it to done status
-	err = app.CloseTicket(context.Background(), true) // force close to skip uncommitted changes check
+	_, err = app.CloseTicket(context.Background(), true) // force close to skip uncommitted changes check
 	require.NoError(t, err)
 
 	// Verify ticket is now done
@@ -173,7 +173,7 @@ func TestCleanupTicketWithWorktreeAndForceFlag(t *testing.T) {
 	require.NoError(t, err)
 
 	// Close the ticket to move it to done status
-	err = wtApp.CloseTicket(context.Background(), true) // force close to skip uncommitted changes check
+	_, err = wtApp.CloseTicket(context.Background(), true) // force close to skip uncommitted changes check
 	require.NoError(t, err)
 
 	// Change back to original directory

@@ -133,7 +133,7 @@ func TestCompleteWorkflow(t *testing.T) {
 	require.NoError(t, err)
 
 	// 6. Close ticket
-	err = app.CloseTicket(context.Background(), false)
+	_, err = app.CloseTicket(context.Background(), false)
 	require.NoError(t, err)
 
 	// Branch should still be on ticket branch (no automatic switch)
@@ -197,7 +197,7 @@ func TestRestoreWorkflow(t *testing.T) {
 	require.NoError(t, err)
 
 	// Restore link
-	err = app.RestoreCurrentTicket(context.Background())
+	_, err = app.RestoreCurrentTicket(context.Background())
 	require.NoError(t, err)
 
 	// Verify link restored

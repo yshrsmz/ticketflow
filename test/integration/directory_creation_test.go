@@ -79,7 +79,7 @@ func TestDirectoryAutoCreation(t *testing.T) {
 	assert.True(t, os.IsNotExist(err), "done directory should not exist")
 
 	// Close the ticket (this should create the done directory)
-	err = app.CloseTicket(context.Background(), false)
+	_, err = app.CloseTicket(context.Background(), false)
 	require.NoError(t, err)
 
 	// Verify done directory was created

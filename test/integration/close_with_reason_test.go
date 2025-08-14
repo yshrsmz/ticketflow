@@ -52,7 +52,7 @@ func TestCloseWithReason(t *testing.T) {
 		require.NotNil(t, testTicket, "Could not find created ticket")
 
 		// Close the ticket with reason
-		err = app.CloseTicketByID(ctx, testTicket.ID, "Duplicate of another ticket", false)
+		_, err = app.CloseTicketByID(ctx, testTicket.ID, "Duplicate of another ticket", false)
 		require.NoError(t, err)
 
 		// Verify ticket was moved to done
@@ -127,7 +127,7 @@ func TestCloseWithReason(t *testing.T) {
 		assert.True(t, merged, "Branch should be merged to main")
 
 		// Close the ticket without reason (should work since branch is merged)
-		err = app.CloseTicketByID(ctx, testTicket.ID, "", false)
+		_, err = app.CloseTicketByID(ctx, testTicket.ID, "", false)
 		require.NoError(t, err)
 
 		// Verify ticket was moved to done
@@ -188,7 +188,7 @@ func TestCloseWithReason(t *testing.T) {
 		require.NoError(t, err)
 
 		// Try to close the ticket without reason (should fail)
-		err = app.CloseTicketByID(ctx, testTicket.ID, "", false)
+		_, err = app.CloseTicketByID(ctx, testTicket.ID, "", false)
 		assert.Error(t, err)
 		assert.Contains(t, strings.ToLower(err.Error()), "reason")
 
@@ -198,7 +198,7 @@ func TestCloseWithReason(t *testing.T) {
 		assert.NotEqual(t, ticket.StatusDone, updatedTicket.Status())
 
 		// Now close with reason (should work)
-		err = app.CloseTicketByID(ctx, testTicket.ID, "Abandoned due to priority change", false)
+		_, err = app.CloseTicketByID(ctx, testTicket.ID, "Abandoned due to priority change", false)
 		require.NoError(t, err)
 
 		// Verify ticket was moved to done
