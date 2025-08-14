@@ -25,12 +25,12 @@ Complete the migration of all remaining commands to the new Command interface an
 - [x] **new** - Create new ticket (with parent flag handling) (ticket: 250813-175042-migrate-new-command) ✅ DONE
 - [x] **start** - Start working on ticket (with worktree creation) (ticket: 250813-192015-migrate-start-command) ✅ PR #62 merged
 - [x] **close** - Close current/specified ticket (with reason handling) (ticket: 250814-013846-migrate-close-command) ✅ Implementation complete, pending final verification
-- [ ] **restore** - Restore closed ticket (ticket: 250814-111507-migrate-restore-command) 📋 Created - Next priority
+- [x] **restore** - Restore closed ticket (ticket: 250814-111507-migrate-restore-command) ✅ COMPLETED (2025-08-14)
 
 ### Complex Commands
-- [ ] **worktree** - Manage git worktrees (has subcommands)
-- [ ] **cleanup** - Clean up worktrees and branches
-- [ ] **migrate** - Migrate ticket dates
+- [ ] **worktree** - Manage git worktrees (has subcommands) (ticket: 250814-181147-migrate-worktree-command) 📋 Created
+- [ ] **cleanup** - Clean up worktrees and branches (ticket: 250814-181107-migrate-cleanup-command) 📋 Created
+- [ ] **migrate** - TO BE REMOVED - No longer needed (ticket: 250814-181027-remove-migrate-command) 📋 Created
 
 ## Final Cleanup Tasks
 
@@ -77,19 +77,15 @@ Complete the migration of all remaining commands to the new Command interface an
 - Each command in its own file with tests
 - Documentation fully updated
 
-## Progress Summary (2025-08-14)
+## Progress Summary
 
-### Completed Commands
+### Completed Commands (10 total)
 - ✅ **version**, **help**, **init** - Foundation commands
 - ✅ **status**, **list**, **show** - Read-only commands  
 - ✅ **new** - First state-changing command with parent flag
 - ✅ **start** - Complex state-changing with worktree creation
-
-### Recently Completed
-- ✅ **close** - Implementation complete (4.5 hours actual)
-  - Established dual-mode pattern (0 or 1 args)
-  - Discovered need for App method refactoring (return entities)
-  - Created follow-up refactoring ticket
+- ✅ **close** - Dual-mode pattern (0 or 1 args)
+- ✅ **restore** - Zero-argument pattern
 
 ### Recently Completed (2025-08-14)
 - ✅ **App Method Return Values** - Refactor App methods to return primary entities (ticket: 250814-121422)
@@ -98,18 +94,28 @@ Complete the migration of all remaining commands to the new Command interface an
   - Updated new, start, close commands to use returned entities
   - Added helper methods for derived data
   - Comprehensive tests and documentation updated
+- ✅ **restore** - Command migration completed (ticket: 250814-111507)
+  - Implemented with entity return pattern from the start
+  - Zero-argument pattern, simple implementation
+  - All tests passing
+
+### Current Status (2025-08-14 18:00)
+**Migration Progress: ~85% Complete**
+- **10 commands migrated**: version, help, init, status, list, show, new, start, close, restore
+- **3 commands remaining**: 
+  - Remove migrate command (no longer needed)
+  - Migrate cleanup command
+  - Migrate worktree command (with subcommands)
 
 ### Next Priority
-- 📋 **restore** - Ticket created (250814-111507), simplest remaining command
-  - 2-3 hours estimated
-  - Will use clean pattern with entity returns from the start
-  - Completes core lifecycle
-  - Zero-argument pattern
+- 📋 **remove-migrate-command** (250814-181027) - Simplest, just remove deprecated code
+- 📋 **migrate-cleanup-command** (250814-181107) - Straightforward migration
+- 📋 **migrate-worktree-command** (250814-181147) - Complex with subcommands, highest priority (3)
 
 ### Remaining Work
-- **3 simple commands**: restore, migrate, cleanup
-- **1 complex command**: worktree (has subcommands)
-- **Final cleanup**: Remove old code, update docs
+- **Remove deprecated command**: migrate (no longer needed)
+- **2 commands to migrate**: cleanup, worktree (with subcommands)
+- **Final cleanup**: Remove old code, switch statement, update docs
 
 ### Key Insights from Migration
 1. **App methods only return errors** - Commands must gather data for JSON output
