@@ -1,8 +1,8 @@
 ---
 priority: 2
-description: "Migrate close command to new Command interface"
+description: Migrate close command to new Command interface
 created_at: "2025-08-14T01:38:46+09:00"
-started_at: null
+started_at: "2025-08-14T09:59:44+09:00"
 closed_at: null
 related:
     - parent:250812-152927-migrate-remaining-commands
