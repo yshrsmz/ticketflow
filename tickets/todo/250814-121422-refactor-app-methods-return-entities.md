@@ -124,4 +124,8 @@ if err != nil {
 
 ## Priority
 
-This should be done after the restore command migration but before migrating remaining commands. This will ensure new commands follow the improved pattern from the start.
+**HIGH** - Should be done BEFORE the restore command migration. This ensures:
+1. Restore command uses the clean pattern from the start
+2. No need to refactor restore later
+3. All future commands see the improved pattern
+4. Less total work (implement once correctly vs. implement then refactor)

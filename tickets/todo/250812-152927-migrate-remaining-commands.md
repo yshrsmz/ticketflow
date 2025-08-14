@@ -92,16 +92,18 @@ Complete the migration of all remaining commands to the new Command interface an
   - Created follow-up refactoring ticket
 
 ### Next Priority
-- 📋 **restore** - Ticket created (250814-111507), simplest remaining command
-  - 2-3 hours estimated
-  - Completes core lifecycle
-  - Zero-argument pattern
-
-### Upcoming Refactoring
-- 🔧 **App Method Return Values** - Refactor App methods to return primary entities
+- 🔧 **App Method Return Values** - Refactor App methods to return primary entities (ticket: 250814-121422)
+  - **Do this FIRST** before restore command
   - Eliminates re-fetching for JSON output
   - Affects new, start, close commands
-  - To be done after restore command
+  - 1 day estimated
+
+### After Refactoring
+- 📋 **restore** - Ticket created (250814-111507), simplest remaining command
+  - 2-3 hours estimated
+  - Will use clean pattern from the start
+  - Completes core lifecycle
+  - Zero-argument pattern
 
 ### Remaining Work
 - **3 simple commands**: restore, migrate, cleanup

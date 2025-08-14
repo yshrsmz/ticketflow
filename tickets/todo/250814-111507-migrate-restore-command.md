@@ -212,7 +212,10 @@ func (r *RestoreCommand) Execute(ctx context.Context) error {
 ```
 
 ### Note on App Method Refactoring
-Based on architectural discussions during the close command implementation, we've decided to refactor App methods to return primary entities in a separate ticket. This will eliminate the need to re-fetch ticket data for JSON output. The restore command will be updated as part of that refactoring effort.
+Based on architectural discussions during the close command implementation, we've decided to refactor App methods to return primary entities BEFORE implementing the restore command. This means:
+- The restore command can use the clean pattern from the start
+- No need for re-fetching workarounds in the implementation
+- The example code above will be updated to use the returned ticket directly
 
 ### Minimal Flag Setup
 ```go
