@@ -1,8 +1,8 @@
 ---
 priority: 2
-description: "Refactor App methods to return primary entities"
+description: Refactor App methods to return primary entities
 created_at: "2025-08-14T12:14:22+09:00"
-started_at: null
+started_at: "2025-08-14T13:59:07+09:00"
 closed_at: null
 related:
     - parent:250814-013846-migrate-close-command
