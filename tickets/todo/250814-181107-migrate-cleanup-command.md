@@ -36,6 +36,7 @@ The cleanup command:
 - [ ] Run `make test` to ensure all tests pass
 - [ ] Run `make vet`, `make fmt` and `make lint`
 - [ ] Update COMMAND_MIGRATION_GUIDE.md to mark cleanup as migrated
+- [ ] Update parent ticket (250812-152927-migrate-remaining-commands) to mark this task as complete
 - [ ] Update the ticket with insights from resolving this ticket
 - [ ] Get developer approval before closing
 
