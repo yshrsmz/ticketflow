@@ -77,8 +77,8 @@ Make sure to update task status when you finish it. Also, always create a commit
 - [x] Run `make vet` for static analysis
 - [x] Run `make fmt` for code formatting
 - [x] Run `make lint` for linting issues
-- [ ] Update `docs/COMMAND_MIGRATION_GUIDE.md` with close command completion status
-- [ ] Add any new patterns discovered to the guide
+- [x] Update `docs/COMMAND_MIGRATION_GUIDE.md` with close command completion status
+- [x] Add any new patterns discovered to the guide
 
 ### 10. Final Verification
 - [ ] Manual testing of all command variations

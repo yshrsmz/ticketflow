@@ -273,6 +273,7 @@ func TestListCommand(t *testing.T) {
 - [x] **show** - Show ticket details (first command with positional arguments)
 - [x] **new** - Create new ticket (first state-changing command, supports --parent/-p and --format/-o flags)
 - [x] **start** - Start working on ticket (worktree management, supports --force/-f and --format/-o flags, JSON output)
+- [x] **close** - Close current/specified ticket (dual-mode operation, supports --force/-f, --reason, and --format/-o flags, JSON output)
 
 ### In Progress 🚧
 - [ ] Create migration tickets for remaining commands
@@ -284,7 +285,6 @@ func TestListCommand(t *testing.T) {
 #### Read-Only Commands
 
 #### State-Changing Commands
-- [ ] **close** - Close current/specified ticket
 - [ ] **restore** - Restore closed ticket
 
 #### Complex Commands
@@ -312,3 +312,33 @@ If issues arise during migration:
 3. **Handle aliases**: Commands like "version", "-v", "--version" need mapping
 4. **Preserve error messages**: Keep the same user-facing error messages
 5. **Watch for nil interfaces**: SetupFlags can return nil for commands without flags
+
+## New Patterns Established
+
+### Dual-Mode Commands (from close command)
+Commands that can operate with or without arguments (0 or 1 args):
+- Store args in flags struct during Validate for Execute to use
+- Different behavior based on argument presence
+- Example: `close` - no args closes current ticket, with ID closes specific ticket
+
+### JSON Output for State-Changing Commands
+Since App methods only return errors, not data:
+1. Execute the operation
+2. If successful, retrieve data separately for JSON output
+3. Use helper methods to gather additional context (worktree info, parent tickets, etc.)
+4. Build comprehensive JSON response after operation completes
+
+### Flag Normalization Pattern
+Handle both long and short form flags:
+```go
+type flags struct {
+    force       bool
+    forceShort  bool
+}
+
+func (f *flags) normalize() {
+    if f.forceShort {
+        f.force = f.forceShort
+    }
+}
+```
