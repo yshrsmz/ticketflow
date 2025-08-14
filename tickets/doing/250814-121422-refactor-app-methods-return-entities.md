@@ -14,7 +14,12 @@ Refactor App methods to return the primary entity they operate on, eliminating t
 
 ## Background
 
-During the close command migration, we identified that App methods only return errors, forcing commands to re-fetch ticket data for JSON output. After consulting with golang-pro and golang-cli-architect agents, we determined that returning entities is appropriate and legitimate for a daily-use developer tool.
+During the close command migration, we identified that App methods only return errors, forcing commands to re-fetch ticket data for JSON output. Verified in the codebase:
+- Close command re-fetches ticket at line 203 of `internal/cli/commands/close.go`
+- StartTicket handles JSON internally (lines 490-499) instead of returning the ticket
+- All App methods currently follow the `func(...) error` pattern
+
+After consulting with golang-pro and golang-cli-architect agents, we determined that returning entities is appropriate and legitimate for a daily-use developer tool.
 
 ### Expert Consensus
 - **golang-pro**: "This isn't about clean architecture for its own sake. It's about making your daily tool more reliable, testable, and pleasant to work with."
@@ -28,17 +33,18 @@ During the close command migration, we identified that App methods only return e
 - [ ] Update CloseTicketByID to return `(*ticket.Ticket, error)`
 - [ ] Update StartTicket to return `(*ticket.Ticket, error)`
 - [ ] Update NewTicket to return `(*ticket.Ticket, error)`
-- [ ] Update RestoreTicket to return `(*ticket.Ticket, error)` (when implemented)
+- [ ] Update RestoreCurrentTicket to return `(*ticket.Ticket, error)`
 
 ### 2. Update Migrated Commands
 - [ ] Update close command to use returned ticket
-  - [ ] Remove re-fetching logic in outputCloseSuccessJSON
+  - [ ] Remove re-fetching logic in outputCloseSuccessJSON (line 203)
   - [ ] Use returned ticket for JSON output
 - [ ] Update start command to use returned ticket
-  - [ ] Remove internal JSON handling from App method
+  - [ ] Remove internal JSON handling from App method (lines 490-499)
   - [ ] Move JSON formatting to command layer
 - [ ] Update new command to use returned ticket
   - [ ] Simplify JSON output logic
+- [ ] Consider updating restore command if migration proceeds
 
 ### 3. Add Helper Methods for Derived Data
 - [ ] Create internal/cli/helpers.go file
@@ -103,16 +109,18 @@ if err != nil {
 ## Success Criteria
 
 - [ ] All App methods return appropriate entities
-- [ ] No more re-fetching in commands
+- [ ] No more re-fetching in commands (verified by removing line 203 in close.go)
 - [ ] All tests pass
 - [ ] Commands are cleaner and more focused
-- [ ] Performance improvement measurable (fewer file reads)
+- [ ] Performance improvement measurable (50% fewer file reads per operation)
+- [ ] COMMAND_MIGRATION_GUIDE.md updated with new pattern
 
 ## References
 
-- Close command implementation that identified this need
+- Close command implementation that identified this need (commit f8046ba)
 - Architectural discussion with golang-pro and golang-cli-architect agents
 - Patterns from successful CLI tools (git, docker, kubectl)
+- Current App methods in `internal/cli/commands.go` (lines 353-716)
 
 ## Estimated Time
 

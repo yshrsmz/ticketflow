@@ -350,12 +350,12 @@ func (app *App) outputTicketCreated(t *ticket.Ticket, parentTicketID, slug strin
 }
 
 // NewTicket creates a new ticket
-func (app *App) NewTicket(ctx context.Context, slug string, explicitParent string, format OutputFormat) error {
+func (app *App) NewTicket(ctx context.Context, slug string, explicitParent string, format OutputFormat) (*ticket.Ticket, error) {
 	logger := log.Global().WithOperation("new_ticket")
 
 	// Validate slug
 	if err := app.validateSlug(slug); err != nil {
-		return err
+		return nil, err
 	}
 
 	logger.Debug("creating new ticket", slog.String("slug", slug), slog.String("explicit_parent", explicitParent))
@@ -363,14 +363,14 @@ func (app *App) NewTicket(ctx context.Context, slug string, explicitParent strin
 	// Resolve parent ticket
 	parentTicketID, err := app.resolveParentTicket(ctx, explicitParent, slug)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Create ticket
 	t, err := app.Manager.Create(ctx, slug)
 	if err != nil {
 		logger.WithError(err).Error("failed to create ticket", slog.String("slug", slug))
-		return ConvertError(err)
+		return nil, ConvertError(err)
 	}
 	logger.Info("created ticket", "ticket_id", t.ID, "path", t.Path)
 
@@ -381,13 +381,16 @@ func (app *App) NewTicket(ctx context.Context, slug string, explicitParent strin
 		t.Related = append(t.Related, fmt.Sprintf("parent:%s", parentTicketID))
 		if err := app.Manager.Update(ctx, t); err != nil {
 			logger.WithError(err).Error("failed to update ticket metadata", slog.String("ticket_id", t.ID), slog.String("parent", parentTicketID))
-			return fmt.Errorf("failed to update ticket metadata: %w", err)
+			return nil, fmt.Errorf("failed to update ticket metadata: %w", err)
 		}
 		logger.Info("created sub-ticket", "ticket_id", t.ID, "parent", parentTicketID)
 	}
 
 	// Output result
-	return app.outputTicketCreated(t, parentTicketID, slug, format)
+	if err := app.outputTicketCreated(t, parentTicketID, slug, format); err != nil {
+		return nil, err
+	}
+	return t, nil
 }
 
 // ListTickets lists tickets
@@ -433,7 +436,7 @@ func (app *App) ListTickets(ctx context.Context, status ticket.Status, count int
 }
 
 // StartTicket starts working on a ticket
-func (app *App) StartTicket(ctx context.Context, ticketID string, force bool, format OutputFormat) error {
+func (app *App) StartTicket(ctx context.Context, ticketID string, force bool, format OutputFormat) (*ticket.Ticket, error) {
 	logger := log.Global().WithOperation("start_ticket").WithTicket(ticketID)
 	logger.Info("starting ticket")
 
@@ -441,46 +444,46 @@ func (app *App) StartTicket(ctx context.Context, ticketID string, force bool, fo
 	t, err := app.validateTicketForStart(ctx, ticketID, force)
 	if err != nil {
 		logger.WithError(err).Error("failed to validate ticket")
-		return err
+		return nil, err
 	}
 
 	// Check workspace state
 	if err := app.checkWorkspaceForStart(ctx); err != nil {
-		return err
+		return nil, err
 	}
 
 	// Get current branch and detect parent
 	currentBranch, parentBranch, err := app.detectParentBranch(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Setup branch for the ticket
 	if err := app.setupTicketBranch(ctx, t, currentBranch); err != nil {
-		return err
+		return nil, err
 	}
 
 	// Check if worktree already exists (for worktree mode)
 	if err := app.checkExistingWorktree(ctx, t, force); err != nil {
-		return err
+		return nil, err
 	}
 
 	// Update parent relationship if needed
 	if err := app.updateParentRelationship(ctx, t, parentBranch, currentBranch); err != nil {
-		return err
+		return nil, err
 	}
 
 	// Move ticket to doing status (skip if already in doing and using force)
 	if t.Status() != ticket.StatusDoing {
 		if err := app.moveTicketToDoing(ctx, t, currentBranch); err != nil {
-			return err
+			return nil, err
 		}
 	}
 
 	// Now create worktree AFTER committing (for worktree mode)
 	worktreePath, err := app.createAndSetupWorktree(ctx, t)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Check if init commands were executed
@@ -496,17 +499,19 @@ func (app *App) StartTicket(ctx context.Context, ticketID string, force bool, fo
 			"parent_branch":          parentBranch,
 			"init_commands_executed": initCommandsExecuted,
 		}
-		return app.Output.PrintJSON(output)
+		if err := app.Output.PrintJSON(output); err != nil {
+			return nil, err
+		}
+	} else {
+		// Text format - use existing success message
+		app.printStartSuccessMessage(t, worktreePath, parentBranch)
 	}
 
-	// Text format - use existing success message
-	app.printStartSuccessMessage(t, worktreePath, parentBranch)
-
-	return nil
+	return t, nil
 }
 
 // closeCurrentTicketInternal handles the common logic for closing the current ticket
-func (app *App) closeCurrentTicketInternal(ctx context.Context, reason string, force bool) error {
+func (app *App) closeCurrentTicketInternal(ctx context.Context, reason string, force bool) (*ticket.Ticket, error) {
 	operation := "close_ticket"
 	if reason != "" {
 		operation = "close_ticket_with_reason"
@@ -554,19 +559,19 @@ func (app *App) closeCurrentTicketInternal(ctx context.Context, reason string, f
 	} else {
 		logger.Info("ticket closed successfully", "duration", duration)
 	}
-	return nil
+	return current, nil
 }
 
 // CloseTicket closes the current ticket
-func (app *App) CloseTicket(ctx context.Context, force bool) error {
+func (app *App) CloseTicket(ctx context.Context, force bool) (*ticket.Ticket, error) {
 	return app.closeCurrentTicketInternal(ctx, "", force)
 }
 
 // CloseTicketWithReason closes the current ticket with a reason
-func (app *App) CloseTicketWithReason(ctx context.Context, reason string, force bool) error {
+func (app *App) CloseTicketWithReason(ctx context.Context, reason string, force bool) (*ticket.Ticket, error) {
 	// Validate that reason is not empty or just whitespace
 	if strings.TrimSpace(reason) == "" {
-		return NewError(ErrValidation, "Empty reason",
+		return nil, NewError(ErrValidation, "Empty reason",
 			"Reason cannot be empty or just whitespace",
 			[]string{"Provide a meaningful reason for closing the ticket"})
 	}
@@ -653,7 +658,7 @@ func (app *App) printCloseByIDSuccessMessage(ticket *ticket.Ticket, reason strin
 }
 
 // CloseTicketByID closes a specific ticket by ID
-func (app *App) CloseTicketByID(ctx context.Context, ticketID, reason string, force bool) error {
+func (app *App) CloseTicketByID(ctx context.Context, ticketID, reason string, force bool) (*ticket.Ticket, error) {
 	logger := log.Global().WithOperation("close_ticket_by_id").WithTicket(ticketID)
 
 	// First check if this is the current ticket
@@ -669,7 +674,7 @@ func (app *App) CloseTicketByID(ctx context.Context, ticketID, reason string, fo
 	// Validate the ticket
 	ticket, err := app.validateTicketByID(ctx, ticketID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Check if branch is merged
@@ -683,7 +688,7 @@ func (app *App) CloseTicketByID(ctx context.Context, ticketID, reason string, fo
 
 	// If no reason provided and branch not merged, require reason
 	if reason == "" && !branchMerged {
-		return NewError(ErrValidation, "Reason required",
+		return nil, NewError(ErrValidation, "Reason required",
 			"Closing a ticket without being in its worktree requires a reason",
 			[]string{
 				fmt.Sprintf("Provide a reason: ticketflow close %s --reason \"explanation\"", ticketID),
@@ -702,37 +707,37 @@ func (app *App) CloseTicketByID(ctx context.Context, ticketID, reason string, fo
 
 	// Close and commit the ticket
 	if err := app.closeAndCommitTicket(ctx, ticket, reason, branchMerged); err != nil {
-		return err
+		return nil, err
 	}
 
 	// Print success message
 	app.printCloseByIDSuccessMessage(ticket, reason, branchMerged, worktreePath)
 
 	logger.Info("ticket closed successfully", "duration", app.calculateWorkDuration(ticket), "reason", reason, "branchMerged", branchMerged)
-	return nil
+	return ticket, nil
 }
 
 // RestoreCurrentTicket restores the current ticket symlink
-func (app *App) RestoreCurrentTicket(ctx context.Context) error {
+func (app *App) RestoreCurrentTicket(ctx context.Context) (*ticket.Ticket, error) {
 	// Get current branch
 	branch, err := app.Git.CurrentBranch(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to get current branch: %w", err)
+		return nil, fmt.Errorf("failed to get current branch: %w", err)
 	}
 
 	// Try to get ticket by branch name
 	t, err := app.Manager.Get(ctx, branch)
 	if err != nil {
-		return ConvertError(fmt.Errorf("no ticket found for branch %s", branch))
+		return nil, ConvertError(fmt.Errorf("no ticket found for branch %s", branch))
 	}
 
 	// Set current ticket
 	if err := app.Manager.SetCurrentTicket(ctx, t); err != nil {
-		return fmt.Errorf("failed to set current ticket: %w", err)
+		return nil, fmt.Errorf("failed to set current ticket: %w", err)
 	}
 
 	app.Output.Printf("Restored current ticket link: %s\n", t.ID)
-	return nil
+	return t, nil
 }
 
 // Status shows the current status
