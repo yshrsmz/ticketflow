@@ -289,6 +289,7 @@ func TestListCommand(t *testing.T) {
 - [x] **new** - Create new ticket (first state-changing command, supports --parent/-p and --format/-o flags)
 - [x] **start** - Start working on ticket (worktree management, supports --force/-f and --format/-o flags, JSON output)
 - [x] **close** - Close current/specified ticket (dual-mode operation, supports --force/-f, --reason, and --format/-o flags, JSON output)
+- [x] **restore** - Restore current-ticket.md symlink (zero-argument command, supports --format/-o flag, JSON output)
 
 ### In Progress 🚧
 - [ ] Create migration tickets for remaining commands
@@ -392,5 +393,49 @@ func (f *flags) normalize() {
     if f.forceShort {
         f.force = f.forceShort
     }
+}
+```
+
+## Command Patterns Established
+
+### Zero-Argument Commands
+The **restore** command establishes the pattern for commands that accept no arguments:
+
+```go
+func (r *RestoreCommand) Validate(flags interface{}, args []string) error {
+    if len(args) > 0 {
+        return fmt.Errorf("restore command does not accept any arguments")
+    }
+    // ... validate flags
+}
+```
+
+This pattern is useful for commands that:
+- Always operate on the current context (e.g., current ticket, current worktree)
+- Have no optional or required parameters
+- Rely entirely on flags for configuration
+
+### Format Flag Normalization
+Commands with both long (--format) and short (-o) format flags should normalize in Validate:
+
+```go
+// Normalize format flag (prefer short form if both are set)
+if f.formatShort != FormatText {
+    f.format = f.formatShort
+}
+```
+
+### JSON Error Output
+Commands supporting JSON output should format errors as JSON when the format flag is set:
+
+```go
+if err != nil {
+    if f.format == FormatJSON {
+        return outputJSON(map[string]interface{}{
+            "error":   err.Error(),
+            "success": false,
+        })
+    }
+    return err
 }
 ```
