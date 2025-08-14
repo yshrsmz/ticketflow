@@ -9,7 +9,7 @@ TicketFlow is a git worktree-based ticket management system written in Go. It pr
 
 ### Essential Commands
 ```bash
-# Build the application
+# Build the application (binary will be placed at repository root as ./ticketflow)
 make build
 
 # Run all tests

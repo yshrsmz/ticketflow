@@ -306,7 +306,7 @@ func TestListCommand(t *testing.T) {
 #### Complex Commands
 - [ ] **worktree** - Manage git worktrees
 - [ ] **cleanup** - Clean up worktrees and branches
-- [ ] **migrate** - Migrate ticket dates
+- [x] **migrate** - ~~Migrate ticket dates~~ (Removed - no longer needed)
 
 ### Final Cleanup
 - [ ] Remove old Command struct from command.go
