@@ -141,6 +141,41 @@ These are displayed in `ticketflow version` command.
 11. Push the branch with the close commit: `git push`
 12. After PR merge: `ticketflow cleanup <ticket-id>`
 
+## GitHub PR Management
+
+### IMPORTANT: Correct way to check PR status with gh command
+When checking PR status, use `statusCheckRollup` instead of `checks` (which doesn't exist):
+
+```bash
+# CORRECT - Use statusCheckRollup for CI status
+gh pr view 63 --json statusCheckRollup,reviews,comments,title,body
+
+# WRONG - checks field doesn't exist
+gh pr view 63 --json checks  # This will error!
+```
+
+### Common PR fields for --json flag:
+- `statusCheckRollup` - CI/checks status
+- `reviews` - PR reviews
+- `comments` - PR comments  
+- `commits` - List of commits
+- `title`, `body` - PR title and description
+- `files` - Changed files
+- `state` - PR state (open/closed/merged)
+- `latestReviews` - Latest review from each reviewer
+
+### Example: Full PR status check
+```bash
+# Get comprehensive PR information
+gh pr view 63 --json statusCheckRollup,latestReviews,comments,state,mergeable
+
+# Check CI status specifically
+gh pr view 63 --json statusCheckRollup --jq '.statusCheckRollup'
+
+# List all available fields (if unsure)
+gh pr view 63 --json 2>&1 | grep "Available fields"
+```
+
 ## Ticket Lifecycle Management
 
 ### CRITICAL: Always Read Ticket Requirements
@@ -218,3 +253,6 @@ ticketflow close           # This creates commit on wrong branch!
   require.NoError(t, os.Chdir(testDir))
   ```
 - See `test/integration/README.md` for detailed explanation of integration test requirements
+
+### Current-ticket.md Handling
+**IMPORTANT**: `current-ticket.md` is just a symlink that points to a ticket in `tickets/doing/`. When updating or committing ticket changes, always update the actual file in `tickets/doing/`, NOT the symlink. The symlink should remain gitignored.
