@@ -11,26 +11,34 @@ closed_at: null
 ## Problem
 When closing a ticket provided as a CLI parameter, ticketflow currently removes current-ticket.md without checking if the parameter ticket matches what current-ticket.md is pointing to. This can lead to incorrect removal of the current ticket symlink.
 
+**Bug Location**: `internal/cli/commands.go:1319` in `moveTicketToDoneWithReason` function
+
 Example scenario:
 1. User has current-ticket.md pointing to ticket-A
 2. User runs `ticketflow close ticket-B`
 3. current-ticket.md gets removed even though it was pointing to ticket-A, not ticket-B
 
+## Root Cause
+The `moveTicketToDoneWithReason` function unconditionally calls `app.Manager.SetCurrentTicket(ctx, nil)` which removes the current-ticket.md symlink regardless of which ticket is being closed.
+
 ## Solution
-Add verification before deleting current-ticket.md:
-1. Read the symlink target of current-ticket.md if it exists
-2. Compare the target with the ticket being closed
-3. Only remove current-ticket.md if they match
-4. Leave it untouched if it points to a different ticket
+**Simplified Approach**: Add an `isCurrentTicket` boolean parameter to `moveTicketToDoneWithReason` function.
+
+The calling code already knows whether it's closing the current ticket:
+- `closeCurrentTicketInternal` → pass `true`
+- `closeAndCommitTicket` (via `CloseTicketByID`) → pass `false`
+
+Only remove current-ticket.md when `isCurrentTicket == true`.
 
 ## Tasks
 Make sure to update task status when you finish it. Also, always create a commit for each task you finished.
 
-- [ ] Locate the close command implementation in `internal/cli/close.go`
-- [ ] Add logic to read current-ticket.md symlink target
-- [ ] Compare symlink target with the ticket being closed
-- [ ] Only remove current-ticket.md if targets match
-- [ ] Add unit tests for the new verification logic
+- [ ] Modify `moveTicketToDoneWithReason` in `internal/cli/commands.go` to accept `isCurrentTicket bool` parameter
+- [ ] Update the symlink removal logic to only execute when `isCurrentTicket == true`
+- [ ] Update `closeCurrentTicketInternal` to pass `true` for isCurrentTicket
+- [ ] Update `closeAndCommitTicket` to pass `false` for isCurrentTicket
+- [ ] Add unit test for `CloseTicketByID` when closing non-current ticket
+- [ ] Add integration test verifying current-ticket.md preservation when closing other tickets
 - [ ] Test edge cases (no current-ticket.md, broken symlink, etc.)
 - [ ] Run `make test` to run the tests
 - [ ] Run `make vet`, `make fmt` and `make lint`
@@ -38,7 +46,10 @@ Make sure to update task status when you finish it. Also, always create a commit
 - [ ] Get developer approval before closing
 
 ## Implementation Notes
-- The fix should be in the `Execute` method of the close command
-- Use `os.Readlink()` to get the symlink target
-- Handle cases where current-ticket.md doesn't exist or is not a symlink
-- Consider adding a log message when preserving current-ticket.md because it points to a different ticket
+- The simpler parameter-based approach is preferred over symlink checking
+- This bug affects both worktree and non-worktree modes
+- Consider adding debug logging when preserving current-ticket.md
+- Currently no test coverage for this scenario - that's why the bug wasn't caught
+
+## Testing Gap Identified
+There are no existing tests for closing a ticket by ID when it's not the current ticket. This gap in test coverage allowed this bug to slip through.
