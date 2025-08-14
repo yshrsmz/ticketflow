@@ -28,33 +28,33 @@ Migrate the `restore` command to use the new Command interface, enabling restora
 Make sure to update task status when you finish it. Also, always create a commit for each task you finished.
 
 ### 1. Create Command File and Structure
-- [ ] Create `internal/cli/commands/restore.go` implementing the Command interface
-- [ ] Define command struct (no flags needed for this simple command)
-- [ ] Implement basic Command interface methods (Name, Aliases, Description, Usage)
+- [x] Create `internal/cli/commands/restore.go` implementing the Command interface
+- [x] Define command struct (no flags needed for this simple command)
+- [x] Implement basic Command interface methods (Name, Aliases, Description, Usage)
 
 ### 2. Implement SetupFlags Method
-- [ ] Add `--format` / `-o` string flag for output format (json/text, default: text)
-- [ ] Normalize flag values (merge short and long forms)
-- [ ] No other flags needed (restore is intentionally simple)
+- [x] Add `--format` / `-o` string flag for output format (json/text, default: text)
+- [x] Normalize flag values (merge short and long forms)
+- [x] No other flags needed (restore is intentionally simple)
 
 ### 3. Implement Validate Method
-- [ ] Validate that no arguments are provided (restore only works on current ticket)
-- [ ] Validate format flag value (must be "json" or "text")
-- [ ] Store validated format for Execute method
+- [x] Validate that no arguments are provided (restore only works on current ticket)
+- [x] Validate format flag value (must be "json" or "text")
+- [x] Store validated format for Execute method
 
 ### 4. Implement Execute Method
-- [ ] Get App instance using `cli.NewApp(ctx)` pattern
-- [ ] Call `app.RestoreCurrentTicket(ctx)` to restore the symlink
-- [ ] The method now returns `(*ticket.Ticket, error)` so use the returned ticket directly
-- [ ] Handle JSON output formatting
-- [ ] Format errors as JSON when format flag is set to json
-- [ ] Return appropriate success message in text mode
+- [x] Get App instance using `cli.NewApp(ctx)` pattern
+- [x] Call `app.RestoreCurrentTicket(ctx)` to restore the symlink
+- [x] The method now returns `(*ticket.Ticket, error)` so use the returned ticket directly
+- [x] Handle JSON output formatting
+- [x] Format errors as JSON when format flag is set to json
+- [x] Return appropriate success message in text mode
 
 ### 5. Add JSON Output Support
-- [ ] Define JSON output structure for symlink restoration
-- [ ] Include fields: ticket_id, status, symlink_restored, worktree_path
-- [ ] Include parent_ticket if available from ticket metadata
-- [ ] Format and marshal JSON response based on format flag
+- [x] Define JSON output structure for symlink restoration
+- [x] Include fields: ticket_id, status, symlink_restored, worktree_path
+- [x] Include parent_ticket if available from ticket metadata
+- [x] Format and marshal JSON response based on format flag
 
 ### 6. Create Comprehensive Unit Tests
 - [ ] Create `internal/cli/commands/restore_test.go`
