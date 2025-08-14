@@ -100,7 +100,6 @@ func (c *HelpCommand) showGeneralHelp() error {
 		{"worktree <command>", "Manage worktrees"},
 		{"cleanup [options] <ticket>", "Clean up after PR merge"},
 		{"cleanup [options]", "Auto-cleanup orphaned worktrees and stale branches"},
-		{"migrate [options]", "Migrate ticket dates to new format"},
 	}
 
 	fmt.Println("COMMANDS:")
@@ -157,10 +156,6 @@ func (c *HelpCommand) showGeneralHelp() error {
 	fmt.Println("    --dry-run          Preview cleanup without making changes")
 	fmt.Println("    --format FORMAT    Output format: text|json (default: text)")
 	fmt.Println()
-	fmt.Println("  migrate:")
-	fmt.Println("    --force            Force migration even if already migrated")
-	fmt.Println("    --format FORMAT    Output format: text|json (default: text)")
-	fmt.Println()
 	fmt.Println("EXAMPLES:")
 	fmt.Println("  ticketflow new feature-xyz --parent TASK-123")
 	fmt.Println("  ticketflow list --status doing")
@@ -209,7 +204,7 @@ func (c *HelpCommand) showCommandHelp(cmdName string) error {
 	// For unmigrated commands, show a simple message
 	switch cmdName {
 	case "init", "new", "list", "show", "start", "close", "restore",
-		"status", "worktree", "cleanup", "migrate":
+		"status", "worktree", "cleanup":
 		fmt.Printf("Command: %s\n", cmdName)
 		fmt.Println("Use 'ticketflow help' to see available options for this command.")
 		return nil
