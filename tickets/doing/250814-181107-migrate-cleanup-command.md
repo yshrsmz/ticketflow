@@ -1,8 +1,8 @@
 ---
 priority: 2
-description: "Migrate cleanup command to new Command interface"
+description: Migrate cleanup command to new Command interface
 created_at: "2025-08-14T18:11:07+09:00"
-started_at: null
+started_at: "2025-08-14T21:54:18+09:00"
 closed_at: null
 related:
     - parent:250812-152927-migrate-remaining-commands
