@@ -167,9 +167,6 @@ type cleanupFlags struct {
 	force  bool
 }
 
-type migrateFlags struct {
-	dryRun bool
-}
 
 // startFlags holds command-line flags for the 'start' command
 func runCLI(ctx context.Context) error {
@@ -222,20 +219,6 @@ func runCLI(ctx context.Context) error {
 				}
 				// Old auto-cleanup command
 				return handleCleanup(ctx, flags.dryRun)
-			},
-		}, os.Args[2:])
-
-	case "migrate":
-		return parseAndExecute(ctx, Command{
-			Name: "migrate",
-			SetupFlags: func(fs *flag.FlagSet) interface{} {
-				flags := &migrateFlags{}
-				fs.BoolVar(&flags.dryRun, "dry-run", false, "Show what would be updated without making changes")
-				return flags
-			},
-			Execute: func(ctx context.Context, fs *flag.FlagSet, cmdFlags interface{}) error {
-				flags := cmdFlags.(*migrateFlags)
-				return handleMigrateDates(ctx, flags.dryRun)
 			},
 		}, os.Args[2:])
 
@@ -331,13 +314,4 @@ func handleCleanupTicket(ctx context.Context, ticketID string, force bool) error
 	}
 
 	return app.CleanupTicket(ctx, ticketID, force)
-}
-
-func handleMigrateDates(ctx context.Context, dryRun bool) error {
-	app, err := cli.NewApp(ctx)
-	if err != nil {
-		return err
-	}
-
-	return app.MigrateDates(ctx, dryRun)
 }
