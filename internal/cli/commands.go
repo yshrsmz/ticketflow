@@ -323,20 +323,7 @@ func (app *App) resolveParentTicket(ctx context.Context, explicitParent, slug st
 }
 
 // outputTicketCreated outputs the result of ticket creation
-func (app *App) outputTicketCreated(t *ticket.Ticket, parentTicketID, slug string, format OutputFormat) error {
-	if format == FormatJSON {
-		output := map[string]interface{}{
-			"ticket": map[string]interface{}{
-				"id":   t.ID,
-				"path": t.Path,
-			},
-		}
-		if parentTicketID != "" {
-			output["parent_ticket"] = parentTicketID
-		}
-		return app.Output.PrintJSON(output)
-	}
-
+func (app *App) outputTicketCreatedText(t *ticket.Ticket, parentTicketID, slug string) {
 	app.Output.Printf("\n🎫 Created new ticket: %s\n", t.ID)
 	app.Output.Printf("   File: %s\n", t.Path)
 	if parentTicketID != "" {
@@ -353,12 +340,10 @@ func (app *App) outputTicketCreated(t *ticket.Ticket, parentTicketID, slug strin
 	app.Output.Printf("   \n")
 	app.Output.Printf("3. Start working on it:\n")
 	app.Output.Printf("   ticketflow start %s\n", t.ID)
-
-	return nil
 }
 
 // NewTicket creates a new ticket
-func (app *App) NewTicket(ctx context.Context, slug string, explicitParent string, format OutputFormat) (*ticket.Ticket, error) {
+func (app *App) NewTicket(ctx context.Context, slug string, explicitParent string) (*ticket.Ticket, error) {
 	logger := log.Global().WithOperation("new_ticket")
 
 	// Validate slug
@@ -394,10 +379,8 @@ func (app *App) NewTicket(ctx context.Context, slug string, explicitParent strin
 		logger.Info("created sub-ticket", "ticket_id", t.ID, "parent", parentTicketID)
 	}
 
-	// Output result
-	if err := app.outputTicketCreated(t, parentTicketID, slug, format); err != nil {
-		return nil, err
-	}
+	// Output result (text format only, JSON is handled by command)
+	app.outputTicketCreatedText(t, parentTicketID, slug)
 	return t, nil
 }
 

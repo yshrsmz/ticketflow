@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"strings"
 
 	"github.com/yshrsmz/ticketflow/internal/cli"
 	"github.com/yshrsmz/ticketflow/internal/command"
@@ -126,9 +127,30 @@ func (c *NewCommand) Execute(ctx context.Context, flags interface{}, args []stri
 	// Get the slug from the first positional argument
 	slug := args[0]
 
-	// Parse output format
-	outputFormat := cli.ParseOutputFormat(f.format)
-
 	// Use the existing NewTicket method from App which handles all the business logic
-	return app.NewTicket(ctx, slug, f.parent, outputFormat)
+	ticket, err := app.NewTicket(ctx, slug, f.parent)
+	if err != nil {
+		return err
+	}
+
+	// Handle JSON output if requested
+	if f.format == FormatJSON {
+		output := map[string]interface{}{
+			"ticket": map[string]interface{}{
+				"id":   ticket.ID,
+				"path": ticket.Path,
+			},
+		}
+		// Extract parent ticket ID from Related field if available
+		for _, rel := range ticket.Related {
+			if strings.HasPrefix(rel, "parent:") {
+				output["parent_ticket"] = strings.TrimPrefix(rel, "parent:")
+				break
+			}
+		}
+		return app.Output.PrintJSON(output)
+	}
+
+	// Text format output is already handled by NewTicket
+	return nil
 }
