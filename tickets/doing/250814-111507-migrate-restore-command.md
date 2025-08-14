@@ -79,12 +79,12 @@ Make sure to update task status when you finish it. Also, always create a commit
 - [x] Ensure handleRestore function is removed if no longer used
 
 ### 9. Code Quality and Documentation
-- [ ] Run `make test` to ensure all tests pass
-- [ ] Run `make vet` for static analysis
-- [ ] Run `make fmt` for code formatting
-- [ ] Run `make lint` for linting issues
-- [ ] Update `docs/COMMAND_MIGRATION_GUIDE.md` with restore command completion status
-- [ ] Document the zero-argument pattern for future commands
+- [x] Run `make test` to ensure all tests pass
+- [x] Run `make vet` for static analysis
+- [x] Run `make fmt` for code formatting
+- [x] Run `make lint` for linting issues
+- [x] Update `docs/COMMAND_MIGRATION_GUIDE.md` with restore command completion status
+- [x] Document the zero-argument pattern for future commands
 
 ### 10. Final Verification
 - [ ] Manual testing of symlink restoration functionality

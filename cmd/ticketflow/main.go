@@ -249,7 +249,6 @@ func runCLI(ctx context.Context) error {
 	}
 }
 
-
 func handleWorktree(ctx context.Context, subcommand string, args []string) error {
 	app, err := cli.NewApp(ctx)
 	if err != nil {
