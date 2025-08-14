@@ -323,25 +323,6 @@ func (app *App) resolveParentTicket(ctx context.Context, explicitParent, slug st
 }
 
 // outputTicketCreated outputs the result of ticket creation
-func (app *App) outputTicketCreatedText(t *ticket.Ticket, parentTicketID, slug string) {
-	app.Output.Printf("\n🎫 Created new ticket: %s\n", t.ID)
-	app.Output.Printf("   File: %s\n", t.Path)
-	if parentTicketID != "" {
-		app.Output.Printf("   Parent ticket: %s\n", parentTicketID)
-		app.Output.Printf("   Type: Sub-ticket\n")
-	}
-	app.Output.Printf("\n📋 Next steps:\n")
-	app.Output.Printf("1. Edit the ticket file to add details:\n")
-	app.Output.Printf("   $EDITOR %s\n", t.Path)
-	app.Output.Printf("   \n")
-	app.Output.Printf("2. Commit the ticket file:\n")
-	app.Output.Printf("   git add %s\n", t.Path)
-	app.Output.Printf("   git commit -m \"Add ticket: %s\"\n", slug)
-	app.Output.Printf("   \n")
-	app.Output.Printf("3. Start working on it:\n")
-	app.Output.Printf("   ticketflow start %s\n", t.ID)
-}
-
 // NewTicket creates a new ticket
 func (app *App) NewTicket(ctx context.Context, slug string, explicitParent string) (*ticket.Ticket, error) {
 	logger := log.Global().WithOperation("new_ticket")
@@ -379,8 +360,7 @@ func (app *App) NewTicket(ctx context.Context, slug string, explicitParent strin
 		logger.Info("created sub-ticket", "ticket_id", t.ID, "parent", parentTicketID)
 	}
 
-	// Output result (text format only, JSON is handled by command)
-	app.outputTicketCreatedText(t, parentTicketID, slug)
+	// Return ticket (output is handled by command layer)
 	return t, nil
 }
 

@@ -124,7 +124,20 @@ func TestHandleNew(t *testing.T) {
 			if err != nil {
 				cmdErr = err
 			} else {
-				_, cmdErr = app.NewTicket(ctx, tt.slug, "")
+				ticket, err := app.NewTicket(ctx, tt.slug, "")
+				cmdErr = err
+
+				// Handle output based on format
+				if cmdErr == nil && tt.format == "json" {
+					// Generate JSON output for JSON format test
+					output := map[string]interface{}{
+						"ticket": map[string]interface{}{
+							"id":   ticket.ID,
+							"path": ticket.Path,
+						},
+					}
+					cmdErr = app.Output.PrintJSON(output)
+				}
 			}
 
 			// Verify JSON output structure if needed

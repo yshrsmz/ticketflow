@@ -8,6 +8,7 @@ import (
 
 	"github.com/yshrsmz/ticketflow/internal/cli"
 	"github.com/yshrsmz/ticketflow/internal/command"
+	"github.com/yshrsmz/ticketflow/internal/ticket"
 )
 
 // Format constants for output formats
@@ -133,7 +134,7 @@ func (c *NewCommand) Execute(ctx context.Context, flags interface{}, args []stri
 		return err
 	}
 
-	// Handle JSON output if requested
+	// Handle output based on format
 	if f.format == FormatJSON {
 		output := map[string]interface{}{
 			"ticket": map[string]interface{}{
@@ -151,6 +152,37 @@ func (c *NewCommand) Execute(ctx context.Context, flags interface{}, args []stri
 		return app.Output.PrintJSON(output)
 	}
 
-	// Text format output is already handled by NewTicket
+	// Text format output
+	outputTicketCreatedText(app.Output, ticket, f.parent, slug)
 	return nil
+}
+
+// outputTicketCreatedText prints the text format output for ticket creation
+func outputTicketCreatedText(output *cli.OutputWriter, t *ticket.Ticket, parentTicketID, slug string) {
+	// Extract parent ID from ticket if not explicitly provided
+	if parentTicketID == "" {
+		for _, rel := range t.Related {
+			if strings.HasPrefix(rel, "parent:") {
+				parentTicketID = strings.TrimPrefix(rel, "parent:")
+				break
+			}
+		}
+	}
+
+	output.Printf("\n🎫 Created new ticket: %s\n", t.ID)
+	output.Printf("   File: %s\n", t.Path)
+	if parentTicketID != "" {
+		output.Printf("   Parent ticket: %s\n", parentTicketID)
+		output.Printf("   Type: Sub-ticket\n")
+	}
+	output.Printf("\n📋 Next steps:\n")
+	output.Printf("1. Edit the ticket file to add details:\n")
+	output.Printf("   $EDITOR %s\n", t.Path)
+	output.Printf("   \n")
+	output.Printf("2. Commit the ticket file:\n")
+	output.Printf("   git add %s\n", t.Path)
+	output.Printf("   git commit -m \"Add ticket: %s\"\n", slug)
+	output.Printf("   \n")
+	output.Printf("3. Start working on it:\n")
+	output.Printf("   ticketflow start %s\n", t.ID)
 }
