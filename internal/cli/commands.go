@@ -26,6 +26,14 @@ const (
 	msgBranchAlreadyMerged = "Branch was already merged"
 )
 
+// StartTicketResult contains the result of starting a ticket
+type StartTicketResult struct {
+	Ticket               *ticket.Ticket
+	WorktreePath         string
+	ParentBranch         string
+	InitCommandsExecuted bool
+}
+
 // App represents the CLI application
 type App struct {
 	Config      *config.Config
@@ -436,7 +444,7 @@ func (app *App) ListTickets(ctx context.Context, status ticket.Status, count int
 }
 
 // StartTicket starts working on a ticket
-func (app *App) StartTicket(ctx context.Context, ticketID string, force bool, format OutputFormat) (*ticket.Ticket, error) {
+func (app *App) StartTicket(ctx context.Context, ticketID string, force bool) (*StartTicketResult, error) {
 	logger := log.Global().WithOperation("start_ticket").WithTicket(ticketID)
 	logger.Info("starting ticket")
 
@@ -489,25 +497,15 @@ func (app *App) StartTicket(ctx context.Context, ticketID string, force bool, fo
 	// Check if init commands were executed
 	initCommandsExecuted := len(app.Config.Worktree.InitCommands) > 0 && worktreePath != ""
 
-	// Output based on format
-	if format == FormatJSON {
-		output := map[string]interface{}{
-			"ticket_id":              t.ID,
-			"status":                 string(t.Status()),
-			"worktree_path":          worktreePath,
-			"branch":                 t.ID,
-			"parent_branch":          parentBranch,
-			"init_commands_executed": initCommandsExecuted,
-		}
-		if err := app.Output.PrintJSON(output); err != nil {
-			return nil, err
-		}
-	} else {
-		// Text format - use existing success message
-		app.printStartSuccessMessage(t, worktreePath, parentBranch)
-	}
+	// Print success message for text format
+	app.printStartSuccessMessage(t, worktreePath, parentBranch)
 
-	return t, nil
+	return &StartTicketResult{
+		Ticket:               t,
+		WorktreePath:         worktreePath,
+		ParentBranch:         parentBranch,
+		InitCommandsExecuted: initCommandsExecuted,
+	}, nil
 }
 
 // closeCurrentTicketInternal handles the common logic for closing the current ticket

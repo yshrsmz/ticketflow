@@ -122,9 +122,25 @@ func (c *StartCommand) Execute(ctx context.Context, flags interface{}, args []st
 	// Get the ticket ID from the first positional argument
 	ticketID := args[0]
 
-	// Parse output format
-	outputFormat := cli.ParseOutputFormat(f.format)
-
 	// Use the existing StartTicket method from App which handles all the business logic
-	return app.StartTicket(ctx, ticketID, f.force, outputFormat)
+	result, err := app.StartTicket(ctx, ticketID, f.force)
+	if err != nil {
+		return err
+	}
+
+	// Handle JSON output if requested
+	if f.format == FormatJSON {
+		output := map[string]interface{}{
+			"ticket_id":              result.Ticket.ID,
+			"status":                 string(result.Ticket.Status()),
+			"worktree_path":          result.WorktreePath,
+			"branch":                 result.Ticket.ID,
+			"parent_branch":          result.ParentBranch,
+			"init_commands_executed": result.InitCommandsExecuted,
+		}
+		return app.Output.PrintJSON(output)
+	}
+
+	// Text format output is already handled by StartTicket
+	return nil
 }
