@@ -108,12 +108,12 @@ if err != nil {
 
 ## Success Criteria
 
-- [ ] All App methods return appropriate entities
-- [ ] No more re-fetching in commands (verified by removing line 203 in close.go)
-- [ ] All tests pass
-- [ ] Commands are cleaner and more focused
-- [ ] Performance improvement measurable (50% fewer file reads per operation)
-- [ ] COMMAND_MIGRATION_GUIDE.md updated with new pattern
+- [x] All App methods return appropriate entities
+- [x] No more re-fetching in commands (verified by removing line 203 in close.go)
+- [x] All tests pass
+- [x] Commands are cleaner and more focused
+- [x] Performance improvement measurable (50% fewer file reads per operation)
+- [x] COMMAND_MIGRATION_GUIDE.md updated with new pattern
 
 ## References
 
