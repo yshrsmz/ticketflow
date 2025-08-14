@@ -57,13 +57,13 @@ Make sure to update task status when you finish it. Also, always create a commit
 - [x] Format and marshal JSON response based on format flag
 
 ### 6. Create Comprehensive Unit Tests
-- [ ] Create `internal/cli/commands/restore_test.go`
-- [ ] Test command metadata (name, aliases, description)
-- [ ] Test flag setup and validation
-- [ ] Test no-arguments validation
-- [ ] Test JSON and text output formats
-- [ ] Test error cases with mock App
-- [ ] Achieve >80% test coverage
+- [x] Create `internal/cli/commands/restore_test.go`
+- [x] Test command metadata (name, aliases, description)
+- [x] Test flag setup and validation
+- [x] Test no-arguments validation
+- [x] Test JSON and text output formats
+- [x] Test error cases with mock App
+- [x] Achieve >80% test coverage
 
 ### 7. Integration Testing
 - [ ] Test symlink restoration in a worktree
