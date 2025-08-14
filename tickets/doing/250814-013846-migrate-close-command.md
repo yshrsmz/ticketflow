@@ -378,3 +378,26 @@ Since App methods don't return ticket data, the command must:
 - Testing and fixes: ~1 hour  
 - Code quality and review: ~30 minutes
 - **Total**: ~4.5 hours (within revised estimate)
+
+### Architectural Decision: App Method Return Values
+
+During implementation, we identified that App methods only return errors, forcing commands to re-fetch ticket data for JSON output. After extensive discussion with golang-pro and golang-cli-architect agents, we determined:
+
+1. **Current Pattern Works But Has Limitations**:
+   - Commands must re-fetch tickets after operations
+   - Duplicated data access for JSON output
+   - Pattern works but isn't optimal
+
+2. **Consensus: Return Primary Entities**:
+   - Both experts agreed returning `(*ticket.Ticket, error)` is appropriate
+   - Not over-engineering - it's idiomatic Go
+   - Aligns with successful CLI tools (git, docker, kubectl)
+   - Legitimate investment for a daily-use developer tool
+
+3. **Decision: Refactor in Separate Ticket**:
+   - Keep current implementation (it works correctly)
+   - Create dedicated refactoring ticket after this one
+   - Update all migrated commands together
+   - Cleaner git history and ticket boundaries
+
+This decision balances immediate delivery with long-term maintainability. The close command is fully functional with the current pattern, and we'll improve it systematically in the next iteration.

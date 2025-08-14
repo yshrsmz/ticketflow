@@ -24,7 +24,7 @@ Complete the migration of all remaining commands to the new Command interface an
 ### State-Changing Commands
 - [x] **new** - Create new ticket (with parent flag handling) (ticket: 250813-175042-migrate-new-command) ✅ DONE
 - [x] **start** - Start working on ticket (with worktree creation) (ticket: 250813-192015-migrate-start-command) ✅ PR #62 merged
-- [ ] **close** - Close current/specified ticket (with reason handling) (ticket: 250814-013846-migrate-close-command) 📝 PR #63 - Refined & ready for implementation
+- [x] **close** - Close current/specified ticket (with reason handling) (ticket: 250814-013846-migrate-close-command) ✅ Implementation complete, pending final verification
 - [ ] **restore** - Restore closed ticket (ticket: 250814-111507-migrate-restore-command) 📋 Created - Next priority
 
 ### Complex Commands
@@ -85,17 +85,23 @@ Complete the migration of all remaining commands to the new Command interface an
 - ✅ **new** - First state-changing command with parent flag
 - ✅ **start** - Complex state-changing with worktree creation
 
-### In Progress
-- 🔄 **close** - Ticket refined, PR #63 created, ready for implementation
-  - Establishes dual-mode pattern (0 or 1 args)
-  - Complex JSON output requirements discovered
-  - Time estimate revised to 4-6 hours
+### Recently Completed
+- ✅ **close** - Implementation complete (4.5 hours actual)
+  - Established dual-mode pattern (0 or 1 args)
+  - Discovered need for App method refactoring (return entities)
+  - Created follow-up refactoring ticket
 
 ### Next Priority
 - 📋 **restore** - Ticket created (250814-111507), simplest remaining command
   - 2-3 hours estimated
   - Completes core lifecycle
   - Zero-argument pattern
+
+### Upcoming Refactoring
+- 🔧 **App Method Return Values** - Refactor App methods to return primary entities
+  - Eliminates re-fetching for JSON output
+  - Affects new, start, close commands
+  - To be done after restore command
 
 ### Remaining Work
 - **3 simple commands**: restore, migrate, cleanup

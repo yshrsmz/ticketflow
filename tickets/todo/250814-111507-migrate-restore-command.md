@@ -191,7 +191,8 @@ func (r *RestoreCommand) Execute(ctx context.Context) error {
 
     // For JSON output, gather ticket info after successful restore
     if r.format == FormatJSON {
-        // Get current ticket ID and retrieve ticket data
+        // NOTE: Currently requires re-fetching ticket data
+        // This will be improved when App methods return entities (see refactoring ticket)
         ticketID := getCurrentTicketID()
         ticket, _ := app.TicketManager.GetTicket(ticketID)
         
@@ -209,6 +210,9 @@ func (r *RestoreCommand) Execute(ctx context.Context) error {
     return nil
 }
 ```
+
+### Note on App Method Refactoring
+Based on architectural discussions during the close command implementation, we've decided to refactor App methods to return primary entities in a separate ticket. This will eliminate the need to re-fetch ticket data for JSON output. The restore command will be updated as part of that refactoring effort.
 
 ### Minimal Flag Setup
 ```go
