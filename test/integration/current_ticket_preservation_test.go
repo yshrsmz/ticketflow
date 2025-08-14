@@ -62,9 +62,10 @@ func TestCurrentTicketPreservation(t *testing.T) {
 
 		var currentTicket, otherTicket *ticket.Ticket
 		for i := range tickets {
-			if tickets[i].Slug == "current-ticket" {
+			switch tickets[i].Slug {
+			case "current-ticket":
 				currentTicket = &tickets[i]
-			} else if tickets[i].Slug == "other-ticket" {
+			case "other-ticket":
 				otherTicket = &tickets[i]
 			}
 		}
@@ -163,7 +164,7 @@ func TestCurrentTicketPreservation(t *testing.T) {
 
 		// Ensure current-ticket.md doesn't exist
 		currentTicketPath := filepath.Join(repoPath, "current-ticket.md")
-		os.Remove(currentTicketPath) // Ignore error if doesn't exist
+		_ = os.Remove(currentTicketPath) // Explicitly ignore error if doesn't exist
 
 		// Close the ticket - should not error even though current-ticket.md doesn't exist
 		_, err = app.CloseTicketByID(ctx, testTicket.ID, "Test reason", false)
