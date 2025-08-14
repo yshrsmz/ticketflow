@@ -1,8 +1,8 @@
 ---
 priority: 2
-description: "Fix current-ticket.md removal without verification when closing tickets"
+description: Fix current-ticket.md removal without verification when closing tickets
 created_at: "2025-08-09T23:48:41+09:00"
-started_at: null
+started_at: "2025-08-14T16:55:38+09:00"
 closed_at: null
 ---
 
