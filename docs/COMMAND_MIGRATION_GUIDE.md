@@ -330,8 +330,8 @@ If issues arise during migration:
 
 ## New Patterns Established
 
-### App Methods Return Primary Entities (Refactored)
-**Background**: App methods now return the primary entity they operate on, eliminating the need for commands to re-fetch data.
+### App Methods Return Primary Entities (✅ Completed 2025-08-14)
+**Background**: App methods now return the primary entity they operate on, eliminating the need for commands to re-fetch data. This refactoring was completed in ticket 250814-121422.
 
 **Benefits**:
 - **Performance**: 50% fewer file I/O operations (no re-fetching)
@@ -341,14 +341,28 @@ If issues arise during migration:
 
 **Method Signatures**:
 - `CloseTicket(ctx, force) (*ticket.Ticket, error)`
-- `StartTicket(ctx, ticketID, force) (*StartTicketResult, error)`
+- `CloseTicketWithReason(ctx, reason, force) (*ticket.Ticket, error)`
+- `CloseTicketByID(ctx, ticketID, reason, force) (*ticket.Ticket, error)`
+- `StartTicket(ctx, ticketID, force) (*StartTicketResult, error)` ⚠️ See note below
 - `NewTicket(ctx, slug, parent) (*ticket.Ticket, error)`
 - `RestoreCurrentTicket(ctx) (*ticket.Ticket, error)`
 
+**Special Case: StartTicketResult**
+The `StartTicket` method returns a custom struct instead of just the ticket:
+```go
+type StartTicketResult struct {
+    Ticket               *ticket.Ticket  // The started ticket
+    WorktreePath         string          // Path to created worktree
+    ParentBranch         string          // Branch it was created from
+    InitCommandsExecuted bool            // Whether init commands ran
+}
+```
+**Reasoning**: StartTicket orchestrates a complex workflow (worktree creation, branch management, init commands) and all this information is needed by commands for output. Returning just the ticket would require additional git queries, defeating our performance goals.
+
 **Helper Methods** (in `internal/cli/helpers.go`):
-- `CalculateDuration(ticket)` - Calculate work duration
-- `ExtractParentID(ticket)` - Get parent from Related field
-- `FormatDuration(duration)` - Human-readable duration format
+- `CalculateDuration(ticket)` - Calculate work duration (handles nil and invalid states)
+- `ExtractParentID(ticket)` - Get parent from Related field (nil-safe)
+- `FormatDuration(duration)` - Human-readable duration format (e.g., "2h30m")
 
 ### Dual-Mode Commands (from close command)
 Commands that can operate with or without arguments (0 or 1 args):
