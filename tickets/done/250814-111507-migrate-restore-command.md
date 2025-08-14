@@ -3,7 +3,7 @@ priority: 2
 description: Migrate restore command to new Command interface
 created_at: "2025-08-14T11:15:07+09:00"
 started_at: "2025-08-14T15:15:27+09:00"
-closed_at: null
+closed_at: "2025-08-14T16:35:10+09:00"
 related:
     - parent:250812-152927-migrate-remaining-commands
 ---
