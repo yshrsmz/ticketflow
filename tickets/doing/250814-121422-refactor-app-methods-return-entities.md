@@ -140,6 +140,32 @@ if err != nil {
 
 ## Implementation Insights
 
+### Design Decision: StartTicketResult Struct
+
+During implementation, we deviated from the original design for the `StartTicket` method. While other methods return just `(*ticket.Ticket, error)`, StartTicket returns a custom struct:
+
+```go
+type StartTicketResult struct {
+    Ticket               *ticket.Ticket
+    WorktreePath         string
+    ParentBranch         string
+    InitCommandsExecuted bool
+}
+```
+
+**Reasoning:**
+1. **Multiple Important Outputs**: StartTicket produces several pieces of information that commands need - not just the updated ticket, but also worktree path, parent branch, and init command status
+2. **Avoiding Re-fetching**: Without this struct, commands would need to make additional git queries to get worktree info, defeating our performance goals
+3. **Operation Complexity**: StartTicket orchestrates a complex workflow (git operations, worktree creation, init commands) unlike simple state changes in other methods
+4. **Existing Pattern**: The original implementation was already handling all this data internally for JSON output
+
+**Alternatives Considered:**
+- Return only ticket (would require additional I/O)
+- Add fields to ticket.Ticket (would pollute domain model)
+- Multiple return values (too unwieldy, not self-documenting)
+
+**Conclusion**: The struct approach was chosen as it provides all necessary information atomically without additional I/O, maintaining our performance goals while providing clear, self-documenting return values.
+
 ### Key Learnings
 1. **Separation of Concerns Critical**: Moving text output from App methods to command layer was essential - App methods shouldn't know about output formats
 2. **StartTicketResult Pattern**: Using a result struct for complex returns (StartTicket) provides clarity and extensibility
