@@ -67,10 +67,10 @@ Make sure to update task status when you finish it. Also, always create a commit
 - [ ] Test no current ticket error (when no args in main repo)
 
 ### 8. Register Command and Clean Up
-- [ ] Register close command in `main.go` command registry
-- [ ] Remove close case from switch statement (lines 202-219)
-- [ ] Remove `handleClose` function if no longer used
-- [ ] Verify command appears in help text
+- [x] Register close command in `main.go` command registry
+- [x] Remove close case from switch statement (lines 202-219)
+- [x] Remove `handleClose` function if no longer used
+- [x] Verify command appears in help text
 
 ### 9. Code Quality and Documentation
 - [ ] Run `make test` to ensure all tests pass

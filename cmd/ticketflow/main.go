@@ -81,6 +81,12 @@ func init() {
 		// This should never happen in practice but we handle it gracefully
 		fmt.Fprintf(os.Stderr, "Warning: failed to register start command: %v\n", err)
 	}
+	// Register close command
+	if err := commandRegistry.Register(commands.NewCloseCommand()); err != nil {
+		// Log error but continue - allow program to run with degraded functionality
+		// This should never happen in practice but we handle it gracefully
+		fmt.Fprintf(os.Stderr, "Warning: failed to register close command: %v\n", err)
+	}
 }
 
 func main() {
@@ -150,12 +156,6 @@ func runTUI() {
 
 // Define flag structures for commands that need them
 
-type closeFlags struct {
-	force      bool
-	forceShort bool
-	reason     string
-}
-
 type cleanupFlags struct {
 	dryRun bool
 	force  bool
@@ -186,30 +186,6 @@ func runCLI(ctx context.Context) error {
 
 	// Fall back to old switch statement for unmigrated commands
 	switch os.Args[1] {
-	case "close":
-		return parseAndExecute(ctx, Command{
-			Name: "close",
-			SetupFlags: func(fs *flag.FlagSet) interface{} {
-				flags := &closeFlags{}
-				fs.BoolVar(&flags.force, "force", false, "Force close with uncommitted changes")
-				fs.BoolVar(&flags.forceShort, "f", false, "Force close (short form)")
-				fs.StringVar(&flags.reason, "reason", "", "Reason for closing the ticket")
-				return flags
-			},
-			Execute: func(ctx context.Context, fs *flag.FlagSet, cmdFlags interface{}) error {
-				flags := cmdFlags.(*closeFlags)
-				force := flags.force || flags.forceShort
-
-				// Check if ticket ID was provided as an argument
-				if fs.NArg() > 0 {
-					return handleCloseTicket(ctx, fs.Arg(0), flags.reason, force)
-				}
-
-				// No ticket ID provided, close current ticket
-				return handleClose(ctx, flags.reason, force)
-			},
-		}, os.Args[2:])
-
 	case "restore":
 		return parseAndExecute(ctx, Command{
 			Name: "restore",
@@ -272,29 +248,6 @@ func runCLI(ctx context.Context) error {
 	default:
 		return fmt.Errorf("unknown command: %s", os.Args[1])
 	}
-}
-
-func handleClose(ctx context.Context, reason string, force bool) error {
-	app, err := cli.NewApp(ctx)
-	if err != nil {
-		return err
-	}
-
-	// If reason is provided, pass it to a new close method
-	if reason != "" {
-		return app.CloseTicketWithReason(ctx, reason, force)
-	}
-
-	return app.CloseTicket(ctx, force)
-}
-
-func handleCloseTicket(ctx context.Context, ticketID, reason string, force bool) error {
-	app, err := cli.NewApp(ctx)
-	if err != nil {
-		return err
-	}
-
-	return app.CloseTicketByID(ctx, ticketID, reason, force)
 }
 
 func handleRestore(ctx context.Context) error {
