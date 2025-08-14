@@ -51,11 +51,13 @@ type closeFlags struct {
 	args        []string // Store validated arguments
 }
 
-// normalize merges short and long form flags (short form takes precedence)
+// normalize merges short and long form flags using logical OR for booleans
+// and preferring non-empty strings for string flags
 func (f *closeFlags) normalize() {
-	if f.forceShort {
-		f.force = f.forceShort
-	}
+	// Use logical OR for boolean flags - true if either is set
+	f.force = f.force || f.forceShort
+	
+	// For string flags, prefer non-empty value (short form if both set)
 	if f.formatShort != "" {
 		f.format = f.formatShort
 	}
@@ -169,8 +171,10 @@ func outputCloseErrorJSON(app *cli.App, err error) error {
 func outputCloseSuccessJSON(ctx context.Context, app *cli.App, ticketID string, reason string, force bool, isCurrentTicket bool) error {
 	// Build the output structure
 	output := map[string]interface{}{
-		"success":        true,
-		"force_used":     force,
+		"success":    true,
+		"force_used": force,
+		// TODO: Verify actual commit creation status instead of hardcoding
+		// The App.CloseTicket methods currently don't return this information
 		"commit_created": true,
 	}
 

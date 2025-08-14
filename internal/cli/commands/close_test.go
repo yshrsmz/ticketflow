@@ -302,9 +302,22 @@ func TestCloseFlags_Normalize(t *testing.T) {
 			},
 		},
 		{
-			name: "short force overrides",
+			name: "short force sets force via OR",
 			flags: closeFlags{
 				force:      false,
+				forceShort: true,
+				format:     FormatText,
+			},
+			expected: closeFlags{
+				force:      true,
+				forceShort: true,
+				format:     FormatText,
+			},
+		},
+		{
+			name: "both force flags true",
+			flags: closeFlags{
+				force:      true,
 				forceShort: true,
 				format:     FormatText,
 			},
