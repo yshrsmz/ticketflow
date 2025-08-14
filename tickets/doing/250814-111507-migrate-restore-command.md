@@ -87,9 +87,9 @@ Make sure to update task status when you finish it. Also, always create a commit
 - [x] Document the zero-argument pattern for future commands
 
 ### 10. Final Verification
-- [ ] Manual testing of symlink restoration functionality
-- [ ] Verify symlink is created correctly pointing to the right ticket
-- [ ] Ensure error messages are consistent with other commands
+- [x] Manual testing of symlink restoration functionality
+- [x] Verify symlink is created correctly pointing to the right ticket
+- [x] Ensure error messages are consistent with other commands
 - [ ] Get developer approval before closing
 
 ## Implementation Notes
