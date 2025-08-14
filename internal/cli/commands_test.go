@@ -894,6 +894,13 @@ func TestApp_CloseTicketByID(t *testing.T) {
 				case "250131-120000-closed-ticket":
 					ticketFile := filepath.Join(tmpDir, "tickets", "done", "250131-120000-closed-ticket.md")
 					require.NoError(t, os.WriteFile(ticketFile, []byte("test content"), 0644))
+				case "250131-120000-other-ticket":
+					// For the preservation test - create the ticket being closed
+					ticketFile := filepath.Join(tmpDir, "tickets", "todo", "250131-120000-other-ticket.md")
+					require.NoError(t, os.WriteFile(ticketFile, []byte("test content"), 0644))
+					// Also create the current ticket file
+					currentFile := filepath.Join(tmpDir, "tickets", "doing", "250131-120000-current-ticket.md")
+					require.NoError(t, os.WriteFile(currentFile, []byte("current ticket content"), 0644))
 				}
 			}
 

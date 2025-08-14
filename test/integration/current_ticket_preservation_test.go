@@ -49,6 +49,12 @@ func TestCurrentTicketPreservation(t *testing.T) {
 		_, err = app.NewTicket(ctx, "other-ticket", "")
 		require.NoError(t, err)
 
+		// Commit the new tickets
+		err = app.Git.Add(ctx, ".")
+		require.NoError(t, err)
+		err = app.Git.Commit(ctx, "Added test tickets")
+		require.NoError(t, err)
+
 		// Get the tickets
 		tickets, err := app.Manager.List(ctx, ticket.StatusFilterTodo)
 		require.NoError(t, err)
@@ -66,6 +72,7 @@ func TestCurrentTicketPreservation(t *testing.T) {
 		require.NotNil(t, otherTicket, "Could not find other-ticket")
 
 		// Start the current ticket (this creates current-ticket.md symlink)
+		// Note: StartTicket already commits the changes
 		_, err = app.StartTicket(ctx, currentTicket.ID, false)
 		require.NoError(t, err)
 
@@ -97,6 +104,12 @@ func TestCurrentTicketPreservation(t *testing.T) {
 		_, err := app.NewTicket(ctx, "ticket-to-close", "")
 		require.NoError(t, err)
 
+		// Commit the new ticket
+		err = app.Git.Add(ctx, ".")
+		require.NoError(t, err)
+		err = app.Git.Commit(ctx, "Added ticket to close")
+		require.NoError(t, err)
+
 		// Get the ticket
 		tickets, err := app.Manager.List(ctx, ticket.StatusFilterTodo)
 		require.NoError(t, err)
@@ -111,6 +124,7 @@ func TestCurrentTicketPreservation(t *testing.T) {
 		require.NotNil(t, testTicket, "Could not find ticket-to-close")
 
 		// Start the ticket (this creates current-ticket.md symlink)
+		// Note: StartTicket already commits the changes
 		_, err = app.StartTicket(ctx, testTicket.ID, false)
 		require.NoError(t, err)
 
