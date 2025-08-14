@@ -2,7 +2,6 @@ package commands
 
 import (
 	"context"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
@@ -46,6 +45,13 @@ type restoreFlags struct {
 	formatShort string
 }
 
+// normalize merges short and long form flags, preferring short form
+func (f *restoreFlags) normalize() {
+	if f.formatShort != "" && f.formatShort != FormatText {
+		f.format = f.formatShort
+	}
+}
+
 // SetupFlags configures the flag set for this command
 func (r *RestoreCommand) SetupFlags(fs *flag.FlagSet) interface{} {
 	flags := &restoreFlags{}
@@ -59,17 +65,19 @@ func (r *RestoreCommand) SetupFlags(fs *flag.FlagSet) interface{} {
 
 // Validate checks if the provided flags and arguments are valid
 func (r *RestoreCommand) Validate(flags interface{}, args []string) error {
-	f := flags.(*restoreFlags)
+	// Defensive type assertion
+	f, ok := flags.(*restoreFlags)
+	if !ok {
+		return fmt.Errorf("invalid flags type: expected *restoreFlags, got %T", flags)
+	}
 
 	// No arguments allowed for restore command
 	if len(args) > 0 {
 		return fmt.Errorf("restore command does not accept any arguments")
 	}
 
-	// Normalize format flag (prefer short form if both are set)
-	if f.formatShort != FormatText {
-		f.format = f.formatShort
-	}
+	// Normalize format flags
+	f.normalize()
 
 	// Validate format value
 	if f.format != FormatText && f.format != FormatJSON {
@@ -95,7 +103,7 @@ func (r *RestoreCommand) Execute(ctx context.Context, flags interface{}, args []
 	if err != nil {
 		if f.format == FormatJSON {
 			// Return error in JSON format
-			return outputJSON(map[string]interface{}{
+			return app.Output.PrintJSON(map[string]interface{}{
 				"error":   err.Error(),
 				"success": false,
 			})
@@ -106,7 +114,10 @@ func (r *RestoreCommand) Execute(ctx context.Context, flags interface{}, args []
 	// For JSON output, use the returned ticket directly
 	if f.format == FormatJSON {
 		// Get the current working directory for worktree path
-		cwd, _ := os.Getwd()
+		cwd, err := os.Getwd()
+		if err != nil {
+			cwd = "unknown"
+		}
 
 		jsonData := map[string]interface{}{
 			"ticket_id":        ticket.ID,
@@ -127,18 +138,10 @@ func (r *RestoreCommand) Execute(ctx context.Context, flags interface{}, args []
 			}
 		}
 
-		return outputJSON(jsonData)
+		return app.Output.PrintJSON(jsonData)
 	}
 
 	// Text output
 	fmt.Println("✅ Current ticket symlink restored")
 	return nil
 }
-
-// outputJSON formats and outputs data as JSON
-func outputJSON(data interface{}) error {
-	encoder := json.NewEncoder(os.Stdout)
-	encoder.SetIndent("", "  ")
-	return encoder.Encode(data)
-}
-

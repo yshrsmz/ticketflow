@@ -1,10 +1,7 @@
 package commands
 
 import (
-	"bytes"
-	"encoding/json"
 	"flag"
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -71,6 +68,13 @@ func TestRestoreCommand_Validate(t *testing.T) {
 		expectError bool
 		errorMsg    string
 	}{
+		{
+			name:        "invalid flags type",
+			flags:       "not a restoreFlags",
+			args:        []string{},
+			expectError: true,
+			errorMsg:    "invalid flags type: expected *restoreFlags, got string",
+		},
 		{
 			name: "valid no arguments with text format",
 			flags: &restoreFlags{
@@ -149,89 +153,13 @@ func TestRestoreCommand_Validate(t *testing.T) {
 
 				// Check format normalization
 				if f, ok := tt.flags.(*restoreFlags); ok {
-					if f.formatShort != FormatText {
+					if f.formatShort != "" && f.formatShort != FormatText {
 						assert.Equal(t, f.formatShort, f.format, "format should be normalized to formatShort")
 					}
 				}
 			}
 		})
 	}
-}
-
-func TestRestoreCommand_Execute_JSONOutput(t *testing.T) {
-	// Test JSON output structure
-	testData := map[string]interface{}{
-		"ticket_id":        "250814-111507-test-ticket",
-		"status":           "doing",
-		"symlink_restored": true,
-		"symlink_path":     "current-ticket.md",
-		"target_path":      "tickets/doing/250814-111507-test-ticket.md",
-		"worktree_path":    "/path/to/worktree",
-		"parent_ticket":    "250812-152927-parent-ticket",
-		"message":          "Current ticket symlink restored",
-		"success":          true,
-	}
-
-	// Capture stdout
-	oldStdout := os.Stdout
-	r, w, _ := os.Pipe()
-	os.Stdout = w
-
-	err := outputJSON(testData)
-	assert.NoError(t, err)
-
-	w.Close()
-	os.Stdout = oldStdout
-
-	var buf bytes.Buffer
-	_, _ = buf.ReadFrom(r)
-
-	// Parse the output JSON
-	var result map[string]interface{}
-	err = json.Unmarshal(buf.Bytes(), &result)
-	assert.NoError(t, err)
-
-	// Verify JSON structure
-	assert.Equal(t, "250814-111507-test-ticket", result["ticket_id"])
-	assert.Equal(t, "doing", result["status"])
-	assert.Equal(t, true, result["symlink_restored"])
-	assert.Equal(t, "current-ticket.md", result["symlink_path"])
-	assert.Equal(t, "tickets/doing/250814-111507-test-ticket.md", result["target_path"])
-	assert.Equal(t, "/path/to/worktree", result["worktree_path"])
-	assert.Equal(t, "250812-152927-parent-ticket", result["parent_ticket"])
-	assert.Equal(t, "Current ticket symlink restored", result["message"])
-	assert.Equal(t, true, result["success"])
-}
-
-func TestRestoreCommand_Execute_ErrorJSON(t *testing.T) {
-	// Test error JSON output structure
-	testData := map[string]interface{}{
-		"error":   "not in a worktree",
-		"success": false,
-	}
-
-	// Capture stdout
-	oldStdout := os.Stdout
-	r, w, _ := os.Pipe()
-	os.Stdout = w
-
-	err := outputJSON(testData)
-	assert.NoError(t, err)
-
-	w.Close()
-	os.Stdout = oldStdout
-
-	var buf bytes.Buffer
-	_, _ = buf.ReadFrom(r)
-
-	// Parse the output JSON
-	var result map[string]interface{}
-	err = json.Unmarshal(buf.Bytes(), &result)
-	assert.NoError(t, err)
-
-	// Verify error JSON structure
-	assert.Equal(t, "not in a worktree", result["error"])
-	assert.Equal(t, false, result["success"])
 }
 
 func TestRestoreCommand_FlagNormalization(t *testing.T) {
@@ -256,10 +184,16 @@ func TestRestoreCommand_FlagNormalization(t *testing.T) {
 			expectedFormat: FormatJSON,
 		},
 		{
-			name:           "format json, short text - prefer short",
+			name:           "format json, short empty - keep format",
+			format:         FormatJSON,
+			formatShort:    "",
+			expectedFormat: FormatJSON,
+		},
+		{
+			name:           "format json, short text - keep format (text is default)",
 			format:         FormatJSON,
 			formatShort:    FormatText,
-			expectedFormat: FormatText,
+			expectedFormat: FormatJSON,
 		},
 		{
 			name:           "both json",
@@ -281,7 +215,7 @@ func TestRestoreCommand_FlagNormalization(t *testing.T) {
 			assert.NoError(t, err)
 
 			// Check that format was normalized correctly
-			if tt.formatShort != FormatText {
+			if tt.formatShort != "" && tt.formatShort != FormatText {
 				assert.Equal(t, tt.expectedFormat, flags.format)
 			}
 		})
@@ -316,4 +250,3 @@ func TestRestoreCommand_Coverage(t *testing.T) {
 
 	// All methods have been called, achieving coverage
 }
-
