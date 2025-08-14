@@ -133,8 +133,6 @@ func (c *CloseCommand) Execute(ctx context.Context, flags interface{}, args []st
 		} else {
 			closeErr = app.CloseTicket(ctx, f.force)
 		}
-		// For JSON output, we'll need to get the current ticket ID
-		// This will be implemented when we add JSON support
 	} else {
 		// Ticket ID provided - close specific ticket
 		ticketID = f.args[0]
@@ -151,7 +149,7 @@ func (c *CloseCommand) Execute(ctx context.Context, flags interface{}, args []st
 
 	// Handle success output based on format
 	if f.format == FormatJSON {
-		return outputCloseSuccessJSON(app, ticketID, f.reason, f.force, len(f.args) == 0)
+		return outputCloseSuccessJSON(ctx, app, ticketID, f.reason, f.force, len(f.args) == 0)
 	}
 
 	// For text format, the App methods already print success messages
@@ -168,7 +166,7 @@ func outputCloseErrorJSON(app *cli.App, err error) error {
 }
 
 // outputCloseSuccessJSON outputs success information in JSON format
-func outputCloseSuccessJSON(app *cli.App, ticketID string, reason string, force bool, isCurrentTicket bool) error {
+func outputCloseSuccessJSON(ctx context.Context, app *cli.App, ticketID string, reason string, force bool, isCurrentTicket bool) error {
 	// Build the output structure
 	output := map[string]interface{}{
 		"success":        true,
@@ -198,7 +196,7 @@ func outputCloseSuccessJSON(app *cli.App, ticketID string, reason string, force 
 		output["ticket_id"] = ticketID
 
 		// Try to retrieve the ticket for additional information
-		ticket, err := app.Manager.Get(context.Background(), ticketID)
+		ticket, err := app.Manager.Get(ctx, ticketID)
 		if err == nil && ticket != nil {
 			output["status"] = string(ticket.Status())
 
