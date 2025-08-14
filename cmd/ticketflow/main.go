@@ -87,6 +87,12 @@ func init() {
 		// This should never happen in practice but we handle it gracefully
 		fmt.Fprintf(os.Stderr, "Warning: failed to register close command: %v\n", err)
 	}
+
+	if err := commandRegistry.Register(commands.NewRestoreCommand()); err != nil {
+		// Log error but continue - allow program to run with degraded functionality
+		// This should never happen in practice but we handle it gracefully
+		fmt.Fprintf(os.Stderr, "Warning: failed to register restore command: %v\n", err)
+	}
 }
 
 func main() {
@@ -186,13 +192,6 @@ func runCLI(ctx context.Context) error {
 
 	// Fall back to old switch statement for unmigrated commands
 	switch os.Args[1] {
-	case "restore":
-		return parseAndExecute(ctx, Command{
-			Name: "restore",
-			Execute: func(ctx context.Context, fs *flag.FlagSet, flags interface{}) error {
-				return handleRestore(ctx)
-			},
-		}, os.Args[2:])
 
 	case "worktree":
 		if len(os.Args) < 3 {
@@ -250,15 +249,6 @@ func runCLI(ctx context.Context) error {
 	}
 }
 
-func handleRestore(ctx context.Context) error {
-	app, err := cli.NewApp(ctx)
-	if err != nil {
-		return err
-	}
-
-	_, err = app.RestoreCurrentTicket(ctx)
-	return err
-}
 
 func handleWorktree(ctx context.Context, subcommand string, args []string) error {
 	app, err := cli.NewApp(ctx)

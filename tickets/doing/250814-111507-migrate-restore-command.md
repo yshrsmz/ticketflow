@@ -73,10 +73,10 @@ Make sure to update task status when you finish it. Also, always create a commit
 - [ ] Test when symlink already exists and is correct
 
 ### 8. Register Command and Clean Up
-- [ ] Register restore command in `main.go` command registry
-- [ ] Remove restore case from switch statement (around line 220)
-- [ ] Verify command appears in help text
-- [ ] Ensure handleRestore function is removed if no longer used
+- [x] Register restore command in `main.go` command registry
+- [x] Remove restore case from switch statement (around line 189)
+- [x] Verify command appears in help text
+- [x] Ensure handleRestore function is removed if no longer used
 
 ### 9. Code Quality and Documentation
 - [ ] Run `make test` to ensure all tests pass
