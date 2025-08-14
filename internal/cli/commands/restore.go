@@ -45,7 +45,14 @@ type restoreFlags struct {
 	formatShort string
 }
 
-// normalize merges short and long form flags, preferring short form
+// normalize merges short and long form flags, preferring short form.
+// This follows the common pattern used across all ticketflow commands where
+// short form flags (e.g., -o) take precedence over long form flags (e.g., --format)
+// when both are provided. This allows users to override long form defaults with
+// short form values in aliases or scripts.
+//
+// The normalization only occurs if the short form is explicitly set to a non-default
+// value, ensuring that an unset short form doesn't override a long form value.
 func (f *restoreFlags) normalize() {
 	if f.formatShort != "" && f.formatShort != FormatText {
 		f.format = f.formatShort
@@ -113,21 +120,20 @@ func (r *RestoreCommand) Execute(ctx context.Context, flags interface{}, args []
 
 	// For JSON output, use the returned ticket directly
 	if f.format == FormatJSON {
-		// Get the current working directory for worktree path
-		cwd, err := os.Getwd()
-		if err != nil {
-			cwd = "unknown"
-		}
-
 		jsonData := map[string]interface{}{
 			"ticket_id":        ticket.ID,
 			"status":           string(ticket.Status()),
 			"symlink_restored": true,
 			"symlink_path":     "current-ticket.md",
 			"target_path":      fmt.Sprintf("tickets/doing/%s.md", ticket.ID),
-			"worktree_path":    cwd,
 			"message":          "Current ticket symlink restored",
 			"success":          true,
+		}
+
+		// Include worktree path if we can determine it
+		// Following the same pattern as close command - omit field on error
+		if cwd, err := os.Getwd(); err == nil {
+			jsonData["worktree_path"] = cwd
 		}
 
 		// Extract parent ticket ID from Related field if available
