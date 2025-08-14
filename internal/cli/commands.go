@@ -506,7 +506,7 @@ func (app *App) closeCurrentTicketInternal(ctx context.Context, reason string, f
 	}
 
 	// Move ticket to done status (this also commits with the reason)
-	// Pass true for isCurrentTicket since we're closing the current ticket
+	// Pass true because closeCurrentTicketInternal always operates on the current ticket
 	if err := app.moveTicketToDoneWithReason(ctx, current, reason, true); err != nil {
 		return nil, err
 	}
@@ -593,7 +593,7 @@ func (app *App) closeAndCommitTicket(ctx context.Context, ticket *ticket.Ticket,
 
 	// Move ticket to done status (this also saves the ticket and commits with the reason)
 	// Note: moveTicketToDoneWithReason will call Update, so we don't need to do it here
-	// Pass false for isCurrentTicket since we're closing a specific ticket by ID
+	// Pass false because CloseTicketByID may close any ticket, not necessarily the current one
 	if err := app.moveTicketToDoneWithReason(ctx, ticket, reason, false); err != nil {
 		return fmt.Errorf("failed to move ticket to done: %w", err)
 	}
