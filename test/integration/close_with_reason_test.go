@@ -34,7 +34,7 @@ func TestCloseWithReason(t *testing.T) {
 
 	t.Run("close ticket with reason", func(t *testing.T) {
 		// Create a test ticket
-		err := app.NewTicket(ctx, "test-close-reason", "", cli.FormatText)
+		_, err := app.NewTicket(ctx, "test-close-reason", "")
 		require.NoError(t, err)
 
 		// Get the created ticket
@@ -52,7 +52,7 @@ func TestCloseWithReason(t *testing.T) {
 		require.NotNil(t, testTicket, "Could not find created ticket")
 
 		// Close the ticket with reason
-		err = app.CloseTicketByID(ctx, testTicket.ID, "Duplicate of another ticket", false)
+		_, err = app.CloseTicketByID(ctx, testTicket.ID, "Duplicate of another ticket", false)
 		require.NoError(t, err)
 
 		// Verify ticket was moved to done
@@ -75,7 +75,7 @@ func TestCloseWithReason(t *testing.T) {
 
 	t.Run("close ticket without reason when branch merged", func(t *testing.T) {
 		// Create a ticket
-		err := app.NewTicket(ctx, "test-merged-branch", "", cli.FormatText)
+		_, err := app.NewTicket(ctx, "test-merged-branch", "")
 		require.NoError(t, err)
 
 		// Get the created ticket
@@ -98,7 +98,7 @@ func TestCloseWithReason(t *testing.T) {
 		require.NoError(t, err)
 
 		// Start the ticket (creates branch)
-		err = app.StartTicket(ctx, testTicket.ID, false, cli.FormatText)
+		_, err = app.StartTicket(ctx, testTicket.ID, false)
 		require.NoError(t, err)
 
 		// Make a change on the branch
@@ -127,7 +127,7 @@ func TestCloseWithReason(t *testing.T) {
 		assert.True(t, merged, "Branch should be merged to main")
 
 		// Close the ticket without reason (should work since branch is merged)
-		err = app.CloseTicketByID(ctx, testTicket.ID, "", false)
+		_, err = app.CloseTicketByID(ctx, testTicket.ID, "", false)
 		require.NoError(t, err)
 
 		// Verify ticket was moved to done
@@ -148,7 +148,7 @@ func TestCloseWithReason(t *testing.T) {
 
 	t.Run("error when closing unmerged ticket without reason", func(t *testing.T) {
 		// Create a ticket
-		err := app.NewTicket(ctx, "test-unmerged", "", cli.FormatText)
+		_, err := app.NewTicket(ctx, "test-unmerged", "")
 		require.NoError(t, err)
 
 		// Get the created ticket
@@ -171,7 +171,7 @@ func TestCloseWithReason(t *testing.T) {
 		require.NoError(t, err)
 
 		// Start the ticket (creates branch)
-		err = app.StartTicket(ctx, testTicket.ID, false, cli.FormatText)
+		_, err = app.StartTicket(ctx, testTicket.ID, false)
 		require.NoError(t, err)
 
 		// Make a change on the branch but don't merge
@@ -188,7 +188,7 @@ func TestCloseWithReason(t *testing.T) {
 		require.NoError(t, err)
 
 		// Try to close the ticket without reason (should fail)
-		err = app.CloseTicketByID(ctx, testTicket.ID, "", false)
+		_, err = app.CloseTicketByID(ctx, testTicket.ID, "", false)
 		assert.Error(t, err)
 		assert.Contains(t, strings.ToLower(err.Error()), "reason")
 
@@ -198,7 +198,7 @@ func TestCloseWithReason(t *testing.T) {
 		assert.NotEqual(t, ticket.StatusDone, updatedTicket.Status())
 
 		// Now close with reason (should work)
-		err = app.CloseTicketByID(ctx, testTicket.ID, "Abandoned due to priority change", false)
+		_, err = app.CloseTicketByID(ctx, testTicket.ID, "Abandoned due to priority change", false)
 		require.NoError(t, err)
 
 		// Verify ticket was moved to done

@@ -48,7 +48,7 @@ func TestStartTicketWithExistingBranch(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create a test ticket
-	err = app.NewTicket(ctx, "existing-branch-test", "", cli.FormatText)
+	_, err = app.NewTicket(ctx, "existing-branch-test", "")
 	require.NoError(t, err)
 
 	// Commit the ticket
@@ -90,7 +90,7 @@ func TestStartTicketWithExistingBranch(t *testing.T) {
 	// 2. Try to create worktree with existing branch
 	// 3. Detect that branch is behind main (missing status change commit)
 	// 4. In non-interactive mode, automatically recreate the branch
-	err = app.StartTicket(ctx, ticketID, false, cli.FormatText)
+	_, err = app.StartTicket(ctx, ticketID, false)
 	require.NoError(t, err, "StartTicket should succeed in non-interactive mode")
 
 	// Verify worktree was created successfully
@@ -130,7 +130,7 @@ func TestStartTicketWithExistingBranchAndWorktree(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create a test ticket
-	err = app.NewTicket(ctx, "existing-both-test", "", cli.FormatText)
+	_, err = app.NewTicket(ctx, "existing-both-test", "")
 	require.NoError(t, err)
 
 	// Commit the ticket
@@ -146,11 +146,11 @@ func TestStartTicketWithExistingBranchAndWorktree(t *testing.T) {
 	ticketID := tickets[0].ID
 
 	// Start the ticket normally first time
-	err = app.StartTicket(ctx, ticketID, false, cli.FormatText)
+	_, err = app.StartTicket(ctx, ticketID, false)
 	require.NoError(t, err)
 
 	// Try to start the same ticket again - should fail
-	err = app.StartTicket(ctx, ticketID, false, cli.FormatText)
+	_, err = app.StartTicket(ctx, ticketID, false)
 	require.Error(t, err)
 
 	// The error is "ticket already started" which happens before worktree check

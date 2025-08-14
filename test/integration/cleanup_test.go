@@ -31,7 +31,7 @@ func TestCleanupTicketWithForceFlag(t *testing.T) {
 	app.Config.Worktree.Enabled = false
 
 	// Create a ticket
-	err = app.NewTicket(context.Background(), "test-cleanup-force", "", cli.FormatText)
+	_, err = app.NewTicket(context.Background(), "test-cleanup-force", "")
 	require.NoError(t, err)
 
 	// List tickets to get the actual ID
@@ -56,7 +56,7 @@ func TestCleanupTicketWithForceFlag(t *testing.T) {
 	require.NoError(t, err)
 
 	// Start the ticket (creates branch but no worktree since we disabled it)
-	err = app.StartTicket(context.Background(), ticketID, false, cli.FormatText)
+	_, err = app.StartTicket(context.Background(), ticketID, false)
 	require.NoError(t, err)
 
 	// Get the ticket to verify it exists
@@ -65,7 +65,7 @@ func TestCleanupTicketWithForceFlag(t *testing.T) {
 	assert.Equal(t, ticket.StatusDoing, tkt.Status())
 
 	// Close the ticket to move it to done status
-	err = app.CloseTicket(context.Background(), true) // force close to skip uncommitted changes check
+	_, err = app.CloseTicket(context.Background(), true) // force close to skip uncommitted changes check
 	require.NoError(t, err)
 
 	// Verify ticket is now done
@@ -106,7 +106,7 @@ func TestCleanupTicketWithWorktreeAndForceFlag(t *testing.T) {
 	app.Config.Worktree.InitCommands = []string{} // No init commands for test
 
 	// Create a ticket
-	err = app.NewTicket(context.Background(), "test-cleanup-worktree", "", cli.FormatText)
+	_, err = app.NewTicket(context.Background(), "test-cleanup-worktree", "")
 	require.NoError(t, err)
 
 	// List tickets to get the actual ID
@@ -131,7 +131,7 @@ func TestCleanupTicketWithWorktreeAndForceFlag(t *testing.T) {
 	require.NoError(t, err)
 
 	// Start the ticket (creates branch AND worktree since we enabled it)
-	err = app.StartTicket(context.Background(), ticketID, false, cli.FormatText)
+	_, err = app.StartTicket(context.Background(), ticketID, false)
 	require.NoError(t, err)
 
 	// Verify worktree was created
@@ -173,7 +173,7 @@ func TestCleanupTicketWithWorktreeAndForceFlag(t *testing.T) {
 	require.NoError(t, err)
 
 	// Close the ticket to move it to done status
-	err = wtApp.CloseTicket(context.Background(), true) // force close to skip uncommitted changes check
+	_, err = wtApp.CloseTicket(context.Background(), true) // force close to skip uncommitted changes check
 	require.NoError(t, err)
 
 	// Change back to original directory

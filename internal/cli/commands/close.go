@@ -5,12 +5,12 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/yshrsmz/ticketflow/internal/cli"
 	"github.com/yshrsmz/ticketflow/internal/command"
+	"github.com/yshrsmz/ticketflow/internal/ticket"
 )
 
 // CloseCommand implements the close command using the new Command interface
@@ -126,19 +126,20 @@ func (c *CloseCommand) Execute(ctx context.Context, flags interface{}, args []st
 
 	// Perform the close operation based on whether ticket ID was provided
 	var closeErr error
+	var closedTicket *ticket.Ticket
 	var ticketID string
 
 	if len(f.args) == 0 {
 		// No ticket ID provided - close current ticket
 		if f.reason != "" {
-			closeErr = app.CloseTicketWithReason(ctx, f.reason, f.force)
+			closedTicket, closeErr = app.CloseTicketWithReason(ctx, f.reason, f.force)
 		} else {
-			closeErr = app.CloseTicket(ctx, f.force)
+			closedTicket, closeErr = app.CloseTicket(ctx, f.force)
 		}
 	} else {
 		// Ticket ID provided - close specific ticket
 		ticketID = f.args[0]
-		closeErr = app.CloseTicketByID(ctx, ticketID, f.reason, f.force)
+		closedTicket, closeErr = app.CloseTicketByID(ctx, ticketID, f.reason, f.force)
 	}
 
 	// Handle errors based on format
@@ -151,7 +152,7 @@ func (c *CloseCommand) Execute(ctx context.Context, flags interface{}, args []st
 
 	// Handle success output based on format
 	if f.format == FormatJSON {
-		return outputCloseSuccessJSON(ctx, app, ticketID, f.reason, f.force, len(f.args) == 0)
+		return outputCloseSuccessJSON(ctx, app, closedTicket, f.reason, f.force, len(f.args) == 0)
 	}
 
 	// For text format, the App methods already print success messages
@@ -168,73 +169,59 @@ func outputCloseErrorJSON(app *cli.App, err error) error {
 }
 
 // outputCloseSuccessJSON outputs success information in JSON format
-func outputCloseSuccessJSON(ctx context.Context, app *cli.App, ticketID string, reason string, force bool, isCurrentTicket bool) error {
-	// Build the output structure
-	output := map[string]interface{}{
-		"success":    true,
-		"force_used": force,
-		// TODO: Verify actual commit creation status instead of hardcoding
-		// The App.CloseTicket methods currently don't return this information
-		"commit_created": true,
+func outputCloseSuccessJSON(ctx context.Context, app *cli.App, closedTicket *ticket.Ticket, reason string, force bool, isCurrentTicket bool) error {
+	// Ensure we have a valid ticket to report on
+	if closedTicket == nil {
+		return fmt.Errorf("internal error: closed ticket is nil")
 	}
 
-	// For current ticket mode, we need to determine the ticket ID
+	// Build the output structure
+	output := map[string]interface{}{
+		"success":        true,
+		"force_used":     force,
+		"commit_created": true, // App methods always create commits on success
+	}
+
+	// Set mode based on whether current ticket or by ID
 	if isCurrentTicket {
-		// Try to get current ticket ID from worktree directory name
-		cwd, err := os.Getwd()
-		if err == nil {
-			// Extract ticket ID from worktree path
-			dirName := filepath.Base(cwd)
-			// Worktree directories are named like the ticket ID
-			if dirName != "" && dirName != "." {
-				ticketID = dirName
-			}
-		}
 		output["mode"] = "current"
 	} else {
 		output["mode"] = "by_id"
 	}
 
-	// Try to get ticket information if we have an ID
-	if ticketID != "" {
-		output["ticket_id"] = ticketID
+	// Use the returned ticket information directly
+	output["ticket_id"] = closedTicket.ID
+	output["status"] = string(closedTicket.Status())
 
-		// Try to retrieve the ticket for additional information
-		ticket, err := app.Manager.Get(ctx, ticketID)
-		if err == nil && ticket != nil {
-			output["status"] = string(ticket.Status())
+	if closedTicket.ClosedAt.Time != nil {
+		output["closed_at"] = closedTicket.ClosedAt.Time.Format(time.RFC3339)
+	}
 
-			if ticket.ClosedAt.Time != nil {
-				output["closed_at"] = ticket.ClosedAt.Time.Format(time.RFC3339)
-			}
+	// Calculate duration for current ticket mode
+	if isCurrentTicket && closedTicket.StartedAt.Time != nil && closedTicket.ClosedAt.Time != nil {
+		duration := closedTicket.ClosedAt.Time.Sub(*closedTicket.StartedAt.Time)
+		hours := int(duration.Hours())
+		minutes := int(duration.Minutes()) % 60
+		output["duration"] = fmt.Sprintf("%dh%dm", hours, minutes)
+	}
 
-			// Calculate duration for current ticket mode
-			if isCurrentTicket && ticket.StartedAt.Time != nil && ticket.ClosedAt.Time != nil {
-				duration := ticket.ClosedAt.Time.Sub(*ticket.StartedAt.Time)
-				hours := int(duration.Hours())
-				minutes := int(duration.Minutes()) % 60
-				output["duration"] = fmt.Sprintf("%dh%dm", hours, minutes)
-			}
-
-			// Add parent ticket if available - extract from Related field
-			for _, rel := range ticket.Related {
-				if strings.HasPrefix(rel, "parent:") {
-					output["parent_ticket"] = strings.TrimPrefix(rel, "parent:")
-					break
-				}
-			}
-
-			// Add worktree path for current ticket
-			if isCurrentTicket {
-				cwd, err := os.Getwd()
-				if err == nil {
-					output["worktree_path"] = cwd
-				}
-			} else {
-				// For by-ID mode, include the branch name
-				output["branch"] = ticketID
-			}
+	// Add parent ticket if available - extract from Related field
+	for _, rel := range closedTicket.Related {
+		if strings.HasPrefix(rel, "parent:") {
+			output["parent_ticket"] = strings.TrimPrefix(rel, "parent:")
+			break
 		}
+	}
+
+	// Add worktree path for current ticket
+	if isCurrentTicket {
+		cwd, err := os.Getwd()
+		if err == nil {
+			output["worktree_path"] = cwd
+		}
+	} else {
+		// For by-ID mode, include the branch name
+		output["branch"] = closedTicket.ID
 	}
 
 	if reason != "" {

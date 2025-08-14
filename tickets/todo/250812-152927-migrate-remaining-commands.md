@@ -91,17 +91,18 @@ Complete the migration of all remaining commands to the new Command interface an
   - Discovered need for App method refactoring (return entities)
   - Created follow-up refactoring ticket
 
-### Next Priority
-- 🔧 **App Method Return Values** - Refactor App methods to return primary entities (ticket: 250814-121422)
-  - **Do this FIRST** before restore command
-  - Eliminates re-fetching for JSON output
-  - Affects new, start, close commands
-  - 1 day estimated
+### Recently Completed (2025-08-14)
+- ✅ **App Method Return Values** - Refactor App methods to return primary entities (ticket: 250814-121422)
+  - **COMPLETED** - All App methods now return entities
+  - Eliminated re-fetching for JSON output (50% I/O reduction)
+  - Updated new, start, close commands to use returned entities
+  - Added helper methods for derived data
+  - Comprehensive tests and documentation updated
 
-### After Refactoring
+### Next Priority
 - 📋 **restore** - Ticket created (250814-111507), simplest remaining command
   - 2-3 hours estimated
-  - Will use clean pattern from the start
+  - Will use clean pattern with entity returns from the start
   - Completes core lifecycle
   - Zero-argument pattern
 

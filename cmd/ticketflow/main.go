@@ -256,7 +256,8 @@ func handleRestore(ctx context.Context) error {
 		return err
 	}
 
-	return app.RestoreCurrentTicket(ctx)
+	_, err = app.RestoreCurrentTicket(ctx)
+	return err
 }
 
 func handleWorktree(ctx context.Context, subcommand string, args []string) error {

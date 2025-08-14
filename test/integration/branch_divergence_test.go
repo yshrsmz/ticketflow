@@ -47,7 +47,7 @@ func TestStartTicketWithDivergedBranch(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create a test ticket
-	err = app.NewTicket(ctx, "diverged-branch-test", "", cli.FormatText)
+	_, err = app.NewTicket(ctx, "diverged-branch-test", "")
 	require.NoError(t, err)
 
 	// Commit the ticket
@@ -100,7 +100,7 @@ func TestStartTicketWithDivergedBranch(t *testing.T) {
 
 	// Now try to start the ticket
 	// In CI/non-interactive mode, it should automatically use the default option (recreate branch)
-	err = app.StartTicket(ctx, ticketID, false, cli.FormatText)
+	_, err = app.StartTicket(ctx, ticketID, false)
 	require.NoError(t, err, "StartTicket should succeed in non-interactive mode by using default option")
 
 	// Verify worktree was created successfully
@@ -150,7 +150,7 @@ func TestBranchDivergenceWithSameCommit(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create a test ticket
-	err = app.NewTicket(ctx, "same-commit-test", "", cli.FormatText)
+	_, err = app.NewTicket(ctx, "same-commit-test", "")
 	require.NoError(t, err)
 
 	// Get the ticket ID first (before committing)
@@ -182,7 +182,7 @@ func TestBranchDivergenceWithSameCommit(t *testing.T) {
 	// 1. Change ticket status to "doing" and commit (moving main forward)
 	// 2. Try to create worktree, which will detect the branch is now behind
 	// 3. In non-interactive mode, automatically choose to recreate the branch
-	err = app.StartTicket(ctx, ticketID, false, cli.FormatText)
+	_, err = app.StartTicket(ctx, ticketID, false)
 	require.NoError(t, err, "StartTicket should succeed in non-interactive mode")
 
 	// Verify worktree was created successfully

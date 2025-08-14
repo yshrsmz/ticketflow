@@ -124,7 +124,22 @@ func TestHandleNew(t *testing.T) {
 			if err != nil {
 				cmdErr = err
 			} else {
-				cmdErr = app.NewTicket(ctx, tt.slug, "", outputFormat)
+				ticket, err := app.NewTicket(ctx, tt.slug, "")
+				cmdErr = err
+
+				// Handle output based on format
+				if cmdErr == nil && tt.format == "json" {
+					// Generate JSON output for JSON format test
+					output := map[string]interface{}{
+						"ticket": map[string]interface{}{
+							"id":   ticket.ID,
+							"path": ticket.Path,
+						},
+					}
+					if err := app.Output.PrintJSON(output); err != nil {
+						cmdErr = fmt.Errorf("failed to print JSON: %w", err)
+					}
+				}
 			}
 
 			// Verify JSON output structure if needed
@@ -439,7 +454,7 @@ func TestHandleStart(t *testing.T) {
 			if err != nil {
 				cmdErr = err
 			} else {
-				cmdErr = app.StartTicket(ctx, ticketID, false, cli.FormatText)
+				_, cmdErr = app.StartTicket(ctx, ticketID, false)
 			}
 
 			if tt.expectedError {
@@ -511,7 +526,7 @@ func TestHandleClose(t *testing.T) {
 			if err != nil {
 				cmdErr = err
 			} else {
-				cmdErr = app.CloseTicket(ctx, tt.force)
+				_, cmdErr = app.CloseTicket(ctx, tt.force)
 			}
 
 			if tt.expectedError {

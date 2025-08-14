@@ -92,7 +92,7 @@ func TestApp_NewTicket(t *testing.T) {
 			}
 
 			// Execute
-			err := app.NewTicket(context.Background(), tt.slug, "", tt.outputFormat)
+			_, err := app.NewTicket(context.Background(), tt.slug, "")
 
 			// Assert
 			if tt.expectedError {
@@ -305,7 +305,7 @@ Test ticket content`
 			}
 
 			// Execute
-			err := app.StartTicket(context.Background(), tt.ticketID, false, FormatText)
+			_, err := app.StartTicket(context.Background(), tt.ticketID, false)
 
 			// Assert
 			if tt.expectedError {
@@ -397,7 +397,7 @@ Test ticket content`
 	}
 
 	// Execute
-	err := app.StartTicket(context.Background(), ticketID, false, FormatText)
+	_, err := app.StartTicket(context.Background(), ticketID, false)
 	assert.NoError(t, err)
 
 	// Verify that SetCurrentTicket was NOT called (by checking expectations)
@@ -474,7 +474,7 @@ Test ticket content`
 	}
 
 	// Execute
-	err := app.StartTicket(context.Background(), ticketID, false, FormatText)
+	_, err := app.StartTicket(context.Background(), ticketID, false)
 	assert.NoError(t, err)
 
 	// Verify that SetCurrentTicket WAS called
@@ -868,7 +868,7 @@ func TestApp_CloseTicketByID(t *testing.T) {
 			}
 
 			// Execute
-			err := app.CloseTicketByID(context.Background(), tt.ticketID, tt.reason, false)
+			_, err := app.CloseTicketByID(context.Background(), tt.ticketID, tt.reason, false)
 
 			// Verify
 			if tt.expectedError {
@@ -1021,7 +1021,7 @@ func TestApp_CloseTicketWithReason(t *testing.T) {
 			}
 
 			// Execute
-			err := app.CloseTicketWithReason(context.Background(), tt.reason, false)
+			_, err := app.CloseTicketWithReason(context.Background(), tt.reason, false)
 
 			// Verify
 			if tt.expectedError {

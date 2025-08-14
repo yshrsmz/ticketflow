@@ -46,7 +46,7 @@ func TestDirectoryAutoCreation(t *testing.T) {
 	assert.True(t, os.IsNotExist(err), "doing directory should not exist")
 
 	// Create a ticket
-	err = app.NewTicket(context.Background(), "test-auto-dir", "", cli.FormatText)
+	_, err = app.NewTicket(context.Background(), "test-auto-dir", "")
 	require.NoError(t, err)
 
 	// Get the ticket
@@ -61,7 +61,7 @@ func TestDirectoryAutoCreation(t *testing.T) {
 	require.NoError(t, err)
 
 	// Start the ticket (this should create the doing directory)
-	err = app.StartTicket(context.Background(), tickets[0].ID, false, cli.FormatText)
+	_, err = app.StartTicket(context.Background(), tickets[0].ID, false)
 	require.NoError(t, err)
 
 	// Verify doing directory was created
@@ -79,7 +79,7 @@ func TestDirectoryAutoCreation(t *testing.T) {
 	assert.True(t, os.IsNotExist(err), "done directory should not exist")
 
 	// Close the ticket (this should create the done directory)
-	err = app.CloseTicket(context.Background(), false)
+	_, err = app.CloseTicket(context.Background(), false)
 	require.NoError(t, err)
 
 	// Verify done directory was created
@@ -127,7 +127,7 @@ func TestDirectoryCreationWithWorktrees(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create a ticket
-	err = app.NewTicket(context.Background(), "test-worktree-dir", "", cli.FormatText)
+	_, err = app.NewTicket(context.Background(), "test-worktree-dir", "")
 	require.NoError(t, err)
 
 	// Get the ticket
@@ -142,7 +142,7 @@ func TestDirectoryCreationWithWorktrees(t *testing.T) {
 	require.NoError(t, err)
 
 	// Start the ticket (this should create the doing directory even with worktrees)
-	err = app.StartTicket(context.Background(), tickets[0].ID, false, cli.FormatText)
+	_, err = app.StartTicket(context.Background(), tickets[0].ID, false)
 	require.NoError(t, err)
 
 	// Verify doing directory was created
