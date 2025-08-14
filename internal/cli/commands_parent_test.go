@@ -278,7 +278,7 @@ func TestApp_NewTicket_WithParent(t *testing.T) {
 			}
 
 			// Execute
-			err := app.NewTicket(context.Background(), tt.slug, tt.explicitParent, FormatText)
+			_, err := app.NewTicket(context.Background(), tt.slug, tt.explicitParent)
 
 			// Assert
 			if tt.expectedError {

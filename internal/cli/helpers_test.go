@@ -19,22 +19,22 @@ func TestCalculateDuration(t *testing.T) {
 		{
 			name: "normal case with both times",
 			ticket: &ticket.Ticket{
-				StartedAt: ticket.TimeField{Time: timePtr(time.Date(2024, 1, 1, 10, 0, 0, 0, time.UTC))},
-				ClosedAt:  ticket.TimeField{Time: timePtr(time.Date(2024, 1, 1, 12, 30, 0, 0, time.UTC))},
+				StartedAt: ticket.RFC3339TimePtr{Time: timePtr(time.Date(2024, 1, 1, 10, 0, 0, 0, time.UTC))},
+				ClosedAt:  ticket.RFC3339TimePtr{Time: timePtr(time.Date(2024, 1, 1, 12, 30, 0, 0, time.UTC))},
 			},
 			expected: 2*time.Hour + 30*time.Minute,
 		},
 		{
 			name: "no started time",
 			ticket: &ticket.Ticket{
-				ClosedAt: ticket.TimeField{Time: timePtr(time.Date(2024, 1, 1, 12, 30, 0, 0, time.UTC))},
+				ClosedAt: ticket.RFC3339TimePtr{Time: timePtr(time.Date(2024, 1, 1, 12, 30, 0, 0, time.UTC))},
 			},
 			expected: 0,
 		},
 		{
 			name: "no closed time",
 			ticket: &ticket.Ticket{
-				StartedAt: ticket.TimeField{Time: timePtr(time.Date(2024, 1, 1, 10, 0, 0, 0, time.UTC))},
+				StartedAt: ticket.RFC3339TimePtr{Time: timePtr(time.Date(2024, 1, 1, 10, 0, 0, 0, time.UTC))},
 			},
 			expected: 0,
 		},
@@ -97,7 +97,7 @@ func TestExtractParentID(t *testing.T) {
 	}
 }
 
-func TestFormatDuration(t *testing.T) {
+func TestHelperFormatDuration(t *testing.T) {
 	t.Parallel()
 	
 	tests := []struct {

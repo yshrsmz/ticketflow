@@ -503,7 +503,7 @@ func (app *App) closeCurrentTicketInternal(ctx context.Context, reason string, f
 	current, worktreePath, err := app.validateTicketForClose(ctx, force)
 	if err != nil {
 		logger.WithError(err).Error("failed to validate ticket for close")
-		return err
+		return nil, err
 	}
 
 	logger = logger.WithTicket(current.ID)
@@ -512,18 +512,18 @@ func (app *App) closeCurrentTicketInternal(ctx context.Context, reason string, f
 	if reason != "" {
 		logger.Info("closing ticket with reason", "reason", reason)
 		if err := current.CloseWithReason(reason); err != nil {
-			return fmt.Errorf("failed to close ticket with reason: %w", err)
+			return nil, fmt.Errorf("failed to close ticket with reason: %w", err)
 		}
 	} else {
 		logger.Info("closing ticket")
 		if err := current.Close(); err != nil {
-			return err
+			return nil, err
 		}
 	}
 
 	// Move ticket to done status (this also commits with the reason)
 	if err := app.moveTicketToDoneWithReason(ctx, current, reason); err != nil {
-		return err
+		return nil, err
 	}
 
 	// Calculate work duration
