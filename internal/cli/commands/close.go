@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/yshrsmz/ticketflow/internal/cli"
@@ -197,25 +198,28 @@ func outputCloseSuccessJSON(app *cli.App, ticketID string, reason string, force 
 		output["ticket_id"] = ticketID
 		
 		// Try to retrieve the ticket for additional information
-		ticket, err := app.Manager.GetTicket(ticketID)
+		ticket, err := app.Manager.Get(context.Background(), ticketID)
 		if err == nil && ticket != nil {
-			output["status"] = string(ticket.Status)
+			output["status"] = string(ticket.Status())
 			
-			if ticket.ClosedAt != nil {
-				output["closed_at"] = ticket.ClosedAt.Format(time.RFC3339)
+			if ticket.ClosedAt.Time != nil {
+				output["closed_at"] = ticket.ClosedAt.Time.Format(time.RFC3339)
 			}
 			
 			// Calculate duration for current ticket mode
-			if isCurrentTicket && ticket.StartedAt != nil && ticket.ClosedAt != nil {
-				duration := ticket.ClosedAt.Sub(*ticket.StartedAt)
+			if isCurrentTicket && ticket.StartedAt.Time != nil && ticket.ClosedAt.Time != nil {
+				duration := ticket.ClosedAt.Time.Sub(*ticket.StartedAt.Time)
 				hours := int(duration.Hours())
 				minutes := int(duration.Minutes()) % 60
 				output["duration"] = fmt.Sprintf("%dh%dm", hours, minutes)
 			}
 			
-			// Add parent ticket if available
-			if parent := ticket.GetParentTicketID(); parent != "" {
-				output["parent_ticket"] = parent
+			// Add parent ticket if available - extract from Related field
+			for _, rel := range ticket.Related {
+				if strings.HasPrefix(rel, "parent:") {
+					output["parent_ticket"] = strings.TrimPrefix(rel, "parent:")
+					break
+				}
 			}
 			
 			// Add worktree path for current ticket
