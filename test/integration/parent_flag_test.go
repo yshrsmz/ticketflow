@@ -56,7 +56,7 @@ func TestNewCommandWithParentFlag(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create a parent ticket first
-	err = app.NewTicket(ctx, "parent-feature", "", cli.FormatText)
+	_, err = app.NewTicket(ctx, "parent-feature", "")
 	require.NoError(t, err)
 
 	// Get the parent ticket ID
@@ -68,7 +68,7 @@ func TestNewCommandWithParentFlag(t *testing.T) {
 
 	t.Run("create sub-ticket with --parent flag", func(t *testing.T) {
 		// Create sub-ticket with explicit parent
-		err := app.NewTicket(ctx, "sub-feature", parentID, cli.FormatText)
+		_, err := app.NewTicket(ctx, "sub-feature", parentID)
 		require.NoError(t, err)
 
 		// Find the created sub-ticket
@@ -86,7 +86,7 @@ func TestNewCommandWithParentFlag(t *testing.T) {
 
 	t.Run("create sub-ticket with -p flag (short form)", func(t *testing.T) {
 		// Create sub-ticket with short form parent flag (same functionality as --parent)
-		err := app.NewTicket(ctx, "another-sub", parentID, cli.FormatText)
+		_, err := app.NewTicket(ctx, "another-sub", parentID)
 		require.NoError(t, err)
 
 		// Find the created sub-ticket
@@ -104,21 +104,21 @@ func TestNewCommandWithParentFlag(t *testing.T) {
 
 	t.Run("error on non-existent parent", func(t *testing.T) {
 		// Try to create sub-ticket with non-existent parent
-		err := app.NewTicket(ctx, "orphan-sub", "non-existent-ticket", cli.FormatText)
+		_, err := app.NewTicket(ctx, "orphan-sub", "non-existent-ticket")
 		assert.Error(t, err, "Should fail with non-existent parent")
 		assert.Contains(t, err.Error(), "Parent ticket not found")
 	})
 
 	t.Run("error on self-parent", func(t *testing.T) {
 		// Try to create ticket with itself as parent
-		err := app.NewTicket(ctx, "self-parent", "self-parent", cli.FormatText)
+		_, err := app.NewTicket(ctx, "self-parent", "self-parent")
 		assert.Error(t, err, "Should fail with self-parent")
 		assert.Contains(t, err.Error(), "Invalid parent relationship")
 	})
 
 	t.Run("explicit parent overrides implicit worktree parent", func(t *testing.T) {
 		// Create another parent ticket
-		err = app.NewTicket(ctx, "another-parent", "", cli.FormatText)
+		_, err = app.NewTicket(ctx, "another-parent", "")
 		require.NoError(t, err)
 
 		// Get the another parent ticket ID
@@ -130,7 +130,7 @@ func TestNewCommandWithParentFlag(t *testing.T) {
 
 		// Create sub-ticket with explicit parent different from first parent
 		// This tests that explicit parent is used even when we could have an implicit parent
-		err = app.NewTicket(ctx, "explicit-over-implicit", anotherParentID, cli.FormatText)
+		_, err = app.NewTicket(ctx, "explicit-over-implicit", anotherParentID)
 		require.NoError(t, err)
 
 		// Find the created sub-ticket
@@ -150,7 +150,7 @@ func TestNewCommandWithParentFlag(t *testing.T) {
 
 	t.Run("use ticket ID as parent", func(t *testing.T) {
 		// Create sub-ticket using parent ticket ID instead of slug
-		err := app.NewTicket(ctx, "sub-with-id-parent", parentID, cli.FormatText)
+		_, err := app.NewTicket(ctx, "sub-with-id-parent", parentID)
 		require.NoError(t, err)
 
 		// Find the created sub-ticket

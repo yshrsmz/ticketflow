@@ -59,7 +59,7 @@ func TestHandleNewWithProperOutputCapture(t *testing.T) {
 			if err != nil {
 				cmdErr = err
 			} else {
-				cmdErr = app.NewTicket(ctx, tt.slug, "", outputFormat)
+				_, cmdErr = app.NewTicket(ctx, tt.slug, "")
 			}
 
 			if tt.expectedError {

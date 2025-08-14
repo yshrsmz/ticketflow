@@ -34,7 +34,7 @@ func TestCloseWithReason(t *testing.T) {
 
 	t.Run("close ticket with reason", func(t *testing.T) {
 		// Create a test ticket
-		err := app.NewTicket(ctx, "test-close-reason", "", cli.FormatText)
+		_, err := app.NewTicket(ctx, "test-close-reason", "")
 		require.NoError(t, err)
 
 		// Get the created ticket
@@ -75,7 +75,7 @@ func TestCloseWithReason(t *testing.T) {
 
 	t.Run("close ticket without reason when branch merged", func(t *testing.T) {
 		// Create a ticket
-		err := app.NewTicket(ctx, "test-merged-branch", "", cli.FormatText)
+		_, err := app.NewTicket(ctx, "test-merged-branch", "")
 		require.NoError(t, err)
 
 		// Get the created ticket
@@ -98,7 +98,7 @@ func TestCloseWithReason(t *testing.T) {
 		require.NoError(t, err)
 
 		// Start the ticket (creates branch)
-		err = app.StartTicket(ctx, testTicket.ID, false, cli.FormatText)
+		_, err = app.StartTicket(ctx, testTicket.ID, false)
 		require.NoError(t, err)
 
 		// Make a change on the branch
@@ -148,7 +148,7 @@ func TestCloseWithReason(t *testing.T) {
 
 	t.Run("error when closing unmerged ticket without reason", func(t *testing.T) {
 		// Create a ticket
-		err := app.NewTicket(ctx, "test-unmerged", "", cli.FormatText)
+		_, err := app.NewTicket(ctx, "test-unmerged", "")
 		require.NoError(t, err)
 
 		// Get the created ticket
@@ -171,7 +171,7 @@ func TestCloseWithReason(t *testing.T) {
 		require.NoError(t, err)
 
 		// Start the ticket (creates branch)
-		err = app.StartTicket(ctx, testTicket.ID, false, cli.FormatText)
+		_, err = app.StartTicket(ctx, testTicket.ID, false)
 		require.NoError(t, err)
 
 		// Make a change on the branch but don't merge

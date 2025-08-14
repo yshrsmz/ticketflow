@@ -10,7 +10,7 @@ import (
 
 func TestCalculateDuration(t *testing.T) {
 	t.Parallel()
-	
+
 	tests := []struct {
 		name     string
 		ticket   *ticket.Ticket
@@ -55,7 +55,7 @@ func TestCalculateDuration(t *testing.T) {
 
 func TestExtractParentID(t *testing.T) {
 	t.Parallel()
-	
+
 	tests := []struct {
 		name     string
 		ticket   *ticket.Ticket
@@ -99,7 +99,7 @@ func TestExtractParentID(t *testing.T) {
 
 func TestHelperFormatDuration(t *testing.T) {
 	t.Parallel()
-	
+
 	tests := []struct {
 		name     string
 		duration time.Duration

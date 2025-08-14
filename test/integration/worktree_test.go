@@ -46,7 +46,7 @@ func TestWorktreeWorkflow(t *testing.T) {
 	require.NoError(t, err)
 
 	// 1. Create a ticket
-	err = app.NewTicket(context.Background(), "worktree-test", "", cli.FormatText)
+	_, err = app.NewTicket(context.Background(), "worktree-test", "")
 	require.NoError(t, err)
 
 	// Commit the ticket
@@ -61,7 +61,7 @@ func TestWorktreeWorkflow(t *testing.T) {
 	require.Len(t, tickets, 1)
 
 	ticketID := tickets[0].ID
-	err = app.StartTicket(context.Background(), ticketID, false, cli.FormatText)
+	_, err = app.StartTicket(context.Background(), ticketID, false)
 	require.NoError(t, err)
 
 	// Verify worktree was created
@@ -168,7 +168,7 @@ func TestWorktreeCleanCommand(t *testing.T) {
 	// Create multiple tickets
 	for i := 1; i <= 3; i++ {
 		slug := fmt.Sprintf("ticket-%d", i)
-		err = app.NewTicket(context.Background(), slug, "", cli.FormatText)
+		_, err = app.NewTicket(context.Background(), slug, "")
 		require.NoError(t, err)
 	}
 
@@ -182,9 +182,9 @@ func TestWorktreeCleanCommand(t *testing.T) {
 	require.Len(t, tickets, 3)
 
 	// Start work on first two tickets
-	err = app.StartTicket(context.Background(), tickets[0].ID, false, cli.FormatText)
+	_, err = app.StartTicket(context.Background(), tickets[0].ID, false)
 	require.NoError(t, err)
-	err = app.StartTicket(context.Background(), tickets[1].ID, false, cli.FormatText)
+	_, err = app.StartTicket(context.Background(), tickets[1].ID, false)
 	require.NoError(t, err)
 
 	// Manually close the first ticket without removing worktree
@@ -257,7 +257,7 @@ func TestWorktreeListCommand(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create and start a ticket
-	err = app.NewTicket(context.Background(), "list-test", "", cli.FormatText)
+	_, err = app.NewTicket(context.Background(), "list-test", "")
 	require.NoError(t, err)
 
 	_, err = gitCmd.Exec(context.Background(), "add", "tickets/")
@@ -267,7 +267,7 @@ func TestWorktreeListCommand(t *testing.T) {
 
 	tickets, err := app.Manager.List(context.Background(), ticket.StatusFilterActive)
 	require.NoError(t, err)
-	err = app.StartTicket(context.Background(), tickets[0].ID, false, cli.FormatText)
+	_, err = app.StartTicket(context.Background(), tickets[0].ID, false)
 	require.NoError(t, err)
 
 	// Test listing worktrees

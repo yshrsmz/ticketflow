@@ -45,7 +45,7 @@ func TestStartTicket_WorktreeCreatedAfterCommit(t *testing.T) {
 	require.NoError(t, err)
 
 	// 1. Create a ticket
-	err = app.NewTicket(context.Background(), "commit-first-test", "", cli.FormatText)
+	_, err = app.NewTicket(context.Background(), "commit-first-test", "")
 	require.NoError(t, err)
 
 	// Commit the ticket
@@ -61,7 +61,7 @@ func TestStartTicket_WorktreeCreatedAfterCommit(t *testing.T) {
 	ticketID := tickets[0].ID
 
 	// 2. Start work on ticket
-	err = app.StartTicket(context.Background(), ticketID, false, cli.FormatText)
+	_, err = app.StartTicket(context.Background(), ticketID, false)
 	require.NoError(t, err)
 
 	// 3. Verify parent branch state

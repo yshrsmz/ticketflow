@@ -109,7 +109,7 @@ func TestHandleNewRefactored(t *testing.T) {
 			} else {
 				// Note: NewTicket method needs to be updated to use app.Output
 				// instead of directly writing to os.Stdout
-				cmdErr = app.NewTicket(ctx, tt.slug, "", outputFormat)
+				_, cmdErr = app.NewTicket(ctx, tt.slug, "")
 			}
 
 			if tt.expectedError {

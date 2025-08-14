@@ -124,7 +124,7 @@ func TestHandleNew(t *testing.T) {
 			if err != nil {
 				cmdErr = err
 			} else {
-				cmdErr = app.NewTicket(ctx, tt.slug, "", outputFormat)
+				_, cmdErr = app.NewTicket(ctx, tt.slug, "")
 			}
 
 			// Verify JSON output structure if needed
@@ -439,7 +439,7 @@ func TestHandleStart(t *testing.T) {
 			if err != nil {
 				cmdErr = err
 			} else {
-				cmdErr = app.StartTicket(ctx, ticketID, false, cli.FormatText)
+				_, cmdErr = app.StartTicket(ctx, ticketID, false)
 			}
 
 			if tt.expectedError {
@@ -511,7 +511,7 @@ func TestHandleClose(t *testing.T) {
 			if err != nil {
 				cmdErr = err
 			} else {
-				cmdErr = app.CloseTicket(ctx, tt.force)
+				_, cmdErr = app.CloseTicket(ctx, tt.force)
 			}
 
 			if tt.expectedError {

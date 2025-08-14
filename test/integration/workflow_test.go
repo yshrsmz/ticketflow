@@ -83,7 +83,7 @@ func TestCompleteWorkflow(t *testing.T) {
 
 	// 2. Create a new ticket
 
-	err = app.NewTicket(context.Background(), "test-feature", "", cli.FormatText)
+	_, err = app.NewTicket(context.Background(), "test-feature", "")
 	require.NoError(t, err)
 
 	// 3. List tickets
@@ -101,7 +101,7 @@ func TestCompleteWorkflow(t *testing.T) {
 
 	// 4. Start work on ticket
 	ticketID := tickets[0].ID
-	err = app.StartTicket(context.Background(), ticketID, false, cli.FormatText)
+	_, err = app.StartTicket(context.Background(), ticketID, false)
 	require.NoError(t, err)
 
 	// Verify ticket status changed
@@ -174,7 +174,7 @@ func TestRestoreWorkflow(t *testing.T) {
 	_, err = gitCmd.Exec(context.Background(), "commit", "-m", "Initialize ticketflow")
 	require.NoError(t, err)
 
-	err = app.NewTicket(context.Background(), "restore-test", "", cli.FormatText)
+	_, err = app.NewTicket(context.Background(), "restore-test", "")
 	require.NoError(t, err)
 
 	tickets, err := app.Manager.List(context.Background(), ticket.StatusFilterActive)
@@ -188,7 +188,7 @@ func TestRestoreWorkflow(t *testing.T) {
 	require.NoError(t, err)
 
 	// Start work on ticket
-	err = app.StartTicket(context.Background(), ticketID, false, cli.FormatText)
+	_, err = app.StartTicket(context.Background(), ticketID, false)
 	require.NoError(t, err)
 
 	// Remove current-ticket link
