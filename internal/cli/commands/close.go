@@ -56,7 +56,7 @@ type closeFlags struct {
 func (f *closeFlags) normalize() {
 	// Use logical OR for boolean flags - true if either is set
 	f.force = f.force || f.forceShort
-	
+
 	// For string flags, prefer non-empty value (short form if both set)
 	if f.formatShort != "" {
 		f.format = f.formatShort

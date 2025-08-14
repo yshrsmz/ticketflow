@@ -16,7 +16,7 @@ func TestCloseCommand_Interface(t *testing.T) {
 	cmd := NewCloseCommand()
 
 	// Verify it implements the Command interface
-	var _ command.Command = cmd
+	var _ = command.Command(cmd)
 
 	// Test Name
 	assert.Equal(t, "close", cmd.Name())
