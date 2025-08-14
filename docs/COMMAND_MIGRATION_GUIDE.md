@@ -290,6 +290,7 @@ func TestListCommand(t *testing.T) {
 - [x] **start** - Start working on ticket (worktree management, supports --force/-f and --format/-o flags, JSON output)
 - [x] **close** - Close current/specified ticket (dual-mode operation, supports --force/-f, --reason, and --format/-o flags, JSON output)
 - [x] **restore** - Restore current-ticket.md symlink (zero-argument command, supports --format/-o flag, JSON output)
+- [x] **cleanup** - Clean up worktrees and branches (dual-mode operation, supports --dry-run, --force/-f, and --format/-o flags, JSON output, refactored CleanupTicket to return ticket)
 
 ### In Progress 🚧
 - [ ] Create migration tickets for remaining commands
@@ -301,11 +302,9 @@ func TestListCommand(t *testing.T) {
 #### Read-Only Commands
 
 #### State-Changing Commands
-- [ ] **restore** - Restore closed ticket
 
 #### Complex Commands
 - [ ] **worktree** - Manage git worktrees
-- [ ] **cleanup** - Clean up worktrees and branches
 - [x] **migrate** - ~~Migrate ticket dates~~ (Removed - no longer needed)
 
 ### Final Cleanup

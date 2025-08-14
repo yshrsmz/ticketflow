@@ -14,32 +14,109 @@ Migrate the cleanup command from the old switch-based system to the new Command 
 
 ## Context
 
-The cleanup command removes worktrees and branches for closed tickets. It's one of the last remaining commands that needs to be migrated to the new Command interface as part of the architectural refactoring effort.
+The cleanup command is a dual-mode command that handles both automatic cleanup of orphaned resources and specific ticket cleanup. It's one of the last remaining commands that needs to be migrated to the new Command interface as part of the architectural refactoring effort.
 
 ## Implementation Details
 
-The cleanup command:
-- Takes a ticket ID as argument
-- Validates the ticket exists and is closed
-- Removes the associated git worktree (if it exists)
-- Removes the associated git branch (if it exists)
-- Provides feedback on what was cleaned up
+The cleanup command operates in two distinct modes:
+
+### Mode 1: Auto-Cleanup (no arguments)
+- Triggered by: `ticketflow cleanup` or `ticketflow cleanup --dry-run`
+- Automatically detects and removes orphaned worktrees (worktrees without active tickets)
+- Cleans up stale branches (branches for done tickets without worktrees)
+- Supports `--dry-run` flag to preview what would be cleaned without making changes
+- Returns `CleanupResult` with statistics about cleaned resources
+
+### Mode 2: Ticket-Specific Cleanup (with ticket ID)
+- Triggered by: `ticketflow cleanup <ticket-id>` or `ticketflow cleanup --force <ticket-id>`
+- Validates the specified ticket exists and is closed (in done/ directory)
+- Removes the associated git worktree if it exists
+- Removes the associated git branch if it exists
+- Supports `--force` flag to skip confirmation prompts
+- Currently doesn't return the cleaned ticket (should be refactored to follow new pattern)
 
 ## Tasks
 
-- [ ] Create internal/cli/cleanup_command.go implementing the Command interface
-- [ ] Move cleanup logic from existing implementation to new Execute method
-- [ ] Follow the pattern established in other migrated commands (e.g., close_command.go)
-- [ ] Update main.go to use the new cleanup command
-- [ ] Remove old cleanup implementation
-- [ ] Add/update tests for the new implementation
-- [ ] Run `make test` to ensure all tests pass
-- [ ] Run `make vet`, `make fmt` and `make lint`
-- [ ] Update COMMAND_MIGRATION_GUIDE.md to mark cleanup as migrated
-- [ ] Update parent ticket (250812-152927-migrate-remaining-commands) to mark this task as complete
-- [ ] Update the ticket with insights from resolving this ticket
+- [x] Create internal/cli/cleanup_command.go implementing the Command interface
+- [x] Define cleanupFlags struct with: dryRun, force, format, formatShort fields
+- [x] Implement dual-mode Execute method (route based on presence of ticket ID in args)
+- [x] Move auto-cleanup logic (AutoCleanup, CleanupStats) to work with new command
+- [x] Move ticket-specific cleanup logic (CleanupTicket) to work with new command
+- [x] Add JSON output support for both modes (CleanupResult and ticket cleanup)
+- [x] Refactor CleanupTicket to return (*ticket.Ticket, error) for consistency with new pattern
+- [x] Store args in flags struct during Validate (follow close command pattern)
+- [x] Update main.go to register the new cleanup command
+- [x] Remove old cleanup case from switch statement in main.go
+- [x] Add/update tests for both auto-cleanup and ticket-specific modes
+- [x] Test JSON output formatting for both modes
+- [x] Run `make test` to ensure all tests pass
+- [x] Run `make vet`, `make fmt` and `make lint`
+- [x] Update COMMAND_MIGRATION_GUIDE.md to mark cleanup as migrated
+- [x] Update parent ticket (250812-152927-migrate-remaining-commands) to mark this task as complete
+- [x] Update the ticket with insights from resolving this ticket
 - [ ] Get developer approval before closing
+
+## Implementation Notes
+
+### Command Structure Pattern
+Follow the close command's dual-mode pattern since it has nearly identical behavior:
+1. Check for ticket ID in args during Execute
+2. Route to appropriate App method based on mode
+3. Handle different return types for each mode
+
+### Key Implementation Points
+- Use the normalize() helper for flag parsing (handles short/long format flags)
+- The Execute method should check context cancellation at the start
+- Validate format flag values in Validate() method
+- Handle JSON errors appropriately for both CleanupResult and ticket objects
+- Preserve existing confirmation prompt logic (handled within App methods)
+- Auto-cleanup's dry-run mode shows statistics via CleanupStats() then returns
+
+### Files to Reference
+- `internal/cli/cleanup.go` - Current implementation with both AutoCleanup and CleanupTicket
+- `internal/cli/helpers.go` - Contains normalize() and other helper functions
+- `cmd/ticketflow/main.go` - Shows current dual-mode routing in Execute function
+- COMMAND_MIGRATION_GUIDE.md - Standard migration patterns and requirements
+
+### Testing Considerations
+- Integration tests exist in `test/integration/cleanup_extended_test.go`
+- Unit tests exist in `internal/cli/cleanup_test.go`
+- Ensure both modes are tested with new command structure
+- Test JSON output for both CleanupResult and ticket responses
+- Verify dry-run mode doesn't make actual changes
 
 ## Notes
 
-Reference the COMMAND_MIGRATION_GUIDE.md for the standard migration pattern. The cleanup command is relatively straightforward with no subcommands, similar to the close command that was already migrated.
+The cleanup command is more complex than initially described due to its dual-mode nature, but the migration is straightforward because similar patterns are already established from previous command migrations. The key is properly handling the two distinct operational modes and their different return types.
+
+## Migration Insights
+
+### Key Learnings
+
+1. **Dual-Mode Pattern**: The cleanup command successfully follows the dual-mode pattern established by the close command, confirming this is a robust pattern for commands that can operate with or without arguments.
+
+2. **Return Value Refactoring**: Successfully refactored `CleanupTicket` to return `(*ticket.Ticket, error)` for consistency with the new pattern. This required updating both the implementation and all test files.
+
+3. **JSON Output Complexity**: Different return types (CleanupResult vs ticket.Ticket) required separate JSON output functions, highlighting the importance of type-specific formatting.
+
+4. **Test Updates**: The return value change required updating multiple test files, demonstrating the importance of comprehensive test coverage when refactoring.
+
+### Implementation Details
+
+- Created `internal/cli/commands/cleanup.go` with full Command interface implementation
+- Implemented separate execution paths for auto-cleanup and ticket-specific cleanup
+- Added comprehensive JSON output support for both modes
+- Successfully removed old cleanup implementation from main.go
+- All existing tests pass with minimal modifications
+
+### Challenges Resolved
+
+1. **Type Errors**: Initial implementation had incorrect field references (e.g., `t.Title` instead of `t.Description`), resolved by checking actual struct definitions.
+
+2. **Status String Conversion**: The Status type needed direct string conversion rather than a `.String()` method.
+
+3. **Test Compilation**: Multiple test files needed updates to handle the new return signature of `CleanupTicket`.
+
+### Migration Complete
+
+The cleanup command has been successfully migrated to the new Command interface with all functionality preserved and enhanced with JSON output support.

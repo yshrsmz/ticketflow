@@ -75,7 +75,7 @@ func TestCleanupTicketWithForceFlag(t *testing.T) {
 
 	// Test cleanup with force flag - should NOT prompt for confirmation
 	// Note: In the actual CLI, the flag order matters: ticketflow cleanup --force <ticket-id>
-	err = app.CleanupTicket(context.Background(), ticketID, true)
+	_, err = app.CleanupTicket(context.Background(), ticketID, true)
 	require.NoError(t, err)
 
 	// Verify branch was deleted
@@ -195,7 +195,7 @@ func TestCleanupTicketWithWorktreeAndForceFlag(t *testing.T) {
 
 	// Test cleanup with force flag - should NOT prompt for confirmation
 	// This should remove both the worktree and the branch
-	err = app.CleanupTicket(context.Background(), ticketID, true)
+	_, err = app.CleanupTicket(context.Background(), ticketID, true)
 	require.NoError(t, err)
 
 	// Verify worktree was removed

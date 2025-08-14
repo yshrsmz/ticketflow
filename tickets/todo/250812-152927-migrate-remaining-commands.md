@@ -29,7 +29,7 @@ Complete the migration of all remaining commands to the new Command interface an
 
 ### Complex Commands
 - [ ] **worktree** - Manage git worktrees (has subcommands) (ticket: 250814-181147-migrate-worktree-command) 📋 Created
-- [ ] **cleanup** - Clean up worktrees and branches (ticket: 250814-181107-migrate-cleanup-command) 📋 Created
+- [x] **cleanup** - Clean up worktrees and branches (ticket: 250814-181107-migrate-cleanup-command) ✅ COMPLETED (2025-08-15)
 - [x] **migrate** - ~~TO BE REMOVED - No longer needed~~ ✅ REMOVED (ticket: 250814-181027-remove-migrate-command)
 
 ## Final Cleanup Tasks
