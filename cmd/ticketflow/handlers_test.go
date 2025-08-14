@@ -136,7 +136,9 @@ func TestHandleNew(t *testing.T) {
 							"path": ticket.Path,
 						},
 					}
-					cmdErr = app.Output.PrintJSON(output)
+					if err := app.Output.PrintJSON(output); err != nil {
+						cmdErr = fmt.Errorf("failed to print JSON: %w", err)
+					}
 				}
 			}
 

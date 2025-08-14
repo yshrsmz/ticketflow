@@ -26,11 +26,15 @@ const (
 	msgBranchAlreadyMerged = "Branch was already merged"
 )
 
-// StartTicketResult contains the result of starting a ticket
+// StartTicketResult contains the result of starting a ticket with worktree details
 type StartTicketResult struct {
-	Ticket               *ticket.Ticket
-	WorktreePath         string
-	ParentBranch         string
+	// Ticket is the ticket that was started, with updated status and timestamps
+	Ticket *ticket.Ticket
+	// WorktreePath is the filesystem path to the created worktree (empty if worktrees disabled)
+	WorktreePath string
+	// ParentBranch is the branch that was checked out from (typically "main")
+	ParentBranch string
+	// InitCommandsExecuted indicates whether initialization commands were successfully run
 	InitCommandsExecuted bool
 }
 

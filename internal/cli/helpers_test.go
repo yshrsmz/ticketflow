@@ -43,6 +43,19 @@ func TestCalculateDuration(t *testing.T) {
 			ticket:   &ticket.Ticket{},
 			expected: 0,
 		},
+		{
+			name:     "nil ticket",
+			ticket:   nil,
+			expected: 0,
+		},
+		{
+			name: "closed before started (invalid state)",
+			ticket: &ticket.Ticket{
+				StartedAt: ticket.RFC3339TimePtr{Time: timePtr(time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC))},
+				ClosedAt:  ticket.RFC3339TimePtr{Time: timePtr(time.Date(2024, 1, 1, 10, 0, 0, 0, time.UTC))},
+			},
+			expected: 0,
+		},
 	}
 
 	for _, tt := range tests {
@@ -86,6 +99,11 @@ func TestExtractParentID(t *testing.T) {
 				Related: []string{"parent:first-parent", "parent:second-parent"},
 			},
 			expected: "first-parent",
+		},
+		{
+			name:     "nil ticket",
+			ticket:   nil,
+			expected: "",
 		},
 	}
 

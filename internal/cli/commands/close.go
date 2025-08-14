@@ -170,6 +170,11 @@ func outputCloseErrorJSON(app *cli.App, err error) error {
 
 // outputCloseSuccessJSON outputs success information in JSON format
 func outputCloseSuccessJSON(ctx context.Context, app *cli.App, closedTicket *ticket.Ticket, reason string, force bool, isCurrentTicket bool) error {
+	// Ensure we have a valid ticket to report on
+	if closedTicket == nil {
+		return fmt.Errorf("internal error: closed ticket is nil")
+	}
+
 	// Build the output structure
 	output := map[string]interface{}{
 		"success":        true,
@@ -185,40 +190,38 @@ func outputCloseSuccessJSON(ctx context.Context, app *cli.App, closedTicket *tic
 	}
 
 	// Use the returned ticket information directly
-	if closedTicket != nil {
-		output["ticket_id"] = closedTicket.ID
-		output["status"] = string(closedTicket.Status())
+	output["ticket_id"] = closedTicket.ID
+	output["status"] = string(closedTicket.Status())
 
-		if closedTicket.ClosedAt.Time != nil {
-			output["closed_at"] = closedTicket.ClosedAt.Time.Format(time.RFC3339)
-		}
+	if closedTicket.ClosedAt.Time != nil {
+		output["closed_at"] = closedTicket.ClosedAt.Time.Format(time.RFC3339)
+	}
 
-		// Calculate duration for current ticket mode
-		if isCurrentTicket && closedTicket.StartedAt.Time != nil && closedTicket.ClosedAt.Time != nil {
-			duration := closedTicket.ClosedAt.Time.Sub(*closedTicket.StartedAt.Time)
-			hours := int(duration.Hours())
-			minutes := int(duration.Minutes()) % 60
-			output["duration"] = fmt.Sprintf("%dh%dm", hours, minutes)
-		}
+	// Calculate duration for current ticket mode
+	if isCurrentTicket && closedTicket.StartedAt.Time != nil && closedTicket.ClosedAt.Time != nil {
+		duration := closedTicket.ClosedAt.Time.Sub(*closedTicket.StartedAt.Time)
+		hours := int(duration.Hours())
+		minutes := int(duration.Minutes()) % 60
+		output["duration"] = fmt.Sprintf("%dh%dm", hours, minutes)
+	}
 
-		// Add parent ticket if available - extract from Related field
-		for _, rel := range closedTicket.Related {
-			if strings.HasPrefix(rel, "parent:") {
-				output["parent_ticket"] = strings.TrimPrefix(rel, "parent:")
-				break
-			}
+	// Add parent ticket if available - extract from Related field
+	for _, rel := range closedTicket.Related {
+		if strings.HasPrefix(rel, "parent:") {
+			output["parent_ticket"] = strings.TrimPrefix(rel, "parent:")
+			break
 		}
+	}
 
-		// Add worktree path for current ticket
-		if isCurrentTicket {
-			cwd, err := os.Getwd()
-			if err == nil {
-				output["worktree_path"] = cwd
-			}
-		} else {
-			// For by-ID mode, include the branch name
-			output["branch"] = closedTicket.ID
+	// Add worktree path for current ticket
+	if isCurrentTicket {
+		cwd, err := os.Getwd()
+		if err == nil {
+			output["worktree_path"] = cwd
 		}
+	} else {
+		// For by-ID mode, include the branch name
+		output["branch"] = closedTicket.ID
 	}
 
 	if reason != "" {
