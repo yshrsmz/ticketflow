@@ -5,7 +5,7 @@ created_at: "2025-08-15T17:56:24+09:00"
 started_at: null
 closed_at: null
 related:
-    - "parent:250815-171607-improve-command-test-coverage"
+    - parent:250815-171607-improve-command-test-coverage
 ---
 
 # Test Coverage: Maintenance Commands
@@ -76,6 +76,9 @@ Improve test coverage for maintenance and utility commands that already have par
 ## Notes
 
 Priority 3 (Medium) - These commands already have partial coverage, so they're lower risk.
-Estimated effort: 1-2 days
+Estimated effort: 1-2 working days
 
 The goal is to fill coverage gaps and ensure comprehensive testing, not just hit coverage numbers.
+
+## Dependencies
+- May benefit from shared test utilities created in ticket 250815-175448-test-coverage-core-workflow-commands

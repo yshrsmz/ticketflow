@@ -5,7 +5,7 @@ created_at: "2025-08-15T17:55:48+09:00"
 started_at: null
 closed_at: null
 related:
-    - "parent:250815-171607-improve-command-test-coverage"
+    - parent:250815-171607-improve-command-test-coverage
 ---
 
 # Test Coverage: Zero Coverage Commands
@@ -90,4 +90,7 @@ Add comprehensive test coverage for commands that currently have 0% Execute meth
 ## Notes
 
 Priority 2 (High) - These commands have zero coverage and need immediate attention.
-Estimated effort: 2-3 days
+Estimated effort: 2-3 working days (0.5 days per command average)
+
+## Dependencies
+- Requires shared test utilities from ticket 250815-175448-test-coverage-core-workflow-commands

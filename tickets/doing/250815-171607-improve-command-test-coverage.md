@@ -6,6 +6,9 @@ started_at: "2025-08-15T17:44:10+09:00"
 closed_at: null
 related:
     - parent:250812-152927-migrate-remaining-commands
+    - "blocks:250815-175448-test-coverage-core-workflow-commands"
+    - "blocks:250815-175548-test-coverage-zero-coverage-commands"
+    - "blocks:250815-175624-test-coverage-maintenance-commands"
 ---
 
 # Improve Command Test Coverage

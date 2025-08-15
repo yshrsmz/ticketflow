@@ -60,8 +60,8 @@ Improve test coverage for the essential workflow commands that are critical to t
 
 ## Acceptance Criteria
 
-- [ ] `close.go` Execute method has ≥70% test coverage
-- [ ] `start.go` Execute method has ≥70% test coverage
+- [ ] `close.go` Execute method improves from 29.2% to ≥70% test coverage
+- [ ] `start.go` Execute method improves from 43.8% to ≥70% test coverage
 - [ ] All tests pass with `make test`
 - [ ] No regression in existing tests
 - [ ] Test code follows project conventions and uses table-driven tests where appropriate
@@ -70,4 +70,11 @@ Improve test coverage for the essential workflow commands that are critical to t
 ## Notes
 
 Priority 1 (Critical) - These are the most important commands in the workflow and need robust testing.
-Estimated effort: 2 days
+Estimated effort: 2 working days (aggressive target - may need adjustment)
+
+### Approval Process
+"Get developer approval before closing" means:
+1. Complete all implementation and testing
+2. Create PR with all changes
+3. Get PR reviewed and approved by developer
+4. Only close ticket after explicit approval is given
