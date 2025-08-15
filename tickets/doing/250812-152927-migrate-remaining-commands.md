@@ -58,7 +58,7 @@ Complete the cleanup after successful migration of all commands to the new Comma
 - ✅ All tests pass
 - ✅ Clean separation of concerns
 - ✅ Each command in its own file with tests
-- [ ] Documentation fully updated (one minor update remaining)
+- [x] Documentation fully updated ✅
 
 ## References
 
