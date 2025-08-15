@@ -14,12 +14,11 @@ Migrate the worktree command and all its subcommands from the old switch-based s
 
 ## Context
 
-The worktree command is the most complex of the remaining commands to migrate because it has multiple subcommands:
-- `worktree list` - List all worktrees
+The worktree command is the last remaining command to migrate from the old switch-based system. It has exactly two subcommands:
+- `worktree list` - List all worktrees (with JSON output support)
 - `worktree clean` - Clean up orphaned worktrees
-- Additional worktree operations may exist
 
-This migration requires implementing the subcommand pattern within the new Command interface structure.
+This migration requires implementing the subcommand pattern within the new Command interface structure. The pattern is already documented in COMMAND_MIGRATION_GUIDE.md (lines 185-201).
 
 ## Implementation Details
 
@@ -29,29 +28,67 @@ The worktree command needs to:
 3. Handle subcommand routing and help text
 4. Maintain backward compatibility with existing usage patterns
 
+### Architecture Notes (from analysis):
+- The actual implementation is straightforward (~100 lines total for both subcommands)
+- `ListWorktrees()`: ~30 lines with JSON/text output formatting
+- `CleanWorktrees()`: ~50 lines for orphaned worktree cleanup
+- The perceived complexity is architectural (parent/child command pattern), not implementation difficulty
+- This completes the entire command interface migration project
+
 ## Tasks
 
-- [ ] Analyze existing worktree command implementation and all subcommands
-- [ ] Create internal/cli/worktree_command.go as the parent command
-- [ ] Implement subcommand routing pattern (similar to how git handles subcommands)
-- [ ] Create separate command files for each subcommand:
-  - [ ] internal/cli/worktree_list_command.go
-  - [ ] internal/cli/worktree_clean_command.go
-  - [ ] Any other worktree subcommands found
-- [ ] Ensure help text works correctly for parent and subcommands
-- [ ] Update main.go to use the new worktree command structure
-- [ ] Remove old worktree implementation
-- [ ] Add/update tests for the new implementation
-- [ ] Test all subcommands thoroughly
-- [ ] Run `make test` to ensure all tests pass
-- [ ] Run `make vet`, `make fmt` and `make lint`
-- [ ] Update COMMAND_MIGRATION_GUIDE.md with notes about subcommand pattern
-- [ ] Update parent ticket (250812-152927-migrate-remaining-commands) to mark this task as complete
-- [ ] Update the ticket with insights from resolving this ticket
+- [x] Analyze existing worktree command implementation and all subcommands
+- [x] Create internal/cli/commands/worktree.go as the parent command
+- [x] Implement subcommand routing pattern (following COMMAND_MIGRATION_GUIDE.md lines 185-201)
+- [x] Create separate command files for each subcommand:
+  - [x] internal/cli/commands/worktree_list.go
+  - [x] internal/cli/commands/worktree_clean.go
+- [x] Ensure help text works correctly for parent and subcommands
+- [x] Update main.go to use the new worktree command structure
+- [x] Remove old worktree implementation
+- [x] Add/update tests for the new implementation
+- [x] Test all subcommands thoroughly
+- [x] Run `make test` to ensure all tests pass
+- [x] Run `make vet`, `make fmt` and `make lint`
+- [x] Update COMMAND_MIGRATION_GUIDE.md with any new learnings about subcommand pattern
+- [x] Update parent ticket (250812-152927-migrate-remaining-commands) to mark this task as complete
+- [x] Update the ticket with insights from resolving this ticket
 - [ ] Get developer approval before closing
 
 ## Notes
 
-This is the most complex migration due to subcommands. Consider looking at how other CLI tools handle subcommands in Go (e.g., cobra-based tools) for patterns, though we need to fit within our existing Command interface structure.
+While this appears to be the most complex migration due to subcommands, the analysis reveals it's actually quite manageable:
+- Total implementation is only ~100 lines of business logic
+- The subcommand pattern is already documented in COMMAND_MIGRATION_GUIDE.md
+- This is the final piece to complete the entire command migration project
 
-Priority is set to 3 (higher) because this is more complex and may uncover issues with the Command interface pattern that need to be addressed.
+Priority is set to 3 (higher) to ensure timely completion of the migration project.
+
+### Estimated Effort
+- Implementation: 2-3 hours
+- Testing: 1 hour
+- Total: 3-4 hours
+
+## Implementation Insights
+
+### Key Learnings from Implementation
+
+1. **Subcommand Pattern Works Well**: The parent command pattern with subcommand routing is clean and maintainable. Each subcommand is a full Command implementation, making them testable in isolation.
+
+2. **Flag Handling for Subcommands**: The parent command needs to create a new FlagSet for each subcommand and handle parsing separately. This was implemented successfully in the Execute method.
+
+3. **Validation Edge Cases**: The list subcommand's Validate method needed careful handling of nil flags and empty format strings. Default values should be applied in Execute rather than Validate.
+
+4. **Test Structure**: Each command (parent and subcommands) needs its own test file. The parent command tests focus on routing, while subcommand tests focus on their specific logic.
+
+5. **Documentation Update**: The COMMAND_MIGRATION_GUIDE.md was enhanced with detailed subcommand implementation patterns including flag parsing and validation flow.
+
+### Migration Completion
+
+**This completes the entire command interface migration project!** All 12 commands have been successfully migrated to the new Command interface pattern:
+- Foundation: version, help, init
+- Read-only: status, list, show
+- State-changing: new, start, close, restore, cleanup
+- With subcommands: worktree (list, clean)
+
+The old switch statement in main.go has been completely eliminated, and all commands now use the registry pattern.

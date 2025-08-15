@@ -181,9 +181,20 @@ func executeNewCommand(ctx context.Context, cmd command.Command, args []string) 
 
 ### 1. Commands with Subcommands (worktree)
 
+The worktree command demonstrates how to implement a parent command with subcommands. Key learnings from the implementation:
+
 ```go
 type WorktreeCommand struct {
     subcommands map[string]command.Command
+}
+
+func NewWorktreeCommand() command.Command {
+    return &WorktreeCommand{
+        subcommands: map[string]command.Command{
+            "list":  NewWorktreeListCommand(),
+            "clean": NewWorktreeCleanCommand(),
+        },
+    }
 }
 
 func (c *WorktreeCommand) Execute(ctx context.Context, flags interface{}, args []string) error {
@@ -192,13 +203,38 @@ func (c *WorktreeCommand) Execute(ctx context.Context, flags interface{}, args [
         return nil
     }
     
-    if subcmd, ok := c.subcommands[args[0]]; ok {
-        return subcmd.Execute(ctx, flags, args[1:])
+    subcmdName := args[0]
+    subcmd, ok := c.subcommands[subcmdName]
+    if !ok {
+        c.printUsage()
+        return fmt.Errorf("unknown worktree subcommand: %s", subcmdName)
     }
     
-    return fmt.Errorf("unknown worktree command: %s", args[0])
+    // Parse flags for the subcommand
+    fs := flag.NewFlagSet(fmt.Sprintf("worktree %s", subcmdName), flag.ExitOnError)
+    subcmdFlags := subcmd.SetupFlags(fs)
+    
+    // Parse remaining arguments
+    if err := fs.Parse(args[1:]); err != nil {
+        return err
+    }
+    
+    // Validate the subcommand
+    if err := subcmd.Validate(subcmdFlags, fs.Args()); err != nil {
+        return err
+    }
+    
+    // Execute the subcommand
+    return subcmd.Execute(ctx, subcmdFlags, fs.Args())
 }
 ```
+
+**Important notes:**
+- Each subcommand is a full Command implementation
+- The parent command handles flag parsing for subcommands
+- The parent command's SetupFlags returns nil (no parent-level flags)
+- Subcommands receive only their relevant arguments (args[1:])
+- Usage information should list all available subcommands
 
 ### 2. Commands with App Dependencies (Updated Pattern)
 
