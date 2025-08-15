@@ -22,6 +22,9 @@ func TestRestoreCommand_Execute_Integration(t *testing.T) {
 		wantError     bool
 		errorContains string
 		validate      func(*testing.T, *testharness.TestEnvironment)
+		// expectJSONError indicates that this test expects an error condition
+		// but with JSON format, the error is returned as JSON (not a Go error)
+		expectJSONError bool
 	}{
 		{
 			name: "restore current ticket symlink successfully",
@@ -215,12 +218,15 @@ Content`)
 				// Only create non-doing tickets
 				env.CreateTicket("todo-only", ticket.StatusTodo)
 			},
-			args:      []string{},
-			flags:     map[string]string{"format": "json"},
-			wantError: false, // JSON format returns error in JSON, not as error
+			args:            []string{},
+			flags:           map[string]string{"format": "json"},
+			wantError:       false, // JSON format returns error in JSON, not as error
+			expectJSONError: true,  // This test expects an error condition returned as JSON
 			validate: func(t *testing.T, env *testharness.TestEnvironment) {
-				// The error should be returned as JSON, not a Go error
-				// The actual JSON output would contain error field
+				// When format is JSON, errors are returned as JSON objects with 
+				// success:false rather than Go errors. This is intentional behavior
+				// to support machine-readable output for AI/tooling integration.
+				// The Execute method should return nil, with error details in JSON.
 			},
 		},
 	}
@@ -285,8 +291,11 @@ Content`)
 					assert.Contains(t, err.Error(), tt.errorContains)
 				}
 			} else {
-				// For JSON format, errors are returned as JSON, not Go errors
-				if tt.flags["format"] != "json" || tt.name != "JSON error output when no doing tickets" {
+				// Special handling for JSON error cases: When format=json and an error
+				// occurs in the command logic, the error is returned as a JSON object
+				// with success:false rather than a Go error. This provides machine-readable
+				// output for AI/tooling integration.
+				if !tt.expectJSONError {
 					require.NoError(t, err)
 				}
 			}
