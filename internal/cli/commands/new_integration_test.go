@@ -226,10 +226,8 @@ description: "Feature template"
 - [ ] Implementation
 - [ ] Testing`)
 				
-				// Update config to include template
-				env.Config.Tickets.Templates = map[string]string{
-					"feature": "tickets/templates/feature.md",
-				}
+				// Note: Templates configuration is not available in config struct
+				// This test is for future template support
 			},
 			args:  []string{"templated-ticket"},
 			flags: map[string]string{"format": "text"},

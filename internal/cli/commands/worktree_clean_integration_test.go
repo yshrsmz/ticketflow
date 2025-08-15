@@ -124,9 +124,9 @@ func TestWorktreeCleanCommand_Execute_Integration(t *testing.T) {
 			args: []string{},
 			validate: func(t *testing.T, env *testharness.TestEnvironment) {
 				// Should handle missing directory gracefully
-				output := env.RunGit("worktree", "list")
 				// The worktree should be cleaned up or marked as missing
 				// Git may show it as missing, but clean should handle it
+				_ = env.RunGit("worktree", "list")
 			},
 		},
 	}
