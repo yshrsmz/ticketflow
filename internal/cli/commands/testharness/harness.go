@@ -98,6 +98,14 @@ func (e *TestEnvironment) RunGit(args ...string) string {
 func (e *TestEnvironment) WriteFile(path, content string) {
 	e.t.Helper()
 	fullPath := filepath.Join(e.RootDir, path)
+	
+	// Ensure the resolved path is within RootDir to prevent directory traversal
+	cleanPath, err := filepath.Abs(fullPath)
+	require.NoError(e.t, err)
+	if !strings.HasPrefix(cleanPath, e.RootDir) {
+		e.t.Fatalf("path %q escapes test directory", path)
+	}
+	
 	dir := filepath.Dir(fullPath)
 	require.NoError(e.t, os.MkdirAll(dir, 0755))
 	require.NoError(e.t, os.WriteFile(fullPath, []byte(content), 0644))
@@ -168,7 +176,7 @@ func (e *TestEnvironment) CreateTicket(id string, status ticket.Status, options 
 
 	data, err := yaml.Marshal(frontmatter)
 	require.NoError(e.t, err)
-	content.Write(data)
+	content.WriteString(string(data))
 	content.WriteString("---\n\n")
 	content.WriteString(fmt.Sprintf("# %s\n\n%s\n", t.ID, t.Content))
 
@@ -179,7 +187,10 @@ func (e *TestEnvironment) CreateTicket(id string, status ticket.Status, options 
 	// If in doing status, create symlink
 	if status == ticket.StatusDoing {
 		symlinkPath := filepath.Join(e.RootDir, "current-ticket.md")
-		os.Remove(symlinkPath) // Remove if exists
+		// Properly handle symlink removal with error checking
+		if err := os.Remove(symlinkPath); err != nil && !os.IsNotExist(err) {
+			e.t.Fatalf("failed to remove existing symlink: %v", err)
+		}
 		target := ticketPath
 		require.NoError(e.t, os.Symlink(target, symlinkPath))
 	}

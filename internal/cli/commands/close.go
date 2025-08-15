@@ -172,7 +172,7 @@ func outputCloseErrorJSON(app *cli.App, err error) error {
 func outputCloseSuccessJSON(ctx context.Context, app *cli.App, closedTicket *ticket.Ticket, reason string, force bool, isCurrentTicket bool) error {
 	// Ensure we have a valid ticket to report on
 	if closedTicket == nil {
-		return fmt.Errorf("internal error: closed ticket is nil")
+		return fmt.Errorf("internal error: closed ticket is nil (isCurrentTicket=%v)", isCurrentTicket)
 	}
 
 	// Build the output structure

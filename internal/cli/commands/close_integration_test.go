@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -190,8 +191,10 @@ func TestCloseCommand_Execute_Integration(t *testing.T) {
 				args:   tt.args,
 			}
 
-			// Execute command
-			err = cmd.Execute(context.Background(), closeFlags, tt.args)
+			// Execute command with timeout
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+			err = cmd.Execute(ctx, closeFlags, tt.args)
 
 			// Check error
 			if tt.wantError {
@@ -238,7 +241,9 @@ func TestCloseCommand_Execute_WithWorktree(t *testing.T) {
 		args:   []string{},
 	}
 
-	err = cmd.Execute(context.Background(), closeFlags, []string{})
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	err = cmd.Execute(ctx, closeFlags, []string{})
 	require.NoError(t, err)
 
 	// Verify ticket closed

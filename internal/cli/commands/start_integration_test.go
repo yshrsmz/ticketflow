@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -216,8 +217,10 @@ func TestStartCommand_Execute_Integration(t *testing.T) {
 				format: tt.flags["format"],
 			}
 
-			// Execute command
-			err = cmd.Execute(context.Background(), startFlags, tt.args)
+			// Execute command with timeout
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+			err = cmd.Execute(ctx, startFlags, tt.args)
 
 			// Check error
 			if tt.wantError {
