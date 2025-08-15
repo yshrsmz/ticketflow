@@ -222,6 +222,52 @@ ticketflow close           # This creates commit on wrong branch!
 
 ## Testing Guidelines
 
+### Testing Strategy for CLI Commands
+
+#### Key Principles
+After architectural analysis, we've adopted an integration-first testing strategy for CLI commands:
+
+1. **Execute methods are orchestrators** - They coordinate multiple components (git, file system, config) and should be tested as integration tests, not unit tests with mocks
+2. **Wrong abstraction level** - Mocking at Manager/Git level creates brittle tests that don't verify real behavior  
+3. **Industry patterns** - Tools like git, docker, and kubectl use integration tests for commands, not unit tests with mocks
+4. **Test harness approach** - Create real test environments with:
+   - Temporary git repositories
+   - Actual file system operations
+   - Real ticket structures
+   - Proper configuration files
+5. **Focus on behavior, not implementation** - Test what users experience, not internal method calls
+
+#### Test Organization
+- **Unit tests**: For pure business logic (validators, parsers, formatters)
+- **Integration tests**: For command Execute methods (use `_integration_test.go` suffix)
+- **Test harness**: Shared test infrastructure in `internal/cli/commands/testharness/`
+
+#### Writing Integration Tests
+```go
+func TestCommand_Execute_Integration(t *testing.T) {
+    // Create test environment
+    env := testharness.NewTestEnvironment(t)
+    
+    // Setup test data
+    env.CreateTicket("test-ticket", ticket.StatusTodo)
+    env.RunGit("add", ".")
+    env.RunGit("commit", "-m", "Setup")
+    
+    // Execute command
+    cmd := commands.NewStartCommand()
+    err := cmd.Execute(ctx, flags, []string{"test-ticket"})
+    
+    // Verify behavior
+    assert.True(t, env.FileExists("tickets/doing/test-ticket.md"))
+    assert.Contains(t, env.LastCommitMessage(), "Start ticket")
+}
+```
+
+#### Coverage Expectations
+- Integration tests provide meaningful coverage of Execute methods
+- Don't chase coverage percentages with mocks - prefer real behavior verification
+- Accept that some error paths may only be testable through integration tests
+
 ### Git Configuration in Tests
 - **NEVER use `git config --global` in tests** - This modifies the user's git configuration and can cause commits with wrong authors
 - Always configure git locally within test directories: `cmd.Dir = tmpDir` before running git commands

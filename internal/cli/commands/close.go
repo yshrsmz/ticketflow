@@ -113,7 +113,7 @@ func (c *CloseCommand) Execute(ctx context.Context, flags interface{}, args []st
 	}
 
 	// Get app instance
-	app, err := cli.NewApp(ctx)
+	app, err := getApp(ctx)
 	if err != nil {
 		return err
 	}
