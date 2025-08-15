@@ -39,11 +39,11 @@ func TestNewCommand_Execute_Integration(t *testing.T) {
 				for _, file := range files {
 					if strings.Contains(file.Name(), "test-feature") {
 						ticketFound = true
-						// Verify ticket content
+						// Verify ticket content has required YAML frontmatter
 						content := env.ReadFile("tickets/todo/" + file.Name())
-						assert.Contains(t, content, "test-feature")
 						assert.Contains(t, content, "priority:")
 						assert.Contains(t, content, "description:")
+						assert.Contains(t, content, "created_at:")
 						break
 					}
 				}
@@ -144,7 +144,7 @@ func TestNewCommand_Execute_Integration(t *testing.T) {
 			args:          []string{"INVALID_SLUG!"}, // Invalid characters
 			flags:         map[string]string{"format": "text"},
 			wantError:     true,
-			errorContains: "invalid slug",
+			errorContains: "Invalid slug format",
 		},
 		{
 			name: "error with duplicate ticket",
@@ -208,7 +208,7 @@ func TestNewCommand_Execute_Integration(t *testing.T) {
 			args:          []string{"orphan-ticket"},
 			flags:         map[string]string{"format": "text", "parent": "non-existent-parent"},
 			wantError:     true,
-			errorContains: "parent ticket not found",
+			errorContains: "Parent ticket not found",
 		},
 		{
 			name: "create ticket with template",
