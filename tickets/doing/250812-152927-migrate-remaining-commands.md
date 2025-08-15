@@ -90,11 +90,15 @@ Complete the cleanup after successful migration of all commands to the new Comma
 3. **Context Handling**: Early context checks follow Go best practices (despite Copilot suggestion)
 4. **Flag Normalization**: Merging short and long form flags prevents edge cases
 
-### Areas for Future Improvement
+### Areas for Future Improvement (Tickets Created)
 1. **Context Check Consistency**: Some commands missing early context checks (list, show, restore)
+   - Ticket: [250815-171402-add-context-checks-to-commands](../todo/250815-171402-add-context-checks-to-commands.md)
 2. **Format Constants**: Could be centralized instead of duplicated across commands
+   - Ticket: [250815-171451-centralize-format-constants](../todo/250815-171451-centralize-format-constants.md)
 3. **Helper Functions**: Common patterns like parent extraction could be shared utilities
+   - Ticket: [250815-171527-extract-command-helper-functions](../todo/250815-171527-extract-command-helper-functions.md)
 4. **Test Coverage**: Currently at 42.8% - room for improvement in command Execute methods
+   - Ticket: [250815-171607-improve-command-test-coverage](../todo/250815-171607-improve-command-test-coverage.md)
 
 ### Migration Strategy Success
 - Parallel system approach worked perfectly - no disruption during migration
