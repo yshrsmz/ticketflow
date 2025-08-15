@@ -1,13 +1,13 @@
 ---
 priority: 3
-description: "Migrate remaining commands to new Command interface"
+description: Migrate remaining commands to new Command interface
 created_at: "2025-08-12T15:29:27+09:00"
-started_at: null
+started_at: "2025-08-15T15:12:39+09:00"
 closed_at: null
 related:
     - parent:250810-003001-refactor-command-interface
-    - "blocks:250812-152824-migrate-help-command"
-    - "blocks:250812-152902-migrate-init-command"
+    - blocks:250812-152824-migrate-help-command
+    - blocks:250812-152902-migrate-init-command
 ---
 
 # Migrate remaining commands to new Command interface
@@ -35,6 +35,7 @@ Complete the migration of all remaining commands to the new Command interface an
 ## Final Cleanup Tasks
 
 - [ ] Review all new command code and check if there's any implementation/design inconsistency. Report if any
+- [ ] Review all completed command refactoring tickets and check if there's any implementation/design inconsistency. Report if any
 - [ ] Remove old Command struct from command.go
 - [ ] Remove parseAndExecute function  
 - [ ] Remove entire switch statement from main.go
