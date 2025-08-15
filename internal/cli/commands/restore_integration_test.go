@@ -35,7 +35,7 @@ func TestRestoreCommand_Execute_Integration(t *testing.T) {
 
 				// Remove the symlink to simulate it being missing
 				symlinkPath := filepath.Join(env.RootDir, "current-ticket.md")
-				os.Remove(symlinkPath)
+				_ = os.Remove(symlinkPath) // Ignore error - symlink may not exist
 
 				// Verify symlink is gone
 				require.False(t, env.FileExists("current-ticket.md"))
@@ -64,7 +64,7 @@ func TestRestoreCommand_Execute_Integration(t *testing.T) {
 
 				// Remove the symlink
 				symlinkPath := filepath.Join(env.RootDir, "current-ticket.md")
-				os.Remove(symlinkPath)
+				_ = os.Remove(symlinkPath) // Ignore error - symlink may not exist
 			},
 			args:  []string{},
 			flags: map[string]string{"format": "json"},
@@ -83,7 +83,7 @@ func TestRestoreCommand_Execute_Integration(t *testing.T) {
 
 				// Remove the symlink
 				symlinkPath := filepath.Join(env.RootDir, "current-ticket.md")
-				os.Remove(symlinkPath)
+				_ = os.Remove(symlinkPath) // Ignore error - symlink may not exist
 			},
 			args:  []string{},
 			flags: map[string]string{"formatShort": "json"},
@@ -104,7 +104,7 @@ func TestRestoreCommand_Execute_Integration(t *testing.T) {
 
 				// Remove the symlink
 				symlinkPath := filepath.Join(env.RootDir, "current-ticket.md")
-				os.Remove(symlinkPath)
+				_ = os.Remove(symlinkPath) // Ignore error - symlink may not exist
 			},
 			args:  []string{},
 			flags: map[string]string{"format": "json"},
@@ -182,7 +182,7 @@ func TestRestoreCommand_Execute_Integration(t *testing.T) {
 
 				// Remove symlink and manually create another doing ticket
 				symlinkPath := filepath.Join(env.RootDir, "current-ticket.md")
-				os.Remove(symlinkPath)
+				_ = os.Remove(symlinkPath) // Ignore error - symlink may not exist
 
 				// Create second ticket directly without symlink
 				env.WriteFile("tickets/doing/doing-ticket-2.md", `---
