@@ -87,6 +87,12 @@ func init() {
 		// This should never happen in practice but we handle it gracefully
 		fmt.Fprintf(os.Stderr, "Warning: failed to register close command: %v\n", err)
 	}
+	// Register cleanup command
+	if err := commandRegistry.Register(commands.NewCleanupCommand()); err != nil {
+		// Log error but continue - allow program to run with degraded functionality
+		// This should never happen in practice but we handle it gracefully
+		fmt.Fprintf(os.Stderr, "Warning: failed to register cleanup command: %v\n", err)
+	}
 
 	if err := commandRegistry.Register(commands.NewRestoreCommand()); err != nil {
 		// Log error but continue - allow program to run with degraded functionality
@@ -162,11 +168,6 @@ func runTUI() {
 
 // Define flag structures for commands that need them
 
-type cleanupFlags struct {
-	dryRun bool
-	force  bool
-}
-
 // startFlags holds command-line flags for the 'start' command
 func runCLI(ctx context.Context) error {
 	// Parse command
@@ -201,26 +202,7 @@ func runCLI(ctx context.Context) error {
 			},
 		}, os.Args[3:])
 
-	case "cleanup":
-		return parseAndExecute(ctx, Command{
-			Name: "cleanup",
-			SetupFlags: func(fs *flag.FlagSet) interface{} {
-				flags := &cleanupFlags{}
-				fs.BoolVar(&flags.dryRun, "dry-run", false, "Show what would be cleaned without making changes")
-				fs.BoolVar(&flags.force, "force", false, "Skip confirmation prompts")
-				return flags
-			},
-			Execute: func(ctx context.Context, fs *flag.FlagSet, cmdFlags interface{}) error {
-				flags := cmdFlags.(*cleanupFlags)
-				if fs.NArg() > 0 {
-					// New cleanup command with ticket ID
-					return handleCleanupTicket(ctx, fs.Arg(0), flags.force)
-				}
-				// Old auto-cleanup command
-				return handleCleanup(ctx, flags.dryRun)
-			},
-		}, os.Args[2:])
-
+	// cleanup command has been migrated to the registry
 	// help command has been migrated to the registry
 	// Handled above with aliases
 	// version command has been migrated to the registry
@@ -286,31 +268,4 @@ EXAMPLES:
 
   # Clean up orphaned worktrees
   ticketflow worktree clean`)
-}
-
-func handleCleanup(ctx context.Context, dryRun bool) error {
-	app, err := cli.NewApp(ctx)
-	if err != nil {
-		return err
-	}
-
-	if dryRun {
-		// Show cleanup statistics first
-		if err := app.CleanupStats(ctx); err != nil {
-			return err
-		}
-		fmt.Println("\nDry-run mode: No changes will be made.")
-	}
-
-	_, err = app.AutoCleanup(ctx, dryRun)
-	return err
-}
-
-func handleCleanupTicket(ctx context.Context, ticketID string, force bool) error {
-	app, err := cli.NewApp(ctx)
-	if err != nil {
-		return err
-	}
-
-	return app.CleanupTicket(ctx, ticketID, force)
 }

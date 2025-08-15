@@ -922,16 +922,16 @@ func (app *App) CleanWorktrees(ctx context.Context) error {
 }
 
 // CleanupTicket cleans up a ticket after PR merge
-func (app *App) CleanupTicket(ctx context.Context, ticketID string, force bool) error {
+func (app *App) CleanupTicket(ctx context.Context, ticketID string, force bool) (*ticket.Ticket, error) {
 	// Get the ticket to verify it exists and is done
 	t, err := app.Manager.Get(ctx, ticketID)
 	if err != nil {
-		return ConvertError(err)
+		return nil, ConvertError(err)
 	}
 
 	// Check if ticket is done
 	if t.Status() != ticket.StatusDone {
-		return NewError(ErrTicketNotDone, "Ticket is not done",
+		return nil, NewError(ErrTicketNotDone, "Ticket is not done",
 			fmt.Sprintf("Ticket %s is in '%s' status, not 'done'", t.ID, t.Status()),
 			[]string{
 				"Close the ticket first: ticketflow close",
@@ -942,20 +942,20 @@ func (app *App) CleanupTicket(ctx context.Context, ticketID string, force bool) 
 	// Get current branch to restore later
 	currentBranch, err := app.Git.CurrentBranch(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to get current branch: %w", err)
+		return nil, fmt.Errorf("failed to get current branch: %w", err)
 	}
 
 	// Make sure we're on the default branch
 	if currentBranch != app.Config.Git.DefaultBranch {
 		if err := app.Git.Checkout(ctx, app.Config.Git.DefaultBranch); err != nil {
-			return fmt.Errorf("failed to checkout default branch: %w", err)
+			return nil, fmt.Errorf("failed to checkout default branch: %w", err)
 		}
 	}
 
 	// Check if worktree exists
 	wt, err := app.Git.FindWorktreeByBranch(ctx, t.ID)
 	if err != nil {
-		return fmt.Errorf("failed to find worktree: %w", err)
+		return nil, fmt.Errorf("failed to find worktree: %w", err)
 	}
 
 	// Show what will be done
@@ -976,7 +976,7 @@ func (app *App) CleanupTicket(ctx context.Context, ticketID string, force bool) 
 		_, _ = fmt.Scanln(&response)
 		if response != "y" && response != "Y" {
 			app.Output.Println("\n❌ Cleanup cancelled")
-			return nil
+			return nil, nil
 		}
 	}
 
@@ -986,7 +986,7 @@ func (app *App) CleanupTicket(ctx context.Context, ticketID string, force bool) 
 	if wt != nil {
 		app.Output.Printf("🌳 Removing worktree: %s\n", wt.Path)
 		if err := app.Git.RemoveWorktree(ctx, wt.Path); err != nil {
-			return fmt.Errorf("failed to remove worktree at %s for ticket %s: %w", wt.Path, ticketID, err)
+			return nil, fmt.Errorf("failed to remove worktree at %s for ticket %s: %w", wt.Path, ticketID, err)
 		}
 	}
 
@@ -1002,7 +1002,7 @@ func (app *App) CleanupTicket(ctx context.Context, ticketID string, force bool) 
 	app.Output.Printf("• Start a new ticket: ticketflow new <slug>\n")
 	app.Output.Printf("• View open tickets: ticketflow list --status todo\n")
 	app.Output.Printf("• Check active work: ticketflow list --status doing\n")
-	return nil
+	return t, nil
 }
 
 // validateTicketForStart validates that a ticket can be started
