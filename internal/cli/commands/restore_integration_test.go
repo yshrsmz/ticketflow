@@ -15,13 +15,14 @@ import (
 
 func TestRestoreCommand_Execute_Integration(t *testing.T) {
 	tests := []struct {
-		name          string
-		setup         func(*testharness.TestEnvironment)
-		args          []string
-		flags         map[string]string
-		wantError     bool
-		errorContains string
-		validate      func(*testing.T, *testharness.TestEnvironment)
+		name            string
+		setup           func(*testharness.TestEnvironment)
+		args            []string
+		flags           map[string]string
+		wantError       bool
+		errorContains   string
+		validate        func(*testing.T, *testharness.TestEnvironment)
+		expectJSONError bool // Set to true for tests that expect JSON-formatted errors
 	}{
 		{
 			name: "restore current ticket symlink successfully",
@@ -215,9 +216,10 @@ Content`)
 				// Only create non-doing tickets
 				env.CreateTicket("todo-only", ticket.StatusTodo)
 			},
-			args:      []string{},
-			flags:     map[string]string{"format": "json"},
-			wantError: false, // JSON format returns error in JSON, not as error
+			args:            []string{},
+			flags:           map[string]string{"format": "json"},
+			wantError:       false, // JSON format returns error in JSON, not as error
+			expectJSONError: true,  // This test expects JSON-formatted error
 			validate: func(t *testing.T, env *testharness.TestEnvironment) {
 				// The error should be returned as JSON, not a Go error
 				// The actual JSON output would contain error field
@@ -286,7 +288,7 @@ Content`)
 				}
 			} else {
 				// For JSON format, errors are returned as JSON, not Go errors
-				if tt.flags["format"] != "json" || tt.name != "JSON error output when no doing tickets" {
+				if !tt.expectJSONError {
 					require.NoError(t, err)
 				}
 			}
