@@ -8,6 +8,7 @@ import (
 )
 
 func TestWorktreeCleanCommand_Interface(t *testing.T) {
+	t.Parallel()
 	cmd := NewWorktreeCleanCommand()
 
 	assert.Equal(t, "clean", cmd.Name())
@@ -17,6 +18,7 @@ func TestWorktreeCleanCommand_Interface(t *testing.T) {
 }
 
 func TestWorktreeCleanCommand_SetupFlags(t *testing.T) {
+	t.Parallel()
 	cmd := &WorktreeCleanCommand{}
 	fs := flag.NewFlagSet("test", flag.ContinueOnError)
 
@@ -27,6 +29,7 @@ func TestWorktreeCleanCommand_SetupFlags(t *testing.T) {
 }
 
 func TestWorktreeCleanCommand_Validate(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name        string
 		flags       interface{}

@@ -10,6 +10,7 @@ import (
 )
 
 func TestWorktreeCommand_Interface(t *testing.T) {
+	t.Parallel()
 	cmd := NewWorktreeCommand()
 
 	assert.Equal(t, "worktree", cmd.Name())
@@ -19,6 +20,7 @@ func TestWorktreeCommand_Interface(t *testing.T) {
 }
 
 func TestWorktreeCommand_SetupFlags(t *testing.T) {
+	t.Parallel()
 	cmd := &WorktreeCommand{}
 	fs := flag.NewFlagSet("test", flag.ContinueOnError)
 
@@ -29,6 +31,7 @@ func TestWorktreeCommand_SetupFlags(t *testing.T) {
 }
 
 func TestWorktreeCommand_Validate(t *testing.T) {
+	t.Parallel()
 	cmd := &WorktreeCommand{}
 
 	// Validate doesn't perform validation for parent command
@@ -43,6 +46,7 @@ func TestWorktreeCommand_Validate(t *testing.T) {
 }
 
 func TestWorktreeCommand_Execute(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name        string
 		args        []string

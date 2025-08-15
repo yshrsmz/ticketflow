@@ -8,6 +8,7 @@ import (
 )
 
 func TestWorktreeListCommand_Interface(t *testing.T) {
+	t.Parallel()
 	cmd := NewWorktreeListCommand()
 
 	assert.Equal(t, "list", cmd.Name())
@@ -17,6 +18,7 @@ func TestWorktreeListCommand_Interface(t *testing.T) {
 }
 
 func TestWorktreeListCommand_SetupFlags(t *testing.T) {
+	t.Parallel()
 	cmd := &WorktreeListCommand{}
 	fs := flag.NewFlagSet("test", flag.ContinueOnError)
 
@@ -32,6 +34,7 @@ func TestWorktreeListCommand_SetupFlags(t *testing.T) {
 }
 
 func TestWorktreeListCommand_Validate(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name        string
 		flags       interface{}
@@ -91,6 +94,7 @@ func TestWorktreeListCommand_Validate(t *testing.T) {
 }
 
 func TestWorktreeListCommand_ValidateFormatOverride(t *testing.T) {
+	t.Parallel()
 	cmd := &WorktreeListCommand{}
 
 	// Test that short form overrides long form

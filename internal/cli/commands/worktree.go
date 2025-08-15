@@ -8,6 +8,11 @@ import (
 	"github.com/yshrsmz/ticketflow/internal/command"
 )
 
+const (
+	// errUnknownSubcommand is the error message for unknown worktree subcommands
+	errUnknownSubcommand = "unknown worktree subcommand: %s"
+)
+
 // WorktreeCommand implements the worktree parent command using the new Command interface
 type WorktreeCommand struct {
 	subcommands map[string]command.Command
@@ -67,7 +72,7 @@ func (c *WorktreeCommand) Execute(ctx context.Context, flags interface{}, args [
 	subcmd, ok := c.subcommands[subcmdName]
 	if !ok {
 		c.printUsage()
-		return fmt.Errorf("unknown worktree subcommand: %s", subcmdName)
+		return fmt.Errorf(errUnknownSubcommand, subcmdName)
 	}
 
 	// Parse flags for the subcommand
