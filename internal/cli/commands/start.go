@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/yshrsmz/ticketflow/internal/cli"
 	"github.com/yshrsmz/ticketflow/internal/command"
 )
 
@@ -107,7 +106,7 @@ func (c *StartCommand) Execute(ctx context.Context, flags interface{}, args []st
 	}
 
 	// Create App instance with dependencies
-	app, err := cli.NewApp(ctx)
+	app, err := getApp(ctx)
 	if err != nil {
 		return err
 	}
@@ -117,6 +116,11 @@ func (c *StartCommand) Execute(ctx context.Context, flags interface{}, args []st
 	f, ok := flags.(*startFlags)
 	if !ok {
 		return fmt.Errorf("invalid flags type: expected *startFlags, got %T", flags)
+	}
+
+	// Check args length for defensive programming (in case Execute is called without Validate)
+	if len(args) < 1 {
+		return fmt.Errorf("missing ticket argument")
 	}
 
 	// Get the ticket ID from the first positional argument

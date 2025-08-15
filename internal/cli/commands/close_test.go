@@ -265,7 +265,7 @@ func TestCloseCommand_Execute_Mock(t *testing.T) {
 }
 
 // Test helper functions
-func TestCloseCommand_OutputHelpers(t *testing.T) {
+func TestCloseCommand_OutputHelpers_Legacy(t *testing.T) {
 	t.Parallel()
 
 	t.Run("outputCloseErrorJSON formats error correctly", func(t *testing.T) {
