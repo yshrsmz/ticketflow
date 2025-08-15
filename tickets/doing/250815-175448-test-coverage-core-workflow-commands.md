@@ -1,11 +1,11 @@
 ---
 priority: 1
-description: "Improve test coverage for core workflow commands (start and close)"
+description: Improve test coverage for core workflow commands (start and close)
 created_at: "2025-08-15T17:54:48+09:00"
-started_at: null
+started_at: "2025-08-15T18:13:29+09:00"
 closed_at: null
 related:
-    - "parent:250815-171607-improve-command-test-coverage"
+    - parent:250815-171607-improve-command-test-coverage
 ---
 
 # Test Coverage: Core Workflow Commands
