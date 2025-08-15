@@ -23,11 +23,19 @@ Improve test coverage for maintenance and utility commands that already have par
 - Achieve at least 70% coverage for all Execute methods
 - Focus on uncovered error paths and edge cases
 
+## Important Note: Testing Strategy Update
+**Based on learnings from 250815-175448-test-coverage-core-workflow-commands:**
+- Use integration tests with test harness instead of mock-heavy unit tests
+- Leverage the `testharness` package created in the first sub-ticket
+- Test real behavior with actual git repos and file operations
+- See CLAUDE.md for updated testing guidelines
+
 ## Tasks
 
 ### Setup
 - [ ] Analyze existing tests to identify coverage gaps
-- [ ] Reuse test utilities from other test improvement tickets
+- [ ] Use the test harness from `internal/cli/commands/testharness/`
+- [ ] Follow integration testing patterns established in the first sub-ticket
 
 ### Cleanup Command Tests
 - [ ] Review existing 63.6% coverage to identify gaps

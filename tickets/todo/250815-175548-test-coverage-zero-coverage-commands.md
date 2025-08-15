@@ -25,11 +25,18 @@ Add comprehensive test coverage for commands that currently have 0% Execute meth
 - Achieve at least 70% coverage for all Execute methods
 - Cover all major code paths and error scenarios
 
+## Important Note: Testing Strategy Update
+**Based on learnings from 250815-175448-test-coverage-core-workflow-commands:**
+- Use integration tests with test harness instead of mock-heavy unit tests
+- Leverage the `testharness` package created in the first sub-ticket
+- Test real behavior with actual git repos and file operations
+- See CLAUDE.md for updated testing guidelines
+
 ## Tasks
 
 ### Setup
-- [ ] Review existing test patterns from well-tested commands (list, version, help)
-- [ ] Reuse test utilities created in the core workflow ticket if available
+- [ ] Review the new test harness in `internal/cli/commands/testharness/`
+- [ ] Follow integration testing patterns from close_integration_test.go and start_integration_test.go
 
 ### New Command Tests
 - [ ] Test successful ticket creation with valid slug
