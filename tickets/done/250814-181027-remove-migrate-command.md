@@ -3,7 +3,7 @@ priority: 2
 description: Remove deprecated migrate command from codebase
 created_at: "2025-08-14T18:10:27+09:00"
 started_at: "2025-08-14T18:19:39+09:00"
-closed_at: null
+closed_at: "2025-08-15T10:11:07+09:00"
 related:
     - parent:250812-152927-migrate-remaining-commands
 ---
