@@ -34,7 +34,7 @@ func TestNewCommand_Execute_Integration(t *testing.T) {
 				// Find the created ticket file
 				files, err := os.ReadDir(env.RootDir + "/tickets/todo")
 				require.NoError(t, err)
-				
+
 				var ticketFound bool
 				for _, file := range files {
 					if strings.Contains(file.Name(), "test-feature") {
@@ -62,7 +62,7 @@ func TestNewCommand_Execute_Integration(t *testing.T) {
 				// Find the created ticket
 				files, err := os.ReadDir(env.RootDir + "/tickets/todo")
 				require.NoError(t, err)
-				
+
 				for _, file := range files {
 					if strings.Contains(file.Name(), "child-feature") {
 						content := env.ReadFile("tickets/todo/" + file.Name())
@@ -83,7 +83,7 @@ func TestNewCommand_Execute_Integration(t *testing.T) {
 			validate: func(t *testing.T, env *testharness.TestEnvironment) {
 				files, err := os.ReadDir(env.RootDir + "/tickets/todo")
 				require.NoError(t, err)
-				
+
 				for _, file := range files {
 					if strings.Contains(file.Name(), "another-child") {
 						content := env.ReadFile("tickets/todo/" + file.Name())
@@ -104,7 +104,7 @@ func TestNewCommand_Execute_Integration(t *testing.T) {
 				// Verify ticket was created
 				files, err := os.ReadDir(env.RootDir + "/tickets/todo")
 				require.NoError(t, err)
-				
+
 				var found bool
 				for _, file := range files {
 					if strings.Contains(file.Name(), "json-ticket") {
@@ -125,7 +125,7 @@ func TestNewCommand_Execute_Integration(t *testing.T) {
 			validate: func(t *testing.T, env *testharness.TestEnvironment) {
 				files, err := os.ReadDir(env.RootDir + "/tickets/todo")
 				require.NoError(t, err)
-				
+
 				var found bool
 				for _, file := range files {
 					if strings.Contains(file.Name(), "short-format-ticket") {
@@ -152,14 +152,14 @@ func TestNewCommand_Execute_Integration(t *testing.T) {
 				// Create a ticket with a specific ID pattern
 				env.CreateTicket("250101-120000-duplicate-test", ticket.StatusTodo)
 			},
-			args:          []string{"duplicate-test"},
-			flags:         map[string]string{"format": "text"},
-			wantError:     false, // This will create a new ticket with different timestamp
+			args:      []string{"duplicate-test"},
+			flags:     map[string]string{"format": "text"},
+			wantError: false, // This will create a new ticket with different timestamp
 			validate: func(t *testing.T, env *testharness.TestEnvironment) {
 				// Should create a new ticket with different timestamp
 				files, err := os.ReadDir(env.RootDir + "/tickets/todo")
 				require.NoError(t, err)
-				
+
 				count := 0
 				for _, file := range files {
 					if strings.Contains(file.Name(), "duplicate-test") {
@@ -225,7 +225,7 @@ description: "Feature template"
 - [ ] Design
 - [ ] Implementation
 - [ ] Testing`)
-				
+
 				// Note: Templates configuration is not available in config struct
 				// This test is for future template support
 			},
@@ -236,7 +236,7 @@ description: "Feature template"
 				// For now, just verify ticket was created
 				files, err := os.ReadDir(env.RootDir + "/tickets/todo")
 				require.NoError(t, err)
-				
+
 				var found bool
 				for _, file := range files {
 					if strings.Contains(file.Name(), "templated-ticket") {
@@ -256,14 +256,14 @@ description: "Feature template"
 			args: []string{"mixed-flags-ticket"},
 			flags: map[string]string{
 				"format":      "text",
-				"formatShort": "json",  // Short form takes precedence
+				"formatShort": "json", // Short form takes precedence
 				"parent":      "parent-long",
 				"parentShort": "parent-short", // Short form takes precedence
 			},
 			validate: func(t *testing.T, env *testharness.TestEnvironment) {
 				files, err := os.ReadDir(env.RootDir + "/tickets/todo")
 				require.NoError(t, err)
-				
+
 				for _, file := range files {
 					if strings.Contains(file.Name(), "mixed-flags-ticket") {
 						content := env.ReadFile("tickets/todo/" + file.Name())

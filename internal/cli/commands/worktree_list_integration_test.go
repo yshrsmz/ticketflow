@@ -30,7 +30,7 @@ func TestWorktreeListCommand_Execute_Integration(t *testing.T) {
 				env.CreateTicket("todo-ticket", ticket.StatusTodo)
 				env.CreateTicket("doing-ticket", ticket.StatusDoing)
 				env.CreateTicket("done-ticket", ticket.StatusDone)
-				
+
 				// Create branches and worktrees
 				env.RunGit("checkout", "-b", "todo-ticket")
 				env.RunGit("checkout", "main")
@@ -38,7 +38,7 @@ func TestWorktreeListCommand_Execute_Integration(t *testing.T) {
 				env.RunGit("checkout", "main")
 				env.RunGit("checkout", "-b", "done-ticket")
 				env.RunGit("checkout", "main")
-				
+
 				worktreeBase := filepath.Join(filepath.Dir(env.RootDir), "test-worktrees")
 				env.RunGit("worktree", "add", filepath.Join(worktreeBase, "todo-ticket"), "todo-ticket")
 				env.RunGit("worktree", "add", filepath.Join(worktreeBase, "doing-ticket"), "doing-ticket")
@@ -60,12 +60,12 @@ func TestWorktreeListCommand_Execute_Integration(t *testing.T) {
 				// Create a couple of tickets with worktrees
 				env.CreateTicket("json-ticket-1", ticket.StatusDoing)
 				env.CreateTicket("json-ticket-2", ticket.StatusTodo)
-				
+
 				env.RunGit("checkout", "-b", "json-ticket-1")
 				env.RunGit("checkout", "main")
 				env.RunGit("checkout", "-b", "json-ticket-2")
 				env.RunGit("checkout", "main")
-				
+
 				worktreeBase := filepath.Join(filepath.Dir(env.RootDir), "test-worktrees")
 				env.RunGit("worktree", "add", filepath.Join(worktreeBase, "json-ticket-1"), "json-ticket-1")
 				env.RunGit("worktree", "add", filepath.Join(worktreeBase, "json-ticket-2"), "json-ticket-2")
@@ -85,7 +85,7 @@ func TestWorktreeListCommand_Execute_Integration(t *testing.T) {
 				env.CreateTicket("short-flag-ticket", ticket.StatusDoing)
 				env.RunGit("checkout", "-b", "short-flag-ticket")
 				env.RunGit("checkout", "main")
-				
+
 				worktreeBase := filepath.Join(filepath.Dir(env.RootDir), "test-worktrees")
 				env.RunGit("worktree", "add", filepath.Join(worktreeBase, "short-flag-ticket"), "short-flag-ticket")
 			},
@@ -137,7 +137,7 @@ func TestWorktreeListCommand_Execute_Integration(t *testing.T) {
 				env.CreateTicket("default-format-ticket", ticket.StatusDoing)
 				env.RunGit("checkout", "-b", "default-format-ticket")
 				env.RunGit("checkout", "main")
-				
+
 				worktreeBase := filepath.Join(filepath.Dir(env.RootDir), "test-worktrees")
 				env.RunGit("worktree", "add", filepath.Join(worktreeBase, "default-format-ticket"), "default-format-ticket")
 			},
@@ -155,12 +155,12 @@ func TestWorktreeListCommand_Execute_Integration(t *testing.T) {
 				env.CreateTicket("alpha-ticket", ticket.StatusTodo)
 				env.CreateTicket("beta-ticket", ticket.StatusDoing)
 				env.CreateTicket("gamma-ticket", ticket.StatusDone)
-				
+
 				// Create branches and worktrees
 				for _, ticketID := range []string{"alpha-ticket", "beta-ticket", "gamma-ticket"} {
 					env.RunGit("checkout", "-b", ticketID)
 					env.RunGit("checkout", "main")
-					
+
 					worktreeBase := filepath.Join(filepath.Dir(env.RootDir), "test-worktrees")
 					env.RunGit("worktree", "add", filepath.Join(worktreeBase, ticketID), ticketID)
 				}
@@ -205,7 +205,7 @@ func TestWorktreeListCommand_Execute_Integration(t *testing.T) {
 					format:      tt.flags["format"],
 					formatShort: tt.flags["formatShort"],
 				}
-				
+
 				// Validate flags before execution
 				if err := cmd.Validate(listFlags, tt.args); err != nil {
 					if tt.wantError {
@@ -217,7 +217,7 @@ func TestWorktreeListCommand_Execute_Integration(t *testing.T) {
 					}
 					require.NoError(t, err)
 				}
-				
+
 				flags = listFlags
 			}
 
@@ -232,7 +232,7 @@ func TestWorktreeListCommand_Execute_Integration(t *testing.T) {
 				// it might have been caught in Validate above
 				return
 			}
-			
+
 			if tt.wantError {
 				require.Error(t, err)
 				if tt.errorContains != "" {
@@ -288,7 +288,7 @@ func TestWorktreeListCommand_Execute_NilFlags(t *testing.T) {
 	cmd := NewWorktreeListCommand()
 	ctx := context.Background()
 	err = cmd.Execute(ctx, nil, []string{})
-	
+
 	// Should work with default format
 	require.NoError(t, err)
 }

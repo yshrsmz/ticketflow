@@ -29,14 +29,14 @@ func TestRestoreCommand_Execute_Integration(t *testing.T) {
 				// Create a ticket in doing status
 				env.CreateTicket("restore-ticket-001", ticket.StatusDoing,
 					testharness.WithContent("Test ticket for restore"))
-				
+
 				// Switch to the ticket branch (simulate being in a worktree)
 				env.RunGit("checkout", "-b", "restore-ticket-001")
-				
+
 				// Remove the symlink to simulate it being missing
 				symlinkPath := filepath.Join(env.RootDir, "current-ticket.md")
 				os.Remove(symlinkPath)
-				
+
 				// Verify symlink is gone
 				require.False(t, env.FileExists("current-ticket.md"))
 			},
@@ -45,7 +45,7 @@ func TestRestoreCommand_Execute_Integration(t *testing.T) {
 			validate: func(t *testing.T, env *testharness.TestEnvironment) {
 				// Verify symlink was restored
 				assert.True(t, env.FileExists("current-ticket.md"))
-				
+
 				// Verify symlink points to correct ticket
 				symlinkPath := filepath.Join(env.RootDir, "current-ticket.md")
 				target, err := os.Readlink(symlinkPath)
@@ -58,10 +58,10 @@ func TestRestoreCommand_Execute_Integration(t *testing.T) {
 			setup: func(env *testharness.TestEnvironment) {
 				env.CreateTicket("json-restore-ticket", ticket.StatusDoing,
 					testharness.WithContent("JSON output test"))
-				
+
 				// Switch to the ticket branch
 				env.RunGit("checkout", "-b", "json-restore-ticket")
-				
+
 				// Remove the symlink
 				symlinkPath := filepath.Join(env.RootDir, "current-ticket.md")
 				os.Remove(symlinkPath)
@@ -77,10 +77,10 @@ func TestRestoreCommand_Execute_Integration(t *testing.T) {
 			name: "restore with short format flag",
 			setup: func(env *testharness.TestEnvironment) {
 				env.CreateTicket("short-format-ticket", ticket.StatusDoing)
-				
+
 				// Switch to the ticket branch
 				env.RunGit("checkout", "-b", "short-format-ticket")
-				
+
 				// Remove the symlink
 				symlinkPath := filepath.Join(env.RootDir, "current-ticket.md")
 				os.Remove(symlinkPath)
@@ -98,10 +98,10 @@ func TestRestoreCommand_Execute_Integration(t *testing.T) {
 				env.CreateTicket("parent-ticket", ticket.StatusTodo)
 				env.CreateTicket("child-restore-ticket", ticket.StatusDoing,
 					testharness.WithParent("parent-ticket"))
-				
+
 				// Switch to the child ticket branch
 				env.RunGit("checkout", "-b", "child-restore-ticket")
-				
+
 				// Remove the symlink
 				symlinkPath := filepath.Join(env.RootDir, "current-ticket.md")
 				os.Remove(symlinkPath)
@@ -111,7 +111,7 @@ func TestRestoreCommand_Execute_Integration(t *testing.T) {
 			validate: func(t *testing.T, env *testharness.TestEnvironment) {
 				// Verify symlink was restored
 				assert.True(t, env.FileExists("current-ticket.md"))
-				
+
 				// Verify symlink points to child ticket
 				symlinkPath := filepath.Join(env.RootDir, "current-ticket.md")
 				target, err := os.Readlink(symlinkPath)
@@ -124,10 +124,10 @@ func TestRestoreCommand_Execute_Integration(t *testing.T) {
 			setup: func(env *testharness.TestEnvironment) {
 				// Create a ticket in doing status - this automatically creates the symlink
 				env.CreateTicket("existing-symlink-ticket", ticket.StatusDoing)
-				
+
 				// Switch to the ticket branch
 				env.RunGit("checkout", "-b", "existing-symlink-ticket")
-				
+
 				// Verify symlink already exists
 				require.True(t, env.FileExists("current-ticket.md"))
 			},
@@ -176,14 +176,14 @@ func TestRestoreCommand_Execute_Integration(t *testing.T) {
 			setup: func(env *testharness.TestEnvironment) {
 				// Create multiple tickets in doing status
 				env.CreateTicket("doing-ticket-1", ticket.StatusDoing)
-				
+
 				// Switch to first ticket branch
 				env.RunGit("checkout", "-b", "doing-ticket-1")
-				
+
 				// Remove symlink and manually create another doing ticket
 				symlinkPath := filepath.Join(env.RootDir, "current-ticket.md")
 				os.Remove(symlinkPath)
-				
+
 				// Create second ticket directly without symlink
 				env.WriteFile("tickets/doing/doing-ticket-2.md", `---
 priority: 1
@@ -201,7 +201,7 @@ Content`)
 			validate: func(t *testing.T, env *testharness.TestEnvironment) {
 				// Should restore symlink to the current branch ticket (doing-ticket-1)
 				assert.True(t, env.FileExists("current-ticket.md"))
-				
+
 				// Verify symlink points to doing-ticket-1 (current branch)
 				symlinkPath := filepath.Join(env.RootDir, "current-ticket.md")
 				target, err := os.Readlink(symlinkPath)
