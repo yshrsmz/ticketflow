@@ -253,44 +253,32 @@ func TestWorktreeListCommand_Execute_Integration(t *testing.T) {
 func TestWorktreeListCommand_Execute_ContextCancellation(t *testing.T) {
 	env := testharness.NewTestEnvironment(t)
 
-	// Change to test directory
-	oldWd, err := os.Getwd()
-	require.NoError(t, err)
-	defer func() {
-		require.NoError(t, os.Chdir(oldWd))
-	}()
-	require.NoError(t, os.Chdir(env.RootDir))
+	env.WithWorkingDirectory(t, func() {
+		// Create a cancelled context
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel()
 
-	// Create a cancelled context
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel()
-
-	// Execute command with cancelled context
-	cmd := NewWorktreeListCommand()
-	listFlags := &worktreeListFlags{format: "text"}
-	err = cmd.Execute(ctx, listFlags, []string{})
-	require.Error(t, err)
-	// When context is cancelled, git commands fail with "Not in a git repository"
-	// because the git command exits immediately without proper error propagation
-	assert.Contains(t, err.Error(), "Not in a git repository")
+		// Execute command with cancelled context
+		cmd := NewWorktreeListCommand()
+		listFlags := &worktreeListFlags{format: "text"}
+		err := cmd.Execute(ctx, listFlags, []string{})
+		require.Error(t, err)
+		// When context is cancelled, git commands fail with "Not in a git repository"
+		// because the git command exits immediately without proper error propagation
+		assert.Contains(t, err.Error(), "Not in a git repository")
+	})
 }
 
 func TestWorktreeListCommand_Execute_NilFlags(t *testing.T) {
 	env := testharness.NewTestEnvironment(t)
 
-	// Change to test directory
-	oldWd, err := os.Getwd()
-	require.NoError(t, err)
-	defer func() {
-		require.NoError(t, os.Chdir(oldWd))
-	}()
-	require.NoError(t, os.Chdir(env.RootDir))
+	env.WithWorkingDirectory(t, func() {
+		// Execute command with nil flags - should use defaults
+		cmd := NewWorktreeListCommand()
+		ctx := context.Background()
+		err := cmd.Execute(ctx, nil, []string{})
 
-	// Execute command with nil flags - should use defaults
-	cmd := NewWorktreeListCommand()
-	ctx := context.Background()
-	err = cmd.Execute(ctx, nil, []string{})
-
-	// Should work with default format
-	require.NoError(t, err)
+		// Should work with default format
+		require.NoError(t, err)
+	})
 }
