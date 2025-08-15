@@ -34,19 +34,39 @@ Increase test coverage for command Execute methods. Current overall coverage is 
 - `help.go` Execute: 100.0%
 - `init.go` Execute: 100.0%
 
+## Status Update
+
+After analysis, this ticket was determined to be too large for a single implementation (estimated 5-7 days of work). It has been split into three manageable sub-tickets:
+
+### Sub-tickets Created
+
+1. **250815-175448-test-coverage-core-workflow-commands** (Priority 1)
+   - Focus: `start` (43.8%) and `close` (29.2%) commands
+   - Critical workflow commands that need immediate attention
+   - Estimated: 2 days
+
+2. **250815-175548-test-coverage-zero-coverage-commands** (Priority 2)
+   - Focus: `new`, `restore`, `show`, `worktree_clean`, `worktree_list` (all at 0%)
+   - Commands with zero coverage need comprehensive testing
+   - Estimated: 2-3 days
+
+3. **250815-175624-test-coverage-maintenance-commands** (Priority 3)
+   - Focus: `cleanup` (63.6%), `worktree` (53.3%), `status` (70.0%)
+   - Commands with partial coverage need improvement
+   - Estimated: 1-2 days
+
 ## Tasks
 
-- [ ] Add Execute method tests for `new` command
-- [ ] Add Execute method tests for `restore` command
-- [ ] Add Execute method tests for `show` command
-- [ ] Add Execute method tests for `worktree_clean` command
-- [ ] Add Execute method tests for `worktree_list` command
-- [ ] Improve Execute method tests for `close` command
-- [ ] Improve Execute method tests for `start` command
-- [ ] Improve Execute method tests for `cleanup` command
-- [ ] Run `make coverage` to verify improvement
-- [ ] Aim for at least 70% coverage for all Execute methods
-- [ ] Document any untestable code paths
+- [x] Analyze scope and determine if ticket should be split
+- [x] Create sub-ticket for core workflow commands (start, close)
+- [x] Create sub-ticket for zero coverage commands
+- [x] Create sub-ticket for maintenance commands
+- [ ] Complete sub-ticket: 250815-175448-test-coverage-core-workflow-commands
+- [ ] Complete sub-ticket: 250815-175548-test-coverage-zero-coverage-commands
+- [ ] Complete sub-ticket: 250815-175624-test-coverage-maintenance-commands
+- [ ] Run `make coverage` to verify overall improvement
+- [ ] Verify all Execute methods have at least 70% coverage
+- [ ] Close parent ticket after all sub-tickets complete
 
 ## Testing Strategy
 
