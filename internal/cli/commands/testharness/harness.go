@@ -38,15 +38,30 @@ func NewTestEnvironment(t *testing.T) *TestEnvironment {
 		ctx:        context.Background(),
 	}
 
-	// Initialize git repo
-	env.RunGit("init")
-	env.RunGit("config", "user.name", "Test User")
-	env.RunGit("config", "user.email", "test@example.com")
-
-	// Create initial commit to have a valid HEAD
-	env.WriteFile("README.md", "# Test Repository")
-	env.RunGit("add", "README.md")
-	env.RunGit("commit", "-m", "Initial commit")
+	// Initialize git repo with explicit main branch
+	// Use -b flag to set initial branch name (git 2.28+) or fall back to renaming
+	cmd := exec.Command("git", "init", "-b", "main")
+	cmd.Dir = tmpDir
+	if err := cmd.Run(); err != nil {
+		// Fallback for older git versions: init then rename branch
+		env.RunGit("init")
+		// Create initial commit first (can't rename empty branch)
+		env.WriteFile("README.md", "# Test Repository")
+		env.RunGit("add", "README.md")
+		env.RunGit("config", "user.name", "Test User")
+		env.RunGit("config", "user.email", "test@example.com")
+		env.RunGit("commit", "-m", "Initial commit")
+		// Now rename the branch to main
+		env.RunGit("branch", "-M", "main")
+	} else {
+		// Successfully created with main branch, now configure
+		env.RunGit("config", "user.name", "Test User")
+		env.RunGit("config", "user.email", "test@example.com")
+		// Create initial commit to have a valid HEAD
+		env.WriteFile("README.md", "# Test Repository")
+		env.RunGit("add", "README.md")
+		env.RunGit("commit", "-m", "Initial commit")
+	}
 
 	// Create ticket directories
 	ticketsDir := filepath.Join(tmpDir, "tickets")
@@ -98,14 +113,14 @@ func (e *TestEnvironment) RunGit(args ...string) string {
 func (e *TestEnvironment) WriteFile(path, content string) {
 	e.t.Helper()
 	fullPath := filepath.Join(e.RootDir, path)
-	
+
 	// Ensure the resolved path is within RootDir to prevent directory traversal
 	cleanPath, err := filepath.Abs(fullPath)
 	require.NoError(e.t, err)
 	if !strings.HasPrefix(cleanPath, e.RootDir) {
 		e.t.Fatalf("path %q escapes test directory", path)
 	}
-	
+
 	dir := filepath.Dir(fullPath)
 	require.NoError(e.t, os.MkdirAll(dir, 0755))
 	require.NoError(e.t, os.WriteFile(fullPath, []byte(content), 0644))
@@ -228,6 +243,11 @@ func (e *TestEnvironment) CreateWorktree(ticketID string) {
 	branches := e.RunGit("branch", "--list", ticketID)
 	if !strings.Contains(branches, ticketID) {
 		// Create branch only if it doesn't exist
+		// First ensure we're on main branch
+		currentBranch := e.GetCurrentBranch()
+		if currentBranch != "main" {
+			e.RunGit("checkout", "main")
+		}
 		e.RunGit("checkout", "-b", ticketID)
 		e.RunGit("checkout", "main")
 	}
