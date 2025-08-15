@@ -3,7 +3,7 @@ priority: 3
 description: Finalize command interface migration by removing dead code and updating docs
 created_at: "2025-08-12T15:29:27+09:00"
 started_at: "2025-08-15T15:12:39+09:00"
-closed_at: null
+closed_at: "2025-08-15T17:25:40+09:00"
 related:
     - parent:250810-003001-refactor-command-interface
     - blocks:250812-152824-migrate-help-command
