@@ -4,7 +4,15 @@
 
 This guide documents the migration from the switch-based command system to the new Command interface.
 
-## New Architecture
+## Previous Architecture
+
+The system previously used:
+1. A large switch statement in `main.go` (lines 143-328)
+2. A `Command` struct in `cmd/ticketflow/command.go` 
+3. The `parseAndExecute` function to handle common patterns
+4. Handler functions like `handleNew`, `handleList`, etc. in `internal/cli/commands.go`
+
+## Current Architecture
 
 The system now uses:
 1. A Command interface in `internal/command/interface.go`
