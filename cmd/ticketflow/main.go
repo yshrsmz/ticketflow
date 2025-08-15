@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"os"
 	"os/signal"
@@ -99,6 +98,13 @@ func init() {
 		// This should never happen in practice but we handle it gracefully
 		fmt.Fprintf(os.Stderr, "Warning: failed to register restore command: %v\n", err)
 	}
+
+	// Register worktree command
+	if err := commandRegistry.Register(commands.NewWorktreeCommand()); err != nil {
+		// Log error but continue - allow program to run with degraded functionality
+		// This should never happen in practice but we handle it gracefully
+		fmt.Fprintf(os.Stderr, "Warning: failed to register worktree command: %v\n", err)
+	}
 }
 
 func main() {
@@ -187,54 +193,8 @@ func runCLI(ctx context.Context) error {
 		return executeNewCommand(ctx, cmd, os.Args[2:])
 	}
 
-	// Fall back to old switch statement for unmigrated commands
-	switch os.Args[1] {
-
-	case "worktree":
-		if len(os.Args) < 3 {
-			printWorktreeUsage()
-			return nil
-		}
-		return parseAndExecute(ctx, Command{
-			Name: "worktree",
-			Execute: func(ctx context.Context, fs *flag.FlagSet, flags interface{}) error {
-				return handleWorktree(ctx, os.Args[2], fs.Args())
-			},
-		}, os.Args[3:])
-
-	// cleanup command has been migrated to the registry
-	// help command has been migrated to the registry
-	// Handled above with aliases
-	// version command has been migrated to the registry
-	// Handled above with aliases
-
-	default:
-		return fmt.Errorf("unknown command: %s", os.Args[1])
-	}
-}
-
-func handleWorktree(ctx context.Context, subcommand string, args []string) error {
-	app, err := cli.NewApp(ctx)
-	if err != nil {
-		return err
-	}
-
-	switch subcommand {
-	case "list":
-		format := "text"
-		if len(args) > 0 && args[0] == "--format" && len(args) > 1 {
-			format = args[1]
-		}
-		outputFormat := cli.ParseOutputFormat(format)
-		return app.ListWorktrees(ctx, outputFormat)
-
-	case "clean":
-		return app.CleanWorktrees(ctx)
-
-	default:
-		printWorktreeUsage()
-		return fmt.Errorf("unknown worktree subcommand: %s", subcommand)
-	}
+	// All commands have been migrated to the registry
+	return fmt.Errorf("unknown command: %s", os.Args[1])
 }
 
 func isValidStatus(status ticket.Status) bool {
@@ -244,28 +204,4 @@ func isValidStatus(status ticket.Status) bool {
 	default:
 		return false
 	}
-}
-
-func printWorktreeUsage() {
-	fmt.Println(`TicketFlow Worktree Management
-
-USAGE:
-  ticketflow worktree list [--format json]   List all worktrees
-  ticketflow worktree clean                   Remove orphaned worktrees
-
-DESCRIPTION:
-  The worktree command manages git worktrees associated with tickets.
-
-  list    Shows all worktrees with their paths, branches, and HEAD commits
-  clean   Removes worktrees that don't have corresponding active tickets
-
-EXAMPLES:
-  # List all worktrees
-  ticketflow worktree list
-
-  # List worktrees in JSON format
-  ticketflow worktree list --format json
-
-  # Clean up orphaned worktrees
-  ticketflow worktree clean`)
 }
