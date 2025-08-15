@@ -1,8 +1,8 @@
 ---
 priority: 3
-description: "Migrate worktree command with subcommands to new Command interface"
+description: Migrate worktree command with subcommands to new Command interface
 created_at: "2025-08-14T18:11:47+09:00"
-started_at: null
+started_at: "2025-08-15T10:41:24+09:00"
 closed_at: null
 related:
     - parent:250812-152927-migrate-remaining-commands
