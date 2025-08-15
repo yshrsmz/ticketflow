@@ -9,6 +9,12 @@ import (
 	"github.com/yshrsmz/ticketflow/internal/command"
 )
 
+// Output format constants
+const (
+	formatText = "text"
+	formatJSON = "json"
+)
+
 // WorktreeListCommand implements the worktree list subcommand
 type WorktreeListCommand struct{}
 
@@ -46,8 +52,8 @@ type worktreeListFlags struct {
 // SetupFlags configures the flag set for this command
 func (c *WorktreeListCommand) SetupFlags(fs *flag.FlagSet) interface{} {
 	flags := &worktreeListFlags{}
-	fs.StringVar(&flags.format, "format", "text", "Output format (text, json)")
-	fs.StringVar(&flags.formatShort, "o", "text", "Output format (text, json)")
+	fs.StringVar(&flags.format, "format", formatText, "Output format (text, json)")
+	fs.StringVar(&flags.formatShort, "o", formatText, "Output format (text, json)")
 	return flags
 }
 
@@ -66,13 +72,13 @@ func (c *WorktreeListCommand) Validate(flags interface{}, args []string) error {
 	f := flags.(*worktreeListFlags)
 
 	// Handle short form
-	if f.formatShort != "" && f.formatShort != "text" {
+	if f.formatShort != "" && f.formatShort != formatText {
 		f.format = f.formatShort
 	}
 
-	// Validate format (empty string defaults to "text" which is valid)
-	if f.format != "" && f.format != "text" && f.format != "json" {
-		return fmt.Errorf("invalid format: %s (must be 'text' or 'json')", f.format)
+	// Validate format (empty string defaults to text which is valid)
+	if f.format != "" && f.format != formatText && f.format != formatJSON {
+		return fmt.Errorf("invalid format: %s (must be '%s' or '%s')", f.format, formatText, formatJSON)
 	}
 
 	return nil
@@ -81,7 +87,7 @@ func (c *WorktreeListCommand) Validate(flags interface{}, args []string) error {
 // Execute runs the command with the given context
 func (c *WorktreeListCommand) Execute(ctx context.Context, flags interface{}, args []string) error {
 	// Default format
-	format := "text"
+	format := formatText
 
 	if flags != nil {
 		f := flags.(*worktreeListFlags)
