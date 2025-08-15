@@ -11,7 +11,7 @@ import (
 
 func TestCleanupCommand_Interface(t *testing.T) {
 	cmd := NewCleanupCommand()
-	
+
 	assert.Equal(t, "cleanup", cmd.Name())
 	assert.Nil(t, cmd.Aliases())
 	assert.Equal(t, "Clean up worktrees and branches", cmd.Description())
@@ -21,13 +21,13 @@ func TestCleanupCommand_Interface(t *testing.T) {
 func TestCleanupCommand_SetupFlags(t *testing.T) {
 	cmd := &CleanupCommand{}
 	fs := flag.NewFlagSet("test", flag.ContinueOnError)
-	
+
 	flags := cmd.SetupFlags(fs)
-	
+
 	// Verify flags is of correct type
 	_, ok := flags.(*cleanupFlags)
 	assert.True(t, ok, "SetupFlags should return *cleanupFlags")
-	
+
 	// Verify flags are registered
 	assert.NotNil(t, fs.Lookup("dry-run"))
 	assert.NotNil(t, fs.Lookup("force"))
@@ -38,10 +38,10 @@ func TestCleanupCommand_SetupFlags(t *testing.T) {
 
 func TestCleanupCommand_Validate(t *testing.T) {
 	tests := []struct {
-		name      string
-		flags     interface{}
-		args      []string
-		wantErr   bool
+		name        string
+		flags       interface{}
+		args        []string
+		wantErr     bool
 		errContains string
 	}{
 		{
@@ -75,31 +75,31 @@ func TestCleanupCommand_Validate(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "invalid format",
-			flags:   &cleanupFlags{format: "yaml"},
-			args:    []string{},
-			wantErr: true,
+			name:        "invalid format",
+			flags:       &cleanupFlags{format: "yaml"},
+			args:        []string{},
+			wantErr:     true,
 			errContains: "invalid format",
 		},
 		{
-			name:    "dry-run with ticket ID not allowed",
-			flags:   &cleanupFlags{dryRun: true, format: "text"},
-			args:    []string{"ticket-123"},
-			wantErr: true,
+			name:        "dry-run with ticket ID not allowed",
+			flags:       &cleanupFlags{dryRun: true, format: "text"},
+			args:        []string{"ticket-123"},
+			wantErr:     true,
 			errContains: "--dry-run cannot be used when cleaning up a specific ticket",
 		},
 		{
-			name:    "too many arguments",
-			flags:   &cleanupFlags{format: "text"},
-			args:    []string{"ticket-123", "extra"},
-			wantErr: true,
+			name:        "too many arguments",
+			flags:       &cleanupFlags{format: "text"},
+			args:        []string{"ticket-123", "extra"},
+			wantErr:     true,
 			errContains: "unexpected arguments after ticket ID",
 		},
 		{
-			name:    "wrong flags type",
-			flags:   "invalid",
-			args:    []string{},
-			wantErr: true,
+			name:        "wrong flags type",
+			flags:       "invalid",
+			args:        []string{},
+			wantErr:     true,
 			errContains: "invalid flags type",
 		},
 		{
@@ -115,12 +115,12 @@ func TestCleanupCommand_Validate(t *testing.T) {
 			wantErr: false,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cmd := &CleanupCommand{}
 			err := cmd.Validate(tt.flags, tt.args)
-			
+
 			if tt.wantErr {
 				require.Error(t, err)
 				if tt.errContains != "" {
@@ -128,7 +128,7 @@ func TestCleanupCommand_Validate(t *testing.T) {
 				}
 			} else {
 				require.NoError(t, err)
-				
+
 				// Verify args were stored and flags normalized if valid
 				if f, ok := tt.flags.(*cleanupFlags); ok {
 					assert.Equal(t, tt.args, f.args)
@@ -215,7 +215,7 @@ func TestCleanupFlags_Normalize(t *testing.T) {
 			},
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.flags.normalize()
@@ -251,13 +251,13 @@ func TestCleanupCommand_Execute_Errors(t *testing.T) {
 			errContains: "invalid flags type",
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cmd := &CleanupCommand{}
 			ctx := tt.setupCtx()
 			err := cmd.Execute(ctx, tt.flags, tt.args)
-			
+
 			require.Error(t, err)
 			assert.Contains(t, err.Error(), tt.errContains)
 		})
