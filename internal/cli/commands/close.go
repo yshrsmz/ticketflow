@@ -13,6 +13,17 @@ import (
 	"github.com/yshrsmz/ticketflow/internal/ticket"
 )
 
+// CloseTicketInternalError represents an internal error during ticket closing
+type CloseTicketInternalError struct {
+	IsCurrentTicket bool
+	Message         string
+}
+
+// Error implements the error interface
+func (e *CloseTicketInternalError) Error() string {
+	return fmt.Sprintf("internal error: %s (isCurrentTicket=%v)", e.Message, e.IsCurrentTicket)
+}
+
 // CloseCommand implements the close command using the new Command interface
 type CloseCommand struct{}
 
@@ -172,7 +183,10 @@ func outputCloseErrorJSON(app *cli.App, err error) error {
 func outputCloseSuccessJSON(ctx context.Context, app *cli.App, closedTicket *ticket.Ticket, reason string, force bool, isCurrentTicket bool) error {
 	// Ensure we have a valid ticket to report on
 	if closedTicket == nil {
-		return fmt.Errorf("internal error: closed ticket is nil (isCurrentTicket=%v)", isCurrentTicket)
+		return &CloseTicketInternalError{
+			IsCurrentTicket: isCurrentTicket,
+			Message:         "closed ticket is nil",
+		}
 	}
 
 	// Build the output structure
