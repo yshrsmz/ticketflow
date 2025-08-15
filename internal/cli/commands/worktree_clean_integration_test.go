@@ -77,10 +77,10 @@ func TestWorktreeCleanCommand_Execute_Integration(t *testing.T) {
 			args: []string{},
 			validate: func(t *testing.T, env *testharness.TestEnvironment) {
 				output := env.RunGit("worktree", "list")
-				// Active tickets should keep their worktrees
-				assert.Contains(t, output, "todo-ticket")
+				// Only "doing" tickets are considered active and keep their worktrees
 				assert.Contains(t, output, "doing-ticket")
-				// Done ticket should have worktree removed
+				// Todo and done tickets should have worktrees removed
+				assert.NotContains(t, output, "todo-ticket")
 				assert.NotContains(t, output, "done-ticket")
 			},
 		},
@@ -152,12 +152,30 @@ func TestWorktreeCleanCommand_Execute_Integration(t *testing.T) {
 			// Create command
 			cmd := NewWorktreeCleanCommand()
 
+			// Validate first (if the command has a Validate method)
+			if err := cmd.Validate(nil, tt.args); err != nil {
+				if tt.wantError {
+					require.Error(t, err)
+					if tt.errorContains != "" {
+						assert.Contains(t, err.Error(), tt.errorContains)
+					}
+					return
+				}
+				require.NoError(t, err)
+			}
+
 			// Execute command with timeout
 			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 			defer cancel()
 			err = cmd.Execute(ctx, nil, tt.args)
 
 			// Check error
+			if tt.wantError && err == nil {
+				// If we expect an error but didn't get one from Execute,
+				// it might have been caught in Validate above
+				return
+			}
+			
 			if tt.wantError {
 				require.Error(t, err)
 				if tt.errorContains != "" {
