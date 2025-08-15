@@ -2,10 +2,8 @@ package commands
 
 import (
 	"context"
-	"encoding/json"
 	"flag"
 	"fmt"
-	"os"
 
 	"github.com/yshrsmz/ticketflow/internal/cli"
 	"github.com/yshrsmz/ticketflow/internal/command"
@@ -144,7 +142,7 @@ func (c *CleanupCommand) executeAutoCleanup(ctx context.Context, app *cli.App, f
 	if flags.dryRun {
 		if err := app.CleanupStats(ctx); err != nil {
 			if flags.format == FormatJSON {
-				return outputAutoCleanupErrorJSON(err)
+				return outputAutoCleanupErrorJSON(app, err)
 			}
 			return err
 		}
@@ -156,14 +154,14 @@ func (c *CleanupCommand) executeAutoCleanup(ctx context.Context, app *cli.App, f
 	result, err := app.AutoCleanup(ctx, flags.dryRun)
 	if err != nil {
 		if flags.format == FormatJSON {
-			return outputAutoCleanupErrorJSON(err)
+			return outputAutoCleanupErrorJSON(app, err)
 		}
 		return err
 	}
 
 	// Output results
 	if flags.format == FormatJSON {
-		return outputAutoCleanupJSON(result)
+		return outputAutoCleanupJSON(app, result)
 	}
 
 	// Text output
@@ -179,14 +177,14 @@ func (c *CleanupCommand) executeTicketCleanup(ctx context.Context, app *cli.App,
 	cleanedTicket, err := app.CleanupTicket(ctx, ticketID, flags.force)
 	if err != nil {
 		if flags.format == FormatJSON {
-			return outputTicketCleanupErrorJSON(err)
+			return outputTicketCleanupErrorJSON(app, err)
 		}
 		return err
 	}
 
 	// Output results
 	if flags.format == FormatJSON {
-		return outputTicketCleanupJSON(cleanedTicket)
+		return outputTicketCleanupJSON(app, cleanedTicket)
 	}
 
 	// Text output
@@ -215,10 +213,7 @@ func outputTicketCleanupText(t *ticket.Ticket) {
 }
 
 // outputAutoCleanupJSON outputs auto-cleanup results in JSON format
-func outputAutoCleanupJSON(result *cli.CleanupResult) error {
-	encoder := json.NewEncoder(os.Stdout)
-	encoder.SetIndent("", "  ")
-
+func outputAutoCleanupJSON(app *cli.App, result *cli.CleanupResult) error {
 	output := map[string]interface{}{
 		"success": true,
 		"result": map[string]interface{}{
@@ -228,14 +223,11 @@ func outputAutoCleanupJSON(result *cli.CleanupResult) error {
 		},
 	}
 
-	return encoder.Encode(output)
+	return app.Output.PrintJSON(output)
 }
 
 // outputTicketCleanupJSON outputs ticket cleanup results in JSON format
-func outputTicketCleanupJSON(t *ticket.Ticket) error {
-	encoder := json.NewEncoder(os.Stdout)
-	encoder.SetIndent("", "  ")
-
+func outputTicketCleanupJSON(app *cli.App, t *ticket.Ticket) error {
 	output := map[string]interface{}{
 		"success": true,
 		"ticket": map[string]interface{}{
@@ -248,31 +240,25 @@ func outputTicketCleanupJSON(t *ticket.Ticket) error {
 		},
 	}
 
-	return encoder.Encode(output)
+	return app.Output.PrintJSON(output)
 }
 
 // outputAutoCleanupErrorJSON outputs auto-cleanup error in JSON format
-func outputAutoCleanupErrorJSON(err error) error {
-	encoder := json.NewEncoder(os.Stdout)
-	encoder.SetIndent("", "  ")
-
+func outputAutoCleanupErrorJSON(app *cli.App, err error) error {
 	output := map[string]interface{}{
 		"success": false,
 		"error":   err.Error(),
 	}
 
-	return encoder.Encode(output)
+	return app.Output.PrintJSON(output)
 }
 
 // outputTicketCleanupErrorJSON outputs ticket cleanup error in JSON format
-func outputTicketCleanupErrorJSON(err error) error {
-	encoder := json.NewEncoder(os.Stdout)
-	encoder.SetIndent("", "  ")
-
+func outputTicketCleanupErrorJSON(app *cli.App, err error) error {
 	output := map[string]interface{}{
 		"success": false,
 		"error":   err.Error(),
 	}
 
-	return encoder.Encode(output)
+	return app.Output.PrintJSON(output)
 }

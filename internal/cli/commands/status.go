@@ -51,8 +51,11 @@ func (c *StatusCommand) SetupFlags(fs *flag.FlagSet) interface{} {
 
 // Validate checks if the command arguments are valid
 func (c *StatusCommand) Validate(flags interface{}, args []string) error {
-	// Extract flags
-	f := flags.(*statusFlags)
+	// Safely assert flags type
+	f, ok := flags.(*statusFlags)
+	if !ok {
+		return fmt.Errorf("invalid flags type: expected *statusFlags, got %T", flags)
+	}
 
 	// Validate format flag
 	if f.format != "text" && f.format != "json" {
@@ -64,14 +67,24 @@ func (c *StatusCommand) Validate(flags interface{}, args []string) error {
 
 // Execute runs the status command
 func (c *StatusCommand) Execute(ctx context.Context, flags interface{}, args []string) error {
+	// Check if context is already cancelled
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+
 	// Create App instance with dependencies
 	app, err := cli.NewApp(ctx)
 	if err != nil {
 		return err
 	}
 
-	// Extract flags
-	f := flags.(*statusFlags)
+	// Safely extract flags
+	f, ok := flags.(*statusFlags)
+	if !ok {
+		return fmt.Errorf("invalid flags type: expected *statusFlags, got %T", flags)
+	}
 	outputFormat := cli.ParseOutputFormat(f.format)
 
 	// Delegate to App's Status method
