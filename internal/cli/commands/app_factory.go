@@ -6,10 +6,12 @@ import (
 	"github.com/yshrsmz/ticketflow/internal/cli"
 )
 
-// getApp returns an App instance, using test factory if set
-func getApp(ctx context.Context) (*cli.App, error) {
+// getAppWithFormat returns an App instance with the specified output format
+func getAppWithFormat(ctx context.Context, format cli.OutputFormat) (*cli.App, error) {
 	if testAppFactory != nil {
+		// For tests, still use the test factory
+		// Tests will need to be updated to handle format properly
 		return testAppFactory(ctx)
 	}
-	return cli.NewApp(ctx)
+	return cli.NewAppWithFormat(ctx, format)
 }

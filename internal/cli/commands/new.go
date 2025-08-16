@@ -113,16 +113,19 @@ func (c *NewCommand) Execute(ctx context.Context, flags interface{}, args []stri
 	default:
 	}
 
-	// Create App instance with dependencies
-	app, err := cli.NewApp(ctx)
-	if err != nil {
-		return err
-	}
-
 	// Safely extract flags
 	f, ok := flags.(*newFlags)
 	if !ok {
 		return fmt.Errorf("invalid flags type: expected *newFlags, got %T", flags)
+	}
+
+	// Parse output format first
+	outputFormat := cli.ParseOutputFormat(f.format)
+
+	// Create App instance with format
+	app, err := cli.NewAppWithFormat(ctx, outputFormat)
+	if err != nil {
+		return err
 	}
 
 	// Get the slug from the first positional argument
@@ -135,7 +138,7 @@ func (c *NewCommand) Execute(ctx context.Context, flags interface{}, args []stri
 	}
 
 	// Handle output based on format
-	if f.format == FormatJSON {
+	if outputFormat == cli.FormatJSON {
 		output := map[string]interface{}{
 			"ticket": map[string]interface{}{
 				"id":   ticket.ID,

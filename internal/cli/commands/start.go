@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 
+	"github.com/yshrsmz/ticketflow/internal/cli"
 	"github.com/yshrsmz/ticketflow/internal/command"
 )
 
@@ -105,12 +106,6 @@ func (c *StartCommand) Execute(ctx context.Context, flags interface{}, args []st
 	default:
 	}
 
-	// Create App instance with dependencies
-	app, err := getApp(ctx)
-	if err != nil {
-		return err
-	}
-
 	// Extract flags - Validate already checked this, but we still need to handle the type assertion
 	// for defensive programming (e.g., if Execute is called directly without Validate)
 	f, ok := flags.(*startFlags)
@@ -123,6 +118,15 @@ func (c *StartCommand) Execute(ctx context.Context, flags interface{}, args []st
 		return fmt.Errorf("missing ticket argument")
 	}
 
+	// Parse output format first
+	outputFormat := cli.ParseOutputFormat(f.format)
+
+	// Create App instance with format
+	app, err := getAppWithFormat(ctx, outputFormat)
+	if err != nil {
+		return err
+	}
+
 	// Get the ticket ID from the first positional argument
 	ticketID := args[0]
 
@@ -133,7 +137,7 @@ func (c *StartCommand) Execute(ctx context.Context, flags interface{}, args []st
 	}
 
 	// Handle JSON output if requested
-	if f.format == FormatJSON {
+	if outputFormat == cli.FormatJSON {
 		output := map[string]interface{}{
 			"ticket_id":              result.Ticket.ID,
 			"status":                 string(result.Ticket.Status()),
