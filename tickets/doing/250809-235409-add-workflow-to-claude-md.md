@@ -33,7 +33,7 @@ Make sure to update task status when you finish it. Also, always create a commit
 - [x] Add integration test to verify command output
 - [x] Run `make test` to run the tests
 - [x] Run `make vet`, `make fmt` and `make lint`
-- [ ] Update the ticket with insights from resolving this ticket
+- [x] Update the ticket with insights from resolving this ticket
 - [ ] Get developer approval before closing
 
 ## Implementation Notes
@@ -41,3 +41,12 @@ Make sure to update task status when you finish it. Also, always create a commit
 - Keep it simple - just a command that prints text to stdout
 - No flags or complex options needed initially
 - Users can redirect output as needed: `ticketflow workflow > CLAUDE.md` or `ticketflow workflow >> .cursorrules`
+
+## Implementation Insights
+- Implemented as a simple command following the existing Command interface pattern (similar to version.go)
+- Workflow content embedded as a const string for easy maintenance
+- Integration tests verify both direct output and shell redirection scenarios
+- Tests use dynamic project root detection to work from any directory
+- Command is AI-agnostic - users decide where to pipe the output
+- No file manipulation needed, follows Unix philosophy of outputting to stdout
+- Future enhancement could add format flags (--format=plain, --format=markdown)
