@@ -1,8 +1,8 @@
 ---
 priority: 2
-description: "Refactor cli package to respect JSON format setting in AutoCleanup and related functions"
+description: Refactor cli package to respect JSON format setting in AutoCleanup and related functions
 created_at: "2025-08-16T12:37:03+09:00"
-started_at: null
+started_at: "2025-08-16T18:15:21+09:00"
 closed_at: null
 related:
     - parent:250815-175624-test-coverage-maintenance-commands
