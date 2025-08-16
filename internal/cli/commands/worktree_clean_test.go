@@ -14,7 +14,7 @@ func TestWorktreeCleanCommand_Interface(t *testing.T) {
 	assert.Equal(t, "clean", cmd.Name())
 	assert.Nil(t, cmd.Aliases())
 	assert.Equal(t, "Remove orphaned worktrees", cmd.Description())
-	assert.Equal(t, "worktree clean", cmd.Usage())
+	assert.Equal(t, "worktree clean [--format text|json]", cmd.Usage())
 }
 
 func TestWorktreeCleanCommand_SetupFlags(t *testing.T) {
@@ -24,8 +24,13 @@ func TestWorktreeCleanCommand_SetupFlags(t *testing.T) {
 
 	flags := cmd.SetupFlags(fs)
 
-	// No flags for clean command
-	assert.Nil(t, flags)
+	// Now returns worktreeCleanFlags with format support
+	assert.NotNil(t, flags)
+	assert.IsType(t, &worktreeCleanFlags{}, flags)
+	
+	// Verify format flags were registered
+	assert.NotNil(t, fs.Lookup("format"))
+	assert.NotNil(t, fs.Lookup("o"))
 }
 
 func TestWorktreeCleanCommand_Validate(t *testing.T) {
@@ -38,24 +43,44 @@ func TestWorktreeCleanCommand_Validate(t *testing.T) {
 		errContains string
 	}{
 		{
-			name:    "valid no arguments",
-			flags:   nil,
+			name:    "valid no arguments with text format",
+			flags:   &worktreeCleanFlags{format: "text"},
 			args:    []string{},
 			wantErr: false,
 		},
 		{
+			name:    "valid no arguments with json format",
+			flags:   &worktreeCleanFlags{format: "json"},
+			args:    []string{},
+			wantErr: false,
+		},
+		{
+			name:        "invalid format",
+			flags:       &worktreeCleanFlags{format: "yaml"},
+			args:        []string{},
+			wantErr:     true,
+			errContains: "invalid format",
+		},
+		{
 			name:        "unexpected arguments",
-			flags:       nil,
+			flags:       &worktreeCleanFlags{format: "text"},
 			args:        []string{"extra"},
 			wantErr:     true,
 			errContains: "takes no arguments",
 		},
 		{
 			name:        "multiple unexpected arguments",
-			flags:       nil,
+			flags:       &worktreeCleanFlags{format: "text"},
 			args:        []string{"extra", "args"},
 			wantErr:     true,
 			errContains: "takes no arguments",
+		},
+		{
+			name:        "invalid flags type",
+			flags:       "invalid",
+			args:        []string{},
+			wantErr:     true,
+			errContains: "invalid flags type",
 		},
 	}
 

@@ -152,8 +152,11 @@ func TestWorktreeCleanCommand_Execute_Integration(t *testing.T) {
 			// Create command
 			cmd := NewWorktreeCleanCommand()
 
+			// Create default flags for the command
+			flags := &worktreeCleanFlags{format: "text"}
+
 			// Validate first (if the command has a Validate method)
-			if err := cmd.Validate(nil, tt.args); err != nil {
+			if err := cmd.Validate(flags, tt.args); err != nil {
 				if tt.wantError {
 					require.Error(t, err)
 					if tt.errorContains != "" {
@@ -167,7 +170,7 @@ func TestWorktreeCleanCommand_Execute_Integration(t *testing.T) {
 			// Execute command with timeout
 			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 			defer cancel()
-			err = cmd.Execute(ctx, nil, tt.args)
+			err = cmd.Execute(ctx, flags, tt.args)
 
 			// Check error
 			if tt.wantError && err == nil {
