@@ -26,10 +26,10 @@ Create a simple command `ticketflow workflow` that prints the ticketflow develop
 ## Tasks
 Make sure to update task status when you finish it. Also, always create a commit for each task you finished.
 
-- [ ] Create `workflow.go` command file in `internal/cli/commands/`
-- [ ] Register the workflow command in the CLI router
-- [ ] Embed the workflow content as a string constant
-- [ ] Implement Execute method that prints to stdout
+- [x] Create `workflow.go` command file in `internal/cli/commands/`
+- [x] Register the workflow command in the CLI router
+- [x] Embed the workflow content as a string constant
+- [x] Implement Execute method that prints to stdout
 - [ ] Add integration test to verify command output
 - [ ] Run `make test` to run the tests
 - [ ] Run `make vet`, `make fmt` and `make lint`
