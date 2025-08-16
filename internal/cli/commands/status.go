@@ -74,18 +74,18 @@ func (c *StatusCommand) Execute(ctx context.Context, flags interface{}, args []s
 	default:
 	}
 
-	// Create App instance with dependencies
-	app, err := cli.NewApp(ctx)
-	if err != nil {
-		return err
-	}
-
 	// Safely extract flags
 	f, ok := flags.(*statusFlags)
 	if !ok {
 		return fmt.Errorf("invalid flags type: expected *statusFlags, got %T", flags)
 	}
 	outputFormat := cli.ParseOutputFormat(f.format)
+
+	// Create App instance with the correct format from the start
+	app, err := cli.NewAppWithFormat(ctx, outputFormat)
+	if err != nil {
+		return err
+	}
 
 	// Delegate to App's Status method
 	return app.Status(ctx, outputFormat)

@@ -60,12 +60,13 @@ func TestAutoCleanupStaleBranches(t *testing.T) {
 
 	// Create app
 	app := &App{
-		Manager:     manager,
-		Git:         gitOps,
-		Config:      cfg,
-		ProjectRoot: repoPath,
-		workingDir:  repoPath,
-		Output:      NewOutputWriter(nil, nil, FormatText),
+		Manager:      manager,
+		Git:          gitOps,
+		Config:       cfg,
+		ProjectRoot:  repoPath,
+		workingDir:   repoPath,
+		Output:       NewOutputWriter(nil, nil, FormatText),
+		StatusWriter: NewNullStatusWriter(), // Use null writer for tests
 	}
 
 	// Test scenario: Create tickets and branches, move tickets to done, then run cleanup

@@ -103,11 +103,13 @@ func (c *WorktreeListCommand) Execute(ctx context.Context, flags interface{}, ar
 		}
 	}
 
-	app, err := cli.NewApp(ctx)
+	outputFormat := cli.ParseOutputFormat(format)
+
+	// Create App instance with the correct format from the start
+	app, err := cli.NewAppWithFormat(ctx, outputFormat)
 	if err != nil {
 		return err
 	}
 
-	outputFormat := cli.ParseOutputFormat(format)
 	return app.ListWorktrees(ctx, outputFormat)
 }

@@ -114,16 +114,17 @@ func (c *CleanupCommand) Execute(ctx context.Context, flags interface{}, args []
 	default:
 	}
 
-	// Get app instance
-	app, err := cli.NewApp(ctx)
-	if err != nil {
-		return err
-	}
-
 	// Safely assert flags type
 	f, ok := flags.(*cleanupFlags)
 	if !ok {
 		return fmt.Errorf("invalid flags type: expected *cleanupFlags, got %T", flags)
+	}
+
+	// Get app instance with the correct output format from the start
+	outputFormat := cli.ParseOutputFormat(f.format)
+	app, err := cli.NewAppWithFormat(ctx, outputFormat)
+	if err != nil {
+		return err
 	}
 
 	// Perform the cleanup operation based on whether ticket ID was provided
@@ -146,7 +147,7 @@ func (c *CleanupCommand) executeAutoCleanup(ctx context.Context, app *cli.App, f
 			}
 			return err
 		}
-		fmt.Println("\nDry-run mode: No changes will be made.")
+		app.StatusWriter.Println("\nDry-run mode: No changes will be made.")
 		return nil
 	}
 
@@ -165,8 +166,7 @@ func (c *CleanupCommand) executeAutoCleanup(ctx context.Context, app *cli.App, f
 	}
 
 	// Text output
-	outputAutoCleanupText(result)
-	return nil
+	return app.Output.PrintResult(result)
 }
 
 // executeTicketCleanup handles the ticket-specific cleanup mode
@@ -190,20 +190,6 @@ func (c *CleanupCommand) executeTicketCleanup(ctx context.Context, app *cli.App,
 	// Text output
 	outputTicketCleanupText(cleanedTicket)
 	return nil
-}
-
-// outputAutoCleanupText outputs auto-cleanup results in text format
-func outputAutoCleanupText(result *cli.CleanupResult) {
-	fmt.Printf("\nCleanup Summary:\n")
-	fmt.Printf("  Orphaned worktrees removed: %d\n", result.OrphanedWorktrees)
-	fmt.Printf("  Stale branches removed: %d\n", result.StaleBranches)
-
-	if result.HasErrors() {
-		fmt.Printf("\nWarnings:\n")
-		for _, err := range result.Errors {
-			fmt.Printf("  - %s\n", err)
-		}
-	}
 }
 
 // outputTicketCleanupText outputs ticket cleanup results in text format

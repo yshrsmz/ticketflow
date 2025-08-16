@@ -302,3 +302,21 @@ func TestCommand_Execute_Integration(t *testing.T) {
 
 ### Current-ticket.md Handling
 **IMPORTANT**: `current-ticket.md` is just a symlink that points to a ticket in `tickets/doing/`. When updating or committing ticket changes, always update the actual file in `tickets/doing/`, NOT the symlink. The symlink should remain gitignored.
+
+## Repository Structure Guidelines
+
+### File Placement Rules
+**NEVER create documentation files in the repository root directory**. The root should only contain essential files like:
+- README.md (main project documentation)
+- Makefile, go.mod, go.sum (build configuration)
+- .ticketflow.yaml (project configuration)
+- LICENSE, CONTRIBUTING.md (if applicable)
+
+### Where to Put Documentation
+- **Permanent documentation**: Place in `docs/` directory
+- **Temporary notes/proposals**: Add to the ticket description or PR description
+- **Implementation details**: Use code comments inline with the code
+- **Architecture decisions**: Create ADR (Architecture Decision Records) in `docs/adr/`
+- **Test documentation**: Place in test directories or `test/README.md`
+
+Never create files like REFACTORING_PROPOSAL.md, IMPROVEMENTS_SUMMARY.md, or similar in the repository root.

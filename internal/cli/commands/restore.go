@@ -155,6 +155,6 @@ func (r *RestoreCommand) Execute(ctx context.Context, flags interface{}, args []
 	}
 
 	// Text output
-	fmt.Println("✅ Current ticket symlink restored")
+	app.StatusWriter.Println("✅ Current ticket symlink restored")
 	return nil
 }

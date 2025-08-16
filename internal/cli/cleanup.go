@@ -27,7 +27,8 @@ func (r *CleanupResult) HasErrors() bool {
 func (app *App) AutoCleanup(ctx context.Context, dryRun bool) (*CleanupResult, error) {
 	logger := log.Global().WithOperation("auto_cleanup")
 	logger.Info("starting auto-cleanup", slog.Bool("dry_run", dryRun))
-	fmt.Println("Starting auto-cleanup...")
+
+	app.StatusWriter.Println("Starting auto-cleanup...")
 
 	result := &CleanupResult{
 		Errors: make([]string, 0),
@@ -38,7 +39,7 @@ func (app *App) AutoCleanup(ctx context.Context, dryRun bool) (*CleanupResult, e
 		cleaned, err := app.cleanOrphanedWorktrees(ctx, dryRun)
 		if err != nil {
 			logger.WithError(err).Warn("failed to clean worktrees")
-			fmt.Printf("Warning: Failed to clean worktrees: %v\n", err)
+			app.StatusWriter.Printf("Warning: Failed to clean worktrees: %v\n", err)
 			result.Errors = append(result.Errors, fmt.Sprintf("worktrees: %v", err))
 		} else {
 			result.OrphanedWorktrees = cleaned
@@ -53,7 +54,7 @@ func (app *App) AutoCleanup(ctx context.Context, dryRun bool) (*CleanupResult, e
 	cleaned, err := app.cleanStaleBranches(ctx, dryRun)
 	if err != nil {
 		logger.WithError(err).Warn("failed to clean branches")
-		fmt.Printf("Warning: Failed to clean branches: %v\n", err)
+		app.StatusWriter.Printf("Warning: Failed to clean branches: %v\n", err)
 		result.Errors = append(result.Errors, fmt.Sprintf("branches: %v", err))
 	} else {
 		result.StaleBranches = cleaned
@@ -61,7 +62,7 @@ func (app *App) AutoCleanup(ctx context.Context, dryRun bool) (*CleanupResult, e
 	}
 
 	logger.Info("auto-cleanup completed", "orphaned_worktrees", result.OrphanedWorktrees, "stale_branches", result.StaleBranches, "errors", len(result.Errors))
-	fmt.Println("Auto-cleanup completed.")
+	app.StatusWriter.Println("Auto-cleanup completed.")
 	return result, nil
 }
 
@@ -74,7 +75,7 @@ func (app *App) cleanOrphanedWorktrees(ctx context.Context, dryRun bool) (int, e
 	}
 
 	logger.Debug("cleaning orphaned worktrees", "dry_run", dryRun)
-	fmt.Println("\nCleaning orphaned worktrees...")
+	app.StatusWriter.Println("\nCleaning orphaned worktrees...")
 
 	// First prune to clean up git's internal state
 	if !dryRun {
@@ -113,12 +114,12 @@ func (app *App) cleanOrphanedWorktrees(ctx context.Context, dryRun bool) (int, e
 		// Check if this worktree has an active ticket
 		if !activeMap[wt.Branch] {
 			logger.Info("removing orphaned worktree", "path", wt.Path, "branch", wt.Branch)
-			fmt.Printf("  Removing orphaned worktree: %s (branch: %s)\n", wt.Path, wt.Branch)
+			app.StatusWriter.Printf("  Removing orphaned worktree: %s (branch: %s)\n", wt.Path, wt.Branch)
 
 			if !dryRun {
 				if err := app.Git.RemoveWorktree(ctx, wt.Path); err != nil {
 					logger.WithError(err).Warn("failed to remove worktree", "path", wt.Path)
-					fmt.Printf("  Warning: Failed to remove worktree %s: %v\n", wt.Path, err)
+					app.StatusWriter.Printf("  Warning: Failed to remove worktree %s: %v\n", wt.Path, err)
 				} else {
 					cleaned++
 				}
@@ -129,15 +130,16 @@ func (app *App) cleanOrphanedWorktrees(ctx context.Context, dryRun bool) (int, e
 	}
 
 	logger.Info("cleaned orphaned worktrees", "count", cleaned)
-	fmt.Printf("  Cleaned %d orphaned worktree(s)\n", cleaned)
+	app.StatusWriter.Printf("  Cleaned %d orphaned worktree(s)\n", cleaned)
 	return cleaned, nil
 }
 
 // cleanStaleBranches removes branches for done tickets
 func (app *App) cleanStaleBranches(ctx context.Context, dryRun bool) (int, error) {
 	logger := log.Global().WithOperation("clean_stale_branches")
+
 	logger.Debug("cleaning stale branches", "dry_run", dryRun)
-	fmt.Println("\nCleaning stale branches...")
+	app.StatusWriter.Println("\nCleaning stale branches...")
 
 	// Get all branches
 	output, err := app.Git.Exec(ctx, "branch", "--format=%(refname:short)")
@@ -172,13 +174,13 @@ func (app *App) cleanStaleBranches(ctx context.Context, dryRun bool) (int, error
 			// Remove branches for done tickets
 			if status == ticket.StatusDone {
 				logger.Info("removing branch for done ticket", "branch", branch)
-				fmt.Printf("  Removing branch for done ticket: %s\n", branch)
+				app.StatusWriter.Printf("  Removing branch for done ticket: %s\n", branch)
 
 				if !dryRun {
 					// Delete local branch (force delete to avoid warnings)
 					if _, err := app.Git.Exec(ctx, "branch", "-D", branch); err != nil {
 						logger.WithError(err).Warn("failed to delete branch", "branch", branch)
-						fmt.Printf("  Warning: Failed to delete branch %s: %v\n", branch, err)
+						app.StatusWriter.Printf("  Warning: Failed to delete branch %s: %v\n", branch, err)
 					} else {
 						cleaned++
 					}
@@ -190,19 +192,19 @@ func (app *App) cleanStaleBranches(ctx context.Context, dryRun bool) (int, error
 	}
 
 	logger.Info("cleaned stale branches", "count", cleaned)
-	fmt.Printf("  Cleaned %d stale branch(es)\n", cleaned)
+	app.StatusWriter.Printf("  Cleaned %d stale branch(es)\n", cleaned)
 	return cleaned, nil
 }
 
 // CleanupStats shows what would be cleaned up
 func (app *App) CleanupStats(ctx context.Context) error {
-	fmt.Println("Cleanup Statistics:")
-	fmt.Println("==================")
+	app.StatusWriter.Println("Cleanup Statistics:")
+	app.StatusWriter.Println("==================")
 
 	// Done tickets statistics
 	doneTickets, err := app.Manager.List(ctx, ticket.StatusFilterDone)
 	if err == nil {
-		fmt.Printf("\nDone tickets: %d\n", len(doneTickets))
+		app.StatusWriter.Printf("\nDone tickets: %d\n", len(doneTickets))
 	}
 
 	// Worktree statistics
@@ -222,7 +224,7 @@ func (app *App) CleanupStats(ctx context.Context) error {
 					orphaned++
 				}
 			}
-			fmt.Printf("Orphaned worktrees: %d\n", orphaned)
+			app.StatusWriter.Printf("Orphaned worktrees: %d\n", orphaned)
 		}
 	}
 
@@ -243,14 +245,14 @@ func (app *App) CleanupStats(ctx context.Context) error {
 				stale++
 			}
 		}
-		fmt.Printf("Stale branches (done tickets): %d\n", stale)
+		app.StatusWriter.Printf("Stale branches (done tickets): %d\n", stale)
 	}
 
 	// Check done directory size
 	donePath := app.Config.GetDonePath(app.ProjectRoot)
 	if info, err := os.Stat(donePath); err == nil && info.IsDir() {
 		entries, _ := os.ReadDir(donePath)
-		fmt.Printf("Done directory tickets: %d\n", len(entries))
+		app.StatusWriter.Printf("Done directory tickets: %d\n", len(entries))
 	}
 
 	return nil

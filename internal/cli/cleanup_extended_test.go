@@ -3,6 +3,7 @@ package cli
 import (
 	"context"
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -411,10 +412,11 @@ func TestCleanupStats(t *testing.T) {
 			cfg.Worktree.Enabled = true
 
 			app := &App{
-				Config:  cfg,
-				Git:     mockGit,
-				Manager: mockManager,
-				Output:  NewOutputWriter(nil, nil, FormatText),
+				Config:       cfg,
+				Git:          mockGit,
+				Manager:      mockManager,
+				Output:       NewOutputWriter(nil, nil, FormatText),
+				StatusWriter: NewStatusWriter(os.Stdout, FormatText),
 			}
 
 			tt.setupMocks(mockGit, mockManager)
@@ -445,9 +447,11 @@ func TestAutoCleanup_ErrorHandling(t *testing.T) {
 	cfg.Worktree.Enabled = true
 
 	app := &App{
-		Config:  cfg,
-		Git:     mockGit,
-		Manager: mockManager,
+		Config:       cfg,
+		Git:          mockGit,
+		Manager:      mockManager,
+		Output:       NewOutputWriter(nil, nil, FormatText),
+		StatusWriter: NewStatusWriter(os.Stdout, FormatText),
 	}
 
 	// Setup failing mocks

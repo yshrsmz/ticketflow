@@ -40,12 +40,13 @@ type StartTicketResult struct {
 
 // App represents the CLI application
 type App struct {
-	Config      *config.Config
-	Git         git.GitClient
-	Manager     ticket.TicketManager
-	ProjectRoot string
-	workingDir  string        // Working directory for the app (defaults to ".")
-	Output      *OutputWriter // Output writer for formatted output
+	Config       *config.Config
+	Git          git.GitClient
+	Manager      ticket.TicketManager
+	ProjectRoot  string
+	workingDir   string        // Working directory for the app (defaults to ".")
+	Output       *OutputWriter // Output writer for formatted output
+	StatusWriter StatusWriter  // Status writer for progress messages
 }
 
 // AppOption represents an option for creating a new App
@@ -124,6 +125,14 @@ func NewAppWithOptions(ctx context.Context, opts ...AppOption) (*App, error) {
 	if app.Output == nil {
 		app.Output = NewOutputWriter(nil, nil, FormatText)
 	}
+	// Initialize StatusWriter based on output format
+	if app.StatusWriter == nil {
+		format := FormatText
+		if app.Output != nil {
+			format = app.Output.GetFormat()
+		}
+		app.StatusWriter = NewStatusWriter(os.Stdout, format)
+	}
 
 	return app, nil
 }
@@ -156,7 +165,8 @@ func InitCommandWithWorkingDir(ctx context.Context, workingDir string) error {
 	// Check if already exists
 	if _, err := os.Stat(configPath); err == nil {
 		logger.Info("ticket system already initialized")
-		fmt.Println("Ticket system already initialized")
+		status := NewStatusWriter(os.Stdout, FormatText)
+		status.Println("Ticket system already initialized")
 		return nil
 	}
 
@@ -191,9 +201,10 @@ func InitCommandWithWorkingDir(ctx context.Context, workingDir string) error {
 	logger.Info("updated .gitignore")
 
 	logger.Info("ticket system initialized successfully")
-	fmt.Println("Initialized ticket system successfully")
-	fmt.Printf("Configuration saved to: %s\n", configPath)
-	fmt.Printf("Tickets directory: %s\n", ticketsDir)
+	status := NewStatusWriter(os.Stdout, FormatText)
+	status.Println("Initialized ticket system successfully")
+	status.Printf("Configuration saved to: %s\n", configPath)
+	status.Printf("Tickets directory: %s\n", ticketsDir)
 
 	return nil
 }
@@ -1344,7 +1355,7 @@ func (app *App) checkExistingWorktree(ctx context.Context, t *ticket.Ticket, for
 		// Force is enabled, remove the existing worktree
 		logger := log.Global().WithOperation("start_ticket").WithTicket(t.ID)
 		logger.Info("removing existing worktree due to --force flag", "path", worktreePath)
-		fmt.Printf("Removing existing worktree at %s\n", worktreePath)
+		app.StatusWriter.Printf("Removing existing worktree at %s\n", worktreePath)
 		if err := app.Git.RemoveWorktree(ctx, worktreePath); err != nil {
 			return fmt.Errorf("failed to remove existing worktree: %w", err)
 		}
@@ -1388,7 +1399,7 @@ func (app *App) createAndSetupWorktree(ctx context.Context, t *ticket.Ticket) (s
 	if err := app.runWorktreeInitCommands(ctx, worktreePath); err != nil {
 		// Non-fatal: just log the error
 		logger.WithError(err).Warn("failed to run init commands")
-		fmt.Printf("Warning: Failed to run init commands: %v\n", err)
+		app.StatusWriter.Printf("Warning: Failed to run init commands: %v\n", err)
 	}
 
 	// Create current-ticket.md symlink in worktree
@@ -1416,7 +1427,7 @@ func (app *App) handleBranchDivergence(ctx context.Context, t *ticket.Ticket, wo
 		{Key: "c", Description: "Cancel operation", IsDefault: false},
 	}
 
-	choice, err := Prompt("How would you like to proceed?", options)
+	choice, err := PromptWithStatus("How would you like to proceed?", options, app.StatusWriter)
 	if err != nil {
 		return "", fmt.Errorf("failed to get user choice: %w", err)
 	}
@@ -1476,7 +1487,7 @@ func (app *App) runWorktreeInitCommands(ctx context.Context, worktreePath string
 		return nil
 	}
 
-	fmt.Println("Running initialization commands...")
+	app.StatusWriter.Println("Running initialization commands...")
 	var failedCommands []string
 
 	// Apply timeout if not already set
@@ -1488,7 +1499,7 @@ func (app *App) runWorktreeInitCommands(ctx context.Context, worktreePath string
 	}
 
 	for _, cmd := range app.Config.Worktree.InitCommands {
-		fmt.Printf("  $ %s\n", cmd)
+		app.StatusWriter.Printf("  $ %s\n", cmd)
 		// Parse the command with proper shell parsing
 		parts, err := shellwords.Parse(cmd)
 		if err != nil {
@@ -1511,7 +1522,7 @@ func (app *App) runWorktreeInitCommands(ctx context.Context, worktreePath string
 				failedCommands = append(failedCommands, fmt.Sprintf("%s (%v)", cmd, err))
 			}
 			if len(output) > 0 {
-				fmt.Printf("    Output: %s\n", strings.TrimSpace(string(output)))
+				app.StatusWriter.Printf("    Output: %s\n", strings.TrimSpace(string(output)))
 			}
 		}
 	}
