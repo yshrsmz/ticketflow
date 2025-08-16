@@ -102,6 +102,9 @@ This approach:
 - [x] Run `make test` to verify all tests pass
 - [x] Run `make vet`, `make fmt` and `make lint`
 - [ ] Update CLAUDE.md to document new architecture
+- [x] Fix all critical issues from golang-pro code review
+- [x] Add comprehensive unit tests for new components
+- [x] Rename types from Result* to Output* for consistency
 - [ ] Get developer approval before closing
 
 ## Notes
@@ -185,4 +188,60 @@ type Printable interface {
 ### Next Steps for Full Migration
 1. **Phase 1**: Update all result types to implement Printable interface
 2. **Phase 2**: Update remaining commands to use `NewAppWithFormat()`
-3. **Phase 3**: Remove switch statement from ResultWriter once all types implement Printable
+3. **Phase 3**: Remove switch statement from OutputFormatter once all types implement Printable
+
+## Additional Work Completed (Continuation Session)
+
+### Critical Issues from golang-pro Code Review Resolved
+
+1. **Thread Safety Issue (CRITICAL)** ✅
+   - Added `sync.Mutex` to `textOutputFormatter` to protect concurrent access
+   - Prevents race conditions when multiple goroutines write output
+
+2. **Error Handling in TextRepresentation (CRITICAL)** ✅
+   - Replaced error-prone `fmt.Fprintf` with `strings.Builder` methods
+   - strings.Builder operations don't return errors, making code cleaner
+
+3. **Missing Nil Checks for Time Fields (CRITICAL)** ✅
+   - Added proper nil checks for `StartedAt.Time` and `ClosedAt.Time`
+   - Prevents nil pointer dereference panics
+
+4. **Interface Compliance Checks (IMPORTANT)** ✅
+   - Added compile-time verification for all interface implementations
+   - Ensures type safety and catches errors early
+
+5. **Missing Unit Tests (IMPORTANT)** ✅
+   - Created comprehensive test suites:
+     - `status_writer_test.go`: Tests for StatusWriter implementations
+     - `output_writer_test.go`: Tests for OutputFormatter implementations  
+     - `printable_test.go`: Tests for Printable interface
+     - `app_factory_test.go`: Tests for NewAppWithFormat helper
+   - All tests include concurrency testing where applicable
+
+### Type Renaming for Consistency ✅
+Based on user feedback, renamed types for better consistency:
+- `ResultWriter` → `OutputFormatter` (aligns with purpose)
+- `jsonResultWriter` → `jsonOutputFormatter`
+- `textResultWriter` → `textOutputFormatter`
+- All related functions updated accordingly
+
+This naming better reflects the role of these types and aligns with the `Output` field in the App struct.
+
+### Key Insights from Implementation
+
+1. **Separation of Concerns is Critical**: Having separate interfaces for status messages (StatusWriter) and data output (OutputFormatter) makes the code much cleaner and easier to test.
+
+2. **Thread Safety Cannot Be Ignored**: Even simple output formatters need thread safety when used in concurrent environments. The mutex addition prevents subtle race conditions.
+
+3. **Nil Checks for Pointer Fields**: Go's type system doesn't prevent nil pointer access, so explicit checks are necessary for optional time fields.
+
+4. **Test Coverage Reveals Design Issues**: Writing comprehensive tests exposed areas where the design could be improved, like the need for the NewAppWithFormat helper.
+
+5. **Naming Consistency Matters**: The initial ResultWriter naming was confusing when the App field was called Output. Consistent naming improves code readability.
+
+### Created Follow-up Tickets
+- `250816-203127-refactor-all-commands-to-use-newappwithformat.md`: Migrate remaining commands
+- `250816-203224-migrate-all-results-to-printable-interface.md`: Complete Printable migration
+
+### Current Status
+All critical refactoring complete, tests passing, ready for developer review. The JSON output separation is now fully functional with proper thread safety and comprehensive test coverage.

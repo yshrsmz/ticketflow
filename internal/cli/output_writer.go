@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/yshrsmz/ticketflow/internal/ticket"
@@ -29,27 +30,40 @@ func ParseOutputFormat(format string) OutputFormat {
 	}
 }
 
-// ResultWriter handles structured data output for CLI commands.
+// OutputFormatter handles structured data output for CLI commands.
 // It formats the final results according to the selected output format.
-type ResultWriter interface {
+//
+// OutputFormatter is responsible for the final data output (JSON or formatted text),
+// while StatusWriter (in status_writer.go) handles progress messages during execution.
+// This separation ensures that JSON output remains valid by suppressing status
+// messages in JSON mode while still providing user feedback in text mode.
+//
+// See also: StatusWriter in status_writer.go for progress/status messages.
+type OutputFormatter interface {
 	PrintResult(data interface{}) error
 	// Keep PrintJSON for backward compatibility during migration
 	PrintJSON(data interface{}) error
 }
 
-// jsonResultWriter outputs data in JSON format
-type jsonResultWriter struct {
+// Verify interface compliance at compile time
+var (
+	_ OutputFormatter = (*jsonOutputFormatter)(nil)
+	_ OutputFormatter = (*textOutputFormatter)(nil)
+)
+
+// jsonOutputFormatter outputs data in JSON format
+type jsonOutputFormatter struct {
 	encoder *json.Encoder
 }
 
-// NewJSONResultWriter creates a result writer for JSON output
-func NewJSONResultWriter(w io.Writer) ResultWriter {
+// NewJSONOutputFormatter creates an output formatter for JSON output
+func NewJSONOutputFormatter(w io.Writer) OutputFormatter {
 	encoder := json.NewEncoder(w)
 	encoder.SetIndent("", "  ")
-	return &jsonResultWriter{encoder: encoder}
+	return &jsonOutputFormatter{encoder: encoder}
 }
 
-func (w *jsonResultWriter) PrintResult(data interface{}) error {
+func (w *jsonOutputFormatter) PrintResult(data interface{}) error {
 	// Check if data implements Printable interface
 	if p, ok := data.(Printable); ok {
 		return w.encoder.Encode(p.StructuredData())
@@ -58,21 +72,25 @@ func (w *jsonResultWriter) PrintResult(data interface{}) error {
 	return w.encoder.Encode(data)
 }
 
-func (w *jsonResultWriter) PrintJSON(data interface{}) error {
+func (w *jsonOutputFormatter) PrintJSON(data interface{}) error {
 	return w.encoder.Encode(data)
 }
 
-// textResultWriter outputs data in human-readable text format
-type textResultWriter struct {
-	w io.Writer
+// textOutputFormatter outputs data in human-readable text format
+type textOutputFormatter struct {
+	mu sync.Mutex
+	w  io.Writer
 }
 
-// NewTextResultWriter creates a result writer for text output
-func NewTextResultWriter(w io.Writer) ResultWriter {
-	return &textResultWriter{w: w}
+// NewTextOutputFormatter creates an output formatter for text output
+func NewTextOutputFormatter(w io.Writer) OutputFormatter {
+	return &textOutputFormatter{w: w}
 }
 
-func (w *textResultWriter) PrintResult(data interface{}) error {
+func (w *textOutputFormatter) PrintResult(data interface{}) error {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	
 	// Check if data implements Printable interface first
 	if p, ok := data.(Printable); ok {
 		_, err := fmt.Fprint(w.w, p.TextRepresentation())
@@ -97,12 +115,12 @@ func (w *textResultWriter) PrintResult(data interface{}) error {
 	}
 }
 
-func (w *textResultWriter) PrintJSON(data interface{}) error {
+func (w *textOutputFormatter) PrintJSON(data interface{}) error {
 	// In text mode, pretty-print JSON-like data
 	return w.PrintResult(data)
 }
 
-func (w *textResultWriter) printCleanupResult(r *CleanupResult) error {
+func (w *textOutputFormatter) printCleanupResult(r *CleanupResult) error {
 	fmt.Fprintf(w.w, "\nCleanup Summary:\n")
 	fmt.Fprintf(w.w, "  Orphaned worktrees removed: %d\n", r.OrphanedWorktrees)
 	fmt.Fprintf(w.w, "  Stale branches removed: %d\n", r.StaleBranches)
@@ -116,7 +134,7 @@ func (w *textResultWriter) printCleanupResult(r *CleanupResult) error {
 	return nil
 }
 
-func (w *textResultWriter) printTicket(t *ticket.Ticket) error {
+func (w *textOutputFormatter) printTicket(t *ticket.Ticket) error {
 	fmt.Fprintf(w.w, "Ticket: %s\n", t.ID)
 	fmt.Fprintf(w.w, "Status: %s\n", t.Status())
 	fmt.Fprintf(w.w, "Priority: %d\n", t.Priority)
@@ -125,17 +143,17 @@ func (w *textResultWriter) printTicket(t *ticket.Ticket) error {
 	if !t.CreatedAt.Time.IsZero() {
 		fmt.Fprintf(w.w, "Created: %s\n", t.CreatedAt.Time.Format(time.RFC3339))
 	}
-	if !t.StartedAt.Time.IsZero() {
+	if t.StartedAt.Time != nil && !t.StartedAt.Time.IsZero() {
 		fmt.Fprintf(w.w, "Started: %s\n", t.StartedAt.Time.Format(time.RFC3339))
 	}
-	if !t.ClosedAt.Time.IsZero() {
+	if t.ClosedAt.Time != nil && !t.ClosedAt.Time.IsZero() {
 		fmt.Fprintf(w.w, "Closed: %s\n", t.ClosedAt.Time.Format(time.RFC3339))
 	}
 
 	return nil
 }
 
-func (w *textResultWriter) printTicketList(tickets []*ticket.Ticket) error {
+func (w *textOutputFormatter) printTicketList(tickets []*ticket.Ticket) error {
 	if len(tickets) == 0 {
 		fmt.Fprintln(w.w, "No tickets found")
 		return nil
@@ -147,7 +165,7 @@ func (w *textResultWriter) printTicketList(tickets []*ticket.Ticket) error {
 	return nil
 }
 
-func (w *textResultWriter) printMap(m map[string]interface{}) error {
+func (w *textOutputFormatter) printMap(m map[string]interface{}) error {
 	// Simple key-value printing for generic maps
 	for k, v := range m {
 		fmt.Fprintf(w.w, "%s: %v\n", k, v)
@@ -155,21 +173,21 @@ func (w *textResultWriter) printMap(m map[string]interface{}) error {
 	return nil
 }
 
-// NewResultWriter creates the appropriate result writer based on the output format
-func NewResultWriter(w io.Writer, format OutputFormat) ResultWriter {
+// NewOutputFormatter creates the appropriate output formatter based on the output format
+func NewOutputFormatter(w io.Writer, format OutputFormat) OutputFormatter {
 	if format == FormatJSON {
-		return NewJSONResultWriter(w)
+		return NewJSONOutputFormatter(w)
 	}
-	return NewTextResultWriter(w)
+	return NewTextOutputFormatter(w)
 }
 
 // Legacy OutputWriter - kept for backward compatibility during migration
-// This will be removed once all code is migrated to use ResultWriter
+// This will be removed once all code is migrated to use OutputFormatter
 type OutputWriter struct {
 	stdout io.Writer
 	stderr io.Writer
 	format OutputFormat
-	result ResultWriter
+	formatter OutputFormatter
 }
 
 // NewOutputWriter creates a new OutputWriter with the specified format
@@ -184,13 +202,13 @@ func NewOutputWriter(stdout, stderr io.Writer, format OutputFormat) *OutputWrite
 		stdout: stdout,
 		stderr: stderr,
 		format: format,
-		result: NewResultWriter(stdout, format),
+		formatter: NewOutputFormatter(stdout, format),
 	}
 }
 
 // PrintJSON writes JSON output to stdout
 func (w *OutputWriter) PrintJSON(data interface{}) error {
-	return w.result.PrintJSON(data)
+	return w.formatter.PrintJSON(data)
 }
 
 // Printf writes formatted text to stdout - DEPRECATED
@@ -208,9 +226,9 @@ func (w *OutputWriter) GetFormat() OutputFormat {
 	return w.format
 }
 
-// PrintResult delegates to the result writer
+// PrintResult delegates to the output formatter
 func (w *OutputWriter) PrintResult(data interface{}) error {
-	return w.result.PrintResult(data)
+	return w.formatter.PrintResult(data)
 }
 
 // Helper functions

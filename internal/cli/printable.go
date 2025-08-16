@@ -7,6 +7,14 @@ import (
 	"github.com/yshrsmz/ticketflow/internal/ticket"
 )
 
+// Remove unused min function
+// func min(a, b int) int {
+// 	if a < b {
+// 		return a
+// 	}
+// 	return b
+// }
+
 // Printable represents a result that knows how to format itself
 type Printable interface {
 	// TextRepresentation returns human-readable format
@@ -15,20 +23,33 @@ type Printable interface {
 	StructuredData() interface{}
 }
 
-// Verify CleanupResult implements Printable
-var _ Printable = (*CleanupResult)(nil)
+// Verify interface compliance at compile time
+var (
+	_ Printable = (*CleanupResult)(nil)
+	_ Printable = (*TicketListResult)(nil)
+)
 
 // TextRepresentation returns human-readable format for CleanupResult
 func (r *CleanupResult) TextRepresentation() string {
 	var buf strings.Builder
-	fmt.Fprintf(&buf, "\nCleanup Summary:\n")
-	fmt.Fprintf(&buf, "  Orphaned worktrees removed: %d\n", r.OrphanedWorktrees)
-	fmt.Fprintf(&buf, "  Stale branches removed: %d\n", r.StaleBranches)
+	// Pre-allocate capacity for better performance
+	buf.Grow(256)
+	
+	// strings.Builder.Write methods never return errors, so we can safely ignore them
+	buf.WriteString("\nCleanup Summary:\n")
+	buf.WriteString("  Orphaned worktrees removed: ")
+	buf.WriteString(fmt.Sprintf("%d", r.OrphanedWorktrees))
+	buf.WriteByte('\n')
+	buf.WriteString("  Stale branches removed: ")
+	buf.WriteString(fmt.Sprintf("%d", r.StaleBranches))
+	buf.WriteByte('\n')
 	
 	if r.HasErrors() {
-		fmt.Fprintf(&buf, "\nErrors encountered:\n")
+		buf.WriteString("\nErrors encountered:\n")
 		for _, err := range r.Errors {
-			fmt.Fprintf(&buf, "  - %s\n", err)
+			buf.WriteString("  - ")
+			buf.WriteString(err)
+			buf.WriteByte('\n')
 		}
 	}
 	
@@ -58,31 +79,40 @@ func (r *TicketListResult) TextRepresentation() string {
 		return "No tickets found\n"
 	}
 	
+	// Pre-allocate capacity
+	buf.Grow(512)
+	
 	// Header
-	fmt.Fprintf(&buf, "ID       STATUS  PRI  DESCRIPTION\n")
-	fmt.Fprintf(&buf, "---------------------------------------------------------\n")
+	buf.WriteString("ID       STATUS  PRI  DESCRIPTION\n")
+	buf.WriteString("---------------------------------------------------------\n")
 	
 	// Tickets
 	for _, t := range r.Tickets {
 		status := "todo"
-		if t.StartedAt.Time != nil {
+		if t.StartedAt.Time != nil && !t.StartedAt.Time.IsZero() {
 			status = "doing"
 		}
-		if t.ClosedAt.Time != nil {
+		if t.ClosedAt.Time != nil && !t.ClosedAt.Time.IsZero() {
 			status = "done"
 		}
 		
-		fmt.Fprintf(&buf, "%-8s %-7s %-4d %s\n", 
-			t.ID[:min(8, len(t.ID))], 
+		// Safely truncate ID
+		idDisplay := t.ID
+		if len(idDisplay) > 8 {
+			idDisplay = idDisplay[:8]
+		}
+		
+		buf.WriteString(fmt.Sprintf("%-8s %-7s %-4d %s\n", 
+			idDisplay, 
 			status, 
 			t.Priority, 
-			t.Description)
+			t.Description))
 	}
 	
 	// Summary
 	if r.Count != nil {
-		fmt.Fprintf(&buf, "\nSummary: %d todo, %d doing, %d done (Total: %d)\n",
-			r.Count["todo"], r.Count["doing"], r.Count["done"], r.Count["total"])
+		buf.WriteString(fmt.Sprintf("\nSummary: %d todo, %d doing, %d done (Total: %d)\n",
+			r.Count["todo"], r.Count["doing"], r.Count["done"], r.Count["total"]))
 	}
 	
 	return buf.String()
@@ -98,12 +128,4 @@ func (r *TicketListResult) StructuredData() interface{} {
 		"tickets": tickets,
 		"summary": r.Count,
 	}
-}
-
-// Helper function (you probably already have this)
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
 }

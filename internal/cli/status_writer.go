@@ -5,9 +5,22 @@ import (
 	"io"
 )
 
+// Verify interface compliance at compile time
+var (
+	_ StatusWriter = (*textStatusWriter)(nil)
+	_ StatusWriter = (*nullStatusWriter)(nil)
+)
+
 // StatusWriter handles progress and status messages during command execution.
 // In text mode, messages are displayed to the user.
 // In JSON mode, messages are suppressed to maintain valid JSON output.
+//
+// StatusWriter is used for intermediate progress messages and user feedback,
+// while OutputFormatter (in output_writer.go) handles the final structured
+// data output. Together they implement a clean separation between status
+// messages and data output, ensuring proper JSON formatting when needed.
+//
+// See also: OutputFormatter in output_writer.go for structured data output.
 type StatusWriter interface {
 	Printf(format string, args ...interface{})
 	Println(args ...interface{})
