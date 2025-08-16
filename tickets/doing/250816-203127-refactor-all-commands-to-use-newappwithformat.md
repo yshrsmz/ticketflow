@@ -56,6 +56,9 @@ if err != nil {
 - No awkward state mutations
 - Follows industry best practices (Kong, Docker, kubectl)
 
+## Notes
+This is a follow-up to the JSON/text output separation work. The pattern has been proven to work in three commands already.
+
 ## Key Insights & Implementation Notes
 
 ### Commands Refactored
