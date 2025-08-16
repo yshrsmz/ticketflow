@@ -94,6 +94,13 @@ func (c *ListCommand) Validate(flags interface{}, args []string) error {
 
 // Execute runs the list command
 func (c *ListCommand) Execute(ctx context.Context, flags interface{}, args []string) error {
+	// Check if context is already cancelled
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+
 	// Create App instance with dependencies
 	app, err := cli.NewApp(ctx)
 	if err != nil {

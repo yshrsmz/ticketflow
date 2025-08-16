@@ -51,6 +51,13 @@ func (c *InitCommand) Validate(flags interface{}, args []string) error {
 
 // Execute runs the init command
 func (c *InitCommand) Execute(ctx context.Context, flags interface{}, args []string) error {
+	// Check if context is already cancelled
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+
 	// Delegate to the existing init command implementation
 	// This handles all the initialization logic including:
 	// - Finding the git project root

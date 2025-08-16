@@ -58,6 +58,13 @@ func (c *VersionCommand) Validate(flags interface{}, args []string) error {
 
 // Execute runs the version command
 func (c *VersionCommand) Execute(ctx context.Context, flags interface{}, args []string) error {
+	// Check if context is already cancelled
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+
 	fmt.Printf("ticketflow version %s\n", c.Version)
 	if c.Version != "dev" || c.GitCommit != "unknown" {
 		fmt.Printf("  Git commit: %s\n", c.GitCommit)

@@ -82,6 +82,13 @@ func (c *ShowCommand) Validate(flags interface{}, args []string) error {
 
 // Execute runs the show command
 func (c *ShowCommand) Execute(ctx context.Context, flags interface{}, args []string) error {
+	// Check if context is already cancelled
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+
 	// Create App instance with dependencies
 	app, err := cli.NewApp(ctx)
 	if err != nil {

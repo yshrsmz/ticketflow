@@ -86,6 +86,13 @@ func (c *WorktreeListCommand) Validate(flags interface{}, args []string) error {
 
 // Execute runs the command with the given context
 func (c *WorktreeListCommand) Execute(ctx context.Context, flags interface{}, args []string) error {
+	// Check if context is already cancelled
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+
 	// Default format
 	format := formatText
 
