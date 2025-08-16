@@ -331,7 +331,7 @@ func CaptureOutput(t *testing.T, fn func()) string {
 	fn()
 
 	// Restore stdout and close writer
-	w.Close()
+	_ = w.Close() // Ignore close error as we've already captured the output
 	os.Stdout = old
 
 	// Wait for reader to finish
