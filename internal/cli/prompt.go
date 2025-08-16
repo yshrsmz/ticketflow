@@ -38,11 +38,18 @@ func IsInteractive() bool {
 
 // Prompt displays a prompt and returns the selected option key
 func Prompt(message string, options []PromptOption) (string, error) {
+	return PromptWithStatus(message, options, nil)
+}
+
+// PromptWithStatus displays a prompt and returns the selected option key with optional status output
+func PromptWithStatus(message string, options []PromptOption, status StatusWriter) (string, error) {
 	// In non-interactive mode, automatically use the default option
 	if !IsInteractive() {
 		for _, opt := range options {
 			if opt.IsDefault {
-				fmt.Printf("Non-interactive mode detected. Using default option: %s\n", opt.Key)
+				if status != nil {
+					status.Printf("Non-interactive mode detected. Using default option: %s\n", opt.Key)
+				}
 				return opt.Key, nil
 			}
 		}
@@ -103,13 +110,20 @@ func PromptWithReader(message string, options []PromptOption, input io.Reader) (
 
 // ConfirmPrompt displays a yes/no prompt
 func ConfirmPrompt(message string, defaultYes bool) bool {
+	return ConfirmPromptWithStatus(message, defaultYes, nil)
+}
+
+// ConfirmPromptWithStatus displays a yes/no prompt with optional status output
+func ConfirmPromptWithStatus(message string, defaultYes bool, status StatusWriter) bool {
 	// In non-interactive mode, automatically use the default
 	if !IsInteractive() {
 		action := "No"
 		if defaultYes {
 			action = "Yes"
 		}
-		fmt.Printf("Non-interactive mode detected. Using default: %s\n", action)
+		if status != nil {
+			status.Printf("Non-interactive mode detected. Using default: %s\n", action)
+		}
 		return defaultYes
 	}
 
