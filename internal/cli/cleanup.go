@@ -28,11 +28,6 @@ func (app *App) AutoCleanup(ctx context.Context, dryRun bool) (*CleanupResult, e
 	logger := log.Global().WithOperation("auto_cleanup")
 	logger.Info("starting auto-cleanup", slog.Bool("dry_run", dryRun))
 
-	// Ensure StatusWriter is initialized (for tests that don't set it)
-	if app.StatusWriter == nil {
-		app.StatusWriter = NewNullStatusWriter()
-	}
-
 	app.StatusWriter.Println("Starting auto-cleanup...")
 
 	result := &CleanupResult{
@@ -77,11 +72,6 @@ func (app *App) cleanOrphanedWorktrees(ctx context.Context, dryRun bool) (int, e
 
 	if !app.Config.Worktree.Enabled {
 		return 0, nil
-	}
-
-	// Ensure StatusWriter is initialized (for tests that don't set it)
-	if app.StatusWriter == nil {
-		app.StatusWriter = NewNullStatusWriter()
 	}
 
 	logger.Debug("cleaning orphaned worktrees", "dry_run", dryRun)
@@ -148,11 +138,6 @@ func (app *App) cleanOrphanedWorktrees(ctx context.Context, dryRun bool) (int, e
 func (app *App) cleanStaleBranches(ctx context.Context, dryRun bool) (int, error) {
 	logger := log.Global().WithOperation("clean_stale_branches")
 
-	// Ensure StatusWriter is initialized (for tests that don't set it)
-	if app.StatusWriter == nil {
-		app.StatusWriter = NewNullStatusWriter()
-	}
-
 	logger.Debug("cleaning stale branches", "dry_run", dryRun)
 	app.StatusWriter.Println("\nCleaning stale branches...")
 
@@ -213,11 +198,6 @@ func (app *App) cleanStaleBranches(ctx context.Context, dryRun bool) (int, error
 
 // CleanupStats shows what would be cleaned up
 func (app *App) CleanupStats(ctx context.Context) error {
-	// Ensure StatusWriter is initialized (for tests that don't set it)
-	if app.StatusWriter == nil {
-		app.StatusWriter = NewNullStatusWriter()
-	}
-
 	app.StatusWriter.Println("Cleanup Statistics:")
 	app.StatusWriter.Println("==================")
 

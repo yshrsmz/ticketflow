@@ -4,7 +4,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"os"
 
 	"github.com/yshrsmz/ticketflow/internal/cli"
 	"github.com/yshrsmz/ticketflow/internal/command"
@@ -115,22 +114,18 @@ func (c *CleanupCommand) Execute(ctx context.Context, flags interface{}, args []
 	default:
 	}
 
-	// Get app instance
-	app, err := cli.NewApp(ctx)
-	if err != nil {
-		return err
-	}
-
 	// Safely assert flags type
 	f, ok := flags.(*cleanupFlags)
 	if !ok {
 		return fmt.Errorf("invalid flags type: expected *cleanupFlags, got %T", flags)
 	}
 
-	// Update the app's output format and status writer based on the format flag
+	// Get app instance with the correct output format from the start
 	outputFormat := cli.ParseOutputFormat(f.format)
-	app.Output = cli.NewOutputWriter(os.Stdout, os.Stderr, outputFormat)
-	app.StatusWriter = cli.NewStatusWriter(os.Stdout, outputFormat)
+	app, err := cli.NewAppWithFormat(ctx, outputFormat)
+	if err != nil {
+		return err
+	}
 
 	// Perform the cleanup operation based on whether ticket ID was provided
 	if len(f.args) == 0 {
