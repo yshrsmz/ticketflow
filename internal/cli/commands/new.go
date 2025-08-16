@@ -11,12 +11,6 @@ import (
 	"github.com/yshrsmz/ticketflow/internal/ticket"
 )
 
-// Format constants for output formats
-const (
-	FormatText = "text"
-	FormatJSON = "json"
-)
-
 // NewCommand implements the new command using the new Command interface
 type NewCommand struct{}
 

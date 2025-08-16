@@ -47,7 +47,7 @@ type showFlags struct {
 // SetupFlags configures flags for the command
 func (c *ShowCommand) SetupFlags(fs *flag.FlagSet) interface{} {
 	flags := &showFlags{}
-	fs.StringVar(&flags.format, "format", "text", "Output format (text|json)")
+	fs.StringVar(&flags.format, "format", FormatText, "Output format (text|json)")
 	return flags
 }
 
@@ -69,11 +69,11 @@ func (c *ShowCommand) Validate(flags interface{}, args []string) error {
 		return fmt.Errorf("invalid flags type: expected *showFlags, got %T", flags)
 	}
 
-	// Validate format flag (empty string defaults to "text" for backward compatibility)
+	// Validate format flag (empty string defaults to text for backward compatibility)
 	if f.format == "" {
-		f.format = "text"
+		f.format = FormatText
 	}
-	if f.format != "text" && f.format != "json" {
+	if f.format != FormatText && f.format != FormatJSON {
 		return fmt.Errorf("invalid format: %q (must be 'text' or 'json')", f.format)
 	}
 

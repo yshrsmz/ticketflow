@@ -36,12 +36,12 @@ func TestShowCommand_SetupFlags(t *testing.T) {
 	assert.NotNil(t, flags)
 	showFlags, ok := flags.(*showFlags)
 	assert.True(t, ok)
-	assert.Equal(t, "text", showFlags.format) // Default value
+	assert.Equal(t, FormatText, showFlags.format) // Default value
 
 	// Test that flags are registered
 	formatFlag := fs.Lookup("format")
 	assert.NotNil(t, formatFlag)
-	assert.Equal(t, "text", formatFlag.DefValue)
+	assert.Equal(t, FormatText, formatFlag.DefValue)
 }
 
 func TestShowCommand_Validate(t *testing.T) {
@@ -54,25 +54,25 @@ func TestShowCommand_Validate(t *testing.T) {
 	}{
 		{
 			name:      "valid with ticket ID and default format",
-			flags:     &showFlags{format: "text"},
+			flags:     &showFlags{format: FormatText},
 			args:      []string{"123456"},
 			expectErr: false,
 		},
 		{
 			name:      "valid with ticket ID and json format",
-			flags:     &showFlags{format: "json"},
+			flags:     &showFlags{format: FormatJSON},
 			args:      []string{"test-ticket"},
 			expectErr: false,
 		},
 		{
 			name:      "valid with partial ticket ID",
-			flags:     &showFlags{format: "text"},
+			flags:     &showFlags{format: FormatText},
 			args:      []string{"250813"},
 			expectErr: false,
 		},
 		{
 			name:      "missing ticket ID",
-			flags:     &showFlags{format: "text"},
+			flags:     &showFlags{format: FormatText},
 			args:      []string{},
 			expectErr: true,
 			errMsg:    "missing ticket ID argument",
@@ -92,7 +92,7 @@ func TestShowCommand_Validate(t *testing.T) {
 		},
 		{
 			name:      "too many arguments",
-			flags:     &showFlags{format: "text"},
+			flags:     &showFlags{format: FormatText},
 			args:      []string{"123456", "extra", "args"},
 			expectErr: true,
 			errMsg:    `unexpected arguments after ticket ID: [extra args]`,
@@ -120,7 +120,7 @@ func TestShowCommand_Validate(t *testing.T) {
 				assert.NoError(t, err)
 				// Check if empty format was defaulted to text
 				if sf, ok := tt.flags.(*showFlags); ok && tt.name == "empty format defaults to text" {
-					assert.Equal(t, "text", sf.format, "empty format should be defaulted to 'text'")
+					assert.Equal(t, FormatText, sf.format, "empty format should be defaulted to text")
 				}
 			}
 		})

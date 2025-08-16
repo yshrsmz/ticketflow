@@ -57,7 +57,7 @@ func (c *ListCommand) SetupFlags(fs *flag.FlagSet) interface{} {
 	fs.StringVar(&flags.statusShort, "s", "", "Filter by status (todo|doing|done|all)")
 	fs.IntVar(&flags.count, "count", defaultCount, "Number of tickets to show")
 	fs.IntVar(&flags.countShort, "c", defaultCount, "Number of tickets to show")
-	fs.StringVar(&flags.format, "format", "text", "Output format (text|json)")
+	fs.StringVar(&flags.format, "format", FormatText, "Output format (text|json)")
 	return flags
 }
 
@@ -75,7 +75,7 @@ func (c *ListCommand) Validate(flags interface{}, args []string) error {
 	}
 
 	// Validate format flag
-	if f.format != "text" && f.format != "json" {
+	if f.format != FormatText && f.format != FormatJSON {
 		return fmt.Errorf("invalid format: %q (must be 'text' or 'json')", f.format)
 	}
 

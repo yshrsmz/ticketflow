@@ -38,56 +38,56 @@ func TestListCommand_SetupFlags(t *testing.T) {
 			args:           []string{},
 			expectedStatus: "",
 			expectedCount:  20,
-			expectedFormat: "text",
+			expectedFormat: FormatText,
 		},
 		{
 			name:           "status flag long form",
 			args:           []string{"--status", "todo"},
 			expectedStatus: "todo",
 			expectedCount:  20,
-			expectedFormat: "text",
+			expectedFormat: FormatText,
 		},
 		{
 			name:           "status flag short form",
 			args:           []string{"-s", "doing"},
 			expectedStatus: "doing",
 			expectedCount:  20,
-			expectedFormat: "text",
+			expectedFormat: FormatText,
 		},
 		{
 			name:           "count flag long form",
 			args:           []string{"--count", "10"},
 			expectedStatus: "",
 			expectedCount:  10,
-			expectedFormat: "text",
+			expectedFormat: FormatText,
 		},
 		{
 			name:           "count flag short form",
 			args:           []string{"-c", "5"},
 			expectedStatus: "",
 			expectedCount:  5,
-			expectedFormat: "text",
+			expectedFormat: FormatText,
 		},
 		{
 			name:           "format flag",
 			args:           []string{"--format", "json"},
 			expectedStatus: "",
 			expectedCount:  20,
-			expectedFormat: "json",
+			expectedFormat: FormatJSON,
 		},
 		{
 			name:           "all flags combined",
 			args:           []string{"--status", "done", "--count", "15", "--format", "json"},
 			expectedStatus: "done",
 			expectedCount:  15,
-			expectedFormat: "json",
+			expectedFormat: FormatJSON,
 		},
 		{
 			name:           "all status",
 			args:           []string{"--status", "all"},
 			expectedStatus: "all",
 			expectedCount:  20,
-			expectedFormat: "text",
+			expectedFormat: FormatText,
 		},
 	}
 
@@ -135,51 +135,51 @@ func TestListCommand_Validate(t *testing.T) {
 	}{
 		{
 			name:      "valid defaults",
-			flags:     &listFlags{status: "", statusShort: "", count: 20, countShort: 20, format: "text"},
+			flags:     &listFlags{status: "", statusShort: "", count: 20, countShort: 20, format: FormatText},
 			args:      []string{},
 			wantError: false,
 		},
 		{
 			name:      "valid todo status",
-			flags:     &listFlags{status: "todo", statusShort: "", count: 20, countShort: 20, format: "text"},
+			flags:     &listFlags{status: "todo", statusShort: "", count: 20, countShort: 20, format: FormatText},
 			args:      []string{},
 			wantError: false,
 		},
 		{
 			name:      "valid doing status",
-			flags:     &listFlags{status: "doing", statusShort: "", count: 20, countShort: 20, format: "text"},
+			flags:     &listFlags{status: "doing", statusShort: "", count: 20, countShort: 20, format: FormatText},
 			args:      []string{},
 			wantError: false,
 		},
 		{
 			name:      "valid done status",
-			flags:     &listFlags{status: "done", statusShort: "", count: 20, countShort: 20, format: "text"},
+			flags:     &listFlags{status: "done", statusShort: "", count: 20, countShort: 20, format: FormatText},
 			args:      []string{},
 			wantError: false,
 		},
 		{
 			name:      "valid all status",
-			flags:     &listFlags{status: "all", statusShort: "", count: 20, countShort: 20, format: "text"},
+			flags:     &listFlags{status: "all", statusShort: "", count: 20, countShort: 20, format: FormatText},
 			args:      []string{},
 			wantError: false,
 		},
 		{
 			name:      "invalid status",
-			flags:     &listFlags{status: "invalid", statusShort: "", count: 20, countShort: 20, format: "text"},
+			flags:     &listFlags{status: "invalid", statusShort: "", count: 20, countShort: 20, format: FormatText},
 			args:      []string{},
 			wantError: true,
 			errorMsg:  `invalid status: "invalid" (must be 'todo', 'doing', 'done', or 'all')`,
 		},
 		{
 			name:      "negative count",
-			flags:     &listFlags{status: "", statusShort: "", count: -1, countShort: 20, format: "text"},
+			flags:     &listFlags{status: "", statusShort: "", count: -1, countShort: 20, format: FormatText},
 			args:      []string{},
 			wantError: true,
 			errorMsg:  "count must be non-negative, got -1",
 		},
 		{
 			name:      "zero count is valid",
-			flags:     &listFlags{status: "", statusShort: "", count: 0, countShort: 20, format: "text"},
+			flags:     &listFlags{status: "", statusShort: "", count: 0, countShort: 20, format: FormatText},
 			args:      []string{},
 			wantError: false,
 		},
@@ -192,31 +192,31 @@ func TestListCommand_Validate(t *testing.T) {
 		},
 		{
 			name:      "json format",
-			flags:     &listFlags{status: "", statusShort: "", count: 20, countShort: 20, format: "json"},
+			flags:     &listFlags{status: "", statusShort: "", count: 20, countShort: 20, format: FormatJSON},
 			args:      []string{},
 			wantError: false,
 		},
 		{
 			name:      "empty status is valid",
-			flags:     &listFlags{status: "", statusShort: "", count: 20, countShort: 20, format: "text"},
+			flags:     &listFlags{status: "", statusShort: "", count: 20, countShort: 20, format: FormatText},
 			args:      []string{},
 			wantError: false,
 		},
 		{
 			name:      "with unexpected arguments",
-			flags:     &listFlags{status: "todo", statusShort: "", count: 20, countShort: 20, format: "json"},
+			flags:     &listFlags{status: "todo", statusShort: "", count: 20, countShort: 20, format: FormatJSON},
 			args:      []string{"extra", "args"},
 			wantError: false,
 		},
 		{
 			name:      "short status flag takes precedence",
-			flags:     &listFlags{status: "todo", statusShort: "doing", count: 20, countShort: 20, format: "text"},
+			flags:     &listFlags{status: "todo", statusShort: "doing", count: 20, countShort: 20, format: FormatText},
 			args:      []string{},
 			wantError: false,
 		},
 		{
 			name:      "short count flag takes precedence",
-			flags:     &listFlags{status: "", statusShort: "", count: 30, countShort: 5, format: "text"},
+			flags:     &listFlags{status: "", statusShort: "", count: 30, countShort: 5, format: FormatText},
 			args:      []string{},
 			wantError: false,
 		},
@@ -244,7 +244,7 @@ func TestListCommand_Execute(t *testing.T) {
 	t.Run("default parameters", func(t *testing.T) {
 		cmd := &ListCommand{}
 		ctx := context.Background()
-		flags := &listFlags{status: "", statusShort: "", count: 20, countShort: 20, format: "text"}
+		flags := &listFlags{status: "", statusShort: "", count: 20, countShort: 20, format: FormatText}
 
 		// This will succeed when run in a ticketflow environment
 		err := cmd.Execute(ctx, flags, []string{})
@@ -256,7 +256,7 @@ func TestListCommand_Execute(t *testing.T) {
 	t.Run("json format with todo status", func(t *testing.T) {
 		cmd := &ListCommand{}
 		ctx := context.Background()
-		flags := &listFlags{status: "todo", statusShort: "", count: 10, countShort: 20, format: "json"}
+		flags := &listFlags{status: "todo", statusShort: "", count: 10, countShort: 20, format: FormatJSON}
 
 		err := cmd.Execute(ctx, flags, []string{})
 
@@ -267,7 +267,7 @@ func TestListCommand_Execute(t *testing.T) {
 	t.Run("all status with limited count", func(t *testing.T) {
 		cmd := &ListCommand{}
 		ctx := context.Background()
-		flags := &listFlags{status: "all", statusShort: "", count: 5, countShort: 20, format: "text"}
+		flags := &listFlags{status: "all", statusShort: "", count: 5, countShort: 20, format: FormatText}
 
 		err := cmd.Execute(ctx, flags, []string{})
 

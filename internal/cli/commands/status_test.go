@@ -45,17 +45,17 @@ func TestStatusCommand_SetupFlags(t *testing.T) {
 		{
 			name:     "default format",
 			args:     []string{},
-			expected: "text",
+			expected: FormatText,
 		},
 		{
 			name:     "json format",
 			args:     []string{"--format", "json"},
-			expected: "json",
+			expected: FormatJSON,
 		},
 		{
 			name:     "text format explicit",
 			args:     []string{"--format", "text"},
-			expected: "text",
+			expected: FormatText,
 		},
 	}
 
@@ -90,13 +90,13 @@ func TestStatusCommand_Validate(t *testing.T) {
 	}{
 		{
 			name:      "valid text format",
-			flags:     &statusFlags{format: "text"},
+			flags:     &statusFlags{format: FormatText},
 			args:      []string{},
 			wantError: false,
 		},
 		{
 			name:      "valid json format",
-			flags:     &statusFlags{format: "json"},
+			flags:     &statusFlags{format: FormatJSON},
 			args:      []string{},
 			wantError: false,
 		},
@@ -116,7 +116,7 @@ func TestStatusCommand_Validate(t *testing.T) {
 		},
 		{
 			name:      "with unexpected arguments but valid format",
-			flags:     &statusFlags{format: "json"},
+			flags:     &statusFlags{format: FormatJSON},
 			args:      []string{"extra", "args"},
 			wantError: false,
 		},
@@ -144,7 +144,7 @@ func TestStatusCommand_Execute(t *testing.T) {
 	t.Run("text format", func(t *testing.T) {
 		cmd := &StatusCommand{}
 		ctx := context.Background()
-		flags := &statusFlags{format: "text"}
+		flags := &statusFlags{format: FormatText}
 
 		// This will succeed when run in a ticketflow environment
 		err := cmd.Execute(ctx, flags, []string{})
@@ -158,7 +158,7 @@ func TestStatusCommand_Execute(t *testing.T) {
 	t.Run("json format", func(t *testing.T) {
 		cmd := &StatusCommand{}
 		ctx := context.Background()
-		flags := &statusFlags{format: "json"}
+		flags := &statusFlags{format: FormatJSON}
 
 		err := cmd.Execute(ctx, flags, []string{})
 
@@ -182,19 +182,19 @@ func TestStatusCommand_Execute_WithMockApp(t *testing.T) {
 	}{
 		{
 			name:        "successful text status",
-			format:      "text",
+			format:      FormatText,
 			statusError: nil,
 			wantError:   false,
 		},
 		{
 			name:        "successful json status",
-			format:      "json",
+			format:      FormatJSON,
 			statusError: nil,
 			wantError:   false,
 		},
 		{
 			name:        "status returns error",
-			format:      "text",
+			format:      FormatText,
 			statusError: errors.New("no current ticket"),
 			wantError:   true,
 		},
