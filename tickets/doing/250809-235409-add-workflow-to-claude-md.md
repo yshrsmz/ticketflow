@@ -30,9 +30,9 @@ Make sure to update task status when you finish it. Also, always create a commit
 - [x] Register the workflow command in the CLI router
 - [x] Embed the workflow content as a string constant
 - [x] Implement Execute method that prints to stdout
-- [ ] Add integration test to verify command output
-- [ ] Run `make test` to run the tests
-- [ ] Run `make vet`, `make fmt` and `make lint`
+- [x] Add integration test to verify command output
+- [x] Run `make test` to run the tests
+- [x] Run `make vet`, `make fmt` and `make lint`
 - [ ] Update the ticket with insights from resolving this ticket
 - [ ] Get developer approval before closing
 
