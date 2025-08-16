@@ -3,6 +3,7 @@ package cli
 import (
 	"fmt"
 	"io"
+	"sync"
 )
 
 // Verify interface compliance at compile time
@@ -28,7 +29,8 @@ type StatusWriter interface {
 
 // textStatusWriter outputs status messages to the console in text mode
 type textStatusWriter struct {
-	w io.Writer
+	mu sync.Mutex
+	w  io.Writer
 }
 
 // NewTextStatusWriter creates a status writer that outputs to the given writer
@@ -37,12 +39,16 @@ func NewTextStatusWriter(w io.Writer) StatusWriter {
 }
 
 func (s *textStatusWriter) Printf(format string, args ...interface{}) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	// Ignoring error as status messages are non-critical for operation
 	// and StatusWriter interface doesn't return errors
 	_, _ = fmt.Fprintf(s.w, format, args...)
 }
 
 func (s *textStatusWriter) Println(args ...interface{}) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	// Ignoring error as status messages are non-critical for operation
 	// and StatusWriter interface doesn't return errors
 	_, _ = fmt.Fprintln(s.w, args...)
