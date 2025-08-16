@@ -38,18 +38,22 @@ func IsInteractive() bool {
 
 // Prompt displays a prompt and returns the selected option key
 func Prompt(message string, options []PromptOption) (string, error) {
-	return PromptWithStatus(message, options, nil)
+	// Use a null status writer for backward compatibility
+	return PromptWithStatus(message, options, &nullStatusWriter{})
 }
 
-// PromptWithStatus displays a prompt and returns the selected option key with optional status output
+// PromptWithStatus displays a prompt and returns the selected option key with status output
 func PromptWithStatus(message string, options []PromptOption, status StatusWriter) (string, error) {
+	// Ensure we have a status writer (defensive programming)
+	if status == nil {
+		status = &nullStatusWriter{}
+	}
+	
 	// In non-interactive mode, automatically use the default option
 	if !IsInteractive() {
 		for _, opt := range options {
 			if opt.IsDefault {
-				if status != nil {
-					status.Printf("Non-interactive mode detected. Using default option: %s\n", opt.Key)
-				}
+				status.Printf("Non-interactive mode detected. Using default option: %s\n", opt.Key)
 				return opt.Key, nil
 			}
 		}
@@ -110,20 +114,24 @@ func PromptWithReader(message string, options []PromptOption, input io.Reader) (
 
 // ConfirmPrompt displays a yes/no prompt
 func ConfirmPrompt(message string, defaultYes bool) bool {
-	return ConfirmPromptWithStatus(message, defaultYes, nil)
+	// Use a null status writer for backward compatibility
+	return ConfirmPromptWithStatus(message, defaultYes, &nullStatusWriter{})
 }
 
-// ConfirmPromptWithStatus displays a yes/no prompt with optional status output
+// ConfirmPromptWithStatus displays a yes/no prompt with status output
 func ConfirmPromptWithStatus(message string, defaultYes bool, status StatusWriter) bool {
+	// Ensure we have a status writer (defensive programming)
+	if status == nil {
+		status = &nullStatusWriter{}
+	}
+	
 	// In non-interactive mode, automatically use the default
 	if !IsInteractive() {
 		action := "No"
 		if defaultYes {
 			action = "Yes"
 		}
-		if status != nil {
-			status.Printf("Non-interactive mode detected. Using default: %s\n", action)
-		}
+		status.Printf("Non-interactive mode detected. Using default: %s\n", action)
 		return defaultYes
 	}
 
