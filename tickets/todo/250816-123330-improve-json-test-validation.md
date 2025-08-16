@@ -1,6 +1,6 @@
 ---
 priority: 2
-description: ""
+description: "Improve validation logic for JSON-based tests to ensure accuracy and reliability"
 created_at: "2025-08-16T12:33:30+09:00"
 started_at: null
 closed_at: null
