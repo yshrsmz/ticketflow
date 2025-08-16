@@ -7,14 +7,6 @@ import (
 	"github.com/yshrsmz/ticketflow/internal/ticket"
 )
 
-// Remove unused min function
-// func min(a, b int) int {
-// 	if a < b {
-// 		return a
-// 	}
-// 	return b
-// }
-
 // Printable represents a result that knows how to format itself
 type Printable interface {
 	// TextRepresentation returns human-readable format
