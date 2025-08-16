@@ -89,15 +89,15 @@ func TestCleanupCommand_Execute_AutoCleanup_JSON_Integration(t *testing.T) {
 	jsonStart := strings.Index(outputStr, "{")
 	require.True(t, jsonStart >= 0, "JSON output should be present")
 	jsonStr := outputStr[jsonStart:]
-	
+
 	// Parse and validate the JSON properly
 	var result map[string]interface{}
 	err := json.Unmarshal([]byte(jsonStr), &result)
 	require.NoError(t, err, "JSON should be valid")
-	
+
 	// Validate the structure
 	assert.Equal(t, true, result["success"], "success should be true")
-	
+
 	resultData, ok := result["result"].(map[string]interface{})
 	require.True(t, ok, "result should be a map")
 	assert.Contains(t, resultData, "orphaned_worktrees")
