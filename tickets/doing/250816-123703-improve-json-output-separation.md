@@ -155,3 +155,34 @@ Successfully refactored the CLI package using the Strategy pattern with two sepa
 - Integration tests updated and passing
 - `make fmt`, `make vet`, and `make lint` all pass
 - JSON output now properly formatted without status message contamination
+
+## Code Review Feedback Addressed
+
+### 1. Test-Specific Nil Checks (Fixed)
+- Removed all `if app.StatusWriter == nil` checks from production code
+- App is always initialized with proper StatusWriter in `NewAppWithOptions`
+- Tests should properly initialize their dependencies
+
+### 2. Switch Statement in OutputWriter (Solution Proposed)
+**Problem**: The switch statement in ResultWriter is tightly coupled and will grow huge.
+
+**Proposed Solution**: Printable Interface Pattern (kubectl-style)
+```go
+type Printable interface {
+    TextRepresentation() string
+    StructuredData() interface{}
+}
+```
+- Created `internal/cli/printable.go` with interface and example implementations
+- Each result type owns its formatting logic (Single Responsibility)
+- Migration path: Update ResultWriter to check for Printable first, keep switch as fallback
+
+### 3. App Initialization Order (Fixed)
+- Added `NewAppWithFormat()` helper for cleaner initialization
+- App is created with correct format from the start, no post-creation mutations
+- Updated cleanup command to use new pattern: `cli.NewAppWithFormat(ctx, outputFormat)`
+
+### Next Steps for Full Migration
+1. **Phase 1**: Update all result types to implement Printable interface
+2. **Phase 2**: Update remaining commands to use `NewAppWithFormat()`
+3. **Phase 3**: Remove switch statement from ResultWriter once all types implement Printable
