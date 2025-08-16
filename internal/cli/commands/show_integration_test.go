@@ -253,9 +253,8 @@ func TestShowCommand_Execute_ContextCancellation(t *testing.T) {
 	showFlags := &showFlags{format: "text"}
 	err = cmd.Execute(ctx, showFlags, []string{"test-ticket"})
 	require.Error(t, err)
-	// When context is cancelled, git commands fail with "Not in a git repository"
-	// because the git command exits immediately without proper error propagation
-	assert.Contains(t, err.Error(), "Not in a git repository")
+	// With early context check, we return context.Canceled immediately
+	assert.Contains(t, err.Error(), "context canceled")
 }
 
 func TestShowCommand_Execute_InvalidFlagsType(t *testing.T) {
