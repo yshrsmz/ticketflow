@@ -3,7 +3,7 @@ priority: 2
 description: Add test coverage for commands with 0% Execute method coverage
 created_at: "2025-08-15T17:55:48+09:00"
 started_at: "2025-08-16T00:24:30+09:00"
-closed_at: null
+closed_at: "2025-08-16T10:07:22+09:00"
 related:
     - parent:250815-171607-improve-command-test-coverage
 ---
