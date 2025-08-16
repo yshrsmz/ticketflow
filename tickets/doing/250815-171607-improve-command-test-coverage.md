@@ -65,7 +65,7 @@ After analysis, this ticket was determined to be too large for a single implemen
 - [x] Create sub-ticket for zero coverage commands
 - [x] Create sub-ticket for maintenance commands
 - [x] Complete sub-ticket: 250815-175448-test-coverage-core-workflow-commands ✅
-- [ ] Complete sub-ticket: 250815-175548-test-coverage-zero-coverage-commands
+- [x] Complete sub-ticket: 250815-175548-test-coverage-zero-coverage-commands ✅
 - [ ] Complete sub-ticket: 250815-175624-test-coverage-maintenance-commands
 - [ ] Run `make coverage` to verify overall improvement
 - [ ] Verify all Execute methods have at least 70% coverage
@@ -99,9 +99,17 @@ assert.True(t, env.FileExists("tickets/doing/test-ticket.md"))
 assert.Contains(t, env.LastCommitMessage(), "Start ticket")
 ```
 
-### Coverage Achieved (First Sub-ticket)
+### Coverage Achieved
+**First Sub-ticket (250815-175448):**
 - `close.go` Execute: **91.7%** (up from 29.2%) ✅
 - `start.go` Execute: **94.4%** (up from 43.8%) ✅
+
+**Second Sub-ticket (250815-175548):**
+- `new.go` Execute: **95.2%** (up from 0.0%) ✅
+- `restore.go` Execute: **100%** (up from 0.0%) ✅
+- `show.go` Execute: **100%** (up from 0.0%) ✅
+- `worktree_clean.go` Execute: **100%** (up from 0.0%) ✅
+- `worktree_list.go` Execute: **100%** (up from 0.0%) ✅
 
 ## Success Criteria
 
