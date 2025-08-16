@@ -14,10 +14,7 @@ related:
 Currently, many commands still use the old pattern of creating an App then mutating it after flag parsing. This creates awkward state mutations and makes the code harder to understand.
 
 ## Current State
-Some commands have been updated:
-- `cleanup.go` ✅
-- `status.go` ✅
-- `worktree_list.go` ✅
+All commands have been successfully refactored! ✅
 
 ## Tasks
 - [x] Update `list.go` to use NewAppWithFormat
@@ -59,5 +56,29 @@ if err != nil {
 - No awkward state mutations
 - Follows industry best practices (Kong, Docker, kubectl)
 
-## Notes
-This is a follow-up to the JSON/text output separation work. The pattern has been proven to work in three commands already.
+## Key Insights & Implementation Notes
+
+### Commands Refactored
+1. **Simple commands** (`list`, `show`, `new`, `restore`): Straightforward replacement of the pattern
+2. **Commands with test helpers** (`start`, `close`): Required creating `getAppWithFormat` helper to maintain test compatibility
+3. **Commands needing enhancement** (`worktree_clean`): Added JSON format support as part of the refactoring
+
+### Technical Improvements
+- **CleanWorktreesResult struct**: Added structured return type for `CleanWorktrees` method to support JSON output
+- **Removed technical debt**: Deleted deprecated `getApp()` function that was no longer needed
+- **Test updates**: Fixed integration test to handle new return type from `CleanWorktrees`
+
+### Pattern Benefits Realized
+- All commands now follow consistent initialization pattern
+- Flag parsing happens before App creation (no more mutations)
+- Output format is determined at App creation time
+- JSON/text output handling is cleaner and more predictable
+
+### Completion Status
+✅ All 7 identified commands refactored
+✅ Additional commands (`start`, `close`) discovered and refactored
+✅ JSON support added to `worktree_clean`
+✅ All tests passing
+✅ Linting clean
+
+This completes the refactoring work and establishes a clean, consistent pattern for all CLI commands.
