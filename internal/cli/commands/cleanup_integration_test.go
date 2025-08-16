@@ -73,7 +73,8 @@ func TestCleanupCommand_Execute_AutoCleanup_JSON_Integration(t *testing.T) {
 	// Capture JSON output
 	var output bytes.Buffer
 	origStdout := os.Stdout
-	r, w, _ := os.Pipe()
+	r, w, err := os.Pipe()
+	require.NoError(t, err)
 	os.Stdout = w
 
 	env.WithWorkingDirectory(t, func() {
@@ -184,7 +185,8 @@ func TestCleanupCommand_Execute_TicketCleanup_JSON_Integration(t *testing.T) {
 	// Capture JSON output
 	var output bytes.Buffer
 	origStdout := os.Stdout
-	r, w, _ := os.Pipe()
+	r, w, err := os.Pipe()
+	require.NoError(t, err)
 	os.Stdout = w
 
 	env.WithWorkingDirectory(t, func() {
@@ -237,7 +239,8 @@ func TestCleanupCommand_Execute_TicketCleanup_ErrorJSON_Integration(t *testing.T
 	// Capture JSON error output
 	var output bytes.Buffer
 	origStdout := os.Stdout
-	r, w, _ := os.Pipe()
+	r, w, err := os.Pipe()
+	require.NoError(t, err)
 	os.Stdout = w
 
 	env.WithWorkingDirectory(t, func() {

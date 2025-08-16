@@ -51,7 +51,8 @@ func TestWorktreeCommand_Execute_List_JSON_Integration(t *testing.T) {
 	// Capture JSON output
 	var output bytes.Buffer
 	origStdout := os.Stdout
-	r, w, _ := os.Pipe()
+	r, w, err := os.Pipe()
+	require.NoError(t, err)
 	os.Stdout = w
 
 	env.WithWorkingDirectory(t, func() {

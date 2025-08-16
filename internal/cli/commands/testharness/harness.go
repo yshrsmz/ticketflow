@@ -2,8 +2,10 @@
 package testharness
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -306,4 +308,32 @@ func (e *TestEnvironment) WithWorkingDirectory(t *testing.T, fn func()) {
 // Cleanup performs any necessary cleanup
 func (e *TestEnvironment) Cleanup() {
 	// Cleanup is handled by t.TempDir()
+}
+
+// CaptureOutput captures stdout during function execution and returns it as a string
+func CaptureOutput(t *testing.T, fn func()) string {
+	t.Helper()
+	
+	old := os.Stdout
+	r, w, err := os.Pipe()
+	require.NoError(t, err)
+	os.Stdout = w
+	
+	// Use a channel to safely read output
+	done := make(chan string)
+	go func() {
+		var buf bytes.Buffer
+		_, _ = io.Copy(&buf, r)
+		done <- buf.String()
+	}()
+	
+	// Execute the function
+	fn()
+	
+	// Restore stdout and close writer
+	w.Close()
+	os.Stdout = old
+	
+	// Wait for reader to finish
+	return <-done
 }
