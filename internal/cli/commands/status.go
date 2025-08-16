@@ -45,7 +45,7 @@ type statusFlags struct {
 // SetupFlags configures flags for the command
 func (c *StatusCommand) SetupFlags(fs *flag.FlagSet) interface{} {
 	flags := &statusFlags{}
-	fs.StringVar(&flags.format, "format", "text", "Output format (text|json)")
+	fs.StringVar(&flags.format, "format", FormatText, "Output format (text|json)")
 	return flags
 }
 
@@ -58,7 +58,7 @@ func (c *StatusCommand) Validate(flags interface{}, args []string) error {
 	}
 
 	// Validate format flag
-	if f.format != "text" && f.format != "json" {
+	if f.format != FormatText && f.format != FormatJSON {
 		return fmt.Errorf("invalid format: %q (must be 'text' or 'json')", f.format)
 	}
 
