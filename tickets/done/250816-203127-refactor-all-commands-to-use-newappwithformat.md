@@ -3,7 +3,7 @@ priority: 2
 description: Refactor all CLI commands to use NewAppWithFormat for cleaner initialization
 created_at: "2025-08-16T20:31:27+09:00"
 started_at: "2025-08-16T22:44:15+09:00"
-closed_at: null
+closed_at: "2025-08-16T23:27:18+09:00"
 related:
     - parent:250816-123703-improve-json-output-separation
 ---
