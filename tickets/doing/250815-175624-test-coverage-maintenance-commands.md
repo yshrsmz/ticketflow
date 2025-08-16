@@ -1,8 +1,8 @@
 ---
 priority: 3
-description: "Improve test coverage for maintenance commands with partial coverage"
+description: Improve test coverage for maintenance commands with partial coverage
 created_at: "2025-08-15T17:56:24+09:00"
-started_at: null
+started_at: "2025-08-16T10:42:14+09:00"
 closed_at: null
 related:
     - parent:250815-171607-improve-command-test-coverage
