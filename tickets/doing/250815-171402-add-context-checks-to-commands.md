@@ -18,13 +18,26 @@ During the command migration, it was discovered that some commands have early co
 
 ## Commands Missing Context Checks
 
-- `list.go`
-- `show.go`
-- `restore.go`
-- `init.go`
-- `version.go`
-- `worktree_list.go`
-- `worktree_clean.go`
+After comprehensive analysis, the following commands lack early context cancellation checks:
+
+- `list.go` - Starts directly with `cli.NewApp(ctx)`
+- `show.go` - Starts directly with `cli.NewApp(ctx)`
+- `restore.go` - Starts directly with `cli.NewApp(ctx)`
+- `init.go` - Directly delegates to `cli.InitCommand(ctx)`
+- `version.go` - Prints version info without context check
+- `worktree_list.go` - Starts with format handling
+- `worktree_clean.go` - Starts directly with `cli.NewApp(ctx)`
+- `help.go` - Prints help without context check (discovered during analysis)
+- `worktree.go` - Parent command lacking context check (discovered during analysis)
+
+## Commands Already Having Context Checks
+
+For reference, these commands already implement the pattern correctly:
+- `cleanup.go` ✓
+- `close.go` ✓
+- `new.go` ✓
+- `start.go` ✓
+- `status.go` ✓
 
 ## Tasks
 
@@ -35,9 +48,10 @@ During the command migration, it was discovered that some commands have early co
 - [ ] Add context check to version command Execute method
 - [ ] Add context check to worktree_list command Execute method
 - [ ] Add context check to worktree_clean command Execute method
+- [ ] Add context check to help command Execute method
+- [ ] Add context check to worktree command Execute method
 - [ ] Run `make test` to verify no breakage
 - [ ] Run `make vet`, `make fmt` and `make lint`
-- [ ] Update documentation if necessary
 
 ## Implementation Pattern
 
