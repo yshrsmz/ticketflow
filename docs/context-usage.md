@@ -118,8 +118,9 @@ defer cancel()
 
 ### 1. Always Check Context Early
 
-Check context at the beginning of operations:
+Check context at the beginning of operations. There are two equivalent patterns:
 
+**Pattern A: Direct Error Check**
 ```go
 func SomeOperation(ctx context.Context) error {
     if err := ctx.Err(); err != nil {
@@ -128,6 +129,21 @@ func SomeOperation(ctx context.Context) error {
     // ... proceed with operation
 }
 ```
+
+**Pattern B: Select Statement (used in CLI commands)**
+```go
+func SomeOperation(ctx context.Context) error {
+    // Check if context is already cancelled
+    select {
+    case <-ctx.Done():
+        return ctx.Err()
+    default:
+    }
+    // ... proceed with operation
+}
+```
+
+Both patterns achieve the same result. The select statement pattern is commonly used in the CLI commands for consistency.
 
 ### 2. Check Context in Loops
 

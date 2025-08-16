@@ -41,18 +41,18 @@ For reference, these commands already implement the pattern correctly:
 
 ## Tasks
 
-- [ ] Add context check to list command Execute method
-- [ ] Add context check to show command Execute method
-- [ ] Add context check to restore command Execute method
-- [ ] Add context check to init command Execute method
-- [ ] Add context check to version command Execute method
-- [ ] Add context check to worktree_list command Execute method
-- [ ] Add context check to worktree_clean command Execute method
-- [ ] Add context check to help command Execute method
-- [ ] Add context check to worktree command Execute method
-- [ ] Run `make test` to verify no breakage
-- [ ] Run `make vet`, `make fmt` and `make lint`
-- [ ] Consider updating docs/context-usage.md to mention both patterns (ctx.Err() vs select)
+- [x] Add context check to list command Execute method
+- [x] Add context check to show command Execute method
+- [x] Add context check to restore command Execute method
+- [x] Add context check to init command Execute method
+- [x] Add context check to version command Execute method
+- [x] Add context check to worktree_list command Execute method
+- [x] Add context check to worktree_clean command Execute method
+- [x] Add context check to help command Execute method
+- [x] Add context check to worktree command Execute method
+- [x] Run `make test` to verify no breakage
+- [x] Run `make vet`, `make fmt` and `make lint`
+- [x] Consider updating docs/context-usage.md to mention both patterns (ctx.Err() vs select)
 
 ## Implementation Pattern
 
