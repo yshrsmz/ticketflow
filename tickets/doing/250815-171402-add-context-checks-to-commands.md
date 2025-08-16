@@ -52,6 +52,7 @@ For reference, these commands already implement the pattern correctly:
 - [ ] Add context check to worktree command Execute method
 - [ ] Run `make test` to verify no breakage
 - [ ] Run `make vet`, `make fmt` and `make lint`
+- [ ] Consider updating docs/context-usage.md to mention both patterns (ctx.Err() vs select)
 
 ## Implementation Pattern
 
