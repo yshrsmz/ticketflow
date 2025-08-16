@@ -54,6 +54,13 @@ func (c *WorktreeCleanCommand) Validate(flags interface{}, args []string) error 
 
 // Execute runs the command with the given context
 func (c *WorktreeCleanCommand) Execute(ctx context.Context, flags interface{}, args []string) error {
+	// Check if context is already cancelled
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+
 	app, err := cli.NewApp(ctx)
 	if err != nil {
 		return err

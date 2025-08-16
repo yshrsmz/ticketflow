@@ -58,6 +58,13 @@ func (c *HelpCommand) Validate(flags interface{}, args []string) error {
 
 // Execute runs the help command
 func (c *HelpCommand) Execute(ctx context.Context, flags interface{}, args []string) error {
+	// Check if context is already cancelled
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+
 	// If a specific command is requested, show its help
 	if len(args) > 0 {
 		return c.showCommandHelp(args[0])

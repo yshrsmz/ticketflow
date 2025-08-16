@@ -96,6 +96,13 @@ func (r *RestoreCommand) Validate(flags interface{}, args []string) error {
 
 // Execute runs the command with the given context
 func (r *RestoreCommand) Execute(ctx context.Context, flags interface{}, args []string) error {
+	// Check if context is already cancelled
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+
 	f := flags.(*restoreFlags)
 
 	// Get App instance
