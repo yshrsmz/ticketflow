@@ -72,3 +72,26 @@ This feature was suggested during code review to help track how often the "branc
 ## Closure Note
 **Closed on**: 2025-08-17
 **Reason**: cancelled
+
+### Cancellation Reasoning
+
+After careful consideration, this feature was cancelled for the following reasons:
+
+1. **Overengineering for CLI Tool Scale**: TicketFlow is a local CLI tool similar to git, ripgrep, or make. None of these established CLI tools implement telemetry because it adds unnecessary complexity without proportional value.
+
+2. **No Clear Collection Strategy**: Implementing metrics would require either:
+   - A telemetry server (privacy concerns, infrastructure costs, maintenance burden)
+   - Local-only storage (provides no aggregate insights across users, defeating the purpose)
+   - Third-party analytics services (massive overkill for a CLI tool)
+
+3. **Limited Value Proposition**: The original intent was to track "branch already exists" scenarios, but this is a minor edge case that doesn't justify the complexity of a full metrics system.
+
+4. **Against CLI Tool Philosophy**: CLI tools should be simple, focused, and respect user privacy by default. Adding metrics/telemetry goes against these principles.
+
+5. **Better Alternatives Available**: Usage patterns can be understood through:
+   - GitHub issues and discussions
+   - Direct user feedback
+   - Code reviews and PRs
+   - Community engagement
+
+The development effort would be better spent on actual user-facing features and improvements rather than building infrastructure for metrics that provide minimal actionable insights for a tool of this scale.
