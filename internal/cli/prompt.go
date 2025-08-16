@@ -48,7 +48,7 @@ func PromptWithStatus(message string, options []PromptOption, status StatusWrite
 	if status == nil {
 		status = &nullStatusWriter{}
 	}
-	
+
 	// In non-interactive mode, automatically use the default option
 	if !IsInteractive() {
 		for _, opt := range options {
@@ -124,7 +124,7 @@ func ConfirmPromptWithStatus(message string, defaultYes bool, status StatusWrite
 	if status == nil {
 		status = &nullStatusWriter{}
 	}
-	
+
 	// In non-interactive mode, automatically use the default
 	if !IsInteractive() {
 		action := "No"

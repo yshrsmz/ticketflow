@@ -242,7 +242,7 @@ func (w *OutputWriter) Printf(format string, args ...interface{}) {
 	_, _ = fmt.Fprintf(w.stdout, format, args...)
 }
 
-// Println writes a line to stdout  
+// Println writes a line to stdout
 // Deprecated: Use StatusWriter for progress messages or OutputFormatter for structured output
 func (w *OutputWriter) Println(args ...interface{}) {
 	_, _ = fmt.Fprintln(w.stdout, args...)
