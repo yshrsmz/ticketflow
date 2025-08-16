@@ -33,53 +33,53 @@ Improve test coverage for maintenance and utility commands that already have par
 ## Tasks
 
 ### Setup
-- [ ] Analyze existing tests to identify coverage gaps
-- [ ] Use the test harness from `internal/cli/commands/testharness/`
-- [ ] Follow integration testing patterns established in the first sub-ticket
+- [x] Analyze existing tests to identify coverage gaps
+- [x] Use the test harness from `internal/cli/commands/testharness/`
+- [x] Follow integration testing patterns established in the first sub-ticket
 
 ### Cleanup Command Tests
-- [ ] Review existing 63.6% coverage to identify gaps
-- [ ] Test successful cleanup of merged tickets
-- [ ] Test cleanup with force flag
-- [ ] Test error handling for active worktrees
-- [ ] Test error handling for unmerged branches
-- [ ] Test both text and JSON output formats
-- [ ] Add tests for edge cases not currently covered
+- [x] Review existing 63.6% coverage to identify gaps
+- [x] Test successful cleanup of merged tickets
+- [x] Test cleanup with force flag
+- [x] Test error handling for active worktrees
+- [x] Test error handling for unmerged branches
+- [x] Test both text and JSON output formats
+- [x] Add tests for edge cases not currently covered
 
 ### Worktree Command Tests
-- [ ] Review existing 53.3% coverage to identify gaps
-- [ ] Test worktree subcommand routing
-- [ ] Test error handling for invalid subcommands
-- [ ] Test help display for worktree command
-- [ ] Test both text and JSON output formats
-- [ ] Add tests for uncovered command paths
+- [x] Review existing 53.3% coverage to identify gaps
+- [x] Test worktree subcommand routing
+- [x] Test error handling for invalid subcommands
+- [x] Test help display for worktree command
+- [x] Test both text and JSON output formats
+- [x] Add tests for uncovered command paths
 
 ### Status Command Tests (Minor improvements)
-- [ ] Review existing 70.0% coverage (already meets target)
-- [ ] Add any missing edge case tests
-- [ ] Test error scenarios not currently covered
-- [ ] Ensure JSON output format is fully tested
+- [x] Review existing 70.0% coverage (already meets target)
+- [x] Add any missing edge case tests
+- [x] Test error scenarios not currently covered
+- [x] Ensure JSON output format is fully tested
 
 ### Verification
-- [ ] Run `make test` to ensure all tests pass
-- [ ] Run `make coverage` to verify coverage improvements
-- [ ] Run `make vet`, `make fmt` and `make lint`
+- [x] Run `make test` to ensure all tests pass
+- [x] Run `make coverage` to verify coverage improvements
+- [x] Run `make vet`, `make fmt` and `make lint`
 
 ### Documentation
-- [ ] Document any legitimately untestable code paths
-- [ ] Note which code paths were already well-tested
-- [ ] Update the ticket with insights from implementation
+- [x] Document any legitimately untestable code paths
+- [x] Note which code paths were already well-tested
+- [x] Update the ticket with insights from implementation
 - [ ] Get developer approval before closing
 
 ## Acceptance Criteria
 
-- [ ] `cleanup.go` Execute method has ≥70% test coverage
-- [ ] `worktree.go` Execute method has ≥70% test coverage
-- [ ] `status.go` Execute method maintains ≥70% test coverage
-- [ ] All tests pass with `make test`
-- [ ] No regression in existing tests
-- [ ] Test code follows project conventions
-- [ ] Focus on meaningful coverage, not just line count
+- [x] `cleanup.go` Execute method has ≥70% test coverage
+- [x] `worktree.go` Execute method has ≥70% test coverage
+- [x] `status.go` Execute method maintains ≥70% test coverage
+- [x] All tests pass with `make test`
+- [x] No regression in existing tests
+- [x] Test code follows project conventions
+- [x] Focus on meaningful coverage, not just line count
 
 ## Notes
 
@@ -90,3 +90,29 @@ The goal is to fill coverage gaps and ensure comprehensive testing, not just hit
 
 ## Dependencies
 - May benefit from shared test utilities created in ticket 250815-175448-test-coverage-core-workflow-commands
+
+## Implementation Insights
+
+### Final Coverage Results
+- Overall `internal/cli/commands` package coverage increased to **88.6%**
+- All three target commands now exceed 70% coverage
+- Successfully implemented integration tests following established patterns
+
+### Key Learnings
+1. **Integration tests are more valuable**: The integration testing approach with real git operations and file systems provided better coverage and more realistic testing than mock-based unit tests
+2. **Test harness is essential**: The `testharness` package significantly simplified writing integration tests
+3. **Added WithDescription helper**: Extended the testharness with a new `WithDescription` helper for ticket creation
+4. **JSON output testing**: Ensured all commands properly support JSON output format for AI tool integration
+
+### Challenges Addressed
+- **Worktree simulation**: Simplified worktree tests to avoid complex git worktree state manipulation
+- **Confirmation prompts**: Used force flags to skip interactive confirmations in tests
+- **Output capture**: Implemented proper stdout capture for JSON output verification
+- **Linter compliance**: Fixed all unchecked error returns for io.Copy operations
+
+### Files Created
+- `internal/cli/commands/cleanup_integration_test.go` - 9 comprehensive test cases
+- `internal/cli/commands/worktree_integration_test.go` - 6 test cases for subcommand dispatch
+- `internal/cli/commands/status_integration_test.go` - 4 test cases for output formats
+
+All acceptance criteria have been met successfully.
