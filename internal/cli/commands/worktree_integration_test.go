@@ -17,16 +17,16 @@ import (
 func TestWorktreeCommand_Execute_List_Integration(t *testing.T) {
 	// Cannot run in parallel due to os.Chdir
 	env := testharness.NewTestEnvironment(t)
-	
+
 	// Create a ticket and its worktree
 	_ = env.CreateTicket("test-ticket", ticket.StatusDoing)
 	env.RunGit("add", ".")
 	env.RunGit("commit", "-m", "Add test ticket")
-	
+
 	// Create a worktree
 	worktreeDir := filepath.Join(filepath.Dir(env.RootDir), "test-worktrees", "test-ticket")
 	env.RunGit("worktree", "add", worktreeDir, "-b", "test-ticket")
-	
+
 	// Execute worktree list command
 	env.WithWorkingDirectory(t, func() {
 		cmd := NewWorktreeCommand()
@@ -38,32 +38,32 @@ func TestWorktreeCommand_Execute_List_Integration(t *testing.T) {
 func TestWorktreeCommand_Execute_List_JSON_Integration(t *testing.T) {
 	// Cannot run in parallel due to os.Chdir
 	env := testharness.NewTestEnvironment(t)
-	
+
 	// Create a ticket and its worktree
 	_ = env.CreateTicket("test-ticket", ticket.StatusDoing)
 	env.RunGit("add", ".")
 	env.RunGit("commit", "-m", "Add test ticket")
-	
+
 	// Create a worktree
 	worktreeDir := filepath.Join(filepath.Dir(env.RootDir), "test-worktrees", "test-ticket")
 	env.RunGit("worktree", "add", worktreeDir, "-b", "test-ticket")
-	
+
 	// Capture JSON output
 	var output bytes.Buffer
 	origStdout := os.Stdout
 	r, w, _ := os.Pipe()
 	os.Stdout = w
-	
+
 	env.WithWorkingDirectory(t, func() {
 		cmd := NewWorktreeCommand()
 		err := cmd.Execute(context.Background(), nil, []string{"list", "--format", "json"})
 		require.NoError(t, err)
 	})
-	
+
 	w.Close()
-	io.Copy(&output, r)
+	_, _ = io.Copy(&output, r)
 	os.Stdout = origStdout
-	
+
 	// Verify JSON output
 	outputStr := output.String()
 	// The worktree list just outputs worktrees array, not success field
@@ -75,12 +75,12 @@ func TestWorktreeCommand_Execute_List_JSON_Integration(t *testing.T) {
 func TestWorktreeCommand_Execute_Clean_Integration(t *testing.T) {
 	// Cannot run in parallel due to os.Chdir
 	env := testharness.NewTestEnvironment(t)
-	
+
 	// Create a ticket
 	_ = env.CreateTicket("test-ticket", ticket.StatusDone)
 	env.RunGit("add", ".")
 	env.RunGit("commit", "-m", "Add test ticket")
-	
+
 	// Execute worktree clean command
 	env.WithWorkingDirectory(t, func() {
 		cmd := NewWorktreeCommand()
@@ -92,7 +92,7 @@ func TestWorktreeCommand_Execute_Clean_Integration(t *testing.T) {
 func TestWorktreeCommand_Execute_InvalidSubcommandFlag_Integration(t *testing.T) {
 	// Cannot run in parallel due to os.Chdir
 	env := testharness.NewTestEnvironment(t)
-	
+
 	// Try to execute list with invalid flag format
 	env.WithWorkingDirectory(t, func() {
 		cmd := NewWorktreeCommand()
@@ -106,7 +106,7 @@ func TestWorktreeCommand_Execute_InvalidSubcommandFlag_Integration(t *testing.T)
 func TestWorktreeCommand_Execute_SubcommandWithExtraArgs_Integration(t *testing.T) {
 	// Cannot run in parallel due to os.Chdir
 	env := testharness.NewTestEnvironment(t)
-	
+
 	// Try to execute clean with unexpected arguments
 	env.WithWorkingDirectory(t, func() {
 		cmd := NewWorktreeCommand()
@@ -120,7 +120,7 @@ func TestWorktreeCommand_Execute_SubcommandWithExtraArgs_Integration(t *testing.
 func TestWorktreeCommand_Execute_ListWithInvalidFormat_Integration(t *testing.T) {
 	// Cannot run in parallel due to os.Chdir
 	env := testharness.NewTestEnvironment(t)
-	
+
 	// Try list with invalid format
 	env.WithWorkingDirectory(t, func() {
 		cmd := NewWorktreeCommand()
