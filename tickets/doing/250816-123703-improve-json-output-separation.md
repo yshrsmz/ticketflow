@@ -90,17 +90,17 @@ This approach:
 
 ## Tasks
 - [x] Analyze current output patterns and verify all affected functions
-- [ ] Create StatusWriter interface and implementations (text and null)
-- [ ] Create new OutputWriter interface and implementations (json and text)
-- [ ] Update App struct to use new interfaces
-- [ ] Refactor cleanup.go to use app.Status instead of fmt
-- [ ] Refactor commands.go (InitTicketSystem, createWorktree, runInitCommands)
-- [ ] Refactor prompt.go functions to use app.Status
-- [ ] Update command-level output in cleanup.go command
-- [ ] Remove old OutputWriter Printf/Println methods
-- [ ] Update integration tests to verify clean JSON output
-- [ ] Run `make test` to verify all tests pass
-- [ ] Run `make vet`, `make fmt` and `make lint`
+- [x] Create StatusWriter interface and implementations (text and null)
+- [x] Create new OutputWriter interface and implementations (json and text)
+- [x] Update App struct to use new interfaces
+- [x] Refactor cleanup.go to use app.Status instead of fmt
+- [x] Refactor commands.go (InitTicketSystem, createWorktree, runInitCommands)
+- [x] Refactor prompt.go functions to use app.Status
+- [x] Update command-level output in cleanup.go command
+- [ ] Remove old OutputWriter Printf/Println methods (deprecated, kept for compatibility)
+- [x] Update integration tests to verify clean JSON output
+- [x] Run `make test` to verify all tests pass
+- [x] Run `make vet`, `make fmt` and `make lint`
 - [ ] Update CLAUDE.md to document new architecture
 - [ ] Get developer approval before closing
 
@@ -109,3 +109,49 @@ This approach:
 - The infrastructure (OutputWriter with GetFormat()) already exists
 - Command-level functions in `internal/cli/commands/` that always output help text can remain as-is
 - Focus on functions that mix status messages with structured data output
+
+## Implementation Details
+
+### Solution Implemented
+Successfully refactored the CLI package using the Strategy pattern with two separate interfaces:
+
+1. **StatusWriter Interface**: Manages progress/status messages during execution
+   - `textStatusWriter`: Outputs messages to stdout (text mode)
+   - `nullStatusWriter`: No-op implementation (JSON mode)
+   
+2. **ResultWriter Interface**: Handles final structured data output  
+   - `jsonResultWriter`: Outputs JSON to stdout
+   - `textResultWriter`: Formats data as human-readable text
+
+### Key Changes Made
+
+1. **New Files Created**:
+   - `internal/cli/status_writer.go`: StatusWriter interface and implementations
+   - `internal/cli/output_writer.go`: Renamed from output.go, now contains ResultWriter
+
+2. **Refactored Files**:
+   - `internal/cli/cleanup.go`: All fmt.Printf/Println replaced with app.StatusWriter
+   - `internal/cli/commands.go`: Updated to use StatusWriter for all status messages
+   - `internal/cli/prompt.go`: Refactored to use StatusWriter for prompts
+   - `internal/cli/commands/cleanup.go`: Sets StatusWriter based on format
+   - `internal/cli/commands/status.go`: Sets StatusWriter based on format
+   - `internal/cli/commands/worktree_list.go`: Sets StatusWriter based on format
+
+3. **Test Fixes**:
+   - Added StatusWriter initialization to test fixtures
+   - Added nil checks in cleanup functions for test compatibility
+   - All tests now passing with clean separation of output
+
+### Benefits Achieved
+- Clean JSON output when `--format json` is specified
+- No mixed text/JSON output breaking AI tool parsing
+- Clear separation of concerns between status messages and data output
+- Consistent architecture using Strategy pattern
+- Easy to test with mock implementations
+- Backward compatible (old Printf/Println methods deprecated but retained)
+
+### Testing Verification
+- All unit tests passing
+- Integration tests updated and passing
+- `make fmt`, `make vet`, and `make lint` all pass
+- JSON output now properly formatted without status message contamination

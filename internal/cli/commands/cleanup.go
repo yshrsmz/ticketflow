@@ -197,12 +197,6 @@ func (c *CleanupCommand) executeTicketCleanup(ctx context.Context, app *cli.App,
 	return nil
 }
 
-// outputAutoCleanupText outputs auto-cleanup results in text format
-func outputAutoCleanupText(result *cli.CleanupResult) {
-	// This is now handled by the ResultWriter in OutputWriter
-	// Keeping this function for backward compatibility but it's deprecated
-}
-
 // outputTicketCleanupText outputs ticket cleanup results in text format
 func outputTicketCleanupText(t *ticket.Ticket) {
 	fmt.Printf("Successfully cleaned up ticket: %s\n", t.ID)

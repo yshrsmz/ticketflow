@@ -3,6 +3,7 @@ package cli
 import (
 	"bytes"
 	"context"
+	"os"
 	"testing"
 	"time"
 
@@ -66,10 +67,11 @@ func newTestFixture(t *testing.T) *testFixture {
 	cfg.Git.DefaultBranch = testDefaultBranch
 
 	app := &App{
-		Config:  cfg,
-		Git:     mockGit,
-		Manager: mockManager,
-		Output:  NewOutputWriter(nil, nil, FormatText),
+		Config:       cfg,
+		Git:          mockGit,
+		Manager:      mockManager,
+		Output:       NewOutputWriter(nil, nil, FormatText),
+		StatusWriter: NewStatusWriter(os.Stdout, FormatText),
 	}
 
 	return &testFixture{

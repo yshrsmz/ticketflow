@@ -110,10 +110,10 @@ func (c *WorktreeListCommand) Execute(ctx context.Context, flags interface{}, ar
 	}
 
 	outputFormat := cli.ParseOutputFormat(format)
-	
+
 	// Update the app's output format and status writer
 	app.Output = cli.NewOutputWriter(os.Stdout, os.Stderr, outputFormat)
 	app.StatusWriter = cli.NewStatusWriter(os.Stdout, outputFormat)
-	
+
 	return app.ListWorktrees(ctx, outputFormat)
 }

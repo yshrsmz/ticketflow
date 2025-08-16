@@ -95,7 +95,7 @@ func (w *textResultWriter) printCleanupResult(r *CleanupResult) error {
 	fmt.Fprintf(w.w, "\nCleanup Summary:\n")
 	fmt.Fprintf(w.w, "  Orphaned worktrees removed: %d\n", r.OrphanedWorktrees)
 	fmt.Fprintf(w.w, "  Stale branches removed: %d\n", r.StaleBranches)
-	
+
 	if len(r.Errors) > 0 {
 		fmt.Fprintf(w.w, "\nWarnings:\n")
 		for _, err := range r.Errors {
@@ -110,7 +110,7 @@ func (w *textResultWriter) printTicket(t *ticket.Ticket) error {
 	fmt.Fprintf(w.w, "Status: %s\n", t.Status())
 	fmt.Fprintf(w.w, "Priority: %d\n", t.Priority)
 	fmt.Fprintf(w.w, "Description: %s\n", t.Description)
-	
+
 	if !t.CreatedAt.Time.IsZero() {
 		fmt.Fprintf(w.w, "Created: %s\n", t.CreatedAt.Time.Format(time.RFC3339))
 	}
@@ -120,7 +120,7 @@ func (w *textResultWriter) printTicket(t *ticket.Ticket) error {
 	if !t.ClosedAt.Time.IsZero() {
 		fmt.Fprintf(w.w, "Closed: %s\n", t.ClosedAt.Time.Format(time.RFC3339))
 	}
-	
+
 	return nil
 }
 
@@ -129,7 +129,7 @@ func (w *textResultWriter) printTicketList(tickets []*ticket.Ticket) error {
 		fmt.Fprintln(w.w, "No tickets found")
 		return nil
 	}
-	
+
 	for _, t := range tickets {
 		fmt.Fprintf(w.w, "[%s] %s - %s\n", t.Status(), t.ID, t.Description)
 	}
