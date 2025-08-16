@@ -37,7 +37,9 @@ func NewTextStatusWriter(w io.Writer) StatusWriter {
 }
 
 func (s *textStatusWriter) Printf(format string, args ...interface{}) {
-	fmt.Fprintf(s.w, format, args...)
+	// Ignoring error as status messages are non-critical for operation
+	// and StatusWriter interface doesn't return errors
+	_, _ = fmt.Fprintf(s.w, format, args...)
 }
 
 func (s *textStatusWriter) Println(args ...interface{}) {
