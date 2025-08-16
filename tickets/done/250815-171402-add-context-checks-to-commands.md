@@ -3,7 +3,7 @@ priority: 2
 description: Add early context cancellation checks to commands for consistency
 created_at: "2025-08-15T17:14:02+09:00"
 started_at: "2025-08-16T13:59:55+09:00"
-closed_at: null
+closed_at: "2025-08-16T16:16:56+09:00"
 related:
     - parent:250812-152927-migrate-remaining-commands
 ---
