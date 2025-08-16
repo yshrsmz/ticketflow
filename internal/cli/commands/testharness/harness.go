@@ -230,6 +230,13 @@ func WithContent(content string) TicketOption {
 	}
 }
 
+// WithDescription sets the ticket description
+func WithDescription(description string) TicketOption {
+	return func(t *ticket.Ticket) {
+		t.Description = description
+	}
+}
+
 // TicketPath returns the path to a ticket file
 func (e *TestEnvironment) TicketPath(status, filename string) string {
 	return filepath.Join("tickets", status, filename)
