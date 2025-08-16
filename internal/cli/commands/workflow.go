@@ -4,16 +4,22 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"io"
+	"os"
 
 	"github.com/yshrsmz/ticketflow/internal/command"
 )
 
 // WorkflowCommand implements the workflow command using the Command interface
-type WorkflowCommand struct{}
+type WorkflowCommand struct {
+	output io.Writer
+}
 
 // NewWorkflowCommand creates a new workflow command
 func NewWorkflowCommand() command.Command {
-	return &WorkflowCommand{}
+	return &WorkflowCommand{
+		output: os.Stdout,
+	}
 }
 
 // Name returns the command name
@@ -57,8 +63,10 @@ func (c *WorkflowCommand) Execute(ctx context.Context, flags interface{}, args [
 	default:
 	}
 
-	// Print the workflow content to stdout
-	fmt.Print(workflowContent)
+	// Print the workflow content to the output writer
+	if _, err := fmt.Fprint(c.output, workflowContent); err != nil {
+		return fmt.Errorf("failed to write workflow content: %w", err)
+	}
 	return nil
 }
 
