@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"os"
 
 	"github.com/yshrsmz/ticketflow/internal/cli"
 	"github.com/yshrsmz/ticketflow/internal/command"
@@ -126,6 +127,11 @@ func (c *CleanupCommand) Execute(ctx context.Context, flags interface{}, args []
 		return fmt.Errorf("invalid flags type: expected *cleanupFlags, got %T", flags)
 	}
 
+	// Update the app's output format and status writer based on the format flag
+	outputFormat := cli.ParseOutputFormat(f.format)
+	app.Output = cli.NewOutputWriter(os.Stdout, os.Stderr, outputFormat)
+	app.StatusWriter = cli.NewStatusWriter(os.Stdout, outputFormat)
+
 	// Perform the cleanup operation based on whether ticket ID was provided
 	if len(f.args) == 0 {
 		// Auto-cleanup mode
@@ -146,7 +152,7 @@ func (c *CleanupCommand) executeAutoCleanup(ctx context.Context, app *cli.App, f
 			}
 			return err
 		}
-		fmt.Println("\nDry-run mode: No changes will be made.")
+		app.StatusWriter.Println("\nDry-run mode: No changes will be made.")
 		return nil
 	}
 
@@ -165,8 +171,7 @@ func (c *CleanupCommand) executeAutoCleanup(ctx context.Context, app *cli.App, f
 	}
 
 	// Text output
-	outputAutoCleanupText(result)
-	return nil
+	return app.Output.PrintResult(result)
 }
 
 // executeTicketCleanup handles the ticket-specific cleanup mode
@@ -194,16 +199,8 @@ func (c *CleanupCommand) executeTicketCleanup(ctx context.Context, app *cli.App,
 
 // outputAutoCleanupText outputs auto-cleanup results in text format
 func outputAutoCleanupText(result *cli.CleanupResult) {
-	fmt.Printf("\nCleanup Summary:\n")
-	fmt.Printf("  Orphaned worktrees removed: %d\n", result.OrphanedWorktrees)
-	fmt.Printf("  Stale branches removed: %d\n", result.StaleBranches)
-
-	if result.HasErrors() {
-		fmt.Printf("\nWarnings:\n")
-		for _, err := range result.Errors {
-			fmt.Printf("  - %s\n", err)
-		}
-	}
+	// This is now handled by the ResultWriter in OutputWriter
+	// Keeping this function for backward compatibility but it's deprecated
 }
 
 // outputTicketCleanupText outputs ticket cleanup results in text format

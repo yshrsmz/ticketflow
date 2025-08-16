@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"os"
 
 	"github.com/yshrsmz/ticketflow/internal/cli"
 	"github.com/yshrsmz/ticketflow/internal/command"
@@ -86,6 +87,10 @@ func (c *StatusCommand) Execute(ctx context.Context, flags interface{}, args []s
 		return fmt.Errorf("invalid flags type: expected *statusFlags, got %T", flags)
 	}
 	outputFormat := cli.ParseOutputFormat(f.format)
+	
+	// Update the app's output format and status writer
+	app.Output = cli.NewOutputWriter(os.Stdout, os.Stderr, outputFormat)
+	app.StatusWriter = cli.NewStatusWriter(os.Stdout, outputFormat)
 
 	// Delegate to App's Status method
 	return app.Status(ctx, outputFormat)
