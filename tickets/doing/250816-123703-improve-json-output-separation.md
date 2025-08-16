@@ -11,10 +11,10 @@ related:
 # Improve JSON Output Separation in CLI Package
 
 ## Problem
-The AutoCleanup function and its helper methods in `internal/cli/cleanup.go` output status messages directly to stdout using `fmt.Printf` and `fmt.Println`, regardless of the output format setting. This causes mixed text/JSON output when JSON format is requested, making it difficult for tools to parse the JSON response.
+Multiple functions in the `internal/cli` package output status messages directly to stdout using `fmt.Printf` and `fmt.Println`, regardless of the output format setting. This causes mixed text/JSON output when JSON format is requested, breaking JSON parsing for AI tools and automation.
 
 ## Current Behavior
-When running `ticketflow cleanup --format json`, the output contains both text status messages and JSON:
+When running commands with `--format json`, the output contains both text status messages and JSON:
 ```
 Starting auto-cleanup...
 
@@ -28,37 +28,84 @@ Auto-cleanup completed.
 ```
 
 ## Expected Behavior
-When JSON format is specified, only valid JSON should be output to stdout. Status messages should either be:
-1. Suppressed entirely in JSON mode
-2. Output to stderr instead of stdout
-3. Included within the JSON structure
+When JSON format is specified, only valid JSON should be output to stdout. Status messages should be suppressed in JSON mode (output only in text mode).
 
 ## Affected Functions
-- `AutoCleanup()` - Uses fmt.Println for status messages
-- `cleanOrphanedWorktrees()` - Uses fmt.Println for progress
-- `cleanStaleBranches()` - Uses fmt.Printf for progress
-- `CleanupStats()` - Uses fmt.Println for statistics
-- `CleanupTicket()` - Uses fmt.Printf for confirmation prompts
 
-## Proposed Solution
-Pass the output format setting through to the cli package methods, either:
-1. Add format parameter to AutoCleanup and related methods
-2. Add an OutputWriter interface that can handle both text and JSON modes
-3. Use the existing app.Output for all output operations
+### In `internal/cli/cleanup.go`:
+- `AutoCleanup()` - Line 30, 41, 56, 64
+- `cleanOrphanedWorktrees()` - Lines 77, 116, 121, 132
+- `cleanStaleBranches()` - Lines 140, 175, 181, 193
+- `CleanupStats()` - Lines 199-253
+
+### In `internal/cli/commands.go`:
+- `InitTicketSystem()` - Lines 159, 194-196
+- `createWorktree()` - Lines 1347, 1391
+- `runInitCommands()` - Lines 1479, 1491, 1514
+
+### In `internal/cli/prompt.go`:
+- `SelectOption()` - Lines 45, 58-59, 66, 68, 72
+- `GetConfirmation()` - Lines 112, 126
+
+### In `internal/cli/commands/` (for reference, not changing):
+- `help.go` - Help text is always text mode
+- `version.go` - Version info is always text mode
+- `worktree.go` - Help text
+- `restore.go` - Success message
+- `cleanup.go` - Summary messages (lines 149, 197-204)
+
+## Implementation Approach
+Use Strategy pattern with two separate interfaces to cleanly separate concerns:
+
+### StatusWriter Interface
+- Handles progress/status messages during execution
+- Has two implementations: `textStatusWriter` (prints) and `nullStatusWriter` (no-op for JSON)
+- Replaces all `fmt.Printf/Println` calls with `app.Status.Printf/Println`
+
+### OutputWriter Interface  
+- Handles final structured data output
+- Has two implementations: `jsonOutputWriter` and `textOutputWriter`
+- Each implementation knows how to format data appropriately
+- No format checking needed in business logic
+
+```go
+// StatusWriter for progress messages
+type StatusWriter interface {
+    Printf(format string, args ...interface{})
+    Println(args ...interface{})
+}
+
+// OutputWriter for structured results
+type OutputWriter interface {
+    PrintResult(data interface{}) error
+}
+```
+
+This approach:
+- Clean separation of concerns (status vs data output)
+- No repeated format checks throughout code
+- Strategy pattern handles format internally
+- Easy to test with mock implementations
+- Consistent architecture across the codebase
 
 ## Tasks
-- [ ] Analyze current output patterns in cli package
-- [ ] Design solution for format-aware output
-- [ ] Refactor AutoCleanup to respect format setting
-- [ ] Refactor cleanOrphanedWorktrees to respect format setting
-- [ ] Refactor cleanStaleBranches to respect format setting
-- [ ] Refactor CleanupStats to respect format setting
-- [ ] Refactor CleanupTicket confirmation prompts
+- [x] Analyze current output patterns and verify all affected functions
+- [ ] Create StatusWriter interface and implementations (text and null)
+- [ ] Create new OutputWriter interface and implementations (json and text)
+- [ ] Update App struct to use new interfaces
+- [ ] Refactor cleanup.go to use app.Status instead of fmt
+- [ ] Refactor commands.go (InitTicketSystem, createWorktree, runInitCommands)
+- [ ] Refactor prompt.go functions to use app.Status
+- [ ] Update command-level output in cleanup.go command
+- [ ] Remove old OutputWriter Printf/Println methods
 - [ ] Update integration tests to verify clean JSON output
-- [ ] Run `make test` to run the tests
+- [ ] Run `make test` to verify all tests pass
 - [ ] Run `make vet`, `make fmt` and `make lint`
-- [ ] Update CLAUDE.md if API changes
+- [ ] Update CLAUDE.md to document new architecture
 - [ ] Get developer approval before closing
 
 ## Notes
-This issue was discovered while implementing integration tests for the cleanup command. The tests had to work around the mixed output by extracting JSON from the combined text+JSON output.
+- This issue affects AI tool integration, which requires clean JSON parsing
+- The infrastructure (OutputWriter with GetFormat()) already exists
+- Command-level functions in `internal/cli/commands/` that always output help text can remain as-is
+- Focus on functions that mix status messages with structured data output

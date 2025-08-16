@@ -40,12 +40,13 @@ type StartTicketResult struct {
 
 // App represents the CLI application
 type App struct {
-	Config      *config.Config
-	Git         git.GitClient
-	Manager     ticket.TicketManager
-	ProjectRoot string
-	workingDir  string        // Working directory for the app (defaults to ".")
-	Output      *OutputWriter // Output writer for formatted output
+	Config       *config.Config
+	Git          git.GitClient
+	Manager      ticket.TicketManager
+	ProjectRoot  string
+	workingDir   string        // Working directory for the app (defaults to ".")
+	Output       *OutputWriter // Output writer for formatted output
+	StatusWriter StatusWriter  // Status writer for progress messages
 }
 
 // AppOption represents an option for creating a new App
@@ -123,6 +124,14 @@ func NewAppWithOptions(ctx context.Context, opts ...AppOption) (*App, error) {
 	}
 	if app.Output == nil {
 		app.Output = NewOutputWriter(nil, nil, FormatText)
+	}
+	// Initialize StatusWriter based on output format
+	if app.StatusWriter == nil {
+		format := FormatText
+		if app.Output != nil {
+			format = app.Output.GetFormat()
+		}
+		app.StatusWriter = NewStatusWriter(os.Stdout, format)
 	}
 
 	return app, nil
