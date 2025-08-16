@@ -2,9 +2,11 @@ package commands
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -81,11 +83,26 @@ func TestCleanupCommand_Execute_AutoCleanup_JSON_Integration(t *testing.T) {
 		})
 	})
 
-	// Verify JSON output structure
-	// Note: Output may contain log messages before JSON, so we use Contains
-	assert.Contains(t, outputStr, `"success":`)
-	assert.Contains(t, outputStr, `"orphaned_worktrees":`)
-	assert.Contains(t, outputStr, `"stale_branches":`)
+	// Extract JSON from mixed output (text messages + JSON)
+	// The AutoCleanup function outputs status messages even in JSON mode
+	// We need to find where the JSON starts
+	jsonStart := strings.Index(outputStr, "{")
+	require.True(t, jsonStart >= 0, "JSON output should be present")
+	jsonStr := outputStr[jsonStart:]
+	
+	// Parse and validate the JSON properly
+	var result map[string]interface{}
+	err := json.Unmarshal([]byte(jsonStr), &result)
+	require.NoError(t, err, "JSON should be valid")
+	
+	// Validate the structure
+	assert.Equal(t, true, result["success"], "success should be true")
+	
+	resultData, ok := result["result"].(map[string]interface{})
+	require.True(t, ok, "result should be a map")
+	assert.Contains(t, resultData, "orphaned_worktrees")
+	assert.Contains(t, resultData, "stale_branches")
+	assert.Contains(t, resultData, "errors")
 }
 
 func TestCleanupCommand_Execute_TicketCleanup_Integration(t *testing.T) {
