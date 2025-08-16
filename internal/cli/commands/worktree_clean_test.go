@@ -27,7 +27,7 @@ func TestWorktreeCleanCommand_SetupFlags(t *testing.T) {
 	// Now returns worktreeCleanFlags with format support
 	assert.NotNil(t, flags)
 	assert.IsType(t, &worktreeCleanFlags{}, flags)
-	
+
 	// Verify format flags were registered
 	assert.NotNil(t, fs.Lookup("format"))
 	assert.NotNil(t, fs.Lookup("o"))
