@@ -1,11 +1,11 @@
 ---
 priority: 3
-description: "Centralize format constants to avoid duplication across commands"
+description: Centralize format constants to avoid duplication across commands
 created_at: "2025-08-15T17:14:51+09:00"
-started_at: null
+started_at: "2025-08-16T23:39:32+09:00"
 closed_at: null
 related:
-    - "parent:250812-152927-migrate-remaining-commands"
+    - parent:250812-152927-migrate-remaining-commands
 ---
 
 # Centralize Format Constants
