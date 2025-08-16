@@ -282,6 +282,20 @@ func (e *TestEnvironment) HasUncommittedChanges() bool {
 	return len(strings.TrimSpace(output)) > 0
 }
 
+// WithWorkingDirectory changes to the test root directory and restores the original
+// working directory when the function completes. This is useful for tests that need
+// to run commands that expect to be in the project root.
+func (e *TestEnvironment) WithWorkingDirectory(t *testing.T, fn func()) {
+	t.Helper()
+	oldWd, err := os.Getwd()
+	require.NoError(t, err)
+	defer func() {
+		require.NoError(t, os.Chdir(oldWd))
+	}()
+	require.NoError(t, os.Chdir(e.RootDir))
+	fn()
+}
+
 // Cleanup performs any necessary cleanup
 func (e *TestEnvironment) Cleanup() {
 	// Cleanup is handled by t.TempDir()
