@@ -82,8 +82,32 @@ const (
 - Prevents inconsistencies
 - Consistent usage pattern across all commands
 
-## Notes
+## Additional Tasks Completed
 
+- [x] Fixed `status.go` and `status_test.go` that were initially missed
+- [x] Created pull request #77
+- [x] All CI checks passing (lint and tests)
+
+## Implementation Insights
+
+### Files Actually Updated
+The initial analysis missed `status.go` which also had hardcoded strings. In total, **13 command files** and their corresponding test files were updated:
+- All files in `internal/cli/commands/` that handle format flags
+- Test files updated: `list_test.go`, `show_test.go`, `status_test.go`, `worktree_list_test.go`
+
+### Architecture Considerations
 - The `cli` package already has `cli.FormatText` and `cli.FormatJSON` as `OutputFormat` type constants
 - Command-level string constants are needed for flag parsing before conversion via `cli.ParseOutputFormat()`
-- This refactoring ensures consistent string usage at the command level
+- Placing constants in `internal/cli/commands/constants.go` was the right choice - keeps them close to usage
+- No import cycles created, clean separation maintained
+
+### Lessons Learned
+1. **Thorough search is crucial**: Initial grep missed `status.go` - always double-check for all occurrences
+2. **Test files matter**: Updating test files to use constants improves consistency and prevents future issues
+3. **Code review feedback**: Copilot bot made an incorrect assumption about the codebase (thought constants might not exist when they do)
+4. **Incremental commits**: Making separate commits for initial implementation and fixes helps track changes
+
+## Pull Request
+- PR #77: https://github.com/yshrsmz/ticketflow/pull/77
+- Status: Ready for merge (all checks passing)
+- Review: Minor documentation comment from Copilot (non-issue)
