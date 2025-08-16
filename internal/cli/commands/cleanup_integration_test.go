@@ -1,10 +1,8 @@
 package commands
 
 import (
-	"bytes"
 	"context"
 	"flag"
-	"io"
 	"os"
 	"path/filepath"
 	"testing"
@@ -71,28 +69,20 @@ func TestCleanupCommand_Execute_AutoCleanup_JSON_Integration(t *testing.T) {
 	env.RunGit("commit", "-m", "Add test ticket")
 
 	// Capture JSON output
-	var output bytes.Buffer
-	origStdout := os.Stdout
-	r, w, err := os.Pipe()
-	require.NoError(t, err)
-	os.Stdout = w
+	outputStr := testharness.CaptureOutput(t, func() {
+		env.WithWorkingDirectory(t, func() {
+			cmd := NewCleanupCommand()
+			fs := flag.NewFlagSet("cleanup", flag.ContinueOnError)
+			flags := cmd.SetupFlags(fs).(*cleanupFlags)
+			flags.format = "json"
 
-	env.WithWorkingDirectory(t, func() {
-		cmd := NewCleanupCommand()
-		fs := flag.NewFlagSet("cleanup", flag.ContinueOnError)
-		flags := cmd.SetupFlags(fs).(*cleanupFlags)
-		flags.format = "json"
-
-		err := cmd.Execute(context.Background(), flags, []string{})
-		require.NoError(t, err)
+			err := cmd.Execute(context.Background(), flags, []string{})
+			require.NoError(t, err)
+		})
 	})
 
-	w.Close()
-	_, _ = io.Copy(&output, r)
-	os.Stdout = origStdout
-
 	// Verify JSON output structure
-	outputStr := output.String()
+	// Note: Output may contain log messages before JSON, so we use Contains
 	assert.Contains(t, outputStr, `"success":`)
 	assert.Contains(t, outputStr, `"orphaned_worktrees":`)
 	assert.Contains(t, outputStr, `"stale_branches":`)
@@ -183,30 +173,21 @@ func TestCleanupCommand_Execute_TicketCleanup_JSON_Integration(t *testing.T) {
 	env.RunGit("worktree", "add", worktreeDir, "-b", "done-ticket")
 
 	// Capture JSON output
-	var output bytes.Buffer
-	origStdout := os.Stdout
-	r, w, err := os.Pipe()
-	require.NoError(t, err)
-	os.Stdout = w
+	outputStr := testharness.CaptureOutput(t, func() {
+		env.WithWorkingDirectory(t, func() {
+			cmd := NewCleanupCommand()
+			fs := flag.NewFlagSet("cleanup", flag.ContinueOnError)
+			flags := cmd.SetupFlags(fs).(*cleanupFlags)
+			flags.format = "json"
+			flags.force = true // Skip confirmation
+			flags.args = []string{"done-ticket"}
 
-	env.WithWorkingDirectory(t, func() {
-		cmd := NewCleanupCommand()
-		fs := flag.NewFlagSet("cleanup", flag.ContinueOnError)
-		flags := cmd.SetupFlags(fs).(*cleanupFlags)
-		flags.format = "json"
-		flags.force = true // Skip confirmation
-		flags.args = []string{"done-ticket"}
-
-		err := cmd.Execute(context.Background(), flags, []string{"done-ticket"})
-		require.NoError(t, err)
+			err := cmd.Execute(context.Background(), flags, []string{"done-ticket"})
+			require.NoError(t, err)
+		})
 	})
 
-	w.Close()
-	_, _ = io.Copy(&output, r)
-	os.Stdout = origStdout
-
 	// Verify JSON output structure
-	outputStr := output.String()
 	assert.Contains(t, outputStr, `"success": true`)
 	assert.Contains(t, outputStr, `"ticket":`)
 	assert.Contains(t, outputStr, `"id": "done-ticket"`)
@@ -237,29 +218,20 @@ func TestCleanupCommand_Execute_TicketCleanup_ErrorJSON_Integration(t *testing.T
 	env := testharness.NewTestEnvironment(t)
 
 	// Capture JSON error output
-	var output bytes.Buffer
-	origStdout := os.Stdout
-	r, w, err := os.Pipe()
-	require.NoError(t, err)
-	os.Stdout = w
+	outputStr := testharness.CaptureOutput(t, func() {
+		env.WithWorkingDirectory(t, func() {
+			cmd := NewCleanupCommand()
+			fs := flag.NewFlagSet("cleanup", flag.ContinueOnError)
+			flags := cmd.SetupFlags(fs).(*cleanupFlags)
+			flags.format = "json"
+			flags.args = []string{"non-existent-ticket"}
 
-	env.WithWorkingDirectory(t, func() {
-		cmd := NewCleanupCommand()
-		fs := flag.NewFlagSet("cleanup", flag.ContinueOnError)
-		flags := cmd.SetupFlags(fs).(*cleanupFlags)
-		flags.format = "json"
-		flags.args = []string{"non-existent-ticket"}
-
-		// This will error since ticket doesn't exist
-		_ = cmd.Execute(context.Background(), flags, []string{"non-existent-ticket"})
+			// This will error since ticket doesn't exist
+			_ = cmd.Execute(context.Background(), flags, []string{"non-existent-ticket"})
+		})
 	})
 
-	w.Close()
-	_, _ = io.Copy(&output, r)
-	os.Stdout = origStdout
-
 	// Verify JSON error output structure
-	outputStr := output.String()
 	assert.Contains(t, outputStr, `"success": false`)
 	assert.Contains(t, outputStr, `"error":`)
 }

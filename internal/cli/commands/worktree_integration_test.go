@@ -1,10 +1,7 @@
 package commands
 
 import (
-	"bytes"
 	"context"
-	"io"
-	"os"
 	"path/filepath"
 	"testing"
 
@@ -49,24 +46,15 @@ func TestWorktreeCommand_Execute_List_JSON_Integration(t *testing.T) {
 	env.RunGit("worktree", "add", worktreeDir, "-b", "test-ticket")
 
 	// Capture JSON output
-	var output bytes.Buffer
-	origStdout := os.Stdout
-	r, w, err := os.Pipe()
-	require.NoError(t, err)
-	os.Stdout = w
-
-	env.WithWorkingDirectory(t, func() {
-		cmd := NewWorktreeCommand()
-		err := cmd.Execute(context.Background(), nil, []string{"list", "--format", "json"})
-		require.NoError(t, err)
+	outputStr := testharness.CaptureOutput(t, func() {
+		env.WithWorkingDirectory(t, func() {
+			cmd := NewWorktreeCommand()
+			err := cmd.Execute(context.Background(), nil, []string{"list", "--format", "json"})
+			require.NoError(t, err)
+		})
 	})
 
-	w.Close()
-	_, _ = io.Copy(&output, r)
-	os.Stdout = origStdout
-
 	// Verify JSON output
-	outputStr := output.String()
 	// The worktree list just outputs worktrees array, not success field
 	assert.Contains(t, outputStr, `"worktrees":`)
 	assert.Contains(t, outputStr, `"Path":`)

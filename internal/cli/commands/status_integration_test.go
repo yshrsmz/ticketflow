@@ -1,10 +1,7 @@
 package commands
 
 import (
-	"bytes"
 	"context"
-	"io"
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -45,27 +42,18 @@ func TestStatusCommand_Execute_JSONOutput_Integration(t *testing.T) {
 	env.RunGit("commit", "-m", "Add current ticket")
 
 	// Capture JSON output
-	var output bytes.Buffer
-	origStdout := os.Stdout
-	r, w, err := os.Pipe()
-	require.NoError(t, err)
-	os.Stdout = w
+	outputStr := testharness.CaptureOutput(t, func() {
+		env.WithWorkingDirectory(t, func() {
+			cmd := NewStatusCommand()
+			ctx := context.Background()
+			flags := &statusFlags{format: "json"}
 
-	env.WithWorkingDirectory(t, func() {
-		cmd := NewStatusCommand()
-		ctx := context.Background()
-		flags := &statusFlags{format: "json"}
-
-		err := cmd.Execute(ctx, flags, []string{})
-		require.NoError(t, err)
+			err := cmd.Execute(ctx, flags, []string{})
+			require.NoError(t, err)
+		})
 	})
 
-	w.Close()
-	_, _ = io.Copy(&output, r)
-	os.Stdout = origStdout
-
 	// Verify JSON output structure
-	outputStr := output.String()
 	assert.Contains(t, outputStr, `"current_ticket":`)
 	assert.Contains(t, outputStr, `"id": "current-ticket"`)
 	assert.Contains(t, outputStr, `"description": "Test ticket for JSON"`)
