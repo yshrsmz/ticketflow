@@ -50,6 +50,11 @@ func NewJSONResultWriter(w io.Writer) ResultWriter {
 }
 
 func (w *jsonResultWriter) PrintResult(data interface{}) error {
+	// Check if data implements Printable interface
+	if p, ok := data.(Printable); ok {
+		return w.encoder.Encode(p.StructuredData())
+	}
+	// Fallback to encoding the data directly
 	return w.encoder.Encode(data)
 }
 
@@ -68,7 +73,13 @@ func NewTextResultWriter(w io.Writer) ResultWriter {
 }
 
 func (w *textResultWriter) PrintResult(data interface{}) error {
-	// Handle different data types with appropriate formatting
+	// Check if data implements Printable interface first
+	if p, ok := data.(Printable); ok {
+		_, err := fmt.Fprint(w.w, p.TextRepresentation())
+		return err
+	}
+	
+	// Fallback to type switch for backward compatibility
 	switch v := data.(type) {
 	case *CleanupResult:
 		return w.printCleanupResult(v)

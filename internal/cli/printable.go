@@ -15,7 +15,10 @@ type Printable interface {
 	StructuredData() interface{}
 }
 
-// Make CleanupResult implement Printable
+// Verify CleanupResult implements Printable
+var _ Printable = (*CleanupResult)(nil)
+
+// TextRepresentation returns human-readable format for CleanupResult
 func (r *CleanupResult) TextRepresentation() string {
 	var buf strings.Builder
 	fmt.Fprintf(&buf, "\nCleanup Summary:\n")
@@ -32,6 +35,7 @@ func (r *CleanupResult) TextRepresentation() string {
 	return buf.String()
 }
 
+// StructuredData returns data for JSON serialization
 func (r *CleanupResult) StructuredData() interface{} {
 	return map[string]interface{}{
 		"orphaned_worktrees": r.OrphanedWorktrees,
