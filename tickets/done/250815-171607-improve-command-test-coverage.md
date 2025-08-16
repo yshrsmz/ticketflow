@@ -3,12 +3,12 @@ priority: 2
 description: Improve test coverage for command Execute methods
 created_at: "2025-08-15T17:16:07+09:00"
 started_at: "2025-08-15T17:44:10+09:00"
-closed_at: null
+closed_at: "2025-08-16T13:56:32+09:00"
 related:
     - parent:250812-152927-migrate-remaining-commands
-    - "blocks:250815-175448-test-coverage-core-workflow-commands"
-    - "blocks:250815-175548-test-coverage-zero-coverage-commands"
-    - "blocks:250815-175624-test-coverage-maintenance-commands"
+    - blocks:250815-175448-test-coverage-core-workflow-commands
+    - blocks:250815-175548-test-coverage-zero-coverage-commands
+    - blocks:250815-175624-test-coverage-maintenance-commands
 ---
 
 # Improve Command Test Coverage
