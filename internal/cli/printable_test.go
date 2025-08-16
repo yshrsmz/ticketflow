@@ -118,17 +118,17 @@ func TestTicketListResultPrintable(t *testing.T) {
 		}
 
 		text := result.TextRepresentation()
-		
+
 		// Check header
 		assert.Contains(t, text, "ID       STATUS  PRI  DESCRIPTION")
 		assert.Contains(t, text, "---")
-		
+
 		// Check tickets
-		assert.Contains(t, text, "ticket-1")  // ID truncated to 8 chars
+		assert.Contains(t, text, "ticket-1") // ID truncated to 8 chars
 		assert.Contains(t, text, "Test ticket")
-		assert.Contains(t, text, "very-lon")  // Long ID truncated
+		assert.Contains(t, text, "very-lon") // Long ID truncated
 		assert.Contains(t, text, "Another ticket")
-		
+
 		// Check summary
 		assert.Contains(t, text, "Summary: 1 todo, 1 doing, 0 done (Total: 2)")
 	})
@@ -150,9 +150,9 @@ func TestTicketListResultPrintable(t *testing.T) {
 
 		text := result.TextRepresentation()
 		assert.Contains(t, text, "test-1")
-		assert.Contains(t, text, "todo")  // Should default to todo status
+		assert.Contains(t, text, "todo") // Should default to todo status
 		assert.Contains(t, text, "Ticket with nil times")
-		assert.NotContains(t, text, "Summary")  // No summary if Count is nil
+		assert.NotContains(t, text, "Summary") // No summary if Count is nil
 	})
 
 	t.Run("TextRepresentation with done ticket", func(t *testing.T) {
@@ -195,12 +195,12 @@ func TestTicketListResultPrintable(t *testing.T) {
 		}
 
 		data := result.StructuredData().(map[string]interface{})
-		
+
 		tickets := data["tickets"].([]map[string]interface{})
 		assert.Len(t, tickets, 1)
 		assert.Equal(t, "test-123", tickets[0]["id"])
 		assert.Equal(t, 2, tickets[0]["priority"])
-		
+
 		summary := data["summary"].(map[string]int)
 		assert.Equal(t, 1, summary["todo"])
 		assert.Equal(t, 0, summary["doing"])
@@ -234,7 +234,7 @@ func TestTicketListResultPrintable(t *testing.T) {
 
 		tickets := parsed["tickets"].([]interface{})
 		assert.Len(t, tickets, 1)
-		
+
 		firstTicket := tickets[0].(map[string]interface{})
 		assert.Equal(t, "json-test", firstTicket["id"])
 		assert.Equal(t, "JSON test ticket", firstTicket["description"])
@@ -247,11 +247,11 @@ func TestPrintableInterfaceCompliance(t *testing.T) {
 	// This test verifies that our types implement the Printable interface
 	// The compile-time checks in printable.go ensure this, but we can also
 	// verify at runtime
-	
+
 	t.Run("CleanupResult implements Printable", func(t *testing.T) {
 		var p Printable = &CleanupResult{}
 		assert.NotNil(t, p)
-		
+
 		// Should be able to call interface methods
 		_ = p.TextRepresentation()
 		_ = p.StructuredData()
@@ -260,7 +260,7 @@ func TestPrintableInterfaceCompliance(t *testing.T) {
 	t.Run("TicketListResult implements Printable", func(t *testing.T) {
 		var p Printable = &TicketListResult{}
 		assert.NotNil(t, p)
-		
+
 		// Should be able to call interface methods
 		_ = p.TextRepresentation()
 		_ = p.StructuredData()
@@ -269,30 +269,30 @@ func TestPrintableInterfaceCompliance(t *testing.T) {
 
 func TestTextRepresentationPerformance(t *testing.T) {
 	// Test that TextRepresentation uses strings.Builder efficiently
-	
+
 	t.Run("CleanupResult with many errors", func(t *testing.T) {
 		errors := make([]string, 100)
 		for i := 0; i < 100; i++ {
 			errors[i] = strings.Repeat("error", 20) // Long error messages
 		}
-		
+
 		result := &CleanupResult{
 			OrphanedWorktrees: 10,
 			StaleBranches:     20,
 			Errors:            errors,
 		}
-		
+
 		// Should not panic or have performance issues
 		text := result.TextRepresentation()
 		assert.NotEmpty(t, text)
 		assert.Contains(t, text, "Errors encountered")
-		
+
 		// Verify all errors are included
 		for _, err := range errors {
 			assert.Contains(t, text, err)
 		}
 	})
-	
+
 	t.Run("TicketListResult with many tickets", func(t *testing.T) {
 		tickets := make([]ticket.Ticket, 100)
 		for i := 0; i < 100; i++ {
@@ -302,7 +302,7 @@ func TestTextRepresentationPerformance(t *testing.T) {
 				Description: strings.Repeat("desc", 25), // Long description
 			}
 		}
-		
+
 		result := &TicketListResult{
 			Tickets: tickets,
 			Count: map[string]int{
@@ -312,10 +312,11 @@ func TestTextRepresentationPerformance(t *testing.T) {
 				"total": 100,
 			},
 		}
-		
+
 		// Should not panic or have performance issues
 		text := result.TextRepresentation()
 		assert.NotEmpty(t, text)
 		assert.Contains(t, text, "Summary: 50 todo, 30 doing, 20 done (Total: 100)")
 	})
 }
+

@@ -27,3 +27,4 @@ func WithStatusWriter(writer StatusWriter) AppOption {
 		app.StatusWriter = writer
 	}
 }
+

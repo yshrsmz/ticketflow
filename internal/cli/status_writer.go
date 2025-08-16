@@ -41,7 +41,9 @@ func (s *textStatusWriter) Printf(format string, args ...interface{}) {
 }
 
 func (s *textStatusWriter) Println(args ...interface{}) {
-	fmt.Fprintln(s.w, args...)
+	// Ignoring error as status messages are non-critical for operation
+	// and StatusWriter interface doesn't return errors
+	_, _ = fmt.Fprintln(s.w, args...)
 }
 
 // nullStatusWriter suppresses all status messages (used for JSON mode)

@@ -34,7 +34,7 @@ func (r *CleanupResult) TextRepresentation() string {
 	var buf strings.Builder
 	// Pre-allocate capacity for better performance
 	buf.Grow(256)
-	
+
 	// strings.Builder.Write methods never return errors, so we can safely ignore them
 	buf.WriteString("\nCleanup Summary:\n")
 	buf.WriteString("  Orphaned worktrees removed: ")
@@ -43,7 +43,7 @@ func (r *CleanupResult) TextRepresentation() string {
 	buf.WriteString("  Stale branches removed: ")
 	buf.WriteString(fmt.Sprintf("%d", r.StaleBranches))
 	buf.WriteByte('\n')
-	
+
 	if r.HasErrors() {
 		buf.WriteString("\nErrors encountered:\n")
 		for _, err := range r.Errors {
@@ -52,7 +52,7 @@ func (r *CleanupResult) TextRepresentation() string {
 			buf.WriteByte('\n')
 		}
 	}
-	
+
 	return buf.String()
 }
 
@@ -74,18 +74,18 @@ type TicketListResult struct {
 
 func (r *TicketListResult) TextRepresentation() string {
 	var buf strings.Builder
-	
+
 	if len(r.Tickets) == 0 {
 		return "No tickets found\n"
 	}
-	
+
 	// Pre-allocate capacity
 	buf.Grow(512)
-	
+
 	// Header
 	buf.WriteString("ID       STATUS  PRI  DESCRIPTION\n")
 	buf.WriteString("---------------------------------------------------------\n")
-	
+
 	// Tickets
 	for _, t := range r.Tickets {
 		status := "todo"
@@ -95,26 +95,26 @@ func (r *TicketListResult) TextRepresentation() string {
 		if t.ClosedAt.Time != nil && !t.ClosedAt.Time.IsZero() {
 			status = "done"
 		}
-		
+
 		// Safely truncate ID
 		idDisplay := t.ID
 		if len(idDisplay) > 8 {
 			idDisplay = idDisplay[:8]
 		}
-		
-		buf.WriteString(fmt.Sprintf("%-8s %-7s %-4d %s\n", 
-			idDisplay, 
-			status, 
-			t.Priority, 
+
+		buf.WriteString(fmt.Sprintf("%-8s %-7s %-4d %s\n",
+			idDisplay,
+			status,
+			t.Priority,
 			t.Description))
 	}
-	
+
 	// Summary
 	if r.Count != nil {
 		buf.WriteString(fmt.Sprintf("\nSummary: %d todo, %d doing, %d done (Total: %d)\n",
 			r.Count["todo"], r.Count["doing"], r.Count["done"], r.Count["total"]))
 	}
-	
+
 	return buf.String()
 }
 
@@ -123,9 +123,10 @@ func (r *TicketListResult) StructuredData() interface{} {
 	for i, t := range r.Tickets {
 		tickets[i] = ticketToJSON(&t, "")
 	}
-	
+
 	return map[string]interface{}{
 		"tickets": tickets,
 		"summary": r.Count,
 	}
 }
+

@@ -32,7 +32,7 @@ func TestNewAppWithFormat(t *testing.T) {
 		// Test that JSON output works
 		var buf bytes.Buffer
 		app.Output = NewOutputWriter(&buf, nil, FormatJSON)
-		
+
 		data := map[string]string{"test": "value"}
 		err = app.Output.PrintResult(data)
 		require.NoError(t, err)
@@ -84,7 +84,7 @@ func TestNewAppWithOptions(t *testing.T) {
 
 	t.Run("creates app with custom options", func(t *testing.T) {
 		var statusBuf, outputBuf bytes.Buffer
-		
+
 		app, err := NewAppWithOptions(ctx,
 			WithOutput(NewOutputWriter(&outputBuf, nil, FormatJSON)),
 			WithStatusWriter(NewTextStatusWriter(&statusBuf)),
@@ -121,27 +121,28 @@ func TestNewAppWithOptions(t *testing.T) {
 func TestWithOutput(t *testing.T) {
 	var buf bytes.Buffer
 	writer := NewOutputWriter(&buf, nil, FormatJSON)
-	
+
 	opt := WithOutput(writer)
 	assert.NotNil(t, opt)
-	
+
 	// Apply option to empty app
 	app := &App{}
 	opt(app)
-	
+
 	assert.Equal(t, writer, app.Output)
 }
 
 func TestWithStatusWriter(t *testing.T) {
 	var buf bytes.Buffer
 	writer := NewTextStatusWriter(&buf)
-	
+
 	opt := WithStatusWriter(writer)
 	assert.NotNil(t, opt)
-	
+
 	// Apply option to empty app
 	app := &App{}
 	opt(app)
-	
+
 	assert.Equal(t, writer, app.StatusWriter)
 }
+

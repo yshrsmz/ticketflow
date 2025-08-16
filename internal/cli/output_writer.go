@@ -90,13 +90,13 @@ func NewTextOutputFormatter(w io.Writer) OutputFormatter {
 func (w *textOutputFormatter) PrintResult(data interface{}) error {
 	w.mu.Lock()
 	defer w.mu.Unlock()
-	
+
 	// Check if data implements Printable interface first
 	if p, ok := data.(Printable); ok {
 		_, err := fmt.Fprint(w.w, p.TextRepresentation())
 		return err
 	}
-	
+
 	// Fallback to type switch for backward compatibility
 	switch v := data.(type) {
 	case *CleanupResult:
@@ -121,14 +121,23 @@ func (w *textOutputFormatter) PrintJSON(data interface{}) error {
 }
 
 func (w *textOutputFormatter) printCleanupResult(r *CleanupResult) error {
-	fmt.Fprintf(w.w, "\nCleanup Summary:\n")
-	fmt.Fprintf(w.w, "  Orphaned worktrees removed: %d\n", r.OrphanedWorktrees)
-	fmt.Fprintf(w.w, "  Stale branches removed: %d\n", r.StaleBranches)
+	// Using fmt.Fprint to combine all output and check error once
+	_, err := fmt.Fprintf(w.w, "\nCleanup Summary:\n  Orphaned worktrees removed: %d\n  Stale branches removed: %d\n",
+		r.OrphanedWorktrees, r.StaleBranches)
+	if err != nil {
+		return err
+	}
 
 	if len(r.Errors) > 0 {
-		fmt.Fprintf(w.w, "\nWarnings:\n")
-		for _, err := range r.Errors {
-			fmt.Fprintf(w.w, "  - %s\n", err)
+		_, err = fmt.Fprint(w.w, "\nWarnings:\n")
+		if err != nil {
+			return err
+		}
+		for _, errMsg := range r.Errors {
+			_, err = fmt.Fprintf(w.w, "  - %s\n", errMsg)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	return nil
@@ -140,8 +149,8 @@ func (w *textOutputFormatter) printTicket(t *ticket.Ticket) error {
 	fmt.Fprintf(w.w, "Priority: %d\n", t.Priority)
 	fmt.Fprintf(w.w, "Description: %s\n", t.Description)
 
-	if !t.CreatedAt.Time.IsZero() {
-		fmt.Fprintf(w.w, "Created: %s\n", t.CreatedAt.Time.Format(time.RFC3339))
+	if !t.CreatedAt.IsZero() {
+		fmt.Fprintf(w.w, "Created: %s\n", t.CreatedAt.Format(time.RFC3339))
 	}
 	if t.StartedAt.Time != nil && !t.StartedAt.Time.IsZero() {
 		fmt.Fprintf(w.w, "Started: %s\n", t.StartedAt.Time.Format(time.RFC3339))
@@ -155,12 +164,15 @@ func (w *textOutputFormatter) printTicket(t *ticket.Ticket) error {
 
 func (w *textOutputFormatter) printTicketList(tickets []*ticket.Ticket) error {
 	if len(tickets) == 0 {
-		fmt.Fprintln(w.w, "No tickets found")
-		return nil
+		_, err := fmt.Fprintln(w.w, "No tickets found")
+		return err
 	}
 
 	for _, t := range tickets {
-		fmt.Fprintf(w.w, "[%s] %s - %s\n", t.Status(), t.ID, t.Description)
+		_, err := fmt.Fprintf(w.w, "[%s] %s - %s\n", t.Status(), t.ID, t.Description)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -184,9 +196,9 @@ func NewOutputFormatter(w io.Writer, format OutputFormat) OutputFormatter {
 // Legacy OutputWriter - kept for backward compatibility during migration
 // This will be removed once all code is migrated to use OutputFormatter
 type OutputWriter struct {
-	stdout io.Writer
-	stderr io.Writer
-	format OutputFormat
+	stdout    io.Writer
+	stderr    io.Writer
+	format    OutputFormat
 	formatter OutputFormatter
 }
 
@@ -199,9 +211,9 @@ func NewOutputWriter(stdout, stderr io.Writer, format OutputFormat) *OutputWrite
 		stderr = os.Stderr
 	}
 	return &OutputWriter{
-		stdout: stdout,
-		stderr: stderr,
-		format: format,
+		stdout:    stdout,
+		stderr:    stderr,
+		format:    format,
 		formatter: NewOutputFormatter(stdout, format),
 	}
 }
