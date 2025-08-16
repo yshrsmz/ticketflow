@@ -144,19 +144,29 @@ func (w *textOutputFormatter) printCleanupResult(r *CleanupResult) error {
 }
 
 func (w *textOutputFormatter) printTicket(t *ticket.Ticket) error {
-	fmt.Fprintf(w.w, "Ticket: %s\n", t.ID)
-	fmt.Fprintf(w.w, "Status: %s\n", t.Status())
-	fmt.Fprintf(w.w, "Priority: %d\n", t.Priority)
-	fmt.Fprintf(w.w, "Description: %s\n", t.Description)
+	_, err := fmt.Fprintf(w.w, "Ticket: %s\nStatus: %s\nPriority: %d\nDescription: %s\n",
+		t.ID, t.Status(), t.Priority, t.Description)
+	if err != nil {
+		return err
+	}
 
 	if !t.CreatedAt.IsZero() {
-		fmt.Fprintf(w.w, "Created: %s\n", t.CreatedAt.Format(time.RFC3339))
+		_, err = fmt.Fprintf(w.w, "Created: %s\n", t.CreatedAt.Format(time.RFC3339))
+		if err != nil {
+			return err
+		}
 	}
 	if t.StartedAt.Time != nil && !t.StartedAt.Time.IsZero() {
-		fmt.Fprintf(w.w, "Started: %s\n", t.StartedAt.Time.Format(time.RFC3339))
+		_, err = fmt.Fprintf(w.w, "Started: %s\n", t.StartedAt.Time.Format(time.RFC3339))
+		if err != nil {
+			return err
+		}
 	}
 	if t.ClosedAt.Time != nil && !t.ClosedAt.Time.IsZero() {
-		fmt.Fprintf(w.w, "Closed: %s\n", t.ClosedAt.Time.Format(time.RFC3339))
+		_, err = fmt.Fprintf(w.w, "Closed: %s\n", t.ClosedAt.Time.Format(time.RFC3339))
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -180,7 +190,10 @@ func (w *textOutputFormatter) printTicketList(tickets []*ticket.Ticket) error {
 func (w *textOutputFormatter) printMap(m map[string]interface{}) error {
 	// Simple key-value printing for generic maps
 	for k, v := range m {
-		fmt.Fprintf(w.w, "%s: %v\n", k, v)
+		_, err := fmt.Fprintf(w.w, "%s: %v\n", k, v)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }

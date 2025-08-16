@@ -129,4 +129,3 @@ func (r *TicketListResult) StructuredData() interface{} {
 		"summary": r.Count,
 	}
 }
-

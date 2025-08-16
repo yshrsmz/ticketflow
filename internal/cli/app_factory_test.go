@@ -145,4 +145,3 @@ func TestWithStatusWriter(t *testing.T) {
 
 	assert.Equal(t, writer, app.StatusWriter)
 }
-

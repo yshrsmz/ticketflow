@@ -289,4 +289,3 @@ func TestLegacyOutputWriter(t *testing.T) {
 		assert.Contains(t, buf.String(), "Line output\n")
 	})
 }
-

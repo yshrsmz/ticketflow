@@ -116,4 +116,3 @@ func TestStatusWriterConcurrency(t *testing.T) {
 	assert.NotEmpty(t, output, "Should have written some output")
 	assert.Contains(t, output, "goroutine")
 }
-

@@ -319,4 +319,3 @@ func TestTextRepresentationPerformance(t *testing.T) {
 		assert.Contains(t, text, "Summary: 50 todo, 30 doing, 20 done (Total: 100)")
 	})
 }
-
