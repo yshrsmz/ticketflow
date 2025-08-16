@@ -156,13 +156,13 @@ func (w *textOutputFormatter) printTicket(t *ticket.Ticket) error {
 			return err
 		}
 	}
-	if t.StartedAt.Time != nil && !t.StartedAt.Time.IsZero() {
+	if isTimeSet(t.StartedAt.Time) {
 		_, err = fmt.Fprintf(w.w, "Started: %s\n", t.StartedAt.Time.Format(time.RFC3339))
 		if err != nil {
 			return err
 		}
 	}
-	if t.ClosedAt.Time != nil && !t.ClosedAt.Time.IsZero() {
+	if isTimeSet(t.ClosedAt.Time) {
 		_, err = fmt.Fprintf(w.w, "Closed: %s\n", t.ClosedAt.Time.Format(time.RFC3339))
 		if err != nil {
 			return err
@@ -236,12 +236,14 @@ func (w *OutputWriter) PrintJSON(data interface{}) error {
 	return w.formatter.PrintJSON(data)
 }
 
-// Printf writes formatted text to stdout - DEPRECATED
+// Printf writes formatted text to stdout
+// Deprecated: Use StatusWriter for progress messages or OutputFormatter for structured output
 func (w *OutputWriter) Printf(format string, args ...interface{}) {
 	_, _ = fmt.Fprintf(w.stdout, format, args...)
 }
 
-// Println writes a line to stdout - DEPRECATED
+// Println writes a line to stdout  
+// Deprecated: Use StatusWriter for progress messages or OutputFormatter for structured output
 func (w *OutputWriter) Println(args ...interface{}) {
 	_, _ = fmt.Fprintln(w.stdout, args...)
 }
@@ -257,6 +259,11 @@ func (w *OutputWriter) PrintResult(data interface{}) error {
 }
 
 // Helper functions
+
+// isTimeSet checks if a time pointer is not nil and not zero
+func isTimeSet(t *time.Time) bool {
+	return t != nil && !t.IsZero()
+}
 
 // outputJSON outputs data as JSON - kept for backward compatibility
 func outputJSON(data interface{}) error {

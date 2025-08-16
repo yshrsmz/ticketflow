@@ -80,13 +80,7 @@ func (r *TicketListResult) TextRepresentation() string {
 
 	// Tickets
 	for _, t := range r.Tickets {
-		status := "todo"
-		if t.StartedAt.Time != nil && !t.StartedAt.Time.IsZero() {
-			status = "doing"
-		}
-		if t.ClosedAt.Time != nil && !t.ClosedAt.Time.IsZero() {
-			status = "done"
-		}
+		status := getTicketStatus(&t)
 
 		// Safely truncate ID
 		idDisplay := t.ID
@@ -108,6 +102,17 @@ func (r *TicketListResult) TextRepresentation() string {
 	}
 
 	return buf.String()
+}
+
+// getTicketStatus determines the status of a ticket based on its time fields
+func getTicketStatus(t *ticket.Ticket) string {
+	if isTimeSet(t.ClosedAt.Time) {
+		return "done"
+	}
+	if isTimeSet(t.StartedAt.Time) {
+		return "doing"
+	}
+	return "todo"
 }
 
 func (r *TicketListResult) StructuredData() interface{} {
