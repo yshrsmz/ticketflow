@@ -105,8 +105,11 @@ func (r *RestoreCommand) Execute(ctx context.Context, flags interface{}, args []
 
 	f := flags.(*restoreFlags)
 
-	// Get App instance
-	app, err := cli.NewApp(ctx)
+	// Parse output format first
+	outputFormat := cli.ParseOutputFormat(f.format)
+
+	// Create App instance with format
+	app, err := cli.NewAppWithFormat(ctx, outputFormat)
 	if err != nil {
 		return err
 	}
@@ -115,7 +118,7 @@ func (r *RestoreCommand) Execute(ctx context.Context, flags interface{}, args []
 	ticket, err := app.RestoreCurrentTicket(ctx)
 
 	if err != nil {
-		if f.format == FormatJSON {
+		if outputFormat == cli.FormatJSON {
 			// Return error in JSON format
 			return app.Output.PrintJSON(map[string]interface{}{
 				"error":   err.Error(),
@@ -126,7 +129,7 @@ func (r *RestoreCommand) Execute(ctx context.Context, flags interface{}, args []
 	}
 
 	// For JSON output, use the returned ticket directly
-	if f.format == FormatJSON {
+	if outputFormat == cli.FormatJSON {
 		jsonData := map[string]interface{}{
 			"ticket_id":        ticket.ID,
 			"status":           string(ticket.Status()),

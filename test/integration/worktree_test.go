@@ -214,8 +214,9 @@ func TestWorktreeCleanCommand(t *testing.T) {
 	assert.Len(t, worktrees, 3)
 
 	// Run clean command
-	err = app.CleanWorktrees(context.Background())
+	result, err := app.CleanWorktrees(context.Background())
 	require.NoError(t, err)
+	assert.Equal(t, 1, result.CleanedCount)
 
 	// Should have removed the orphaned worktree
 	worktrees, err = app.Git.ListWorktrees(context.Background())

@@ -101,22 +101,23 @@ func (c *ListCommand) Execute(ctx context.Context, flags interface{}, args []str
 	default:
 	}
 
-	// Create App instance with dependencies
-	app, err := cli.NewApp(ctx)
+	// Extract flags
+	f := flags.(*listFlags)
+
+	// Parse output format first
+	outputFormat := cli.ParseOutputFormat(f.format)
+
+	// Create App instance with format
+	app, err := cli.NewAppWithFormat(ctx, outputFormat)
 	if err != nil {
 		return err
 	}
-
-	// Extract flags
-	f := flags.(*listFlags)
 
 	// Convert status string to ticket.Status
 	var ticketStatus ticket.Status
 	if f.status != "" {
 		ticketStatus = ticket.Status(f.status)
 	}
-
-	outputFormat := cli.ParseOutputFormat(f.format)
 
 	// Delegate to App's ListTickets method
 	return app.ListTickets(ctx, ticketStatus, f.count, outputFormat)

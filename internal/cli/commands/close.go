@@ -123,16 +123,19 @@ func (c *CloseCommand) Execute(ctx context.Context, flags interface{}, args []st
 	default:
 	}
 
-	// Get app instance
-	app, err := getApp(ctx)
-	if err != nil {
-		return err
-	}
-
 	// Safely assert flags type
 	f, ok := flags.(*closeFlags)
 	if !ok {
 		return fmt.Errorf("invalid flags type: expected *closeFlags, got %T", flags)
+	}
+
+	// Parse output format first
+	outputFormat := cli.ParseOutputFormat(f.format)
+
+	// Create App instance with format
+	app, err := getAppWithFormat(ctx, outputFormat)
+	if err != nil {
+		return err
 	}
 
 	// Perform the close operation based on whether ticket ID was provided
@@ -155,14 +158,14 @@ func (c *CloseCommand) Execute(ctx context.Context, flags interface{}, args []st
 
 	// Handle errors based on format
 	if closeErr != nil {
-		if f.format == FormatJSON {
+		if outputFormat == cli.FormatJSON {
 			return outputCloseErrorJSON(app, closeErr)
 		}
 		return closeErr
 	}
 
 	// Handle success output based on format
-	if f.format == FormatJSON {
+	if outputFormat == cli.FormatJSON {
 		return outputCloseSuccessJSON(ctx, app, closedTicket, f.reason, f.force, len(f.args) == 0)
 	}
 

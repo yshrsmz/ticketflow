@@ -38,6 +38,20 @@ type StartTicketResult struct {
 	InitCommandsExecuted bool
 }
 
+// CleanWorktreesResult represents the result of cleaning worktrees
+type CleanWorktreesResult struct {
+	// CleanedWorktrees is the list of worktrees that were removed
+	CleanedWorktrees []string
+	// CleanedCount is the number of worktrees that were cleaned
+	CleanedCount int
+	// FailedWorktrees is the list of worktrees that failed to be removed
+	FailedWorktrees []string
+	// TotalWorktrees is the total number of worktrees examined
+	TotalWorktrees int
+	// ActiveTickets is the number of active tickets in doing status
+	ActiveTickets int
+}
+
 // App represents the CLI application
 type App struct {
 	Config       *config.Config
@@ -877,25 +891,32 @@ func (app *App) ListWorktrees(ctx context.Context, format OutputFormat) error {
 }
 
 // CleanWorktrees removes orphaned worktrees
-func (app *App) CleanWorktrees(ctx context.Context) error {
+func (app *App) CleanWorktrees(ctx context.Context) (*CleanWorktreesResult, error) {
 	logger := log.Global()
+
+	result := &CleanWorktreesResult{
+		CleanedWorktrees: []string{},
+		FailedWorktrees:  []string{},
+	}
 
 	// First prune to clean up git's internal state
 	if err := app.Git.PruneWorktrees(ctx); err != nil {
-		return fmt.Errorf("failed to prune worktrees: %w", err)
+		return nil, fmt.Errorf("failed to prune worktrees: %w", err)
 	}
 
 	// Get all worktrees
 	worktrees, err := app.Git.ListWorktrees(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to list worktrees: %w", err)
+		return nil, fmt.Errorf("failed to list worktrees: %w", err)
 	}
 
 	// Get all active tickets
 	activeTickets, err := app.Manager.List(ctx, ticket.StatusFilterDoing)
 	if err != nil {
-		return fmt.Errorf("failed to list active tickets: %w", err)
+		return nil, fmt.Errorf("failed to list active tickets: %w", err)
 	}
+
+	result.ActiveTickets = len(activeTickets)
 
 	// Create a map of active ticket IDs
 	activeMap := make(map[string]bool)
@@ -903,8 +924,14 @@ func (app *App) CleanWorktrees(ctx context.Context) error {
 		activeMap[t.ID] = true
 	}
 
+	// Count total worktrees (excluding main)
+	for _, wt := range worktrees {
+		if wt.Branch != "" && wt.Branch != app.Config.Git.DefaultBranch {
+			result.TotalWorktrees++
+		}
+	}
+
 	// Find and remove orphaned worktrees
-	cleaned := 0
 	for _, wt := range worktrees {
 		// Skip main worktree
 		if wt.Branch == "" || wt.Branch == app.Config.Git.DefaultBranch {
@@ -917,19 +944,21 @@ func (app *App) CleanWorktrees(ctx context.Context) error {
 			if err := app.Git.RemoveWorktree(ctx, wt.Path); err != nil {
 				logger.WithError(err).Warn("failed to remove worktree", "path", wt.Path)
 				app.Output.Printf("Warning: Failed to remove worktree: %v\n", err)
+				result.FailedWorktrees = append(result.FailedWorktrees, wt.Branch)
 			} else {
-				cleaned++
+				result.CleanedWorktrees = append(result.CleanedWorktrees, wt.Branch)
+				result.CleanedCount++
 			}
 		}
 	}
 
-	if cleaned == 0 {
+	if result.CleanedCount == 0 {
 		app.Output.Println("No orphaned worktrees found")
 	} else {
-		app.Output.Printf("Cleaned %d orphaned worktree(s)\n", cleaned)
+		app.Output.Printf("Cleaned %d orphaned worktree(s)\n", result.CleanedCount)
 	}
 
-	return nil
+	return result, nil
 }
 
 // CleanupTicket cleans up a ticket after PR merge

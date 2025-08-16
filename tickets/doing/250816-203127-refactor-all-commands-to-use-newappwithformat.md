@@ -20,15 +20,16 @@ Some commands have been updated:
 - `worktree_list.go` ✅
 
 ## Tasks
-- [ ] Update `list.go` to use NewAppWithFormat
-- [ ] Update `show.go` to use NewAppWithFormat
-- [ ] Update `new.go` to use NewAppWithFormat
-- [ ] Update `restore.go` to use NewAppWithFormat
-- [ ] Update `worktree_clean.go` to use NewAppWithFormat
-- [ ] Search for any other commands using old pattern
-- [ ] Run `make test` to verify all commands work
-- [ ] Run `make vet`, `make fmt` and `make lint`
-- [ ] Update documentation if necessary
+- [x] Update `list.go` to use NewAppWithFormat
+- [x] Update `show.go` to use NewAppWithFormat
+- [x] Update `new.go` to use NewAppWithFormat
+- [x] Update `restore.go` to use NewAppWithFormat
+- [x] Update `worktree_clean.go` to use NewAppWithFormat (added JSON format support)
+- [x] Update `start.go` and `close.go` to use NewAppWithFormat via new helper
+- [x] Create `getAppWithFormat` helper for start/close commands
+- [x] Remove deprecated `getApp` function
+- [x] Run `make test` to verify all commands work
+- [x] Run `make vet`, `make fmt` and `make lint`
 
 ## Implementation Pattern
 Replace:

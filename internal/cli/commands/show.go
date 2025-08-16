@@ -89,16 +89,19 @@ func (c *ShowCommand) Execute(ctx context.Context, flags interface{}, args []str
 	default:
 	}
 
-	// Create App instance with dependencies
-	app, err := cli.NewApp(ctx)
-	if err != nil {
-		return err
-	}
-
 	// Safely extract flags
 	f, ok := flags.(*showFlags)
 	if !ok {
 		return fmt.Errorf("invalid flags type: expected *showFlags, got %T", flags)
+	}
+
+	// Parse output format first
+	outputFormat := cli.ParseOutputFormat(f.format)
+
+	// Create App instance with format
+	app, err := cli.NewAppWithFormat(ctx, outputFormat)
+	if err != nil {
+		return err
 	}
 
 	// Get the ticket using the first positional argument
@@ -109,7 +112,6 @@ func (c *ShowCommand) Execute(ctx context.Context, flags interface{}, args []str
 	}
 
 	// Output based on format
-	outputFormat := cli.ParseOutputFormat(f.format)
 	if outputFormat == cli.FormatJSON {
 		// For JSON, output the ticket data with exact structure from original
 		// Note: We preserve the original behavior where nil times are output as null
