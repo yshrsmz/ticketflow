@@ -222,14 +222,15 @@ func ExtractJSONFromMixedOutput(output string) (string, error) {
 func extractJSONContent(output string) (string, bool) {
 	// Try each position in the string to find valid JSON start
 	for i := 0; i < len(output); i++ {
-		if output[i] == '{' {
+		switch output[i] {
+		case '{':
 			// Potential object start - validate it's actual JSON
 			jsonStr := output[i:]
 			var obj map[string]interface{}
 			if err := json.Unmarshal([]byte(jsonStr), &obj); err == nil {
 				return jsonStr, true
 			}
-		} else if output[i] == '[' {
+		case '[':
 			// Potential array start - validate it's actual JSON
 			jsonStr := output[i:]
 			var arr []interface{}
