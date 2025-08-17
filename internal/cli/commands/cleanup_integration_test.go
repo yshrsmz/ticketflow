@@ -2,11 +2,9 @@ package commands
 
 import (
 	"context"
-	"encoding/json"
 	"flag"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -83,26 +81,21 @@ func TestCleanupCommand_Execute_AutoCleanup_JSON_Integration(t *testing.T) {
 		})
 	})
 
-	// Extract JSON from mixed output (text messages + JSON)
+	// Parse and validate JSON using helper
 	// The AutoCleanup function outputs status messages even in JSON mode
-	// We need to find where the JSON starts
-	jsonStart := strings.Index(outputStr, "{")
-	require.True(t, jsonStart >= 0, "JSON output should be present")
-	jsonStr := outputStr[jsonStart:]
-
-	// Parse and validate the JSON properly
-	var result map[string]interface{}
-	err := json.Unmarshal([]byte(jsonStr), &result)
-	require.NoError(t, err, "JSON should be valid")
+	jsonData := testharness.ValidateJSON(t, outputStr)
 
 	// Validate the structure
-	assert.Equal(t, true, result["success"], "success should be true")
+	testharness.AssertJSONSuccess(t, jsonData)
 
-	resultData, ok := result["result"].(map[string]interface{})
+	// Validate result fields
+	testharness.AssertJSONFieldExists(t, jsonData, "result")
+	resultData, ok := jsonData["result"].(map[string]interface{})
 	require.True(t, ok, "result should be a map")
-	assert.Contains(t, resultData, "orphaned_worktrees")
-	assert.Contains(t, resultData, "stale_branches")
-	assert.Contains(t, resultData, "errors")
+
+	testharness.AssertJSONFieldExists(t, resultData, "orphaned_worktrees")
+	testharness.AssertJSONFieldExists(t, resultData, "stale_branches")
+	testharness.AssertJSONFieldExists(t, resultData, "errors")
 }
 
 func TestCleanupCommand_Execute_TicketCleanup_Integration(t *testing.T) {
@@ -204,11 +197,18 @@ func TestCleanupCommand_Execute_TicketCleanup_JSON_Integration(t *testing.T) {
 		})
 	})
 
-	// Verify JSON output structure
-	assert.Contains(t, outputStr, `"success": true`)
-	assert.Contains(t, outputStr, `"ticket":`)
-	assert.Contains(t, outputStr, `"id": "done-ticket"`)
-	assert.Contains(t, outputStr, `"description": "Test ticket for cleanup"`)
+	// Parse and validate JSON properly
+	jsonData := testharness.ValidateJSON(t, outputStr)
+
+	// Validate success and ticket structure
+	testharness.AssertJSONSuccess(t, jsonData)
+	testharness.AssertJSONFieldExists(t, jsonData, "ticket")
+
+	// Validate ticket fields
+	ticketData, ok := jsonData["ticket"].(map[string]interface{})
+	require.True(t, ok, "ticket should be a map")
+	testharness.ValidateTicketJSON(t, ticketData, "done-ticket", "")
+	testharness.AssertJSONField(t, ticketData, "description", "Test ticket for cleanup")
 }
 
 func TestCleanupCommand_Execute_TicketCleanup_NotFound_Integration(t *testing.T) {
@@ -248,9 +248,11 @@ func TestCleanupCommand_Execute_TicketCleanup_ErrorJSON_Integration(t *testing.T
 		})
 	})
 
-	// Verify JSON error output structure
-	assert.Contains(t, outputStr, `"success": false`)
-	assert.Contains(t, outputStr, `"error":`)
+	// Parse and validate JSON error properly
+	jsonData := testharness.ValidateJSON(t, outputStr)
+
+	// Validate error response
+	testharness.AssertJSONError(t, jsonData, "")
 }
 
 func TestCleanupCommand_Execute_AutoCleanup_NoConfig_Integration(t *testing.T) {
