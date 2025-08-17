@@ -53,11 +53,19 @@ func TestStatusCommand_Execute_JSONOutput_Integration(t *testing.T) {
 		})
 	})
 
-	// Verify JSON output structure
-	assert.Contains(t, outputStr, `"current_ticket":`)
-	assert.Contains(t, outputStr, `"id": "current-ticket"`)
-	assert.Contains(t, outputStr, `"description": "Test ticket for JSON"`)
-	assert.Contains(t, outputStr, `"status": "doing"`)
+	// Parse and validate JSON properly
+	jsonData := testharness.ValidateJSON(t, outputStr)
+	
+	// Verify structure
+	testharness.AssertJSONFieldExists(t, jsonData, "current_ticket")
+	
+	// Get the current_ticket object
+	currentTicket, ok := jsonData["current_ticket"].(map[string]interface{})
+	require.True(t, ok, "current_ticket should be a map")
+	
+	// Validate ticket fields
+	testharness.ValidateTicketJSON(t, currentTicket, "current-ticket", "doing")
+	testharness.AssertJSONField(t, currentTicket, "description", "Test ticket for JSON")
 }
 
 func TestStatusCommand_Execute_NoCurrentTicket_Integration(t *testing.T) {

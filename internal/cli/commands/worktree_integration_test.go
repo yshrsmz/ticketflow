@@ -54,11 +54,23 @@ func TestWorktreeCommand_Execute_List_JSON_Integration(t *testing.T) {
 		})
 	})
 
-	// Verify JSON output
-	// The worktree list just outputs worktrees array, not success field
-	assert.Contains(t, outputStr, `"worktrees":`)
-	assert.Contains(t, outputStr, `"Path":`)
-	assert.Contains(t, outputStr, `"Branch":`)
+	// Parse and validate JSON properly
+	jsonData := testharness.ValidateJSON(t, outputStr)
+	
+	// Verify structure
+	testharness.AssertJSONFieldExists(t, jsonData, "worktrees")
+	
+	// Get worktrees array
+	worktrees, ok := jsonData["worktrees"].([]interface{})
+	require.True(t, ok, "worktrees should be an array")
+	require.Greater(t, len(worktrees), 0, "should have at least one worktree")
+	
+	// Validate first worktree fields
+	firstWorktree, ok := worktrees[0].(map[string]interface{})
+	require.True(t, ok, "worktree entry should be a map")
+	testharness.AssertJSONFieldExists(t, firstWorktree, "Path")
+	testharness.AssertJSONFieldExists(t, firstWorktree, "Branch")
+	testharness.AssertJSONFieldExists(t, firstWorktree, "Head")
 }
 
 func TestWorktreeCommand_Execute_Clean_Integration(t *testing.T) {
