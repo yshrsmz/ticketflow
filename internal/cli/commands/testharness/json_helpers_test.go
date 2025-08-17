@@ -76,12 +76,12 @@ func TestValidateJSON_ArrayShouldFail(t *testing.T) {
 	extracted, err := ExtractJSONFromMixedOutput(`[1, 2, 3]`)
 	require.NoError(t, err, "Should extract JSON content")
 	assert.Equal(t, `[1, 2, 3]`, extracted)
-	
+
 	// Verify that trying to parse an array as object would fail
 	var obj map[string]interface{}
 	err = json.Unmarshal([]byte(extracted), &obj)
 	assert.Error(t, err, "Should fail to unmarshal array into map[string]interface{}")
-	
+
 	// Verify that an array can be properly parsed with ValidateJSONArray
 	result := ValidateJSONArray(t, `[1, 2, 3]`)
 	assert.Len(t, result, 3)
