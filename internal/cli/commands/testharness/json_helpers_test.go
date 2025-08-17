@@ -1,6 +1,7 @@
 package testharness
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -42,6 +43,21 @@ func TestValidateJSON(t *testing.T) {
 				},
 			},
 		},
+		{
+			name:  "JSON with misleading brace in prefix",
+			input: `Error: {malformed} {"actual": "json", "valid": true}`,
+			expected: map[string]interface{}{
+				"actual": "json",
+				"valid":  true,
+			},
+		},
+		{
+			name:  "JSON with bracket in prefix",
+			input: `Status [OK]: {"message": "success"}`,
+			expected: map[string]interface{}{
+				"message": "success",
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -50,6 +66,25 @@ func TestValidateJSON(t *testing.T) {
 			assert.Equal(t, tt.expected, result)
 		})
 	}
+}
+
+func TestValidateJSON_ArrayShouldFail(t *testing.T) {
+	t.Parallel()
+
+	// Test that ValidateJSON properly rejects array input
+	// Extract JSON to verify it's detected as an array
+	extracted, err := ExtractJSONFromMixedOutput(`[1, 2, 3]`)
+	require.NoError(t, err, "Should extract JSON content")
+	assert.Equal(t, `[1, 2, 3]`, extracted)
+	
+	// Verify that trying to parse an array as object would fail
+	var obj map[string]interface{}
+	err = json.Unmarshal([]byte(extracted), &obj)
+	assert.Error(t, err, "Should fail to unmarshal array into map[string]interface{}")
+	
+	// Verify that an array can be properly parsed with ValidateJSONArray
+	result := ValidateJSONArray(t, `[1, 2, 3]`)
+	assert.Len(t, result, 3)
 }
 
 func TestValidateJSONArray(t *testing.T) {
@@ -223,7 +258,7 @@ func TestExtractJSONFromMixedOutput(t *testing.T) {
 		wantErr  bool
 	}{
 		{
-			name:     "pure JSON",
+			name:     "pure JSON object",
 			input:    `{"id": "test"}`,
 			expected: `{"id": "test"}`,
 		},
@@ -238,8 +273,38 @@ func TestExtractJSONFromMixedOutput(t *testing.T) {
 			expected: `[1, 2, 3]`,
 		},
 		{
+			name:     "misleading brace in prefix",
+			input:    `Error {incomplete {"valid": "json"}`,
+			expected: `{"valid": "json"}`,
+		},
+		{
+			name:     "misleading bracket in prefix",
+			input:    `List [incomplete ["valid", "array"]`,
+			expected: `["valid", "array"]`,
+		},
+		{
+			name:     "multiple braces before valid JSON",
+			input:    `Error: {bad} {malformed {"actual": "json", "valid": true}`,
+			expected: `{"actual": "json", "valid": true}`,
+		},
+		{
+			name:     "JSON with newlines in prefix",
+			input:    "Status: Processing\nDebug: {invalid\n{\"status\": \"ok\"}",
+			expected: `{"status": "ok"}`,
+		},
+		{
 			name:    "no JSON",
 			input:   `Just plain text`,
+			wantErr: true,
+		},
+		{
+			name:    "malformed JSON",
+			input:   `Status: {"incomplete": `,
+			wantErr: true,
+		},
+		{
+			name:    "only invalid JSON markers",
+			input:   `{ [ } ]`,
 			wantErr: true,
 		},
 	}

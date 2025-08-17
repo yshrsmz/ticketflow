@@ -1,6 +1,6 @@
 // Package testharness provides integration testing utilities for CLI commands.
-// The JSON validation helpers follow patterns from successful CLI tools like
-// git and docker - simple, explicit, and debuggable without external dependencies.
+// The JSON validation helpers are designed to be simple, explicit, and debuggable
+// without external dependencies, focusing on practical test scenarios.
 package testharness
 
 import (
@@ -13,21 +13,16 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// ValidateJSON parses JSON output and returns the unmarshaled structure.
+// ValidateJSON parses JSON object output and returns the unmarshaled structure.
 // It strips any non-JSON content (status messages, etc.) before parsing.
+// Note: This function only handles JSON objects. For JSON arrays, use ValidateJSONArray.
 func ValidateJSON(t *testing.T, output string) map[string]interface{} {
 	t.Helper()
 
-	// Find the start of JSON content (look for opening brace)
-	jsonStart := strings.Index(output, "{")
-	if jsonStart == -1 {
-		// Try to find array start
-		jsonStart = strings.Index(output, "[")
-	}
-	require.True(t, jsonStart >= 0, "No JSON content found in output")
-
-	// Extract JSON portion
-	jsonStr := output[jsonStart:]
+	// Extract JSON content, looking specifically for an object
+	jsonStr, isObject := extractJSONContent(output)
+	require.True(t, isObject, "Expected JSON object but got array or no JSON. Use ValidateJSONArray for arrays.")
+	require.NotEmpty(t, jsonStr, "No JSON content found in output")
 
 	// Parse JSON
 	var result map[string]interface{}
@@ -39,15 +34,14 @@ func ValidateJSON(t *testing.T, output string) map[string]interface{} {
 
 // ValidateJSONArray parses JSON array output and returns the unmarshaled structure.
 // It strips any non-JSON content (status messages, etc.) before parsing.
+// Note: This function only handles JSON arrays. For JSON objects, use ValidateJSON.
 func ValidateJSONArray(t *testing.T, output string) []interface{} {
 	t.Helper()
 
-	// Find the start of JSON content (look for opening bracket)
-	jsonStart := strings.Index(output, "[")
-	require.True(t, jsonStart >= 0, "No JSON array content found in output")
-
-	// Extract JSON portion
-	jsonStr := output[jsonStart:]
+	// Extract JSON content, looking specifically for an array
+	jsonStr, isObject := extractJSONContent(output)
+	require.False(t, isObject, "Expected JSON array but got object. Use ValidateJSON for objects.")
+	require.NotEmpty(t, jsonStr, "No JSON array content found in output")
 
 	// Parse JSON
 	var result []interface{}
@@ -215,16 +209,34 @@ func ValidateTicketJSON(t *testing.T, ticketData map[string]interface{}, expecte
 // ExtractJSONFromMixedOutput extracts JSON content from output that may contain
 // non-JSON text (like status messages). Returns the JSON string portion.
 func ExtractJSONFromMixedOutput(output string) (string, error) {
-	// Find the start of JSON content
-	jsonStart := strings.Index(output, "{")
-	if jsonStart == -1 {
-		// Try to find array start
-		jsonStart = strings.Index(output, "[")
-		if jsonStart == -1 {
-			return "", fmt.Errorf("no JSON content found in output")
+	jsonStr, _ := extractJSONContent(output)
+	if jsonStr == "" {
+		return "", fmt.Errorf("no JSON content found in output")
+	}
+	return jsonStr, nil
+}
+
+// extractJSONContent attempts to extract JSON content from mixed output.
+// It uses a simple heuristic approach suitable for test scenarios where we control the output format.
+// Returns the extracted JSON string and whether it's an object (true) or array (false).
+func extractJSONContent(output string) (string, bool) {
+	// Try each position in the string to find valid JSON start
+	for i := 0; i < len(output); i++ {
+		if output[i] == '{' {
+			// Potential object start - validate it's actual JSON
+			jsonStr := output[i:]
+			var obj map[string]interface{}
+			if err := json.Unmarshal([]byte(jsonStr), &obj); err == nil {
+				return jsonStr, true
+			}
+		} else if output[i] == '[' {
+			// Potential array start - validate it's actual JSON
+			jsonStr := output[i:]
+			var arr []interface{}
+			if err := json.Unmarshal([]byte(jsonStr), &arr); err == nil {
+				return jsonStr, false
+			}
 		}
 	}
-
-	// Extract and return JSON portion
-	return output[jsonStart:], nil
+	return "", false
 }
