@@ -2,7 +2,6 @@ package commands
 
 import (
 	"context"
-	"encoding/json"
 	"flag"
 	"os"
 	"path/filepath"
@@ -83,26 +82,21 @@ func TestCleanupCommand_Execute_AutoCleanup_JSON_Integration(t *testing.T) {
 		})
 	})
 
-	// Extract JSON from mixed output (text messages + JSON)
+	// Parse and validate JSON using helper
 	// The AutoCleanup function outputs status messages even in JSON mode
-	// We need to find where the JSON starts
-	jsonStart := strings.Index(outputStr, "{")
-	require.True(t, jsonStart >= 0, "JSON output should be present")
-	jsonStr := outputStr[jsonStart:]
-
-	// Parse and validate the JSON properly
-	var result map[string]interface{}
-	err := json.Unmarshal([]byte(jsonStr), &result)
-	require.NoError(t, err, "JSON should be valid")
-
+	jsonData := testharness.ValidateJSON(t, outputStr)
+	
 	// Validate the structure
-	assert.Equal(t, true, result["success"], "success should be true")
-
-	resultData, ok := result["result"].(map[string]interface{})
+	testharness.AssertJSONSuccess(t, jsonData)
+	
+	// Validate result fields
+	testharness.AssertJSONFieldExists(t, jsonData, "result")
+	resultData, ok := jsonData["result"].(map[string]interface{})
 	require.True(t, ok, "result should be a map")
-	assert.Contains(t, resultData, "orphaned_worktrees")
-	assert.Contains(t, resultData, "stale_branches")
-	assert.Contains(t, resultData, "errors")
+	
+	testharness.AssertJSONFieldExists(t, resultData, "orphaned_worktrees")
+	testharness.AssertJSONFieldExists(t, resultData, "stale_branches")
+	testharness.AssertJSONFieldExists(t, resultData, "errors")
 }
 
 func TestCleanupCommand_Execute_TicketCleanup_Integration(t *testing.T) {
