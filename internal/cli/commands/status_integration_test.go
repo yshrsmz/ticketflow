@@ -55,14 +55,14 @@ func TestStatusCommand_Execute_JSONOutput_Integration(t *testing.T) {
 
 	// Parse and validate JSON properly
 	jsonData := testharness.ValidateJSON(t, outputStr)
-	
+
 	// Verify structure
 	testharness.AssertJSONFieldExists(t, jsonData, "current_ticket")
-	
+
 	// Get the current_ticket object
 	currentTicket, ok := jsonData["current_ticket"].(map[string]interface{})
 	require.True(t, ok, "current_ticket should be a map")
-	
+
 	// Validate ticket fields
 	testharness.ValidateTicketJSON(t, currentTicket, "current-ticket", "doing")
 	testharness.AssertJSONField(t, currentTicket, "description", "Test ticket for JSON")

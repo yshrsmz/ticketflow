@@ -84,15 +84,15 @@ func TestCleanupCommand_Execute_AutoCleanup_JSON_Integration(t *testing.T) {
 	// Parse and validate JSON using helper
 	// The AutoCleanup function outputs status messages even in JSON mode
 	jsonData := testharness.ValidateJSON(t, outputStr)
-	
+
 	// Validate the structure
 	testharness.AssertJSONSuccess(t, jsonData)
-	
+
 	// Validate result fields
 	testharness.AssertJSONFieldExists(t, jsonData, "result")
 	resultData, ok := jsonData["result"].(map[string]interface{})
 	require.True(t, ok, "result should be a map")
-	
+
 	testharness.AssertJSONFieldExists(t, resultData, "orphaned_worktrees")
 	testharness.AssertJSONFieldExists(t, resultData, "stale_branches")
 	testharness.AssertJSONFieldExists(t, resultData, "errors")
@@ -199,11 +199,11 @@ func TestCleanupCommand_Execute_TicketCleanup_JSON_Integration(t *testing.T) {
 
 	// Parse and validate JSON properly
 	jsonData := testharness.ValidateJSON(t, outputStr)
-	
+
 	// Validate success and ticket structure
 	testharness.AssertJSONSuccess(t, jsonData)
 	testharness.AssertJSONFieldExists(t, jsonData, "ticket")
-	
+
 	// Validate ticket fields
 	ticketData, ok := jsonData["ticket"].(map[string]interface{})
 	require.True(t, ok, "ticket should be a map")
@@ -250,7 +250,7 @@ func TestCleanupCommand_Execute_TicketCleanup_ErrorJSON_Integration(t *testing.T
 
 	// Parse and validate JSON error properly
 	jsonData := testharness.ValidateJSON(t, outputStr)
-	
+
 	// Validate error response
 	testharness.AssertJSONError(t, jsonData, "")
 }

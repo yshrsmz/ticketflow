@@ -178,13 +178,13 @@ func AssertJSONSuccess(t *testing.T, jsonData map[string]interface{}) {
 func AssertJSONError(t *testing.T, jsonData map[string]interface{}, errorContains string) {
 	t.Helper()
 	AssertJSONField(t, jsonData, "success", false)
-	
+
 	errorMsg, exists := jsonData["error"]
 	require.True(t, exists, "Error field not found in JSON error response")
-	
+
 	errorStr, ok := errorMsg.(string)
 	require.True(t, ok, "Error field is not a string")
-	
+
 	if errorContains != "" {
 		assert.Contains(t, errorStr, errorContains, "Error message doesn't contain expected text")
 	}
@@ -193,14 +193,14 @@ func AssertJSONError(t *testing.T, jsonData map[string]interface{}, errorContain
 // ValidateTicketJSON validates common ticket fields in JSON output.
 func ValidateTicketJSON(t *testing.T, ticketData map[string]interface{}, expectedID, expectedStatus string) {
 	t.Helper()
-	
+
 	// Validate required fields exist
 	AssertJSONFieldExists(t, ticketData, "id")
 	AssertJSONFieldExists(t, ticketData, "status")
 	AssertJSONFieldExists(t, ticketData, "priority")
 	AssertJSONFieldExists(t, ticketData, "description")
 	AssertJSONFieldExists(t, ticketData, "created_at")
-	
+
 	// Validate specific values if provided
 	if expectedID != "" {
 		AssertJSONField(t, ticketData, "id", expectedID)
@@ -222,7 +222,7 @@ func ExtractJSONFromMixedOutput(output string) (string, error) {
 			return "", fmt.Errorf("no JSON content found in output")
 		}
 	}
-	
+
 	// Extract and return JSON portion
 	return output[jsonStart:], nil
 }

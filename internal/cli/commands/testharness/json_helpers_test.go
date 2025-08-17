@@ -56,11 +56,11 @@ func TestValidateJSONArray(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name          string
-		input         string
-		expectedLen   int
+		name           string
+		input          string
+		expectedLen    int
 		checkFirstElem bool
-		firstElem     interface{}
+		firstElem      interface{}
 	}{
 		{
 			name:        "simple array",

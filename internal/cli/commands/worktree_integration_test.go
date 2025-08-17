@@ -56,15 +56,15 @@ func TestWorktreeCommand_Execute_List_JSON_Integration(t *testing.T) {
 
 	// Parse and validate JSON properly
 	jsonData := testharness.ValidateJSON(t, outputStr)
-	
+
 	// Verify structure
 	testharness.AssertJSONFieldExists(t, jsonData, "worktrees")
-	
+
 	// Get worktrees array
 	worktrees, ok := jsonData["worktrees"].([]interface{})
 	require.True(t, ok, "worktrees should be an array")
 	require.Greater(t, len(worktrees), 0, "should have at least one worktree")
-	
+
 	// Validate first worktree fields
 	firstWorktree, ok := worktrees[0].(map[string]interface{})
 	require.True(t, ok, "worktree entry should be a map")
