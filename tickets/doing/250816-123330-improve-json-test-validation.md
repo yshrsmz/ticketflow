@@ -125,13 +125,27 @@ testharness.AssertJSONField(t, jsonData, "current_ticket.description", "Test tic
    - Type safety - validates actual data types, not just strings
    - Support for nested field validation with dot notation
 
-### Challenges Encountered
+### Challenges Encountered and Resolved
 
 1. **Mixed output handling**: Some commands output status messages before JSON, requiring special handling in `ValidateJSON()` to find where JSON starts.
+   - **Resolution**: Implemented robust `extractJSONContent()` that validates JSON by actually parsing it, preventing false positives from strings like `Error {incomplete {"valid": "json"}`
 
 2. **Field name case sensitivity**: Discovered that WorktreeInfo uses `HEAD` (uppercase) not `Head`, which was only caught after implementing proper validation.
+   - **Resolution**: Fixed field name and this proves the value of proper JSON validation
 
 3. **Unused imports**: After refactoring cleanup_integration_test.go, the `strings` import was no longer needed and had to be removed.
+   - **Resolution**: Cleaned up imports after refactoring
+
+4. **PR Review Feedback**: GitHub Copilot identified potential issues with JSON extraction logic
+   - **Resolution**: Implemented more robust extraction using actual JSON parsing validation
+   - Fixed array vs object handling bug in `ValidateJSON`
+   - Improved package documentation
+
+5. **CI Lint Failure**: Staticcheck suggested using switch statement (QF1003)
+   - **Resolution**: Refactored if-else chain to switch statement for more idiomatic Go
+
+6. **Agent Documentation Issue**: Sub-agent created unauthorized documentation file
+   - **Resolution**: Updated agent instructions to reference CLAUDE.md rules
 
 ### Testing Results
 
@@ -140,9 +154,31 @@ testharness.AssertJSONField(t, jsonData, "current_ticket.description", "Test tic
 - Code is more maintainable and easier to understand
 - Created comprehensive unit tests for all helper functions
 
+### Architectural Insights
+
+After consultation with golang-pro and golang-cli-architect agents, the design decisions were validated:
+
+1. **Simplicity over cleverness**: Rejected suggestions for JSONPath support and fluent APIs as they would add unnecessary complexity for a simple CLI tool
+2. **Following established patterns**: The implementation mirrors patterns from successful CLI tools like git, docker, and kubectl - simple, explicit assertions
+3. **No external dependencies**: All validation is done with standard library, maintaining the project's minimal dependency approach
+4. **YAGNI principle applied**: Avoided over-engineering by not adding features for problems that don't exist
+
+### PR Status
+
+- **PR #79 Created**: [Improve JSON validation logic for integration tests](https://github.com/yshrsmz/ticketflow/pull/79)
+- **All CI Checks Passing**: Lint and tests green ✅
+- **Review Feedback Addressed**: All Copilot suggestions implemented
+- **Ready for Merge**: Awaiting developer approval
+
 ### Future Improvements
 
-This pattern should be applied to any new integration tests that validate JSON output. The helpers are designed to be extensible - new validation functions can be added as needed.
+This pattern should be applied to any new integration tests that validate JSON output. The helpers are designed to be extensible - new validation functions can be added as needed. The implementation intentionally avoids:
+- Complex query languages (JSONPath)
+- Fluent APIs or DSLs
+- External testing framework dependencies
+- Over-abstraction
+
+This keeps the test suite maintainable and aligned with Go's philosophy of simplicity.
 
 ## Notes
 
