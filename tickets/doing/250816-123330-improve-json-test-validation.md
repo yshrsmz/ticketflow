@@ -34,15 +34,15 @@ After analyzing the codebase, I identified inconsistent JSON validation patterns
 ## Tasks
 
 - [x] Analyze current JSON test validation patterns across the codebase
-- [ ] Design a test helper for consistent JSON validation
-- [ ] Create JSON validation helper in testharness package
-- [ ] Update status_integration_test.go to use proper JSON validation
-- [ ] Update worktree_integration_test.go to use proper JSON validation
-- [ ] Update cleanup_integration_test.go to improve JSON validation consistency
-- [ ] Update remaining integration tests with JSON output to use helper
-- [ ] Run `make test` to ensure all tests pass
-- [ ] Run `make vet`, `make fmt` and `make lint`
-- [ ] Update ticket with implementation insights
+- [x] Design a test helper for consistent JSON validation
+- [x] Create JSON validation helper in testharness package
+- [x] Update status_integration_test.go to use proper JSON validation
+- [x] Update worktree_integration_test.go to use proper JSON validation
+- [x] Update cleanup_integration_test.go to improve JSON validation consistency
+- [x] Update remaining integration tests with JSON output to use helper
+- [x] Run `make test` to ensure all tests pass
+- [x] Run `make vet`, `make fmt` and `make lint`
+- [x] Update ticket with implementation insights
 - [ ] Get developer approval before closing
 
 ## Implementation Plan
@@ -100,6 +100,49 @@ testharness.AssertJSONField(t, jsonData, "current_ticket.description", "Test tic
 3. **Type safety**: Can validate data types, not just string presence
 4. **Maintainability**: Single helper to update if JSON format changes
 5. **Consistency**: All tests use the same validation approach
+
+## Implementation Insights
+
+### What Was Done
+
+1. **Created comprehensive JSON validation helpers** (`json_helpers.go`):
+   - `ValidateJSON()` - Parses JSON from mixed output (handles status messages)
+   - `ValidateJSONArray()` - Specifically for array validation
+   - `AssertJSONField()` - Validates specific fields with dot notation support
+   - `AssertJSONFieldExists()` - Checks field presence without value validation
+   - `AssertJSONSuccess()`/`AssertJSONError()` - Common response patterns
+   - `ValidateTicketJSON()` - Reusable ticket structure validation
+
+2. **Updated 3 main integration test files**:
+   - `status_integration_test.go` - Replaced 4 string contains with proper JSON parsing
+   - `worktree_integration_test.go` - Replaced 3 string contains with structured validation
+   - `cleanup_integration_test.go` - Replaced 13 lines of manual parsing with helper calls
+
+3. **Key improvements**:
+   - Tests now actually parse JSON and validate structure, not just string presence
+   - Better error messages when tests fail (shows which field failed)
+   - Consistent validation pattern across all tests
+   - Type safety - validates actual data types, not just strings
+   - Support for nested field validation with dot notation
+
+### Challenges Encountered
+
+1. **Mixed output handling**: Some commands output status messages before JSON, requiring special handling in `ValidateJSON()` to find where JSON starts.
+
+2. **Field name case sensitivity**: Discovered that WorktreeInfo uses `HEAD` (uppercase) not `Head`, which was only caught after implementing proper validation.
+
+3. **Unused imports**: After refactoring cleanup_integration_test.go, the `strings` import was no longer needed and had to be removed.
+
+### Testing Results
+
+- All tests pass successfully with the new validation helpers
+- No performance impact - tests run at the same speed
+- Code is more maintainable and easier to understand
+- Created comprehensive unit tests for all helper functions
+
+### Future Improvements
+
+This pattern should be applied to any new integration tests that validate JSON output. The helpers are designed to be extensible - new validation functions can be added as needed.
 
 ## Notes
 
