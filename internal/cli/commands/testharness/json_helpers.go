@@ -1,4 +1,6 @@
-// Package testharness provides integration testing utilities for CLI commands
+// Package testharness provides integration testing utilities for CLI commands.
+// The JSON validation helpers follow patterns from successful CLI tools like
+// git and docker - simple, explicit, and debuggable without external dependencies.
 package testharness
 
 import (
