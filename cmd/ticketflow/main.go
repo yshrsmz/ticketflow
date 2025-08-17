@@ -105,6 +105,13 @@ func init() {
 		// This should never happen in practice but we handle it gracefully
 		fmt.Fprintf(os.Stderr, "Warning: failed to register worktree command: %v\n", err)
 	}
+
+	// Register workflow command
+	if err := commandRegistry.Register(commands.NewWorkflowCommand()); err != nil {
+		// Log error but continue - allow program to run with degraded functionality
+		// This should never happen in practice but we handle it gracefully
+		fmt.Fprintf(os.Stderr, "Warning: failed to register workflow command: %v\n", err)
+	}
 }
 
 func main() {
