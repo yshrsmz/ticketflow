@@ -70,7 +70,7 @@ func TestWorktreeCommand_Execute_List_JSON_Integration(t *testing.T) {
 	require.True(t, ok, "worktree entry should be a map")
 	testharness.AssertJSONFieldExists(t, firstWorktree, "Path")
 	testharness.AssertJSONFieldExists(t, firstWorktree, "Branch")
-	testharness.AssertJSONFieldExists(t, firstWorktree, "Head")
+	testharness.AssertJSONFieldExists(t, firstWorktree, "HEAD")
 }
 
 func TestWorktreeCommand_Execute_Clean_Integration(t *testing.T) {
