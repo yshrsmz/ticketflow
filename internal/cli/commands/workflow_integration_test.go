@@ -13,6 +13,23 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// findProjectRoot traverses up from the current directory to find the project root
+// by looking for the go.mod file. This is used by integration tests that need to
+// build the ticketflow binary from source.
+func findProjectRoot(t *testing.T, startDir string) string {
+	projectRoot := startDir
+	for {
+		if _, err := os.Stat(filepath.Join(projectRoot, "go.mod")); err == nil {
+			return projectRoot
+		}
+		parent := filepath.Dir(projectRoot)
+		if parent == projectRoot {
+			t.Fatal("Could not find project root (go.mod)")
+		}
+		projectRoot = parent
+	}
+}
+
 // TestWorkflowCommand_Integration tests the workflow command in a real environment
 func TestWorkflowCommand_Integration(t *testing.T) {
 	// Create a temporary directory for testing
@@ -48,18 +65,7 @@ func TestWorkflowCommand_Integration(t *testing.T) {
 	require.NoError(t, err)
 
 	// Build the ticketflow binary
-	// Find project root by looking for go.mod
-	projectRoot := originalWd
-	for {
-		if _, err := os.Stat(filepath.Join(projectRoot, "go.mod")); err == nil {
-			break
-		}
-		parent := filepath.Dir(projectRoot)
-		if parent == projectRoot {
-			t.Fatal("Could not find project root (go.mod)")
-		}
-		projectRoot = parent
-	}
+	projectRoot := findProjectRoot(t, originalWd)
 
 	buildCmd := exec.Command("go", "build", "-o", filepath.Join(tmpDir, "ticketflow"), "./cmd/ticketflow")
 	buildCmd.Dir = projectRoot
@@ -151,18 +157,7 @@ func TestWorkflowCommand_OutputRedirection(t *testing.T) {
 	require.NoError(t, err)
 
 	// Build the ticketflow binary
-	// Find project root by looking for go.mod
-	projectRoot := originalWd
-	for {
-		if _, err := os.Stat(filepath.Join(projectRoot, "go.mod")); err == nil {
-			break
-		}
-		parent := filepath.Dir(projectRoot)
-		if parent == projectRoot {
-			t.Fatal("Could not find project root (go.mod)")
-		}
-		projectRoot = parent
-	}
+	projectRoot := findProjectRoot(t, originalWd)
 
 	buildCmd := exec.Command("go", "build", "-o", filepath.Join(tmpDir, "ticketflow"), "./cmd/ticketflow")
 	buildCmd.Dir = projectRoot
