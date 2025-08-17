@@ -1,8 +1,8 @@
 ---
 priority: 2
-description: "Migrate all result types to implement Printable interface to eliminate switch statement"
+description: Migrate all result types to implement Printable interface to eliminate switch statement
 created_at: "2025-08-16T20:32:24+09:00"
-started_at: null
+started_at: "2025-08-17T23:35:16+09:00"
 closed_at: null
 related:
     - parent:250816-123703-improve-json-output-separation
