@@ -3,7 +3,7 @@ priority: 2
 description: Add 'workflow' command to print development workflow guide
 created_at: "2025-08-09T23:54:09+09:00"
 started_at: "2025-08-17T00:39:09+09:00"
-closed_at: null
+closed_at: "2025-08-17T12:20:43+09:00"
 ---
 
 # Add 'workflow' command to print development workflow guide
