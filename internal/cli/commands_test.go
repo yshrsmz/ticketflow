@@ -133,6 +133,8 @@ func TestApp_ListTickets(t *testing.T) {
 					{ID: "ticket2", Path: "", Priority: 2, Description: ""},
 				}
 				m.On("List", mock.Anything, ticket.StatusFilterActive).Return(tickets, nil)
+				// Now all list commands need to get all tickets for summary
+				m.On("List", mock.Anything, ticket.StatusFilterAll).Return(tickets, nil)
 			},
 			expectedError: false,
 		},

@@ -119,18 +119,20 @@ func TestTicketListResultPrintable(t *testing.T) {
 
 		text := result.TextRepresentation()
 
-		// Check header
-		assert.Contains(t, text, "ID       STATUS  PRI  DESCRIPTION")
+		// Check header with dynamic width
+		assert.Contains(t, text, "ID")
+		assert.Contains(t, text, "STATUS")
+		assert.Contains(t, text, "PRI")
+		assert.Contains(t, text, "DESCRIPTION")
 		assert.Contains(t, text, "---")
 
-		// Check tickets
-		assert.Contains(t, text, "ticket-1") // ID truncated to 8 chars
+		// Check tickets - IDs are NOT truncated with dynamic width
+		assert.Contains(t, text, "ticket-123")
 		assert.Contains(t, text, "Test ticket")
-		assert.Contains(t, text, "very-lon") // Long ID truncated
+		assert.Contains(t, text, "very-long-ticket-id-that-should-be-truncated")
 		assert.Contains(t, text, "Another ticket")
 
-		// Check summary
-		assert.Contains(t, text, "Summary: 1 todo, 1 doing, 0 done (Total: 2)")
+		// Summary is no longer included in TextRepresentation
 	})
 
 	t.Run("TextRepresentation with nil time fields", func(t *testing.T) {
@@ -316,6 +318,8 @@ func TestTextRepresentationPerformance(t *testing.T) {
 		// Should not panic or have performance issues
 		text := result.TextRepresentation()
 		assert.NotEmpty(t, text)
-		assert.Contains(t, text, "Summary: 50 todo, 30 doing, 20 done (Total: 100)")
+		// Summary is no longer included in TextRepresentation
+		assert.Contains(t, text, "ID")
+		assert.Contains(t, text, "STATUS")
 	})
 }

@@ -6,6 +6,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -92,17 +93,21 @@ func TestTextOutputFormatter(t *testing.T) {
 		var buf bytes.Buffer
 		w := NewTextOutputFormatter(&buf)
 
-		tk := &ticket.Ticket{
-			ID:          "test-123",
-			Priority:    2,
-			Description: "Test ticket",
+		// Use TicketResult wrapper instead of direct ticket
+		result := &TicketResult{
+			Ticket: &ticket.Ticket{
+				ID:          "test-123",
+				Priority:    2,
+				Description: "Test ticket",
+				CreatedAt:   ticket.NewRFC3339Time(time.Now()),
+			},
 		}
 
-		err := w.PrintResult(tk)
+		err := w.PrintResult(result)
 		assert.NoError(t, err)
 
 		output := buf.String()
-		assert.Contains(t, output, "Ticket: test-123")
+		assert.Contains(t, output, "ID: test-123")
 		assert.Contains(t, output, "Priority: 2")
 		assert.Contains(t, output, "Description: Test ticket")
 	})

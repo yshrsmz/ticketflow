@@ -40,7 +40,7 @@ Based on codebase analysis, these are the result types currently being handled:
 - [x] Create `TicketResult` wrapper for single `*ticket.Ticket` and implement Printable
   - **Important**: Don't modify ticket.Ticket directly - it's a domain model
 - [x] Update list command to use existing `TicketListResult` instead of `[]*ticket.Ticket`
-- [ ] Create `WorktreeListResult` struct and implement Printable
+- [x] Create `WorktreeListResult` struct and implement Printable
   - Migrate worktree list command from direct Printf to result type
 - [ ] Create `StatusResult` struct and implement Printable
   - Migrate status command from helper functions to result type
@@ -49,7 +49,7 @@ Based on codebase analysis, these are the result types currently being handled:
 - [ ] Update commands to return Printable types instead of using PrintJSON directly:
   - [x] `show` command - return TicketResult
   - [x] `list` command - return TicketListResult (already exists)
-  - `worktree list` - return WorktreeListResult
+  - [x] `worktree list` - return WorktreeListResult
   - `status` - return StatusResult
   - `start` - return StartResult
   - `worktree clean` - return WorktreeCleanResult

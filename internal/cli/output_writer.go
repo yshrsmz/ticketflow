@@ -100,13 +100,13 @@ func (w *textOutputFormatter) PrintResult(data interface{}) error {
 	// Fallback to type switch for backward compatibility
 	switch v := data.(type) {
 	case *CleanupResult:
+		// CleanupResult already implements Printable, this case should not be reached
 		return w.printCleanupResult(v)
-	case *ticket.Ticket:
-		return w.printTicket(v)
 	case []*ticket.Ticket:
+		// Legacy ticket list handling - should migrate to TicketListResult
 		return w.printTicketList(v)
 	case map[string]interface{}:
-		// Handle generic map data
+		// Handle generic map data - final fallback for unmigrated commands
 		return w.printMap(v)
 	default:
 		// Fallback to simple string representation
@@ -140,35 +140,6 @@ func (w *textOutputFormatter) printCleanupResult(r *CleanupResult) error {
 			}
 		}
 	}
-	return nil
-}
-
-func (w *textOutputFormatter) printTicket(t *ticket.Ticket) error {
-	_, err := fmt.Fprintf(w.w, "Ticket: %s\nStatus: %s\nPriority: %d\nDescription: %s\n",
-		t.ID, t.Status(), t.Priority, t.Description)
-	if err != nil {
-		return err
-	}
-
-	if !t.CreatedAt.IsZero() {
-		_, err = fmt.Fprintf(w.w, "Created: %s\n", t.CreatedAt.Format(time.RFC3339))
-		if err != nil {
-			return err
-		}
-	}
-	if isTimeSet(t.StartedAt.Time) {
-		_, err = fmt.Fprintf(w.w, "Started: %s\n", t.StartedAt.Time.Format(time.RFC3339))
-		if err != nil {
-			return err
-		}
-	}
-	if isTimeSet(t.ClosedAt.Time) {
-		_, err = fmt.Fprintf(w.w, "Closed: %s\n", t.ClosedAt.Time.Format(time.RFC3339))
-		if err != nil {
-			return err
-		}
-	}
-
 	return nil
 }
 
