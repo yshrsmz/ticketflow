@@ -91,7 +91,7 @@ func (r *TicketListResult) TextRepresentation() string {
 	}
 
 	// Header
-	buf.WriteString(fmt.Sprintf("%-*s  %-6s  %-3s  %s\n", maxIDLen, "ID", "STATUS", "PRI", "DESCRIPTION"))
+	fmt.Fprintf(&buf, "%-*s  %-6s  %-3s  %s\n", maxIDLen, "ID", "STATUS", "PRI", "DESCRIPTION")
 	buf.WriteString(strings.Repeat("-", maxIDLen+50))
 	buf.WriteString("\n")
 
@@ -106,12 +106,12 @@ func (r *TicketListResult) TextRepresentation() string {
 			desc = desc[:maxDescLen-3] + "..."
 		}
 
-		buf.WriteString(fmt.Sprintf("%-*s  %-6s  %-3d  %s\n",
+		fmt.Fprintf(&buf, "%-*s  %-6s  %-3d  %s\n",
 			maxIDLen,
 			t.ID,
 			status,
 			t.Priority,
-			desc))
+			desc)
 	}
 
 	return buf.String()
@@ -155,25 +155,25 @@ func (r *TicketResult) TextRepresentation() string {
 	buf.Grow(512)
 
 	t := r.Ticket
-	buf.WriteString(fmt.Sprintf("ID: %s\n", t.ID))
-	buf.WriteString(fmt.Sprintf("Status: %s\n", t.Status()))
-	buf.WriteString(fmt.Sprintf("Priority: %d\n", t.Priority))
-	buf.WriteString(fmt.Sprintf("Description: %s\n", t.Description))
-	buf.WriteString(fmt.Sprintf("Created: %s\n", t.CreatedAt.Format(time.RFC3339)))
+	fmt.Fprintf(&buf, "ID: %s\n", t.ID)
+	fmt.Fprintf(&buf, "Status: %s\n", t.Status())
+	fmt.Fprintf(&buf, "Priority: %d\n", t.Priority)
+	fmt.Fprintf(&buf, "Description: %s\n", t.Description)
+	fmt.Fprintf(&buf, "Created: %s\n", t.CreatedAt.Format(time.RFC3339))
 
 	if t.StartedAt.Time != nil {
-		buf.WriteString(fmt.Sprintf("Started: %s\n", t.StartedAt.Time.Format(time.RFC3339)))
+		fmt.Fprintf(&buf, "Started: %s\n", t.StartedAt.Time.Format(time.RFC3339))
 	}
 
 	if t.ClosedAt.Time != nil {
-		buf.WriteString(fmt.Sprintf("Closed: %s\n", t.ClosedAt.Time.Format(time.RFC3339)))
+		fmt.Fprintf(&buf, "Closed: %s\n", t.ClosedAt.Time.Format(time.RFC3339))
 	}
 
 	if len(t.Related) > 0 {
-		buf.WriteString(fmt.Sprintf("Related: %s\n", strings.Join(t.Related, ", ")))
+		fmt.Fprintf(&buf, "Related: %s\n", strings.Join(t.Related, ", "))
 	}
 
-	buf.WriteString(fmt.Sprintf("\n%s\n", t.Content))
+	fmt.Fprintf(&buf, "\n%s\n", t.Content)
 
 	return buf.String()
 }
@@ -215,7 +215,7 @@ func (r *WorktreeListResult) TextRepresentation() string {
 	buf.Grow(512)
 
 	// Header
-	buf.WriteString(fmt.Sprintf("%-50s %-30s %s\n", "PATH", "BRANCH", "HEAD"))
+	fmt.Fprintf(&buf, "%-50s %-30s %s\n", "PATH", "BRANCH", "HEAD")
 	buf.WriteString(strings.Repeat("-", 100))
 	buf.WriteString("\n")
 
@@ -225,7 +225,7 @@ func (r *WorktreeListResult) TextRepresentation() string {
 		if len(head) > 40 {
 			head = head[:7] // Short commit hash
 		}
-		buf.WriteString(fmt.Sprintf("%-50s %-30s %s\n", wt.Path, wt.Branch, head))
+		fmt.Fprintf(&buf, "%-50s %-30s %s\n", wt.Path, wt.Branch, head)
 	}
 
 	return buf.String()

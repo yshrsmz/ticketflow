@@ -794,7 +794,6 @@ func updateGitignore(path string) error {
 	return os.WriteFile(path, []byte(content+toAdd), ticket.DefaultPermission)
 }
 
-
 // ListWorktrees lists all worktrees
 func (app *App) ListWorktrees(ctx context.Context, format OutputFormat) error {
 	worktrees, err := app.Git.ListWorktrees(ctx)

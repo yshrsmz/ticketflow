@@ -55,10 +55,10 @@ Based on codebase analysis, these are the result types currently being handled:
   - `worktree clean` - return WorktreeCleanResult
 - [ ] Migrate simple map results to typed structs where appropriate:
   - `new`, `close`, `restore` commands
-- [ ] Remove migrated cases from the switch statement in textResultWriter.PrintResult
-- [ ] Keep `map[string]interface{}` case as final fallback
-- [ ] Run `make test` to verify all output still works
-- [ ] Run `make vet`, `make fmt` and `make lint`
+- [x] Remove migrated cases from the switch statement in textResultWriter.PrintResult
+- [x] Keep `map[string]interface{}` case as final fallback
+- [x] Run `make test` to verify all output still works
+- [x] Run `make vet`, `make fmt` and `make lint`
 - [ ] Update documentation about the Printable pattern
 
 ## Implementation Pattern
