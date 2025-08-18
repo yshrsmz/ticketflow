@@ -9,6 +9,13 @@ import (
 	"github.com/yshrsmz/ticketflow/internal/ticket"
 )
 
+const (
+	// GitSHAFullLength is the length of a full git SHA-1 hash
+	GitSHAFullLength = 40
+	// GitSHAShortLength is the standard length for abbreviated git commit hashes
+	GitSHAShortLength = 7
+)
+
 // Printable represents a result that knows how to format itself
 type Printable interface {
 	// TextRepresentation returns human-readable format
@@ -222,8 +229,8 @@ func (r *WorktreeListResult) TextRepresentation() string {
 	// Worktrees
 	for _, wt := range r.Worktrees {
 		head := wt.HEAD
-		if len(head) > 40 {
-			head = head[:7] // Short commit hash
+		if len(head) > GitSHAFullLength {
+			head = head[:GitSHAShortLength] // Short commit hash
 		}
 		fmt.Fprintf(&buf, "%-50s %-30s %s\n", wt.Path, wt.Branch, head)
 	}

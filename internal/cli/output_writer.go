@@ -99,9 +99,6 @@ func (w *textOutputFormatter) PrintResult(data interface{}) error {
 
 	// Fallback to type switch for backward compatibility
 	switch v := data.(type) {
-	case *CleanupResult:
-		// CleanupResult already implements Printable, this case should not be reached
-		return w.printCleanupResult(v)
 	case []*ticket.Ticket:
 		// Legacy ticket list handling - should migrate to TicketListResult
 		return w.printTicketList(v)
@@ -118,29 +115,6 @@ func (w *textOutputFormatter) PrintResult(data interface{}) error {
 func (w *textOutputFormatter) PrintJSON(data interface{}) error {
 	// In text mode, pretty-print JSON-like data
 	return w.PrintResult(data)
-}
-
-func (w *textOutputFormatter) printCleanupResult(r *CleanupResult) error {
-	// Using fmt.Fprint to combine all output and check error once
-	_, err := fmt.Fprintf(w.w, "\nCleanup Summary:\n  Orphaned worktrees removed: %d\n  Stale branches removed: %d\n",
-		r.OrphanedWorktrees, r.StaleBranches)
-	if err != nil {
-		return err
-	}
-
-	if len(r.Errors) > 0 {
-		_, err = fmt.Fprint(w.w, "\nWarnings:\n")
-		if err != nil {
-			return err
-		}
-		for _, errMsg := range r.Errors {
-			_, err = fmt.Fprintf(w.w, "  - %s\n", errMsg)
-			if err != nil {
-				return err
-			}
-		}
-	}
-	return nil
 }
 
 func (w *textOutputFormatter) printTicketList(tickets []*ticket.Ticket) error {
