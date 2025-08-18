@@ -271,11 +271,11 @@ func (r *WorktreeListResult) StructuredData() interface{} {
 
 // StatusResult wraps status information to make it Printable
 type StatusResult struct {
-	CurrentBranch  string
-	CurrentTicket  *ticket.Ticket
-	WorktreePath   string
-	Summary        map[string]int
-	TotalTickets   int
+	CurrentBranch string
+	CurrentTicket *ticket.Ticket
+	WorktreePath  string
+	Summary       map[string]int
+	TotalTickets  int
 }
 
 // TextRepresentation returns human-readable format for status

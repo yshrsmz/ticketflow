@@ -1567,4 +1567,3 @@ func (app *App) countTicketsByStatus(tickets []ticket.Ticket) (todoCount, doingC
 	}
 	return todoCount, doingCount, doneCount
 }
-

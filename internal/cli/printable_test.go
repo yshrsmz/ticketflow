@@ -378,7 +378,7 @@ func TestTicketResultPrintable(t *testing.T) {
 		data := result.StructuredData()
 		m, ok := data.(map[string]interface{})
 		assert.True(t, ok)
-		
+
 		ticketData, ok := m["ticket"].(map[string]interface{})
 		assert.True(t, ok)
 		assert.Equal(t, "test-456", ticketData["id"])
