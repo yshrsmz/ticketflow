@@ -3,6 +3,7 @@ package cli
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/yshrsmz/ticketflow/internal/ticket"
 )
@@ -19,6 +20,7 @@ type Printable interface {
 var (
 	_ Printable = (*CleanupResult)(nil)
 	_ Printable = (*TicketListResult)(nil)
+	_ Printable = (*TicketResult)(nil)
 )
 
 // TextRepresentation returns human-readable format for CleanupResult
@@ -124,5 +126,65 @@ func (r *TicketListResult) StructuredData() interface{} {
 	return map[string]interface{}{
 		"tickets": tickets,
 		"summary": r.Count,
+	}
+}
+
+// TicketResult wraps a single ticket to make it Printable
+type TicketResult struct {
+	Ticket *ticket.Ticket
+}
+
+// TextRepresentation returns human-readable format for a single ticket
+func (r *TicketResult) TextRepresentation() string {
+	if r.Ticket == nil {
+		return "No ticket found\n"
+	}
+
+	var buf strings.Builder
+	buf.Grow(512)
+
+	t := r.Ticket
+	buf.WriteString(fmt.Sprintf("ID: %s\n", t.ID))
+	buf.WriteString(fmt.Sprintf("Status: %s\n", t.Status()))
+	buf.WriteString(fmt.Sprintf("Priority: %d\n", t.Priority))
+	buf.WriteString(fmt.Sprintf("Description: %s\n", t.Description))
+	buf.WriteString(fmt.Sprintf("Created: %s\n", t.CreatedAt.Format(time.RFC3339)))
+
+	if t.StartedAt.Time != nil {
+		buf.WriteString(fmt.Sprintf("Started: %s\n", t.StartedAt.Time.Format(time.RFC3339)))
+	}
+
+	if t.ClosedAt.Time != nil {
+		buf.WriteString(fmt.Sprintf("Closed: %s\n", t.ClosedAt.Time.Format(time.RFC3339)))
+	}
+
+	if len(t.Related) > 0 {
+		buf.WriteString(fmt.Sprintf("Related: %s\n", strings.Join(t.Related, ", ")))
+	}
+
+	buf.WriteString(fmt.Sprintf("\n%s\n", t.Content))
+
+	return buf.String()
+}
+
+// StructuredData returns the ticket for JSON serialization
+func (r *TicketResult) StructuredData() interface{} {
+	if r.Ticket == nil {
+		return nil
+	}
+
+	return map[string]interface{}{
+		"ticket": map[string]interface{}{
+			"id":          r.Ticket.ID,
+			"path":        r.Ticket.Path,
+			"status":      string(r.Ticket.Status()),
+			"priority":    r.Ticket.Priority,
+			"description": r.Ticket.Description,
+			"created_at":  r.Ticket.CreatedAt.Time,
+			"started_at":  r.Ticket.StartedAt.Time,
+			"closed_at":   r.Ticket.ClosedAt.Time,
+			"related":     r.Ticket.Related,
+			"content":     r.Ticket.Content,
+		},
 	}
 }

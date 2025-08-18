@@ -4,8 +4,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"strings"
-	"time"
 
 	"github.com/yshrsmz/ticketflow/internal/cli"
 	"github.com/yshrsmz/ticketflow/internal/command"
@@ -111,46 +109,10 @@ func (c *ShowCommand) Execute(ctx context.Context, flags interface{}, args []str
 		return err
 	}
 
-	// Output based on format
-	if outputFormat == cli.FormatJSON {
-		// For JSON, output the ticket data with exact structure from original
-		// Note: We preserve the original behavior where nil times are output as null
-		return app.Output.PrintJSON(map[string]interface{}{
-			"ticket": map[string]interface{}{
-				"id":          t.ID,
-				"path":        t.Path,
-				"status":      string(t.Status()),
-				"priority":    t.Priority,
-				"description": t.Description,
-				"created_at":  t.CreatedAt.Time, // Always non-nil
-				"started_at":  t.StartedAt.Time, // Can be nil, outputs as null in JSON
-				"closed_at":   t.ClosedAt.Time,  // Can be nil, outputs as null in JSON
-				"related":     t.Related,
-				"content":     t.Content,
-			},
-		})
+	// Use TicketResult for Printable interface
+	result := &cli.TicketResult{
+		Ticket: t,
 	}
 
-	// Text format output
-	app.Output.Printf("ID: %s\n", t.ID)
-	app.Output.Printf("Status: %s\n", t.Status())
-	app.Output.Printf("Priority: %d\n", t.Priority)
-	app.Output.Printf("Description: %s\n", t.Description)
-	app.Output.Printf("Created: %s\n", t.CreatedAt.Format(time.RFC3339))
-
-	if t.StartedAt.Time != nil {
-		app.Output.Printf("Started: %s\n", t.StartedAt.Time.Format(time.RFC3339))
-	}
-
-	if t.ClosedAt.Time != nil {
-		app.Output.Printf("Closed: %s\n", t.ClosedAt.Time.Format(time.RFC3339))
-	}
-
-	if len(t.Related) > 0 {
-		app.Output.Printf("Related: %s\n", strings.Join(t.Related, ", "))
-	}
-
-	app.Output.Printf("\n%s\n", t.Content)
-
-	return nil
+	return app.Output.PrintResult(result)
 }
