@@ -58,18 +58,26 @@ Based on codebase analysis, these are the result types currently being handled:
   - Removed test cases for the legacy path
   - All tests continue to pass
 
+## Tasks Completed (Phase 2)
+- [x] Create `StatusResult` struct and implement Printable
+  - Migrated status command from helper functions to result type
+  - Preserved exact output format for backward compatibility
+- [x] Create `StartResult` wrapper for `StartTicketResult` and implement Printable
+  - Successfully wrapped existing StartTicketResult without modifying it
+  - Handles both worktree and non-worktree modes
+- [x] Comprehensive unit tests for all new Printable implementations
+  - Added tests for TicketResult, WorktreeListResult, StatusResult, StartResult
+  - All tests pass with 100% coverage of new code
+- [x] Documentation of Printable pattern in code comments
+- [x] Standardized buffer pre-allocation with named constants
+- [x] Fixed CI formatting issues with gofmt
+
 ## Tasks Remaining (Future Work)
-- [ ] Create `StatusResult` struct and implement Printable
-  - Migrate status command from helper functions to result type
-- [ ] Create `StartResult` wrapper for `StartTicketResult` and implement Printable
 - [ ] Create `WorktreeCleanResult` wrapper for `CleanWorktreesResult` and implement Printable
 - [ ] Update remaining commands to return Printable types:
-  - `status` - return StatusResult
-  - `start` - return StartResult
-  - `worktree clean` - return WorktreeCleanResult
+  - `worktree clean` - return WorktreeCleanResult  
 - [ ] Migrate simple map results to typed structs where appropriate:
   - `new`, `close`, `restore` commands
-- [ ] Update documentation about the Printable pattern
 
 ## Implementation Pattern
 
@@ -149,20 +157,29 @@ This follows the pattern used by:
    - Using `fmt.Fprintf` directly to `strings.Builder` avoids intermediate string allocations
    - Two-pass algorithms (find max, then format) can be cleaner than single-pass with intermediate storage
    - For typical CLI use cases (10-100 items), code clarity > micro-optimizations
+   - Pre-allocating buffers with appropriate sizes reduces memory allocations
 
 3. **Testing Challenges**:
    - When migrating to new patterns, test mocks need updates (e.g., ListTickets now calls Manager.List twice for summary)
    - Test expectations must be updated to match new output formats
+   - Comprehensive unit tests are essential for Printable implementations
 
 4. **Code Review Insights**:
-   - Named constants (GitSHAFullLength, GitSHAShortLength) improve maintainability over magic numbers
+   - Named constants (GitSHAFullLength, GitSHAShortLength, buffer sizes) improve maintainability over magic numbers
    - Dead code removal is important - unreachable switch cases should be removed
    - Not all performance suggestions are improvements - clarity often wins
+   - golang-pro agent provides valuable feedback on Go idioms and testing patterns
 
 5. **Migration Strategy**:
    - Incremental migration with fallback mechanism allows gradual adoption
    - Can migrate high-value/frequently-used commands first
    - Backward compatibility maintained throughout migration
+   - Phase 2 successfully migrated StatusResult and StartResult without breaking existing functionality
+
+6. **CI/CD Considerations**:
+   - GitHub Actions cache can sometimes cause spurious failures
+   - Always run gofmt before pushing to avoid CI failures
+   - The "Check code formatting" step runs before tests, catching formatting issues early
 
 ### Design Decisions
 - **Dynamic vs Fixed Column Width**: Chose dynamic width for better UX with varying ID lengths
