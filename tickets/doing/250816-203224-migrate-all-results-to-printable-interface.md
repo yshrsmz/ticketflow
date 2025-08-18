@@ -53,6 +53,10 @@ Based on codebase analysis, these are the result types currently being handled:
 - [x] Run `make vet`, `make fmt` and `make lint`
 - [x] Address PR review feedback from Copilot
 - [x] Performance optimizations (use fmt.Fprintf directly to strings.Builder)
+- [x] Remove legacy `[]*ticket.Ticket` case and `printTicketList` method completely
+  - No production code uses this legacy path
+  - Removed test cases for the legacy path
+  - All tests continue to pass
 
 ## Tasks Remaining (Future Work)
 - [ ] Create `StatusResult` struct and implement Printable

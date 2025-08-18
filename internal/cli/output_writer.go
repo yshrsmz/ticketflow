@@ -99,9 +99,6 @@ func (w *textOutputFormatter) PrintResult(data interface{}) error {
 
 	// Fallback to type switch for backward compatibility
 	switch v := data.(type) {
-	case []*ticket.Ticket:
-		// Legacy ticket list handling - should migrate to TicketListResult
-		return w.printTicketList(v)
 	case map[string]interface{}:
 		// Handle generic map data - final fallback for unmigrated commands
 		return w.printMap(v)
@@ -115,21 +112,6 @@ func (w *textOutputFormatter) PrintResult(data interface{}) error {
 func (w *textOutputFormatter) PrintJSON(data interface{}) error {
 	// In text mode, pretty-print JSON-like data
 	return w.PrintResult(data)
-}
-
-func (w *textOutputFormatter) printTicketList(tickets []*ticket.Ticket) error {
-	if len(tickets) == 0 {
-		_, err := fmt.Fprintln(w.w, "No tickets found")
-		return err
-	}
-
-	for _, t := range tickets {
-		_, err := fmt.Fprintf(w.w, "[%s] %s - %s\n", t.Status(), t.ID, t.Description)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 func (w *textOutputFormatter) printMap(m map[string]interface{}) error {

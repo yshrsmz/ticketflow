@@ -112,37 +112,6 @@ func TestTextOutputFormatter(t *testing.T) {
 		assert.Contains(t, output, "Description: Test ticket")
 	})
 
-	t.Run("PrintResult with ticket list", func(t *testing.T) {
-		var buf bytes.Buffer
-		w := NewTextOutputFormatter(&buf)
-
-		tickets := []*ticket.Ticket{
-			{ID: "ticket-1", Description: "First"},
-			{ID: "ticket-2", Description: "Second"},
-		}
-
-		err := w.PrintResult(tickets)
-		assert.NoError(t, err)
-
-		output := buf.String()
-		assert.Contains(t, output, "ticket-1")
-		assert.Contains(t, output, "First")
-		assert.Contains(t, output, "ticket-2")
-		assert.Contains(t, output, "Second")
-	})
-
-	t.Run("PrintResult with empty ticket list", func(t *testing.T) {
-		var buf bytes.Buffer
-		w := NewTextOutputFormatter(&buf)
-
-		tickets := []*ticket.Ticket{}
-		err := w.PrintResult(tickets)
-		assert.NoError(t, err)
-
-		output := buf.String()
-		assert.Contains(t, output, "No tickets found")
-	})
-
 	t.Run("PrintResult with map", func(t *testing.T) {
 		var buf bytes.Buffer
 		w := NewTextOutputFormatter(&buf)
