@@ -8,6 +8,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/yshrsmz/ticketflow/internal/git"
 	"github.com/yshrsmz/ticketflow/internal/ticket"
 )
 
@@ -119,18 +120,20 @@ func TestTicketListResultPrintable(t *testing.T) {
 
 		text := result.TextRepresentation()
 
-		// Check header
-		assert.Contains(t, text, "ID       STATUS  PRI  DESCRIPTION")
+		// Check header with dynamic width
+		assert.Contains(t, text, "ID")
+		assert.Contains(t, text, "STATUS")
+		assert.Contains(t, text, "PRI")
+		assert.Contains(t, text, "DESCRIPTION")
 		assert.Contains(t, text, "---")
 
-		// Check tickets
-		assert.Contains(t, text, "ticket-1") // ID truncated to 8 chars
+		// Check tickets - IDs are NOT truncated with dynamic width
+		assert.Contains(t, text, "ticket-123")
 		assert.Contains(t, text, "Test ticket")
-		assert.Contains(t, text, "very-lon") // Long ID truncated
+		assert.Contains(t, text, "very-long-ticket-id-that-should-be-truncated")
 		assert.Contains(t, text, "Another ticket")
 
-		// Check summary
-		assert.Contains(t, text, "Summary: 1 todo, 1 doing, 0 done (Total: 2)")
+		// Summary is no longer included in TextRepresentation
 	})
 
 	t.Run("TextRepresentation with nil time fields", func(t *testing.T) {
@@ -316,6 +319,251 @@ func TestTextRepresentationPerformance(t *testing.T) {
 		// Should not panic or have performance issues
 		text := result.TextRepresentation()
 		assert.NotEmpty(t, text)
-		assert.Contains(t, text, "Summary: 50 todo, 30 doing, 20 done (Total: 100)")
+		// Summary is no longer included in TextRepresentation
+		assert.Contains(t, text, "ID")
+		assert.Contains(t, text, "STATUS")
+	})
+}
+
+func TestTicketResultPrintable(t *testing.T) {
+	t.Parallel()
+
+	t.Run("TextRepresentation with complete ticket", func(t *testing.T) {
+		now := time.Now()
+		startTime := now.Add(-2 * time.Hour)
+		closeTime := now.Add(-30 * time.Minute)
+
+		result := &TicketResult{
+			Ticket: &ticket.Ticket{
+				ID:          "test-123",
+				Priority:    2,
+				Description: "Test ticket description",
+				CreatedAt:   ticket.NewRFC3339Time(now),
+				StartedAt:   ticket.RFC3339TimePtr{Time: &startTime},
+				ClosedAt:    ticket.RFC3339TimePtr{Time: &closeTime},
+				Related:     []string{"parent:test-parent", "blocks:test-blocked"},
+				Content:     "# Test Content\n\nThis is the ticket content.",
+			},
+		}
+
+		text := result.TextRepresentation()
+		assert.Contains(t, text, "ID: test-123")
+		assert.Contains(t, text, "Priority: 2")
+		assert.Contains(t, text, "Description: Test ticket description")
+		assert.Contains(t, text, "Created:")
+		assert.Contains(t, text, "Started:")
+		assert.Contains(t, text, "Closed:")
+		assert.Contains(t, text, "Related: parent:test-parent, blocks:test-blocked")
+		assert.Contains(t, text, "# Test Content")
+	})
+
+	t.Run("TextRepresentation with nil ticket", func(t *testing.T) {
+		result := &TicketResult{
+			Ticket: nil,
+		}
+
+		text := result.TextRepresentation()
+		assert.Equal(t, "No ticket found\n", text)
+	})
+
+	t.Run("StructuredData", func(t *testing.T) {
+		result := &TicketResult{
+			Ticket: &ticket.Ticket{
+				ID:          "test-456",
+				Priority:    1,
+				Description: "Another test",
+			},
+		}
+
+		data := result.StructuredData()
+		m, ok := data.(map[string]interface{})
+		assert.True(t, ok)
+
+		ticketData, ok := m["ticket"].(map[string]interface{})
+		assert.True(t, ok)
+		assert.Equal(t, "test-456", ticketData["id"])
+		assert.Equal(t, 1, ticketData["priority"])
+	})
+}
+
+func TestWorktreeListResultPrintable(t *testing.T) {
+	t.Parallel()
+
+	t.Run("TextRepresentation with worktrees", func(t *testing.T) {
+		result := &WorktreeListResult{
+			Worktrees: []git.WorktreeInfo{
+				{
+					Path:   "/path/to/worktree1",
+					Branch: "feature-1",
+					HEAD:   "abc123def456789012345678901234567890123",
+				},
+				{
+					Path:   "/path/to/worktree2",
+					Branch: "feature-2",
+					HEAD:   "short",
+				},
+			},
+		}
+
+		text := result.TextRepresentation()
+		assert.Contains(t, text, "PATH")
+		assert.Contains(t, text, "BRANCH")
+		assert.Contains(t, text, "HEAD")
+		assert.Contains(t, text, "/path/to/worktree1")
+		assert.Contains(t, text, "feature-1")
+		assert.Contains(t, text, "abc123d") // Should be truncated to 7 chars
+		assert.Contains(t, text, "feature-2")
+		assert.Contains(t, text, "short") // Short hash not truncated
+	})
+
+	t.Run("TextRepresentation with empty list", func(t *testing.T) {
+		result := &WorktreeListResult{
+			Worktrees: []git.WorktreeInfo{},
+		}
+
+		text := result.TextRepresentation()
+		assert.Equal(t, "No worktrees found\n", text)
+	})
+
+	t.Run("StructuredData", func(t *testing.T) {
+		result := &WorktreeListResult{
+			Worktrees: []git.WorktreeInfo{
+				{Path: "/test", Branch: "main", HEAD: "abc"},
+			},
+		}
+
+		data := result.StructuredData()
+		m, ok := data.(map[string]interface{})
+		assert.True(t, ok)
+		assert.Contains(t, m, "worktrees")
+	})
+}
+
+func TestStatusResultPrintable(t *testing.T) {
+	t.Parallel()
+
+	t.Run("TextRepresentation with active ticket", func(t *testing.T) {
+		startTime := time.Now().Add(-1 * time.Hour)
+		result := &StatusResult{
+			CurrentBranch: "feature-branch",
+			CurrentTicket: &ticket.Ticket{
+				ID:          "active-123",
+				Description: "Active ticket",
+				StartedAt:   ticket.RFC3339TimePtr{Time: &startTime},
+			},
+			WorktreePath: "/path/to/worktree",
+			Summary: map[string]int{
+				"todo":  5,
+				"doing": 2,
+				"done":  10,
+			},
+			TotalTickets: 17,
+		}
+
+		text := result.TextRepresentation()
+		assert.Contains(t, text, "Current branch: feature-branch")
+		assert.Contains(t, text, "Active ticket: active-123")
+		assert.Contains(t, text, "Description: Active ticket")
+		assert.Contains(t, text, "Duration:")
+		assert.Contains(t, text, "Worktree: /path/to/worktree")
+		assert.Contains(t, text, "Todo:  5")
+		assert.Contains(t, text, "Doing: 2")
+		assert.Contains(t, text, "Done:  10")
+		assert.Contains(t, text, "Total: 17")
+	})
+
+	t.Run("TextRepresentation without active ticket", func(t *testing.T) {
+		result := &StatusResult{
+			CurrentBranch: "main",
+			CurrentTicket: nil,
+			Summary: map[string]int{
+				"todo":  3,
+				"doing": 0,
+				"done":  7,
+			},
+			TotalTickets: 10,
+		}
+
+		text := result.TextRepresentation()
+		assert.Contains(t, text, "No active ticket")
+		assert.Contains(t, text, "Start a ticket with: ticketflow start")
+	})
+
+	t.Run("StructuredData", func(t *testing.T) {
+		result := &StatusResult{
+			CurrentBranch: "test",
+			CurrentTicket: &ticket.Ticket{ID: "test-123"},
+			Summary:       map[string]int{"todo": 1},
+		}
+
+		data := result.StructuredData()
+		m, ok := data.(map[string]interface{})
+		assert.True(t, ok)
+		assert.Equal(t, "test", m["current_branch"])
+		assert.Contains(t, m, "summary")
+		assert.NotNil(t, m["current_ticket"])
+	})
+}
+
+func TestStartResultPrintable(t *testing.T) {
+	t.Parallel()
+
+	t.Run("TextRepresentation with worktree enabled", func(t *testing.T) {
+		result := &StartResult{
+			StartTicketResult: &StartTicketResult{
+				Ticket: &ticket.Ticket{
+					ID:          "new-feature",
+					Description: "New feature implementation",
+				},
+				WorktreePath:         "/worktrees/new-feature",
+				ParentBranch:         "main",
+				InitCommandsExecuted: true,
+			},
+			WorktreeEnabled: true,
+		}
+
+		text := result.TextRepresentation()
+		assert.Contains(t, text, "Started work on ticket: new-feature")
+		assert.Contains(t, text, "Description: New feature implementation")
+		assert.Contains(t, text, "Worktree created: /worktrees/new-feature")
+		assert.Contains(t, text, "Parent ticket: main")
+		assert.Contains(t, text, "Navigate to worktree:")
+		assert.Contains(t, text, "cd /worktrees/new-feature")
+	})
+
+	t.Run("TextRepresentation with worktree disabled", func(t *testing.T) {
+		result := &StartResult{
+			StartTicketResult: &StartTicketResult{
+				Ticket: &ticket.Ticket{
+					ID:          "branch-feature",
+					Description: "Branch mode feature",
+				},
+			},
+			WorktreeEnabled: false,
+		}
+
+		text := result.TextRepresentation()
+		assert.Contains(t, text, "Switched to branch: branch-feature")
+		assert.NotContains(t, text, "Worktree created")
+		assert.NotContains(t, text, "Navigate to worktree")
+	})
+
+	t.Run("StructuredData", func(t *testing.T) {
+		result := &StartResult{
+			StartTicketResult: &StartTicketResult{
+				Ticket:               &ticket.Ticket{ID: "test-123"},
+				WorktreePath:         "/test/path",
+				ParentBranch:         "develop",
+				InitCommandsExecuted: true,
+			},
+		}
+
+		data := result.StructuredData()
+		m, ok := data.(map[string]interface{})
+		assert.True(t, ok)
+		assert.Equal(t, "test-123", m["ticket_id"])
+		assert.Equal(t, "/test/path", m["worktree_path"])
+		assert.Equal(t, "develop", m["parent_branch"])
+		assert.Equal(t, true, m["init_commands_executed"])
 	})
 }

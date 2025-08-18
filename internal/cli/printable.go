@@ -3,11 +3,42 @@ package cli
 import (
 	"fmt"
 	"strings"
+	"time"
 
+	"github.com/yshrsmz/ticketflow/internal/git"
 	"github.com/yshrsmz/ticketflow/internal/ticket"
 )
 
-// Printable represents a result that knows how to format itself
+const (
+	// GitSHAFullLength is the length of a full git SHA-1 hash
+	GitSHAFullLength = 40
+	// GitSHAShortLength is the standard length for abbreviated git commit hashes
+	// This follows Git's default abbreviation length
+	GitSHAShortLength = 7
+
+	// Buffer pre-allocation sizes for strings.Builder
+	// These are estimates based on typical output sizes to minimize allocations
+	smallBufferSize  = 256  // For simple results with minimal text
+	mediumBufferSize = 512  // For typical results with moderate text
+	largeBufferSize  = 1024 // For complex results with extensive text
+)
+
+// Printable represents a result that knows how to format itself.
+// This interface follows the pattern used by kubectl's ResourcePrinter,
+// where each result type owns its formatting logic instead of having
+// a central switch statement handle all types.
+//
+// Benefits of this pattern:
+//   - Single Responsibility: Each result type manages its own formatting
+//   - Open/Closed Principle: New result types can be added without modifying existing code
+//   - Better testability: Each result type can be tested independently
+//   - Reduced coupling: Business logic and presentation are cleanly separated
+//
+// Implementation guidelines:
+//   - TextRepresentation should return formatted text for human consumption
+//   - StructuredData should return data suitable for JSON/YAML serialization
+//   - Pre-allocate strings.Builder capacity based on expected output size
+//   - Use compile-time interface compliance checks (see examples below)
 type Printable interface {
 	// TextRepresentation returns human-readable format
 	TextRepresentation() string
@@ -19,13 +50,17 @@ type Printable interface {
 var (
 	_ Printable = (*CleanupResult)(nil)
 	_ Printable = (*TicketListResult)(nil)
+	_ Printable = (*TicketResult)(nil)
+	_ Printable = (*WorktreeListResult)(nil)
+	_ Printable = (*StatusResult)(nil)
+	_ Printable = (*StartResult)(nil)
 )
 
 // TextRepresentation returns human-readable format for CleanupResult
 func (r *CleanupResult) TextRepresentation() string {
 	var buf strings.Builder
 	// Pre-allocate capacity for better performance
-	buf.Grow(256)
+	buf.Grow(smallBufferSize)
 
 	// strings.Builder.Write methods never return errors, so we can safely ignore them
 	buf.WriteString("\nCleanup Summary:\n")
@@ -72,33 +107,42 @@ func (r *TicketListResult) TextRepresentation() string {
 	}
 
 	// Pre-allocate capacity
-	buf.Grow(512)
+	buf.Grow(mediumBufferSize)
+
+	// Find max ID length for alignment
+	maxIDLen := 0
+	for _, t := range r.Tickets {
+		if len(t.ID) > maxIDLen {
+			maxIDLen = len(t.ID)
+		}
+	}
+	// Minimum width for ID column
+	if maxIDLen < 2 {
+		maxIDLen = 2
+	}
 
 	// Header
-	buf.WriteString("ID       STATUS  PRI  DESCRIPTION\n")
-	buf.WriteString("---------------------------------------------------------\n")
+	fmt.Fprintf(&buf, "%-*s  %-6s  %-3s  %s\n", maxIDLen, "ID", "STATUS", "PRI", "DESCRIPTION")
+	buf.WriteString(strings.Repeat("-", maxIDLen+50))
+	buf.WriteString("\n")
 
 	// Tickets
 	for _, t := range r.Tickets {
 		status := getTicketStatus(&t)
 
-		// Safely truncate ID
-		idDisplay := t.ID
-		if len(idDisplay) > 8 {
-			idDisplay = idDisplay[:8]
+		// Truncate description if too long
+		desc := t.Description
+		maxDescLen := 50
+		if len(desc) > maxDescLen {
+			desc = desc[:maxDescLen-3] + "..."
 		}
 
-		buf.WriteString(fmt.Sprintf("%-8s %-7s %-4d %s\n",
-			idDisplay,
+		fmt.Fprintf(&buf, "%-*s  %-6s  %-3d  %s\n",
+			maxIDLen,
+			t.ID,
 			status,
 			t.Priority,
-			t.Description))
-	}
-
-	// Summary
-	if r.Count != nil {
-		buf.WriteString(fmt.Sprintf("\nSummary: %d todo, %d doing, %d done (Total: %d)\n",
-			r.Count["todo"], r.Count["doing"], r.Count["done"], r.Count["total"]))
+			desc)
 	}
 
 	return buf.String()
@@ -124,5 +168,225 @@ func (r *TicketListResult) StructuredData() interface{} {
 	return map[string]interface{}{
 		"tickets": tickets,
 		"summary": r.Count,
+	}
+}
+
+// TicketResult wraps a single ticket to make it Printable
+type TicketResult struct {
+	Ticket *ticket.Ticket
+}
+
+// TextRepresentation returns human-readable format for a single ticket
+func (r *TicketResult) TextRepresentation() string {
+	if r.Ticket == nil {
+		return "No ticket found\n"
+	}
+
+	var buf strings.Builder
+	buf.Grow(mediumBufferSize)
+
+	t := r.Ticket
+	fmt.Fprintf(&buf, "ID: %s\n", t.ID)
+	fmt.Fprintf(&buf, "Status: %s\n", t.Status())
+	fmt.Fprintf(&buf, "Priority: %d\n", t.Priority)
+	fmt.Fprintf(&buf, "Description: %s\n", t.Description)
+	fmt.Fprintf(&buf, "Created: %s\n", t.CreatedAt.Format(time.RFC3339))
+
+	if t.StartedAt.Time != nil {
+		fmt.Fprintf(&buf, "Started: %s\n", t.StartedAt.Time.Format(time.RFC3339))
+	}
+
+	if t.ClosedAt.Time != nil {
+		fmt.Fprintf(&buf, "Closed: %s\n", t.ClosedAt.Time.Format(time.RFC3339))
+	}
+
+	if len(t.Related) > 0 {
+		fmt.Fprintf(&buf, "Related: %s\n", strings.Join(t.Related, ", "))
+	}
+
+	fmt.Fprintf(&buf, "\n%s\n", t.Content)
+
+	return buf.String()
+}
+
+// StructuredData returns the ticket for JSON serialization
+func (r *TicketResult) StructuredData() interface{} {
+	if r.Ticket == nil {
+		return nil
+	}
+
+	return map[string]interface{}{
+		"ticket": map[string]interface{}{
+			"id":          r.Ticket.ID,
+			"path":        r.Ticket.Path,
+			"status":      string(r.Ticket.Status()),
+			"priority":    r.Ticket.Priority,
+			"description": r.Ticket.Description,
+			"created_at":  r.Ticket.CreatedAt.Time,
+			"started_at":  r.Ticket.StartedAt.Time,
+			"closed_at":   r.Ticket.ClosedAt.Time,
+			"related":     r.Ticket.Related,
+			"content":     r.Ticket.Content,
+		},
+	}
+}
+
+// WorktreeListResult wraps worktree list to make it Printable
+type WorktreeListResult struct {
+	Worktrees []git.WorktreeInfo
+}
+
+// TextRepresentation returns human-readable format for worktree list
+func (r *WorktreeListResult) TextRepresentation() string {
+	if len(r.Worktrees) == 0 {
+		return "No worktrees found\n"
+	}
+
+	var buf strings.Builder
+	buf.Grow(mediumBufferSize)
+
+	// Header
+	fmt.Fprintf(&buf, "%-50s %-30s %s\n", "PATH", "BRANCH", "HEAD")
+	buf.WriteString(strings.Repeat("-", 100))
+	buf.WriteString("\n")
+
+	// Worktrees
+	for _, wt := range r.Worktrees {
+		head := wt.HEAD
+		if len(head) > GitSHAFullLength {
+			head = head[:GitSHAShortLength] // Short commit hash
+		}
+		fmt.Fprintf(&buf, "%-50s %-30s %s\n", wt.Path, wt.Branch, head)
+	}
+
+	return buf.String()
+}
+
+// StructuredData returns worktrees for JSON serialization
+func (r *WorktreeListResult) StructuredData() interface{} {
+	return map[string]interface{}{
+		"worktrees": r.Worktrees,
+	}
+}
+
+// StatusResult wraps status information to make it Printable
+type StatusResult struct {
+	CurrentBranch string
+	CurrentTicket *ticket.Ticket
+	WorktreePath  string
+	Summary       map[string]int
+	TotalTickets  int
+}
+
+// TextRepresentation returns human-readable format for status
+func (r *StatusResult) TextRepresentation() string {
+	var buf strings.Builder
+	buf.Grow(mediumBufferSize)
+
+	fmt.Fprintf(&buf, "\n🌿 Current branch: %s\n", r.CurrentBranch)
+
+	if r.CurrentTicket != nil {
+		fmt.Fprintf(&buf, "\n🎯 Active ticket: %s\n", r.CurrentTicket.ID)
+		fmt.Fprintf(&buf, "   Description: %s\n", r.CurrentTicket.Description)
+		fmt.Fprintf(&buf, "   Status: %s\n", r.CurrentTicket.Status())
+		if r.CurrentTicket.StartedAt.Time != nil {
+			duration := time.Since(*r.CurrentTicket.StartedAt.Time)
+			fmt.Fprintf(&buf, "   Duration: %s\n", formatDuration(duration))
+		}
+		if r.WorktreePath != "" {
+			fmt.Fprintf(&buf, "   Worktree: %s\n", r.WorktreePath)
+		}
+	} else {
+		buf.WriteString("\n⚠️  No active ticket\n")
+		buf.WriteString("   Start a ticket with: ticketflow start <ticket-id>\n")
+	}
+
+	fmt.Fprintf(&buf, "\n📊 Ticket summary:\n")
+	fmt.Fprintf(&buf, "   📘 Todo:  %d\n", r.Summary["todo"])
+	fmt.Fprintf(&buf, "   🔨 Doing: %d\n", r.Summary["doing"])
+	fmt.Fprintf(&buf, "   ✅ Done:  %d\n", r.Summary["done"])
+	fmt.Fprintf(&buf, "   ─────────\n")
+	fmt.Fprintf(&buf, "   🔢 Total: %d\n", r.TotalTickets)
+
+	return buf.String()
+}
+
+// StructuredData returns status data for JSON serialization
+func (r *StatusResult) StructuredData() interface{} {
+	output := map[string]interface{}{
+		"current_branch": r.CurrentBranch,
+		"summary":        r.Summary,
+	}
+
+	if r.CurrentTicket != nil {
+		output["current_ticket"] = ticketToJSON(r.CurrentTicket, r.WorktreePath)
+	} else {
+		output["current_ticket"] = nil
+	}
+
+	return output
+}
+
+// StartResult wraps StartTicketResult to make it Printable
+type StartResult struct {
+	*StartTicketResult
+	WorktreeEnabled bool
+}
+
+// TextRepresentation returns human-readable format for start result
+func (r *StartResult) TextRepresentation() string {
+	var buf strings.Builder
+	buf.Grow(largeBufferSize)
+
+	fmt.Fprintf(&buf, "\n✅ Started work on ticket: %s\n", r.Ticket.ID)
+	fmt.Fprintf(&buf, "   Description: %s\n", r.Ticket.Description)
+
+	if r.WorktreeEnabled {
+		// Worktree mode
+		fmt.Fprintf(&buf, "\n📁 Worktree created: %s\n", r.WorktreePath)
+		if r.ParentBranch != "" {
+			fmt.Fprintf(&buf, "   Parent ticket: %s\n", r.ParentBranch)
+			fmt.Fprintf(&buf, "   Branch from: %s\n", r.ParentBranch)
+		}
+		fmt.Fprintf(&buf, "   Status: todo → doing\n")
+		fmt.Fprintf(&buf, "   Committed: \"Start ticket: %s\"\n", r.Ticket.ID)
+		fmt.Fprintf(&buf, "\n📋 Next steps:\n")
+		fmt.Fprintf(&buf, "1. Navigate to worktree:\n")
+		fmt.Fprintf(&buf, "   cd %s\n", r.WorktreePath)
+		fmt.Fprintf(&buf, "   \n")
+		fmt.Fprintf(&buf, "2. Make your changes and commit regularly\n")
+		fmt.Fprintf(&buf, "   \n")
+		fmt.Fprintf(&buf, "3. Push branch to create PR:\n")
+		fmt.Fprintf(&buf, "   git push -u origin %s\n", r.Ticket.ID)
+		fmt.Fprintf(&buf, "   \n")
+		fmt.Fprintf(&buf, "4. When done, close the ticket:\n")
+		fmt.Fprintf(&buf, "   ticketflow close\n")
+	} else {
+		// Branch mode
+		fmt.Fprintf(&buf, "\n🌿 Switched to branch: %s\n", r.Ticket.ID)
+		fmt.Fprintf(&buf, "   Status: todo → doing\n")
+		fmt.Fprintf(&buf, "   Committed: \"Start ticket: %s\"\n", r.Ticket.ID)
+		fmt.Fprintf(&buf, "\n📋 Next steps:\n")
+		fmt.Fprintf(&buf, "1. Make your changes and commit regularly\n")
+		fmt.Fprintf(&buf, "   \n")
+		fmt.Fprintf(&buf, "2. Push branch to create PR:\n")
+		fmt.Fprintf(&buf, "   git push -u origin %s\n", r.Ticket.ID)
+		fmt.Fprintf(&buf, "   \n")
+		fmt.Fprintf(&buf, "3. When done, close the ticket:\n")
+		fmt.Fprintf(&buf, "   ticketflow close\n")
+	}
+
+	return buf.String()
+}
+
+// StructuredData returns start data for JSON serialization
+func (r *StartResult) StructuredData() interface{} {
+	return map[string]interface{}{
+		"ticket_id":              r.Ticket.ID,
+		"status":                 string(r.Ticket.Status()),
+		"worktree_path":          r.WorktreePath,
+		"branch":                 r.Ticket.ID,
+		"parent_branch":          r.ParentBranch,
+		"init_commands_executed": r.InitCommandsExecuted,
 	}
 }

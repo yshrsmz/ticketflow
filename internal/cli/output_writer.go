@@ -99,14 +99,8 @@ func (w *textOutputFormatter) PrintResult(data interface{}) error {
 
 	// Fallback to type switch for backward compatibility
 	switch v := data.(type) {
-	case *CleanupResult:
-		return w.printCleanupResult(v)
-	case *ticket.Ticket:
-		return w.printTicket(v)
-	case []*ticket.Ticket:
-		return w.printTicketList(v)
 	case map[string]interface{}:
-		// Handle generic map data
+		// Handle generic map data - final fallback for unmigrated commands
 		return w.printMap(v)
 	default:
 		// Fallback to simple string representation
@@ -118,73 +112,6 @@ func (w *textOutputFormatter) PrintResult(data interface{}) error {
 func (w *textOutputFormatter) PrintJSON(data interface{}) error {
 	// In text mode, pretty-print JSON-like data
 	return w.PrintResult(data)
-}
-
-func (w *textOutputFormatter) printCleanupResult(r *CleanupResult) error {
-	// Using fmt.Fprint to combine all output and check error once
-	_, err := fmt.Fprintf(w.w, "\nCleanup Summary:\n  Orphaned worktrees removed: %d\n  Stale branches removed: %d\n",
-		r.OrphanedWorktrees, r.StaleBranches)
-	if err != nil {
-		return err
-	}
-
-	if len(r.Errors) > 0 {
-		_, err = fmt.Fprint(w.w, "\nWarnings:\n")
-		if err != nil {
-			return err
-		}
-		for _, errMsg := range r.Errors {
-			_, err = fmt.Fprintf(w.w, "  - %s\n", errMsg)
-			if err != nil {
-				return err
-			}
-		}
-	}
-	return nil
-}
-
-func (w *textOutputFormatter) printTicket(t *ticket.Ticket) error {
-	_, err := fmt.Fprintf(w.w, "Ticket: %s\nStatus: %s\nPriority: %d\nDescription: %s\n",
-		t.ID, t.Status(), t.Priority, t.Description)
-	if err != nil {
-		return err
-	}
-
-	if !t.CreatedAt.IsZero() {
-		_, err = fmt.Fprintf(w.w, "Created: %s\n", t.CreatedAt.Format(time.RFC3339))
-		if err != nil {
-			return err
-		}
-	}
-	if isTimeSet(t.StartedAt.Time) {
-		_, err = fmt.Fprintf(w.w, "Started: %s\n", t.StartedAt.Time.Format(time.RFC3339))
-		if err != nil {
-			return err
-		}
-	}
-	if isTimeSet(t.ClosedAt.Time) {
-		_, err = fmt.Fprintf(w.w, "Closed: %s\n", t.ClosedAt.Time.Format(time.RFC3339))
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (w *textOutputFormatter) printTicketList(tickets []*ticket.Ticket) error {
-	if len(tickets) == 0 {
-		_, err := fmt.Fprintln(w.w, "No tickets found")
-		return err
-	}
-
-	for _, t := range tickets {
-		_, err := fmt.Fprintf(w.w, "[%s] %s - %s\n", t.Status(), t.ID, t.Description)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 func (w *textOutputFormatter) printMap(m map[string]interface{}) error {
