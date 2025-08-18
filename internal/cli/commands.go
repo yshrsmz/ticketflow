@@ -422,17 +422,26 @@ func (app *App) ListTickets(ctx context.Context, status ticket.Status, count int
 		tickets = tickets[:count]
 	}
 
-	// Convert to pointer slice for output functions
-	ticketPtrs := make([]*ticket.Ticket, len(tickets))
-	for i := range tickets {
-		ticketPtrs[i] = &tickets[i]
+	// Calculate summary counts
+	allTickets, err := app.Manager.List(ctx, ticket.StatusFilterAll)
+	if err != nil {
+		return err
 	}
 
-	if format == FormatJSON {
-		return app.outputTicketListJSON(ctx, ticketPtrs)
+	todoCount, doingCount, doneCount := app.countTicketsByStatus(allTickets)
+
+	// Create TicketListResult
+	result := &TicketListResult{
+		Tickets: tickets,
+		Count: map[string]int{
+			"total": len(allTickets),
+			"todo":  todoCount,
+			"doing": doingCount,
+			"done":  doneCount,
+		},
 	}
 
-	return app.outputTicketListText(ticketPtrs)
+	return app.Output.PrintResult(result)
 }
 
 // StartTicket starts working on a ticket

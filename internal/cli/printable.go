@@ -76,31 +76,40 @@ func (r *TicketListResult) TextRepresentation() string {
 	// Pre-allocate capacity
 	buf.Grow(512)
 
+	// Find max ID length for alignment
+	maxIDLen := 0
+	for _, t := range r.Tickets {
+		if len(t.ID) > maxIDLen {
+			maxIDLen = len(t.ID)
+		}
+	}
+	// Minimum width for ID column
+	if maxIDLen < 2 {
+		maxIDLen = 2
+	}
+
 	// Header
-	buf.WriteString("ID       STATUS  PRI  DESCRIPTION\n")
-	buf.WriteString("---------------------------------------------------------\n")
+	buf.WriteString(fmt.Sprintf("%-*s  %-6s  %-3s  %s\n", maxIDLen, "ID", "STATUS", "PRI", "DESCRIPTION"))
+	buf.WriteString(strings.Repeat("-", maxIDLen+50))
+	buf.WriteString("\n")
 
 	// Tickets
 	for _, t := range r.Tickets {
 		status := getTicketStatus(&t)
 
-		// Safely truncate ID
-		idDisplay := t.ID
-		if len(idDisplay) > 8 {
-			idDisplay = idDisplay[:8]
+		// Truncate description if too long
+		desc := t.Description
+		maxDescLen := 50
+		if len(desc) > maxDescLen {
+			desc = desc[:maxDescLen-3] + "..."
 		}
 
-		buf.WriteString(fmt.Sprintf("%-8s %-7s %-4d %s\n",
-			idDisplay,
+		buf.WriteString(fmt.Sprintf("%-*s  %-6s  %-3d  %s\n",
+			maxIDLen,
+			t.ID,
 			status,
 			t.Priority,
-			t.Description))
-	}
-
-	// Summary
-	if r.Count != nil {
-		buf.WriteString(fmt.Sprintf("\nSummary: %d todo, %d doing, %d done (Total: %d)\n",
-			r.Count["todo"], r.Count["doing"], r.Count["done"], r.Count["total"]))
+			desc))
 	}
 
 	return buf.String()
