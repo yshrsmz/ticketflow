@@ -10,7 +10,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/mattn/go-shellwords"
 	"github.com/yshrsmz/ticketflow/internal/config"
@@ -498,9 +497,6 @@ func (app *App) StartTicket(ctx context.Context, ticketID string, force bool) (*
 	// Check if init commands were executed
 	initCommandsExecuted := len(app.Config.Worktree.InitCommands) > 0 && worktreePath != ""
 
-	// Print success message for text format
-	app.printStartSuccessMessage(t, worktreePath, parentBranch)
-
 	return &StartTicketResult{
 		Ticket:               t,
 		WorktreePath:         worktreePath,
@@ -763,14 +759,30 @@ func (app *App) Status(ctx context.Context, format OutputFormat) error {
 
 	todoCount, doingCount, doneCount := app.countTicketsByStatus(allTickets)
 
-	if format == FormatJSON {
-		return app.formatStatusJSON(branch, current, allTickets, todoCount, doingCount, doneCount)
+	// Get worktree path if applicable
+	var worktreePath string
+	if current != nil && app.Config.Worktree.Enabled {
+		wt, _ := app.Git.FindWorktreeByBranch(ctx, current.ID)
+		if wt != nil {
+			worktreePath = wt.Path
+		}
 	}
 
-	// Text format
-	app.printStatusText(ctx, branch, current, allTickets, todoCount, doingCount, doneCount)
+	// Create StatusResult
+	result := &StatusResult{
+		CurrentBranch: branch,
+		CurrentTicket: current,
+		WorktreePath:  worktreePath,
+		Summary: map[string]int{
+			"total": len(allTickets),
+			"todo":  todoCount,
+			"doing": doingCount,
+			"done":  doneCount,
+		},
+		TotalTickets: len(allTickets),
+	}
 
-	return nil
+	return app.Output.PrintResult(result)
 }
 
 // Helper functions
@@ -1488,55 +1500,6 @@ func (app *App) createWorktreeTicketSymlink(worktreePath string, t *ticket.Ticke
 	return os.Symlink(relPath, linkPath)
 }
 
-// printStartSuccessMessage prints the success message after starting a ticket
-func (app *App) printStartSuccessMessage(t *ticket.Ticket, worktreePath string, parentBranch string) {
-	app.Output.Printf("\n✅ Started work on ticket: %s\n", t.ID)
-	app.Output.Printf("   Description: %s\n", t.Description)
-
-	if app.Config.Worktree.Enabled {
-		app.printWorktreeStartMessage(t, worktreePath, parentBranch)
-	} else {
-		app.printBranchStartMessage(t)
-	}
-}
-
-// printWorktreeStartMessage prints the success message for worktree mode
-func (app *App) printWorktreeStartMessage(t *ticket.Ticket, worktreePath string, parentBranch string) {
-	app.Output.Printf("\n📁 Worktree created: %s\n", worktreePath)
-	if parentBranch != "" {
-		app.Output.Printf("   Parent ticket: %s\n", parentBranch)
-		app.Output.Printf("   Branch from: %s\n", parentBranch)
-	}
-	app.Output.Printf("   Status: todo → doing\n")
-	app.Output.Printf("   Committed: \"Start ticket: %s\"\n", t.ID)
-	app.Output.Printf("\n📋 Next steps:\n")
-	app.Output.Printf("1. Navigate to worktree:\n")
-	app.Output.Printf("   cd %s\n", worktreePath)
-	app.Output.Printf("   \n")
-	app.Output.Printf("2. Make your changes and commit regularly\n")
-	app.Output.Printf("   \n")
-	app.Output.Printf("3. Push branch to create PR:\n")
-	app.Output.Printf("   git push -u origin %s\n", t.ID)
-	app.Output.Printf("   \n")
-	app.Output.Printf("4. When done, close the ticket:\n")
-	app.Output.Printf("   ticketflow close\n")
-}
-
-// printBranchStartMessage prints the success message for non-worktree mode
-func (app *App) printBranchStartMessage(t *ticket.Ticket) {
-	app.Output.Printf("\n🌿 Switched to branch: %s\n", t.ID)
-	app.Output.Printf("   Status: todo → doing\n")
-	app.Output.Printf("   Committed: \"Start ticket: %s\"\n", t.ID)
-	app.Output.Printf("\n📋 Next steps:\n")
-	app.Output.Printf("1. Make your changes and commit regularly\n")
-	app.Output.Printf("   \n")
-	app.Output.Printf("2. Push branch to create PR:\n")
-	app.Output.Printf("   git push -u origin %s\n", t.ID)
-	app.Output.Printf("   \n")
-	app.Output.Printf("3. When done, close the ticket:\n")
-	app.Output.Printf("   ticketflow close\n")
-}
-
 // calculateWorkDuration calculates the work duration for a closed ticket
 func (app *App) calculateWorkDuration(t *ticket.Ticket) string {
 	if t.StartedAt.Time != nil && t.ClosedAt.Time != nil {
@@ -1605,56 +1568,3 @@ func (app *App) countTicketsByStatus(tickets []ticket.Ticket) (todoCount, doingC
 	return todoCount, doingCount, doneCount
 }
 
-// formatStatusJSON formats the status output as JSON
-func (app *App) formatStatusJSON(branch string, current *ticket.Ticket, allTickets []ticket.Ticket, todoCount, doingCount, doneCount int) error {
-	output := map[string]interface{}{
-		"current_branch": branch,
-		"summary": map[string]int{
-			"total": len(allTickets),
-			"todo":  todoCount,
-			"doing": doingCount,
-			"done":  doneCount,
-		},
-	}
-
-	if current != nil {
-		output["current_ticket"] = ticketToJSON(current, "")
-	} else {
-		output["current_ticket"] = nil
-	}
-
-	return app.Output.PrintJSON(output)
-}
-
-// printStatusText prints the status in text format
-func (app *App) printStatusText(ctx context.Context, branch string, current *ticket.Ticket, allTickets []ticket.Ticket, todoCount, doingCount, doneCount int) {
-	app.Output.Printf("\n🌿 Current branch: %s\n", branch)
-
-	if current != nil {
-		app.Output.Printf("\n🎯 Active ticket: %s\n", current.ID)
-		app.Output.Printf("   Description: %s\n", current.Description)
-		app.Output.Printf("   Status: %s\n", current.Status())
-		if current.StartedAt.Time != nil {
-			duration := time.Since(*current.StartedAt.Time)
-			app.Output.Printf("   Duration: %s\n", formatDuration(duration))
-		}
-
-		// Check if in worktree
-		if app.Config.Worktree.Enabled {
-			wt, _ := app.Git.FindWorktreeByBranch(ctx, current.ID)
-			if wt != nil {
-				app.Output.Printf("   Worktree: %s\n", wt.Path)
-			}
-		}
-	} else {
-		app.Output.Println("\n⚠️  No active ticket")
-		app.Output.Println("   Start a ticket with: ticketflow start <ticket-id>")
-	}
-
-	app.Output.Printf("\n📊 Ticket summary:\n")
-	app.Output.Printf("   📘 Todo:  %d\n", todoCount)
-	app.Output.Printf("   🔨 Doing: %d\n", doingCount)
-	app.Output.Printf("   ✅ Done:  %d\n", doneCount)
-	app.Output.Printf("   ─────────\n")
-	app.Output.Printf("   🔢 Total: %d\n", len(allTickets))
-}

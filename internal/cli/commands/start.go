@@ -136,19 +136,11 @@ func (c *StartCommand) Execute(ctx context.Context, flags interface{}, args []st
 		return err
 	}
 
-	// Handle JSON output if requested
-	if outputFormat == cli.FormatJSON {
-		output := map[string]interface{}{
-			"ticket_id":              result.Ticket.ID,
-			"status":                 string(result.Ticket.Status()),
-			"worktree_path":          result.WorktreePath,
-			"branch":                 result.Ticket.ID,
-			"parent_branch":          result.ParentBranch,
-			"init_commands_executed": result.InitCommandsExecuted,
-		}
-		return app.Output.PrintJSON(output)
+	// Create StartResult wrapper for Printable interface
+	startResult := &cli.StartResult{
+		StartTicketResult: result,
+		WorktreeEnabled:   app.Config.Worktree.Enabled,
 	}
 
-	// Text format output is already handled by StartTicket
-	return nil
+	return app.Output.PrintResult(startResult)
 }
