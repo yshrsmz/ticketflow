@@ -872,31 +872,12 @@ func (app *App) ListWorktrees(ctx context.Context, format OutputFormat) error {
 		return fmt.Errorf("failed to list worktrees: %w", err)
 	}
 
-	if format == FormatJSON {
-		output := map[string]interface{}{
-			"worktrees": worktrees,
-		}
-		return app.Output.PrintJSON(output)
+	// Create WorktreeListResult
+	result := &WorktreeListResult{
+		Worktrees: worktrees,
 	}
 
-	// Text format
-	if len(worktrees) == 0 {
-		app.Output.Println("No worktrees found")
-		return nil
-	}
-
-	app.Output.Printf("%-50s %-30s %s\n", "PATH", "BRANCH", "HEAD")
-	app.Output.Println(strings.Repeat("-", 100))
-
-	for _, wt := range worktrees {
-		head := wt.HEAD
-		if len(head) > 40 {
-			head = head[:7] // Short commit hash
-		}
-		app.Output.Printf("%-50s %-30s %s\n", wt.Path, wt.Branch, head)
-	}
-
-	return nil
+	return app.Output.PrintResult(result)
 }
 
 // CleanWorktrees removes orphaned worktrees

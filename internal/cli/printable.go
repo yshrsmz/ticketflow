@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/yshrsmz/ticketflow/internal/git"
 	"github.com/yshrsmz/ticketflow/internal/ticket"
 )
 
@@ -21,6 +22,7 @@ var (
 	_ Printable = (*CleanupResult)(nil)
 	_ Printable = (*TicketListResult)(nil)
 	_ Printable = (*TicketResult)(nil)
+	_ Printable = (*WorktreeListResult)(nil)
 )
 
 // TextRepresentation returns human-readable format for CleanupResult
@@ -195,5 +197,43 @@ func (r *TicketResult) StructuredData() interface{} {
 			"related":     r.Ticket.Related,
 			"content":     r.Ticket.Content,
 		},
+	}
+}
+
+// WorktreeListResult wraps worktree list to make it Printable
+type WorktreeListResult struct {
+	Worktrees []git.WorktreeInfo
+}
+
+// TextRepresentation returns human-readable format for worktree list
+func (r *WorktreeListResult) TextRepresentation() string {
+	if len(r.Worktrees) == 0 {
+		return "No worktrees found\n"
+	}
+
+	var buf strings.Builder
+	buf.Grow(512)
+
+	// Header
+	buf.WriteString(fmt.Sprintf("%-50s %-30s %s\n", "PATH", "BRANCH", "HEAD"))
+	buf.WriteString(strings.Repeat("-", 100))
+	buf.WriteString("\n")
+
+	// Worktrees
+	for _, wt := range r.Worktrees {
+		head := wt.HEAD
+		if len(head) > 40 {
+			head = head[:7] // Short commit hash
+		}
+		buf.WriteString(fmt.Sprintf("%-50s %-30s %s\n", wt.Path, wt.Branch, head))
+	}
+
+	return buf.String()
+}
+
+// StructuredData returns worktrees for JSON serialization
+func (r *WorktreeListResult) StructuredData() interface{} {
+	return map[string]interface{}{
+		"worktrees": r.Worktrees,
 	}
 }
