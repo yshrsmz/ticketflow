@@ -13,10 +13,32 @@ const (
 	// GitSHAFullLength is the length of a full git SHA-1 hash
 	GitSHAFullLength = 40
 	// GitSHAShortLength is the standard length for abbreviated git commit hashes
+	// This follows Git's default abbreviation length
 	GitSHAShortLength = 7
+
+	// Buffer pre-allocation sizes for strings.Builder
+	// These are estimates based on typical output sizes to minimize allocations
+	smallBufferSize  = 256  // For simple results with minimal text
+	mediumBufferSize = 512  // For typical results with moderate text
+	largeBufferSize  = 1024 // For complex results with extensive text
 )
 
-// Printable represents a result that knows how to format itself
+// Printable represents a result that knows how to format itself.
+// This interface follows the pattern used by kubectl's ResourcePrinter,
+// where each result type owns its formatting logic instead of having
+// a central switch statement handle all types.
+//
+// Benefits of this pattern:
+//   - Single Responsibility: Each result type manages its own formatting
+//   - Open/Closed Principle: New result types can be added without modifying existing code
+//   - Better testability: Each result type can be tested independently
+//   - Reduced coupling: Business logic and presentation are cleanly separated
+//
+// Implementation guidelines:
+//   - TextRepresentation should return formatted text for human consumption
+//   - StructuredData should return data suitable for JSON/YAML serialization
+//   - Pre-allocate strings.Builder capacity based on expected output size
+//   - Use compile-time interface compliance checks (see examples below)
 type Printable interface {
 	// TextRepresentation returns human-readable format
 	TextRepresentation() string
@@ -38,7 +60,7 @@ var (
 func (r *CleanupResult) TextRepresentation() string {
 	var buf strings.Builder
 	// Pre-allocate capacity for better performance
-	buf.Grow(256)
+	buf.Grow(smallBufferSize)
 
 	// strings.Builder.Write methods never return errors, so we can safely ignore them
 	buf.WriteString("\nCleanup Summary:\n")
@@ -85,7 +107,7 @@ func (r *TicketListResult) TextRepresentation() string {
 	}
 
 	// Pre-allocate capacity
-	buf.Grow(512)
+	buf.Grow(mediumBufferSize)
 
 	// Find max ID length for alignment
 	maxIDLen := 0
@@ -161,7 +183,7 @@ func (r *TicketResult) TextRepresentation() string {
 	}
 
 	var buf strings.Builder
-	buf.Grow(512)
+	buf.Grow(mediumBufferSize)
 
 	t := r.Ticket
 	fmt.Fprintf(&buf, "ID: %s\n", t.ID)
@@ -221,7 +243,7 @@ func (r *WorktreeListResult) TextRepresentation() string {
 	}
 
 	var buf strings.Builder
-	buf.Grow(512)
+	buf.Grow(mediumBufferSize)
 
 	// Header
 	fmt.Fprintf(&buf, "%-50s %-30s %s\n", "PATH", "BRANCH", "HEAD")
@@ -259,7 +281,7 @@ type StatusResult struct {
 // TextRepresentation returns human-readable format for status
 func (r *StatusResult) TextRepresentation() string {
 	var buf strings.Builder
-	buf.Grow(512)
+	buf.Grow(mediumBufferSize)
 
 	fmt.Fprintf(&buf, "\n🌿 Current branch: %s\n", r.CurrentBranch)
 
@@ -314,7 +336,7 @@ type StartResult struct {
 // TextRepresentation returns human-readable format for start result
 func (r *StartResult) TextRepresentation() string {
 	var buf strings.Builder
-	buf.Grow(1024)
+	buf.Grow(largeBufferSize)
 
 	fmt.Fprintf(&buf, "\n✅ Started work on ticket: %s\n", r.Ticket.ID)
 	fmt.Fprintf(&buf, "   Description: %s\n", r.Ticket.Description)
