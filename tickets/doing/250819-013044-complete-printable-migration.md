@@ -20,35 +20,38 @@ Phase 1 and Phase 2 successfully migrated:
 - WorktreeListResult (new result type)
 - StatusResult (migrated from helper functions)
 - StartResult (wrapper for StartTicketResult)
+- CleanupResult (already implements Printable interface)
 
 All implementations include comprehensive unit tests and maintain backward compatibility.
 
+**Note**: CleanupResult already exists and implements the Printable interface (internal/cli/printable.go:59-94). The CleanWorktreesResult mentioned in the original plan appears to be an unused structure that doesn't need migration.
+
 ## Tasks
 
-### High Priority - Complete Existing Result Types
-- [ ] Create `WorktreeCleanResult` wrapper for `CleanWorktreesResult` and implement Printable
-  - Wrap the existing CleanWorktreesResult struct
-  - Implement TextRepresentation() and StructuredData()
-  - Add comprehensive unit tests
+### Primary Tasks - Migrate Remaining Commands to Printable Pattern
+- [ ] `new` command (internal/cli/commands/new.go:136-149)
+  - [ ] Create NewTicketResult struct with typed fields
+  - [ ] Implement TextRepresentation() and StructuredData()
+  - [ ] Replace map[string]interface{} usage
+  - [ ] Add comprehensive unit tests
+- [ ] `close` command (internal/cli/commands/close.go:178-248)
+  - [ ] Create CloseTicketResult struct with typed fields
+  - [ ] Implement TextRepresentation() and StructuredData()
+  - [ ] Replace map[string]interface{} usage and outputCloseErrorJSON helper
+  - [ ] Add comprehensive unit tests
+- [ ] `restore` command (internal/cli/commands/restore.go:123-157)
+  - [ ] Create RestoreTicketResult struct with typed fields
+  - [ ] Implement TextRepresentation() and StructuredData()
+  - [ ] Replace map[string]interface{} usage
+  - [ ] Add comprehensive unit tests
 
-### Medium Priority - Migrate Map-Based Results
-- [ ] Analyze and migrate map-based results to typed structs:
-  - [ ] `new` command - Create NewTicketResult struct
-  - [ ] `close` command - Create CloseTicketResult struct  
-  - [ ] `restore` command - Create RestoreResult struct
-- [ ] Each should:
-  - Define proper struct with typed fields
-  - Implement Printable interface
-  - Include unit tests
-  - Maintain exact output format compatibility
-
-### Final Steps
-- [ ] Remove the map[string]interface{} fallback case once all commands are migrated
-- [ ] Remove OutputWriter legacy wrapper once fully migrated
+### Cleanup & Verification
+- [ ] Remove the map[string]interface{} fallback case from output_writer.go (lines 102-109)
+- [ ] Remove OutputWriter legacy wrapper from output_writer.go (lines 136-186)
+- [ ] Update any remaining direct calls to Printf/PrintJSON to use PrintResult
 - [ ] Run `make test` to verify all tests pass
 - [ ] Run `make vet`, `make fmt` and `make lint`
-- [ ] Update architecture documentation with final Printable pattern
-- [ ] Update the ticket with insights from resolving this ticket
+- [ ] Update the ticket with implementation insights
 - [ ] Get developer approval before closing
 
 ## Implementation Guidelines
@@ -62,9 +65,11 @@ Follow the established patterns from Phase 1 and 2:
 5. **Document with comments** - Explain the purpose of each Printable implementation
 
 ## Success Criteria
-- All commands return Printable types (no direct Printf/PrintJSON calls)
-- Switch statement in output_writer.go is completely removed
-- All tests pass including integration tests
+- The 3 remaining commands (new, close, restore) use typed Printable structs instead of map[string]interface{}
+- Map fallback case removed from textOutputFormatter.PrintResult() (output_writer.go:102-109)
+- OutputWriter legacy wrapper completely removed (output_writer.go:136-186)
+- All unit tests pass with comprehensive coverage of new result types
+- Integration tests confirm backward compatibility
 - Output format remains unchanged from user perspective
 - Code passes gofmt, go vet, and golangci-lint checks
 
