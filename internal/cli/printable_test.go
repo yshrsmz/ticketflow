@@ -645,12 +645,12 @@ func TestNewTicketResult_StructuredData(t *testing.T) {
 			verify: func(t *testing.T, data interface{}) {
 				m, ok := data.(map[string]interface{})
 				require.True(t, ok)
-				
+
 				ticketData, ok := m["ticket"].(map[string]interface{})
 				require.True(t, ok)
 				assert.Equal(t, "240101-123456-feature", ticketData["id"])
 				assert.Equal(t, "tickets/todo/240101-123456-feature.md", ticketData["path"])
-				
+
 				_, hasParent := m["parent_ticket"]
 				assert.False(t, hasParent)
 			},
@@ -702,9 +702,9 @@ func TestCloseTicketResult_TextRepresentation(t *testing.T) {
 			name: "close current ticket with duration",
 			result: &CloseTicketResult{
 				Ticket: &ticket.Ticket{
-					ID: "240101-123456-feature",
-					StartedAt: ticket.NullTime{Time: &startedAt},
-					ClosedAt:  ticket.NullTime{Time: &closedAt},
+					ID:        "240101-123456-feature",
+					StartedAt: ticket.RFC3339TimePtr{Time: &startedAt},
+					ClosedAt:  ticket.RFC3339TimePtr{Time: &closedAt},
 				},
 				Mode:          "current",
 				Duration:      2*time.Hour + 30*time.Minute,
@@ -725,7 +725,7 @@ func TestCloseTicketResult_TextRepresentation(t *testing.T) {
 			result: &CloseTicketResult{
 				Ticket: &ticket.Ticket{
 					ID:       "240101-123456-feature",
-					ClosedAt: ticket.NullTime{Time: &closedAt},
+					ClosedAt: ticket.RFC3339TimePtr{Time: &closedAt},
 				},
 				Mode:          "by_id",
 				ForceUsed:     true,
@@ -788,7 +788,7 @@ func TestCloseTicketResult_StructuredData(t *testing.T) {
 			result: &CloseTicketResult{
 				Ticket: &ticket.Ticket{
 					ID:       "240101-123456-feature",
-					ClosedAt: ticket.NullTime{Time: &closedAt},
+					ClosedAt: ticket.RFC3339TimePtr{Time: &closedAt},
 				},
 				Mode:          "current",
 				ForceUsed:     true,

@@ -212,4 +212,3 @@ func (c *CloseCommand) Execute(ctx context.Context, flags interface{}, args []st
 
 	return app.Output.PrintResult(result)
 }
-

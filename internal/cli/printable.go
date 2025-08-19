@@ -451,15 +451,15 @@ func (r *NewTicketResult) StructuredData() interface{} {
 
 // CloseTicketResult represents the result of closing a ticket
 type CloseTicketResult struct {
-	Ticket          *ticket.Ticket
-	Mode            string        // "current" or "by_id"
-	ForceUsed       bool          // Whether --force flag was used
-	CommitCreated   bool          // Whether a commit was created
-	CloseReason     string        // Optional close reason
-	Duration        time.Duration // Duration from start to close (for current ticket)
-	ParentTicket    string        // Parent ticket ID if available
-	WorktreePath    string        // Worktree path for current ticket
-	Branch          string        // Branch name for by-ID mode
+	Ticket        *ticket.Ticket
+	Mode          string        // "current" or "by_id"
+	ForceUsed     bool          // Whether --force flag was used
+	CommitCreated bool          // Whether a commit was created
+	CloseReason   string        // Optional close reason
+	Duration      time.Duration // Duration from start to close (for current ticket)
+	ParentTicket  string        // Parent ticket ID if available
+	WorktreePath  string        // Worktree path for current ticket
+	Branch        string        // Branch name for by-ID mode
 }
 
 // TextRepresentation returns human-readable format for close result

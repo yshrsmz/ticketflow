@@ -8,7 +8,6 @@ import (
 
 	"github.com/yshrsmz/ticketflow/internal/cli"
 	"github.com/yshrsmz/ticketflow/internal/command"
-	"github.com/yshrsmz/ticketflow/internal/ticket"
 )
 
 // NewCommand implements the new command using the new Command interface
@@ -152,4 +151,3 @@ func (c *NewCommand) Execute(ctx context.Context, flags interface{}, args []stri
 
 	return app.Output.PrintResult(result)
 }
-
