@@ -871,9 +871,14 @@ func TestRestoreTicketResult_StructuredData(t *testing.T) {
 		{
 			name: "full restore result",
 			result: &RestoreTicketResult{
-				Ticket: &ticket.Ticket{
-					ID: "240101-123456-feature",
-				},
+				Ticket: func() *ticket.Ticket {
+					now := time.Now()
+					return &ticket.Ticket{
+						ID:        "240101-123456-feature",
+						Path:      "tickets/doing/240101-123456-feature.md",
+						StartedAt: ticket.RFC3339TimePtr{Time: &now}, // Non-nil to indicate doing status
+					}
+				}(),
 				SymlinkPath:  "current-ticket.md",
 				TargetPath:   "tickets/doing/240101-123456-feature.md",
 				ParentTicket: "parent-123",
@@ -896,9 +901,14 @@ func TestRestoreTicketResult_StructuredData(t *testing.T) {
 		{
 			name: "minimal restore result",
 			result: &RestoreTicketResult{
-				Ticket: &ticket.Ticket{
-					ID: "240101-123456-feature",
-				},
+				Ticket: func() *ticket.Ticket {
+					now := time.Now()
+					return &ticket.Ticket{
+						ID:        "240101-123456-feature",
+						Path:      "tickets/doing/240101-123456-feature.md",
+						StartedAt: ticket.RFC3339TimePtr{Time: &now}, // Non-nil to indicate doing status
+					}
+				}(),
 				SymlinkPath: "current-ticket.md",
 				TargetPath:  "tickets/doing/240101-123456-feature.md",
 			},
