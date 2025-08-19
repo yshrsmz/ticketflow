@@ -567,3 +567,365 @@ func TestStartResultPrintable(t *testing.T) {
 		assert.Equal(t, true, m["init_commands_executed"])
 	})
 }
+
+func TestNewTicketResult_TextRepresentation(t *testing.T) {
+	tests := []struct {
+		name     string
+		result   *NewTicketResult
+		contains []string
+	}{
+		{
+			name: "simple ticket creation",
+			result: &NewTicketResult{
+				Ticket: &ticket.Ticket{
+					ID:   "240101-123456-feature",
+					Path: "tickets/todo/240101-123456-feature.md",
+				},
+			},
+			contains: []string{
+				"🎫 Created new ticket: 240101-123456-feature",
+				"File: tickets/todo/240101-123456-feature.md",
+				"Next steps:",
+				"$EDITOR tickets/todo/240101-123456-feature.md",
+				"git add tickets/todo/240101-123456-feature.md",
+				"git commit -m \"Add ticket: 240101-123456-feature\"",
+				"ticketflow start 240101-123456-feature",
+			},
+		},
+		{
+			name: "sub-ticket with parent",
+			result: &NewTicketResult{
+				Ticket: &ticket.Ticket{
+					ID:   "240101-123456-subfeature",
+					Path: "tickets/todo/240101-123456-subfeature.md",
+				},
+				ParentTicket: "240101-100000-parent",
+			},
+			contains: []string{
+				"🎫 Created new ticket: 240101-123456-subfeature",
+				"Parent ticket: 240101-100000-parent",
+				"Type: Sub-ticket",
+			},
+		},
+		{
+			name: "nil ticket",
+			result: &NewTicketResult{
+				Ticket: nil,
+			},
+			contains: []string{
+				"Error: No ticket created",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			output := tt.result.TextRepresentation()
+			for _, expected := range tt.contains {
+				assert.Contains(t, output, expected)
+			}
+		})
+	}
+}
+
+func TestNewTicketResult_StructuredData(t *testing.T) {
+	tests := []struct {
+		name   string
+		result *NewTicketResult
+		verify func(t *testing.T, data interface{})
+	}{
+		{
+			name: "simple ticket",
+			result: &NewTicketResult{
+				Ticket: &ticket.Ticket{
+					ID:   "240101-123456-feature",
+					Path: "tickets/todo/240101-123456-feature.md",
+				},
+			},
+			verify: func(t *testing.T, data interface{}) {
+				m, ok := data.(map[string]interface{})
+				require.True(t, ok)
+				
+				ticketData, ok := m["ticket"].(map[string]interface{})
+				require.True(t, ok)
+				assert.Equal(t, "240101-123456-feature", ticketData["id"])
+				assert.Equal(t, "tickets/todo/240101-123456-feature.md", ticketData["path"])
+				
+				_, hasParent := m["parent_ticket"]
+				assert.False(t, hasParent)
+			},
+		},
+		{
+			name: "sub-ticket with parent",
+			result: &NewTicketResult{
+				Ticket: &ticket.Ticket{
+					ID:   "240101-123456-subfeature",
+					Path: "tickets/todo/240101-123456-subfeature.md",
+				},
+				ParentTicket: "240101-100000-parent",
+			},
+			verify: func(t *testing.T, data interface{}) {
+				m, ok := data.(map[string]interface{})
+				require.True(t, ok)
+				assert.Equal(t, "240101-100000-parent", m["parent_ticket"])
+			},
+		},
+		{
+			name: "nil ticket",
+			result: &NewTicketResult{
+				Ticket: nil,
+			},
+			verify: func(t *testing.T, data interface{}) {
+				assert.Nil(t, data)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			data := tt.result.StructuredData()
+			tt.verify(t, data)
+		})
+	}
+}
+
+func TestCloseTicketResult_TextRepresentation(t *testing.T) {
+	closedAt := time.Date(2024, 1, 1, 14, 30, 0, 0, time.UTC)
+	startedAt := time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC)
+
+	tests := []struct {
+		name     string
+		result   *CloseTicketResult
+		contains []string
+	}{
+		{
+			name: "close current ticket with duration",
+			result: &CloseTicketResult{
+				Ticket: &ticket.Ticket{
+					ID: "240101-123456-feature",
+					StartedAt: ticket.NullTime{Time: &startedAt},
+					ClosedAt:  ticket.NullTime{Time: &closedAt},
+				},
+				Mode:          "current",
+				Duration:      2*time.Hour + 30*time.Minute,
+				CommitCreated: true,
+			},
+			contains: []string{
+				"✅ Closed current ticket: 240101-123456-feature",
+				"Duration: 2h 30m",
+				"Status: doing → done",
+				"Committed: \"Close ticket: 240101-123456-feature\"",
+				"Push your branch to create/update PR",
+				"git push",
+				"ticketflow cleanup 240101-123456-feature",
+			},
+		},
+		{
+			name: "close by ID with force and reason",
+			result: &CloseTicketResult{
+				Ticket: &ticket.Ticket{
+					ID:       "240101-123456-feature",
+					ClosedAt: ticket.NullTime{Time: &closedAt},
+				},
+				Mode:          "by_id",
+				ForceUsed:     true,
+				CloseReason:   "Task completed",
+				CommitCreated: true,
+				Branch:        "240101-123456-feature",
+			},
+			contains: []string{
+				"✅ Closed ticket: 240101-123456-feature",
+				"⚠️  Force flag used to bypass validation",
+				"Reason: Task completed",
+				"Committed: \"Close ticket: 240101-123456-feature - Task completed\"",
+				"git push origin 240101-123456-feature",
+			},
+		},
+		{
+			name: "close with parent ticket",
+			result: &CloseTicketResult{
+				Ticket: &ticket.Ticket{
+					ID: "240101-123456-subfeature",
+				},
+				Mode:         "current",
+				ParentTicket: "240101-100000-parent",
+			},
+			contains: []string{
+				"Parent ticket: 240101-100000-parent",
+			},
+		},
+		{
+			name: "nil ticket",
+			result: &CloseTicketResult{
+				Ticket: nil,
+			},
+			contains: []string{
+				"Error: No ticket to close",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			output := tt.result.TextRepresentation()
+			for _, expected := range tt.contains {
+				assert.Contains(t, output, expected)
+			}
+		})
+	}
+}
+
+func TestCloseTicketResult_StructuredData(t *testing.T) {
+	closedAt := time.Date(2024, 1, 1, 14, 30, 0, 0, time.UTC)
+
+	tests := []struct {
+		name   string
+		result *CloseTicketResult
+		verify func(t *testing.T, data interface{})
+	}{
+		{
+			name: "current ticket with all fields",
+			result: &CloseTicketResult{
+				Ticket: &ticket.Ticket{
+					ID:       "240101-123456-feature",
+					ClosedAt: ticket.NullTime{Time: &closedAt},
+				},
+				Mode:          "current",
+				ForceUsed:     true,
+				CommitCreated: true,
+				Duration:      2*time.Hour + 30*time.Minute,
+				ParentTicket:  "parent-123",
+				WorktreePath:  "/path/to/worktree",
+				CloseReason:   "Completed",
+			},
+			verify: func(t *testing.T, data interface{}) {
+				m, ok := data.(map[string]interface{})
+				require.True(t, ok)
+				assert.Equal(t, true, m["success"])
+				assert.Equal(t, "240101-123456-feature", m["ticket_id"])
+				assert.Equal(t, "done", m["status"])
+				assert.Equal(t, "current", m["mode"])
+				assert.Equal(t, true, m["force_used"])
+				assert.Equal(t, true, m["commit_created"])
+				assert.Equal(t, "2h30m", m["duration"])
+				assert.Equal(t, "parent-123", m["parent_ticket"])
+				assert.Equal(t, "/path/to/worktree", m["worktree_path"])
+				assert.Equal(t, "Completed", m["close_reason"])
+				assert.Equal(t, closedAt.Format(time.RFC3339), m["closed_at"])
+			},
+		},
+		{
+			name: "by_id mode with branch",
+			result: &CloseTicketResult{
+				Ticket: &ticket.Ticket{
+					ID: "240101-123456-feature",
+				},
+				Mode:   "by_id",
+				Branch: "feature-branch",
+			},
+			verify: func(t *testing.T, data interface{}) {
+				m, ok := data.(map[string]interface{})
+				require.True(t, ok)
+				assert.Equal(t, "by_id", m["mode"])
+				assert.Equal(t, "feature-branch", m["branch"])
+				_, hasWorktree := m["worktree_path"]
+				assert.False(t, hasWorktree)
+			},
+		},
+		{
+			name: "nil ticket",
+			result: &CloseTicketResult{
+				Ticket: nil,
+			},
+			verify: func(t *testing.T, data interface{}) {
+				assert.Nil(t, data)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			data := tt.result.StructuredData()
+			tt.verify(t, data)
+		})
+	}
+}
+
+func TestRestoreTicketResult_TextRepresentation(t *testing.T) {
+	result := &RestoreTicketResult{
+		Ticket: &ticket.Ticket{
+			ID: "240101-123456-feature",
+		},
+	}
+
+	output := result.TextRepresentation()
+	assert.Equal(t, "✅ Current ticket symlink restored\n", output)
+}
+
+func TestRestoreTicketResult_StructuredData(t *testing.T) {
+	tests := []struct {
+		name   string
+		result *RestoreTicketResult
+		verify func(t *testing.T, data interface{})
+	}{
+		{
+			name: "full restore result",
+			result: &RestoreTicketResult{
+				Ticket: &ticket.Ticket{
+					ID: "240101-123456-feature",
+				},
+				SymlinkPath:  "current-ticket.md",
+				TargetPath:   "tickets/doing/240101-123456-feature.md",
+				ParentTicket: "parent-123",
+				WorktreePath: "/path/to/worktree",
+			},
+			verify: func(t *testing.T, data interface{}) {
+				m, ok := data.(map[string]interface{})
+				require.True(t, ok)
+				assert.Equal(t, true, m["success"])
+				assert.Equal(t, "240101-123456-feature", m["ticket_id"])
+				assert.Equal(t, "doing", m["status"])
+				assert.Equal(t, true, m["symlink_restored"])
+				assert.Equal(t, "current-ticket.md", m["symlink_path"])
+				assert.Equal(t, "tickets/doing/240101-123456-feature.md", m["target_path"])
+				assert.Equal(t, "Current ticket symlink restored", m["message"])
+				assert.Equal(t, "parent-123", m["parent_ticket"])
+				assert.Equal(t, "/path/to/worktree", m["worktree_path"])
+			},
+		},
+		{
+			name: "minimal restore result",
+			result: &RestoreTicketResult{
+				Ticket: &ticket.Ticket{
+					ID: "240101-123456-feature",
+				},
+				SymlinkPath: "current-ticket.md",
+				TargetPath:  "tickets/doing/240101-123456-feature.md",
+			},
+			verify: func(t *testing.T, data interface{}) {
+				m, ok := data.(map[string]interface{})
+				require.True(t, ok)
+				_, hasParent := m["parent_ticket"]
+				assert.False(t, hasParent)
+				_, hasWorktree := m["worktree_path"]
+				assert.False(t, hasWorktree)
+			},
+		},
+		{
+			name: "nil ticket",
+			result: &RestoreTicketResult{
+				Ticket: nil,
+			},
+			verify: func(t *testing.T, data interface{}) {
+				assert.Nil(t, data)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			data := tt.result.StructuredData()
+			tt.verify(t, data)
+		})
+	}
+}
