@@ -131,55 +131,25 @@ func (c *NewCommand) Execute(ctx context.Context, flags interface{}, args []stri
 		return err
 	}
 
-	// Handle output based on format
-	if outputFormat == cli.FormatJSON {
-		output := map[string]interface{}{
-			"ticket": map[string]interface{}{
-				"id":   ticket.ID,
-				"path": ticket.Path,
-			},
+	// Extract parent ticket ID from Related field
+	var parentTicketID string
+	for _, rel := range ticket.Related {
+		if strings.HasPrefix(rel, "parent:") {
+			parentTicketID = strings.TrimPrefix(rel, "parent:")
+			break
 		}
-		// Extract parent ticket ID from Related field if available
-		for _, rel := range ticket.Related {
-			if strings.HasPrefix(rel, "parent:") {
-				output["parent_ticket"] = strings.TrimPrefix(rel, "parent:")
-				break
-			}
-		}
-		return app.Output.PrintJSON(output)
 	}
-
-	// Text format output
-	outputTicketCreatedText(app.Output, ticket, f.parent, slug)
-	return nil
-}
-
-// outputTicketCreatedText prints the text format output for ticket creation
-func outputTicketCreatedText(output *cli.OutputWriter, t *ticket.Ticket, parentTicketID, slug string) {
-	// Extract parent ID from ticket if not explicitly provided
+	// Fall back to explicit parent if not in Related field
 	if parentTicketID == "" {
-		for _, rel := range t.Related {
-			if strings.HasPrefix(rel, "parent:") {
-				parentTicketID = strings.TrimPrefix(rel, "parent:")
-				break
-			}
-		}
+		parentTicketID = f.parent
 	}
 
-	output.Printf("\n🎫 Created new ticket: %s\n", t.ID)
-	output.Printf("   File: %s\n", t.Path)
-	if parentTicketID != "" {
-		output.Printf("   Parent ticket: %s\n", parentTicketID)
-		output.Printf("   Type: Sub-ticket\n")
+	// Create the result and use PrintResult
+	result := &cli.NewTicketResult{
+		Ticket:       ticket,
+		ParentTicket: parentTicketID,
 	}
-	output.Printf("\n📋 Next steps:\n")
-	output.Printf("1. Edit the ticket file to add details:\n")
-	output.Printf("   $EDITOR %s\n", t.Path)
-	output.Printf("   \n")
-	output.Printf("2. Commit the ticket file:\n")
-	output.Printf("   git add %s\n", t.Path)
-	output.Printf("   git commit -m \"Add ticket: %s\"\n", slug)
-	output.Printf("   \n")
-	output.Printf("3. Start working on it:\n")
-	output.Printf("   ticketflow start %s\n", t.ID)
+
+	return app.Output.PrintResult(result)
 }
+

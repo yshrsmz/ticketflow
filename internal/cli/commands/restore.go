@@ -120,44 +120,38 @@ func (r *RestoreCommand) Execute(ctx context.Context, flags interface{}, args []
 	if err != nil {
 		if outputFormat == cli.FormatJSON {
 			// Return error in JSON format
-			return app.Output.PrintJSON(map[string]interface{}{
+			result := map[string]interface{}{
 				"error":   err.Error(),
 				"success": false,
-			})
+			}
+			return app.Output.PrintResult(result)
 		}
 		return err
 	}
 
-	// For JSON output, use the returned ticket directly
-	if outputFormat == cli.FormatJSON {
-		jsonData := map[string]interface{}{
-			"ticket_id":        ticket.ID,
-			"status":           string(ticket.Status()),
-			"symlink_restored": true,
-			"symlink_path":     "current-ticket.md",
-			"target_path":      fmt.Sprintf("tickets/doing/%s.md", ticket.ID),
-			"message":          "Current ticket symlink restored",
-			"success":          true,
-		}
-
-		// Include worktree path if we can determine it
-		// Following the same pattern as close command - omit field on error
-		if cwd, err := os.Getwd(); err == nil {
-			jsonData["worktree_path"] = cwd
-		}
-
-		// Extract parent ticket ID from Related field if available
-		for _, rel := range ticket.Related {
-			if strings.HasPrefix(rel, "parent:") {
-				jsonData["parent_ticket"] = strings.TrimPrefix(rel, "parent:")
-				break
-			}
-		}
-
-		return app.Output.PrintJSON(jsonData)
+	// Get worktree path
+	var worktreePath string
+	if cwd, err := os.Getwd(); err == nil {
+		worktreePath = cwd
 	}
 
-	// Text output
-	app.StatusWriter.Println("✅ Current ticket symlink restored")
-	return nil
+	// Extract parent ticket
+	var parentTicket string
+	for _, rel := range ticket.Related {
+		if strings.HasPrefix(rel, "parent:") {
+			parentTicket = strings.TrimPrefix(rel, "parent:")
+			break
+		}
+	}
+
+	// Create result
+	result := &cli.RestoreTicketResult{
+		Ticket:       ticket,
+		SymlinkPath:  "current-ticket.md",
+		TargetPath:   fmt.Sprintf("tickets/doing/%s.md", ticket.ID),
+		ParentTicket: parentTicket,
+		WorktreePath: worktreePath,
+	}
+
+	return app.Output.PrintResult(result)
 }
