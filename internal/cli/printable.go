@@ -54,6 +54,9 @@ var (
 	_ Printable = (*WorktreeListResult)(nil)
 	_ Printable = (*StatusResult)(nil)
 	_ Printable = (*StartResult)(nil)
+	_ Printable = (*NewTicketResult)(nil)
+	_ Printable = (*CloseTicketResult)(nil)
+	_ Printable = (*RestoreTicketResult)(nil)
 )
 
 // TextRepresentation returns human-readable format for CleanupResult
@@ -389,4 +392,223 @@ func (r *StartResult) StructuredData() interface{} {
 		"parent_branch":          r.ParentBranch,
 		"init_commands_executed": r.InitCommandsExecuted,
 	}
+}
+
+// NewTicketResult represents the result of creating a new ticket
+type NewTicketResult struct {
+	Ticket       *ticket.Ticket
+	ParentTicket string // Parent ticket ID if this is a sub-ticket
+}
+
+// TextRepresentation returns human-readable format for new ticket result
+func (r *NewTicketResult) TextRepresentation() string {
+	if r.Ticket == nil {
+		return "Error: No ticket created\n"
+	}
+
+	var buf strings.Builder
+	buf.Grow(mediumBufferSize)
+
+	fmt.Fprintf(&buf, "\n🎫 Created new ticket: %s\n", r.Ticket.ID)
+	fmt.Fprintf(&buf, "   File: %s\n", r.Ticket.Path)
+	if r.ParentTicket != "" {
+		fmt.Fprintf(&buf, "   Parent ticket: %s\n", r.ParentTicket)
+		fmt.Fprintf(&buf, "   Type: Sub-ticket\n")
+	}
+	fmt.Fprintf(&buf, "\n📋 Next steps:\n")
+	fmt.Fprintf(&buf, "1. Edit the ticket file to add details:\n")
+	fmt.Fprintf(&buf, "   $EDITOR %s\n", r.Ticket.Path)
+	fmt.Fprintf(&buf, "   \n")
+	fmt.Fprintf(&buf, "2. Commit the ticket file:\n")
+	fmt.Fprintf(&buf, "   git add %s\n", r.Ticket.Path)
+	fmt.Fprintf(&buf, "   git commit -m \"Add ticket: %s\"\n", r.Ticket.ID)
+	fmt.Fprintf(&buf, "   \n")
+	fmt.Fprintf(&buf, "3. Start working on the ticket:\n")
+	fmt.Fprintf(&buf, "   ticketflow start %s\n", r.Ticket.ID)
+
+	return buf.String()
+}
+
+// StructuredData returns data for JSON serialization
+func (r *NewTicketResult) StructuredData() interface{} {
+	if r.Ticket == nil {
+		return nil
+	}
+
+	output := map[string]interface{}{
+		"ticket": map[string]interface{}{
+			"id":   r.Ticket.ID,
+			"path": r.Ticket.Path,
+		},
+	}
+
+	if r.ParentTicket != "" {
+		output["parent_ticket"] = r.ParentTicket
+	}
+
+	return output
+}
+
+// CloseTicketResult represents the result of closing a ticket
+type CloseTicketResult struct {
+	Ticket          *ticket.Ticket
+	Mode            string        // "current" or "by_id"
+	ForceUsed       bool          // Whether --force flag was used
+	CommitCreated   bool          // Whether a commit was created
+	CloseReason     string        // Optional close reason
+	Duration        time.Duration // Duration from start to close (for current ticket)
+	ParentTicket    string        // Parent ticket ID if available
+	WorktreePath    string        // Worktree path for current ticket
+	Branch          string        // Branch name for by-ID mode
+}
+
+// TextRepresentation returns human-readable format for close result
+func (r *CloseTicketResult) TextRepresentation() string {
+	if r.Ticket == nil {
+		return "Error: No ticket to close\n"
+	}
+
+	var buf strings.Builder
+	buf.Grow(mediumBufferSize)
+
+	// Success message
+	if r.Mode == "current" {
+		fmt.Fprintf(&buf, "\n✅ Closed current ticket: %s\n", r.Ticket.ID)
+	} else {
+		fmt.Fprintf(&buf, "\n✅ Closed ticket: %s\n", r.Ticket.ID)
+	}
+
+	// Show force flag usage if applicable
+	if r.ForceUsed {
+		fmt.Fprintf(&buf, "   ⚠️  Force flag used to bypass validation\n")
+	}
+
+	// Show close reason if provided
+	if r.CloseReason != "" {
+		fmt.Fprintf(&buf, "   Reason: %s\n", r.CloseReason)
+	}
+
+	// Show duration for current ticket
+	if r.Mode == "current" && r.Duration > 0 {
+		fmt.Fprintf(&buf, "   Duration: %s\n", formatDuration(r.Duration))
+	}
+
+	// Show parent ticket if available
+	if r.ParentTicket != "" {
+		fmt.Fprintf(&buf, "   Parent ticket: %s\n", r.ParentTicket)
+	}
+
+	// Show status transition
+	fmt.Fprintf(&buf, "   Status: doing → done\n")
+
+	// Show commit info
+	if r.CommitCreated {
+		fmt.Fprintf(&buf, "   Committed: \"Close ticket: %s", r.Ticket.ID)
+		if r.CloseReason != "" {
+			fmt.Fprintf(&buf, " - %s", r.CloseReason)
+		}
+		fmt.Fprintf(&buf, "\"\n")
+	}
+
+	// Next steps
+	fmt.Fprintf(&buf, "\n📋 Next steps:\n")
+	if r.Mode == "current" {
+		fmt.Fprintf(&buf, "1. Push your branch to create/update PR:\n")
+		fmt.Fprintf(&buf, "   git push\n")
+		fmt.Fprintf(&buf, "   \n")
+		fmt.Fprintf(&buf, "2. After PR is merged, clean up the worktree:\n")
+		fmt.Fprintf(&buf, "   ticketflow cleanup %s\n", r.Ticket.ID)
+	} else {
+		fmt.Fprintf(&buf, "1. Push the branch if needed:\n")
+		fmt.Fprintf(&buf, "   git push origin %s\n", r.Branch)
+		fmt.Fprintf(&buf, "   \n")
+		fmt.Fprintf(&buf, "2. Create a pull request if needed\n")
+	}
+
+	return buf.String()
+}
+
+// StructuredData returns data for JSON serialization
+func (r *CloseTicketResult) StructuredData() interface{} {
+	if r.Ticket == nil {
+		return nil
+	}
+
+	output := map[string]interface{}{
+		"success":        true,
+		"ticket_id":      r.Ticket.ID,
+		"status":         string(r.Ticket.Status()),
+		"mode":           r.Mode,
+		"force_used":     r.ForceUsed,
+		"commit_created": r.CommitCreated,
+	}
+
+	if r.Ticket.ClosedAt.Time != nil {
+		output["closed_at"] = r.Ticket.ClosedAt.Time.Format(time.RFC3339)
+	}
+
+	if r.Mode == "current" && r.Duration > 0 {
+		hours := int(r.Duration.Hours())
+		minutes := int(r.Duration.Minutes()) % 60
+		output["duration"] = fmt.Sprintf("%dh%dm", hours, minutes)
+	}
+
+	if r.ParentTicket != "" {
+		output["parent_ticket"] = r.ParentTicket
+	}
+
+	if r.WorktreePath != "" {
+		output["worktree_path"] = r.WorktreePath
+	}
+
+	if r.Mode == "by_id" && r.Branch != "" {
+		output["branch"] = r.Branch
+	}
+
+	if r.CloseReason != "" {
+		output["close_reason"] = r.CloseReason
+	}
+
+	return output
+}
+
+// RestoreTicketResult represents the result of restoring a ticket symlink
+type RestoreTicketResult struct {
+	Ticket       *ticket.Ticket
+	SymlinkPath  string // Path to the symlink (usually "current-ticket.md")
+	TargetPath   string // Path the symlink points to
+	ParentTicket string // Parent ticket ID if available
+	WorktreePath string // Current working directory
+}
+
+// TextRepresentation returns human-readable format for restore result
+func (r *RestoreTicketResult) TextRepresentation() string {
+	return "✅ Current ticket symlink restored\n"
+}
+
+// StructuredData returns data for JSON serialization
+func (r *RestoreTicketResult) StructuredData() interface{} {
+	if r.Ticket == nil {
+		return nil
+	}
+
+	output := map[string]interface{}{
+		"success":          true,
+		"ticket_id":        r.Ticket.ID,
+		"status":           string(r.Ticket.Status()),
+		"symlink_restored": true,
+		"symlink_path":     r.SymlinkPath,
+		"target_path":      r.TargetPath,
+		"message":          "Current ticket symlink restored",
+	}
+
+	if r.WorktreePath != "" {
+		output["worktree_path"] = r.WorktreePath
+	}
+
+	if r.ParentTicket != "" {
+		output["parent_ticket"] = r.ParentTicket
+	}
+
+	return output
 }
