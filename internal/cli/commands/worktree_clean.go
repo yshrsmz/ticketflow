@@ -45,7 +45,8 @@ type worktreeCleanFlags struct {
 
 // normalize merges short and long form flags (short form takes precedence)
 func (f *worktreeCleanFlags) normalize() {
-	if f.formatShort != "" {
+	// Only use formatShort if it was explicitly set (not the default value)
+	if f.formatShort != "" && f.formatShort != FormatText {
 		f.format = f.formatShort
 	}
 }

@@ -51,7 +51,8 @@ func (f *newFlags) normalize() {
 	if f.parentShort != "" {
 		f.parent = f.parentShort
 	}
-	if f.formatShort != "" {
+	// Only use formatShort if it was explicitly set (not the default value)
+	if f.formatShort != "" && f.formatShort != FormatText {
 		f.format = f.formatShort
 	}
 }

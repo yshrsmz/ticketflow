@@ -54,8 +54,9 @@ func (f *cleanupFlags) normalize() {
 	// Use logical OR for boolean flags - true if either is set
 	f.force = f.force || f.forceShort
 
-	// For string flags, prefer non-empty value (short form if both set)
-	if f.formatShort != "" {
+	// For string flags, prefer non-empty non-default value (short form if both set)
+	// Only use formatShort if it was explicitly set (not the default value)
+	if f.formatShort != "" && f.formatShort != FormatText {
 		f.format = f.formatShort
 	}
 }
@@ -139,19 +140,7 @@ func (c *CleanupCommand) Execute(ctx context.Context, flags interface{}, args []
 
 // executeAutoCleanup handles the auto-cleanup mode (no ticket ID provided)
 func (c *CleanupCommand) executeAutoCleanup(ctx context.Context, app *cli.App, flags *cleanupFlags) error {
-	// Show dry-run statistics if requested
-	if flags.dryRun {
-		if err := app.CleanupStats(ctx); err != nil {
-			if flags.format == FormatJSON {
-				return outputAutoCleanupErrorJSON(app, err)
-			}
-			return err
-		}
-		app.StatusWriter.Println("\nDry-run mode: No changes will be made.")
-		return nil
-	}
-
-	// Perform auto-cleanup
+	// Perform auto-cleanup (or dry-run)
 	result, err := app.AutoCleanup(ctx, flags.dryRun)
 	if err != nil {
 		if flags.format == FormatJSON {

@@ -50,7 +50,8 @@ func (f *startFlags) normalize() {
 	if f.forceShort {
 		f.force = f.forceShort
 	}
-	if f.formatShort != "" {
+	// Only use formatShort if it was explicitly set (not the default value)
+	if f.formatShort != "" && f.formatShort != FormatText {
 		f.format = f.formatShort
 	}
 }
