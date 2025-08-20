@@ -38,14 +38,15 @@ func ExtractParentID(t *ticket.Ticket) string {
 	return ""
 }
 
-// FormatDuration formats a duration as human-readable string (e.g., "2h30m").
+// FormatDuration formats a duration as human-readable string (e.g., "2h 30m").
 // Returns empty string for zero or negative durations.
 // The format is always "Xh Ym" where X is hours and Y is minutes (0-59).
+// Note: This uses space-separated format for better readability.
 func FormatDuration(d time.Duration) string {
 	if d <= 0 {
 		return ""
 	}
 	hours := int(d.Hours())
 	minutes := int(d.Minutes()) % 60
-	return fmt.Sprintf("%dh%dm", hours, minutes)
+	return fmt.Sprintf("%dh %dm", hours, minutes)
 }
