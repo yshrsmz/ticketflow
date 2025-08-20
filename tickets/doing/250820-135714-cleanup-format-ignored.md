@@ -63,5 +63,24 @@ Verified that all the following now work correctly:
 - `ticketflow cleanup -o json` - outputs JSON (unchanged) ✅
 - Other affected commands with `--format json` - all fixed ✅
 
+## Additional Fixes Implemented
+
+### 1. Systemic Error Formatting Issue
+All commands were failing to output errors in JSON format when `--format json` was specified. Fixed by:
+- Adding `cli.SetGlobalOutputFormat(outputFormat)` call in all commands after parsing the format flag
+- Fixed generic error formatting in `errors.go` to respect JSON output mode
+- Now errors are properly formatted as JSON when requested
+
+### 2. Version Command JSON Support
+Added JSON format support to the `version` command:
+- Added `--format` flag accepting `text` or `json`
+- JSON output includes version, git_commit, and build_time fields
+- Updated tests to reflect the new flag
+
 ## Notes
-This was a systemic issue affecting 6 commands that had both `--format` and `-o` flags with the buggy normalize function. The fix ensures that the short form flag only takes precedence when explicitly set by the user, not when it just has the default value.
+This ticket addressed multiple related JSON formatting issues:
+1. The original bug where `--format json` was ignored due to incorrect normalize() logic
+2. The systemic error formatting issue where errors weren't output in JSON
+3. Added JSON support to the version command for consistency
+
+All these issues were related to JSON output formatting and have been fixed together to ensure consistent behavior across all commands.
