@@ -36,10 +36,10 @@ func TestNewCommand_SetupFlags(t *testing.T) {
 	assert.NotNil(t, flags)
 	newFlags, ok := flags.(*newFlags)
 	assert.True(t, ok)
-	assert.Equal(t, "", newFlags.parent)          // Default empty
-	assert.Equal(t, "", newFlags.parentShort)     // Default empty
-	assert.Equal(t, "text", newFlags.format)      // Default value
-	assert.Equal(t, "", newFlags.formatShort)     // Default empty (not provided)
+	assert.Equal(t, "", newFlags.parent)      // Default empty
+	assert.Equal(t, "", newFlags.parentShort) // Default empty
+	assert.Equal(t, "text", newFlags.format)  // Default value
+	assert.Equal(t, "", newFlags.formatShort) // Default empty (not provided)
 
 	// Test that long form flags are registered
 	parentFlag := fs.Lookup("parent")
