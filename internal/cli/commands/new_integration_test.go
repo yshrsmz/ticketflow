@@ -364,7 +364,7 @@ func TestNewCommand_Execute_ContextCancellation(t *testing.T) {
 
 	// Execute command with cancelled context
 	cmd := NewNewCommand()
-	newFlags := &newFlags{format: "text"}
+	newFlags := &newFlags{format: StringFlag{Long: "text"}}
 	err = cmd.Execute(ctx, newFlags, []string{"test-ticket"})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "context canceled")

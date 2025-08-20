@@ -46,51 +46,51 @@ func TestCleanupCommand_Validate(t *testing.T) {
 	}{
 		{
 			name:    "valid auto-cleanup no arguments",
-			flags:   &cleanupFlags{format: "text"},
+			flags:   &cleanupFlags{format: StringFlag{Long: "text"}},
 			args:    []string{},
 			wantErr: false,
 		},
 		{
 			name:    "valid ticket cleanup with ID",
-			flags:   &cleanupFlags{format: "text"},
+			flags:   &cleanupFlags{format: StringFlag{Long: "text"}},
 			args:    []string{"ticket-123"},
 			wantErr: false,
 		},
 		{
 			name:    "valid with dry-run flag",
-			flags:   &cleanupFlags{dryRun: true, format: "text"},
+			flags:   &cleanupFlags{dryRun: true, format: StringFlag{Long: "text"}},
 			args:    []string{},
 			wantErr: false,
 		},
 		{
 			name:    "valid with force flag",
-			flags:   &cleanupFlags{force: true, format: "text"},
+			flags:   &cleanupFlags{force: BoolFlag{Long: true}, format: StringFlag{Long: "text"}},
 			args:    []string{"ticket-123"},
 			wantErr: false,
 		},
 		{
 			name:    "valid with json format",
-			flags:   &cleanupFlags{format: "json"},
+			flags:   &cleanupFlags{format: StringFlag{Long: "json"}},
 			args:    []string{},
 			wantErr: false,
 		},
 		{
 			name:        "invalid format",
-			flags:       &cleanupFlags{format: "yaml"},
+			flags:       &cleanupFlags{format: StringFlag{Long: "yaml"}},
 			args:        []string{},
 			wantErr:     true,
 			errContains: "invalid format",
 		},
 		{
 			name:        "dry-run with ticket ID not allowed",
-			flags:       &cleanupFlags{dryRun: true, format: "text"},
+			flags:       &cleanupFlags{dryRun: true, format: StringFlag{Long: "text"}},
 			args:        []string{"ticket-123"},
 			wantErr:     true,
 			errContains: "--dry-run cannot be used when cleaning up a specific ticket",
 		},
 		{
 			name:        "too many arguments",
-			flags:       &cleanupFlags{format: "text"},
+			flags:       &cleanupFlags{format: StringFlag{Long: "text"}},
 			args:        []string{"ticket-123", "extra"},
 			wantErr:     true,
 			errContains: "unexpected arguments after ticket ID",
@@ -101,18 +101,6 @@ func TestCleanupCommand_Validate(t *testing.T) {
 			args:        []string{},
 			wantErr:     true,
 			errContains: "invalid flags type",
-		},
-		{
-			name:    "force short form takes precedence",
-			flags:   &cleanupFlags{force: false, forceShort: true, format: "text"},
-			args:    []string{"ticket-123"},
-			wantErr: false,
-		},
-		{
-			name:    "format short form takes precedence",
-			flags:   &cleanupFlags{format: "text", formatShort: "json"},
-			args:    []string{},
-			wantErr: false,
 		},
 	}
 
@@ -129,100 +117,15 @@ func TestCleanupCommand_Validate(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 
-				// Verify args were stored and flags normalized if valid
+				// Verify args were stored if valid
 				if f, ok := tt.flags.(*cleanupFlags); ok {
 					assert.Equal(t, tt.args, f.args)
-					// Check normalization worked
-					if tt.name == "force short form takes precedence" {
-						assert.True(t, f.force)
-					}
-					if tt.name == "format short form takes precedence" {
-						assert.Equal(t, "json", f.format)
-					}
 				}
 			}
 		})
 	}
 }
 
-func TestCleanupFlags_Normalize(t *testing.T) {
-	tests := []struct {
-		name     string
-		flags    *cleanupFlags
-		expected *cleanupFlags
-	}{
-		{
-			name: "no short forms",
-			flags: &cleanupFlags{
-				force:  true,
-				format: "json",
-			},
-			expected: &cleanupFlags{
-				force:  true,
-				format: "json",
-			},
-		},
-		{
-			name: "force short form overrides via OR",
-			flags: &cleanupFlags{
-				force:      false,
-				forceShort: true,
-				format:     "text",
-			},
-			expected: &cleanupFlags{
-				force:      true,
-				forceShort: true,
-				format:     "text",
-			},
-		},
-		{
-			name: "format short form overrides",
-			flags: &cleanupFlags{
-				format:      "text",
-				formatShort: "json",
-			},
-			expected: &cleanupFlags{
-				format:      "json",
-				formatShort: "json",
-			},
-		},
-		{
-			name: "both short forms override",
-			flags: &cleanupFlags{
-				force:       false,
-				forceShort:  true,
-				format:      "text",
-				formatShort: "json",
-			},
-			expected: &cleanupFlags{
-				force:       true,
-				forceShort:  true,
-				format:      "json",
-				formatShort: "json",
-			},
-		},
-		{
-			name: "both force flags true",
-			flags: &cleanupFlags{
-				force:      true,
-				forceShort: true,
-				format:     "text",
-			},
-			expected: &cleanupFlags{
-				force:      true,
-				forceShort: true,
-				format:     "text",
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			tt.flags.normalize()
-			assert.Equal(t, tt.expected, tt.flags)
-		})
-	}
-}
 
 func TestCleanupCommand_Execute_Errors(t *testing.T) {
 	tests := []struct {
@@ -239,7 +142,7 @@ func TestCleanupCommand_Execute_Errors(t *testing.T) {
 				cancel()
 				return ctx
 			},
-			flags:       &cleanupFlags{format: "text"},
+			flags:       &cleanupFlags{format: StringFlag{Long: "text"}},
 			args:        []string{},
 			errContains: "context canceled",
 		},

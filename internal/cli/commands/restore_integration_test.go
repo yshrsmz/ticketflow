@@ -321,7 +321,7 @@ func TestRestoreCommand_Execute_ContextCancellation(t *testing.T) {
 
 	// Execute command with cancelled context
 	cmd := NewRestoreCommand()
-	restoreFlags := &restoreFlags{format: "text"}
+	restoreFlags := &restoreFlags{format: StringFlag{Long: "text"}}
 	err = cmd.Execute(ctx, restoreFlags, []string{})
 	require.Error(t, err)
 	// With early context check, we return context.Canceled immediately

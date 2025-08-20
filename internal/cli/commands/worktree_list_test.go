@@ -62,7 +62,7 @@ func TestWorktreeListCommand_Validate(t *testing.T) {
 		},
 		{
 			name:        "invalid format",
-			flags:       &worktreeListFlags{format: "yaml"},
+			flags:       &worktreeListFlags{format: StringFlag{Long: "yaml"}},
 			args:        []string{},
 			wantErr:     true,
 			errContains: "invalid format",

@@ -39,32 +39,15 @@ func (c *StartCommand) Usage() string {
 
 // startFlags holds the flags for the start command
 type startFlags struct {
-	force       bool
-	forceShort  bool
-	format      string
-	formatShort string
-}
-
-// normalize merges short and long form flags (short form takes precedence)
-func (f *startFlags) normalize() {
-	if f.forceShort {
-		f.force = f.forceShort
-	}
-	// Only use formatShort if it was explicitly set (not empty)
-	if f.formatShort != "" {
-		f.format = f.formatShort
-	}
+	force  BoolFlag
+	format StringFlag
 }
 
 // SetupFlags configures flags for the command
 func (c *StartCommand) SetupFlags(fs *flag.FlagSet) interface{} {
 	flags := &startFlags{}
-	// Long forms
-	fs.BoolVar(&flags.force, "force", false, "Force recreate worktree if it already exists")
-	fs.StringVar(&flags.format, "format", FormatText, "Output format (text|json)")
-	// Short forms
-	fs.BoolVar(&flags.forceShort, "f", false, "Force recreate worktree (short form)")
-	fs.StringVar(&flags.formatShort, "o", "", "Output format (short form)")
+	RegisterBool(fs, &flags.force, "force", "f", "Force recreate worktree if it already exists")
+	RegisterString(fs, &flags.format, "format", "o", FormatText, "Output format (text|json)")
 	return flags
 }
 
@@ -86,12 +69,10 @@ func (c *StartCommand) Validate(flags interface{}, args []string) error {
 		return fmt.Errorf("invalid flags type: expected *startFlags, got %T", flags)
 	}
 
-	// Merge short and long forms (short form takes precedence if both provided)
-	f.normalize()
-
-	// Validate format flag
-	if f.format != FormatText && f.format != FormatJSON {
-		return fmt.Errorf("invalid format: %q (must be %q or %q)", f.format, FormatText, FormatJSON)
+	// Validate format flag using resolved value
+	format := f.format.Value()
+	if format != FormatText && format != FormatJSON {
+		return fmt.Errorf("invalid format: %q (must be %q or %q)", format, FormatText, FormatJSON)
 	}
 
 	return nil
@@ -119,8 +100,12 @@ func (c *StartCommand) Execute(ctx context.Context, flags interface{}, args []st
 		return fmt.Errorf("missing ticket argument")
 	}
 
+	// Get resolved values
+	format := f.format.Value()
+	force := f.force.Value()
+
 	// Parse output format first
-	outputFormat := cli.ParseOutputFormat(f.format)
+	outputFormat := cli.ParseOutputFormat(format)
 	cli.SetGlobalOutputFormat(outputFormat) // Ensure errors are formatted correctly
 
 	// Create App instance with format
@@ -133,7 +118,7 @@ func (c *StartCommand) Execute(ctx context.Context, flags interface{}, args []st
 	ticketID := args[0]
 
 	// Use the existing StartTicket method from App which handles all the business logic
-	result, err := app.StartTicket(ctx, ticketID, f.force)
+	result, err := app.StartTicket(ctx, ticketID, force)
 	if err != nil {
 		return err
 	}

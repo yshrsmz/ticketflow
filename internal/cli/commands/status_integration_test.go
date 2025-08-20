@@ -24,7 +24,7 @@ func TestStatusCommand_Execute_TextOutput_Integration(t *testing.T) {
 	env.WithWorkingDirectory(t, func() {
 		cmd := NewStatusCommand()
 		ctx := context.Background()
-		flags := &statusFlags{format: "text"}
+		flags := &statusFlags{format: StringFlag{Long: "text"}}
 
 		err := cmd.Execute(ctx, flags, []string{})
 		require.NoError(t, err)
@@ -46,7 +46,7 @@ func TestStatusCommand_Execute_JSONOutput_Integration(t *testing.T) {
 		env.WithWorkingDirectory(t, func() {
 			cmd := NewStatusCommand()
 			ctx := context.Background()
-			flags := &statusFlags{format: "json"}
+			flags := &statusFlags{format: StringFlag{Long: "json"}}
 
 			err := cmd.Execute(ctx, flags, []string{})
 			require.NoError(t, err)
@@ -81,7 +81,7 @@ func TestStatusCommand_Execute_NoCurrentTicket_Integration(t *testing.T) {
 	env.WithWorkingDirectory(t, func() {
 		cmd := NewStatusCommand()
 		ctx := context.Background()
-		flags := &statusFlags{format: "text"}
+		flags := &statusFlags{format: StringFlag{Long: "text"}}
 
 		// Status command succeeds but shows warning for no active ticket
 		err := cmd.Execute(ctx, flags, []string{})
@@ -99,7 +99,7 @@ func TestStatusCommand_Execute_CancelledContext_Integration(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel() // Cancel immediately
 
-		flags := &statusFlags{format: "text"}
+		flags := &statusFlags{format: StringFlag{Long: "text"}}
 
 		err := cmd.Execute(ctx, flags, []string{})
 		require.Error(t, err)

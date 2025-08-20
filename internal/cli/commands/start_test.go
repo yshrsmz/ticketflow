@@ -71,7 +71,7 @@ func TestStartCommand_Validate(t *testing.T) {
 		{
 			name: "valid with ticket ID",
 			flags: &startFlags{
-				format: "text",
+				format: StringFlag{Long: "text"},
 			},
 			args:          []string{"250813-123456-test"},
 			expectedError: "",
@@ -80,7 +80,7 @@ func TestStartCommand_Validate(t *testing.T) {
 			name: "valid with force flag",
 			flags: &startFlags{
 				force:  true,
-				format: "text",
+				format: StringFlag{Long: "text"},
 			},
 			args:          []string{"250813-123456-test"},
 			expectedError: "",
@@ -88,7 +88,7 @@ func TestStartCommand_Validate(t *testing.T) {
 		{
 			name: "valid with json format",
 			flags: &startFlags{
-				format: "json",
+				format: StringFlag{Long: "json"},
 			},
 			args:          []string{"250813-123456-test"},
 			expectedError: "",
@@ -112,7 +112,7 @@ func TestStartCommand_Validate(t *testing.T) {
 		{
 			name: "too many arguments",
 			flags: &startFlags{
-				format: "text",
+				format: StringFlag{Long: "text"},
 			},
 			args:          []string{"ticket1", "ticket2"},
 			expectedError: "unexpected arguments after ticket ID: [ticket2]",
@@ -120,7 +120,7 @@ func TestStartCommand_Validate(t *testing.T) {
 		{
 			name: "invalid format",
 			flags: &startFlags{
-				format: "yaml",
+				format: StringFlag{Long: "yaml"},
 			},
 			args:          []string{"250813-123456-test"},
 			expectedError: "invalid format: \"yaml\"",
@@ -172,7 +172,7 @@ func TestStartCommand_Execute(t *testing.T) {
 			name: "successful start with text format",
 			flags: &startFlags{
 				force:  false,
-				format: "text",
+				format: StringFlag{Long: "text"},
 			},
 			args: []string{"250813-123456-test"},
 			mockStartFunc: func(ctx context.Context, ticketID string, force bool, format cli.OutputFormat) error {
@@ -187,7 +187,7 @@ func TestStartCommand_Execute(t *testing.T) {
 			name: "successful start with json format",
 			flags: &startFlags{
 				force:  false,
-				format: "json",
+				format: StringFlag{Long: "json"},
 			},
 			args: []string{"250813-123456-test"},
 			mockStartFunc: func(ctx context.Context, ticketID string, force bool, format cli.OutputFormat) error {
@@ -202,7 +202,7 @@ func TestStartCommand_Execute(t *testing.T) {
 			name: "successful start with force",
 			flags: &startFlags{
 				force:  true,
-				format: "text",
+				format: StringFlag{Long: "text"},
 			},
 			args: []string{"250813-123456-test"},
 			mockStartFunc: func(ctx context.Context, ticketID string, force bool, format cli.OutputFormat) error {
@@ -217,7 +217,7 @@ func TestStartCommand_Execute(t *testing.T) {
 			name: "error from StartTicket",
 			flags: &startFlags{
 				force:  false,
-				format: "text",
+				format: StringFlag{Long: "text"},
 			},
 			args: []string{"250813-123456-test"},
 			mockStartFunc: func(ctx context.Context, ticketID string, force bool, format cli.OutputFormat) error {
@@ -235,7 +235,7 @@ func TestStartCommand_Execute(t *testing.T) {
 			name: "context cancelled",
 			flags: &startFlags{
 				force:  false,
-				format: "text",
+				format: StringFlag{Long: "text"},
 			},
 			args:          []string{"250813-123456-test"},
 			expectedError: "context canceled",
@@ -245,7 +245,7 @@ func TestStartCommand_Execute(t *testing.T) {
 			name: "app creation error",
 			flags: &startFlags{
 				force:  false,
-				format: "text",
+				format: StringFlag{Long: "text"},
 			},
 			args:          []string{"250813-123456-test"},
 			appError:      errors.New("failed to create app"),
@@ -294,7 +294,7 @@ func TestStartFlags_Normalize(t *testing.T) {
 			name: "no short forms",
 			initial: startFlags{
 				force:  false,
-				format: "text",
+				format: StringFlag{Long: "text"},
 			},
 			expectedForce:  false,
 			expectedFormat: "text",

@@ -102,17 +102,17 @@ func TestStatusCommand_Validate(t *testing.T) {
 		},
 		{
 			name:      "invalid format",
-			flags:     &statusFlags{format: "xml"},
+			flags:     &statusFlags{format: StringFlag{Long: "xml"}},
 			args:      []string{},
 			wantError: true,
-			errorMsg:  `invalid format: "xml" (must be 'text' or 'json')`,
+			errorMsg:  `invalid format: StringFlag{Long: "xml"} (must be 'text' or 'json')`,
 		},
 		{
 			name:      "empty format defaults to text",
-			flags:     &statusFlags{format: ""},
+			flags:     &statusFlags{format: StringFlag{Long: ""}},
 			args:      []string{},
 			wantError: true,
-			errorMsg:  `invalid format: "" (must be 'text' or 'json')`,
+			errorMsg:  `invalid format: StringFlag{Long: ""} (must be 'text' or 'json')`,
 		},
 		{
 			name:      "with unexpected arguments but valid format",

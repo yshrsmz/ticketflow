@@ -250,7 +250,7 @@ func TestShowCommand_Execute_ContextCancellation(t *testing.T) {
 
 	// Execute command with cancelled context
 	cmd := NewShowCommand()
-	showFlags := &showFlags{format: "text"}
+	showFlags := &showFlags{format: StringFlag{Long: "text"}}
 	err = cmd.Execute(ctx, showFlags, []string{"test-ticket"})
 	require.Error(t, err)
 	// With early context check, we return context.Canceled immediately

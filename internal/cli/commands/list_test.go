@@ -185,10 +185,10 @@ func TestListCommand_Validate(t *testing.T) {
 		},
 		{
 			name:      "invalid format",
-			flags:     &listFlags{status: "", statusShort: "", count: 20, countShort: 20, format: "xml"},
+			flags:     &listFlags{status: "", statusShort: "", count: 20, countShort: 20, format: StringFlag{Long: "xml"}},
 			args:      []string{},
 			wantError: true,
-			errorMsg:  `invalid format: "xml" (must be 'text' or 'json')`,
+			errorMsg:  `invalid format: StringFlag{Long: "xml"} (must be 'text' or 'json')`,
 		},
 		{
 			name:      "json format",

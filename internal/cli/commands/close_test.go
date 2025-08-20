@@ -109,7 +109,7 @@ func TestCloseCommand_Validate(t *testing.T) {
 		{
 			name: "invalid format",
 			flags: &closeFlags{
-				format: "invalid",
+				format: StringFlag{Long: "invalid"},
 			},
 			args:        []string{},
 			expectError: true,

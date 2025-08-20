@@ -54,35 +54,18 @@ func (c *CloseCommand) Usage() string {
 
 // closeFlags holds the flags for the close command
 type closeFlags struct {
-	force       bool
-	forceShort  bool
-	reason      string
-	format      string
-	formatShort string
-	args        []string // Store validated arguments
-}
-
-// normalize merges short and long form flags (short form takes precedence)
-func (f *closeFlags) normalize() {
-	// Use logical OR for boolean flags
-	f.force = f.force || f.forceShort
-
-	// Only use formatShort if it was explicitly set (not empty)
-	if f.formatShort != "" {
-		f.format = f.formatShort
-	}
+	force  BoolFlag
+	reason string
+	format StringFlag
+	args   []string // Store validated arguments
 }
 
 // SetupFlags configures flags for the command
 func (c *CloseCommand) SetupFlags(fs *flag.FlagSet) interface{} {
 	flags := &closeFlags{}
-	// Long forms
-	fs.BoolVar(&flags.force, "force", false, "Force close even with uncommitted changes")
+	RegisterBool(fs, &flags.force, "force", "f", "Force close even with uncommitted changes")
 	fs.StringVar(&flags.reason, "reason", "", "Reason for closing the ticket")
-	fs.StringVar(&flags.format, "format", FormatText, "Output format (text|json)")
-	// Short forms
-	fs.BoolVar(&flags.forceShort, "f", false, "Force close (short form)")
-	fs.StringVar(&flags.formatShort, "o", "", "Output format (short form)")
+	RegisterString(fs, &flags.format, "format", "o", FormatText, "Output format (text|json)")
 	return flags
 }
 
@@ -102,12 +85,10 @@ func (c *CloseCommand) Validate(flags interface{}, args []string) error {
 	// Store arguments for Execute method
 	f.args = args
 
-	// Merge short and long forms (short form takes precedence if both provided)
-	f.normalize()
-
-	// Validate format flag
-	if f.format != FormatText && f.format != FormatJSON {
-		return fmt.Errorf("invalid format: %q (must be %q or %q)", f.format, FormatText, FormatJSON)
+	// Validate format flag using resolved value
+	format := f.format.Value()
+	if format != FormatText && format != FormatJSON {
+		return fmt.Errorf("invalid format: %q (must be %q or %q)", format, FormatText, FormatJSON)
 	}
 
 	return nil
@@ -128,8 +109,12 @@ func (c *CloseCommand) Execute(ctx context.Context, flags interface{}, args []st
 		return fmt.Errorf("invalid flags type: expected *closeFlags, got %T", flags)
 	}
 
+	// Get resolved values
+	format := f.format.Value()
+	force := f.force.Value()
+
 	// Parse output format first
-	outputFormat := cli.ParseOutputFormat(f.format)
+	outputFormat := cli.ParseOutputFormat(format)
 	cli.SetGlobalOutputFormat(outputFormat) // Ensure errors are formatted correctly
 
 	// Create App instance with format
@@ -149,16 +134,16 @@ func (c *CloseCommand) Execute(ctx context.Context, flags interface{}, args []st
 		// No ticket ID provided - close current ticket
 		mode = "current"
 		if f.reason != "" {
-			closedTicket, closeErr = app.CloseTicketWithReason(ctx, f.reason, f.force)
+			closedTicket, closeErr = app.CloseTicketWithReason(ctx, f.reason, force)
 		} else {
-			closedTicket, closeErr = app.CloseTicket(ctx, f.force)
+			closedTicket, closeErr = app.CloseTicket(ctx, force)
 		}
 	} else {
 		// Ticket ID provided - close specific ticket
 		mode = "by_id"
 		ticketID = f.args[0]
 		branch = ticketID // Branch name is usually the ticket ID
-		closedTicket, closeErr = app.CloseTicketByID(ctx, ticketID, f.reason, f.force)
+		closedTicket, closeErr = app.CloseTicketByID(ctx, ticketID, f.reason, force)
 	}
 
 	// Handle errors
@@ -201,7 +186,7 @@ func (c *CloseCommand) Execute(ctx context.Context, flags interface{}, args []st
 	result := &cli.CloseTicketResult{
 		Ticket:        closedTicket,
 		Mode:          mode,
-		ForceUsed:     f.force,
+		ForceUsed:     force,
 		CommitCreated: true, // App methods always create commits on success
 		CloseReason:   f.reason,
 		Duration:      duration,

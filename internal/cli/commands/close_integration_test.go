@@ -237,7 +237,7 @@ func TestCloseCommand_Execute_WithWorktree(t *testing.T) {
 	// Execute close command
 	cmd := NewCloseCommand()
 	closeFlags := &closeFlags{
-		format: "text",
+		format: StringFlag{Long: "text"},
 		args:   []string{},
 	}
 
@@ -269,7 +269,7 @@ func TestCloseCommand_Execute_ContextCancellation(t *testing.T) {
 	// Execute command with cancelled context
 	cmd := NewCloseCommand()
 	closeFlags := &closeFlags{
-		format: "text",
+		format: StringFlag{Long: "text"},
 		args:   []string{},
 	}
 

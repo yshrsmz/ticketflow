@@ -70,32 +70,32 @@ func TestNewCommand_Validate(t *testing.T) {
 	}{
 		{
 			name:      "valid with slug only",
-			flags:     &newFlags{format: "text"},
+			flags:     &newFlags{format: StringFlag{Long: "text"}},
 			args:      []string{"my-new-ticket"},
 			expectErr: false,
 		},
 		{
 			name:      "valid with slug and parent",
-			flags:     &newFlags{parent: "parent-123", format: "text"},
+			flags:     &newFlags{parent: "parent-123", format: StringFlag{Long: "text"}},
 			args:      []string{"my-new-ticket"},
 			expectErr: false,
 		},
 		{
 			name:      "valid with slug and short parent",
-			flags:     &newFlags{parentShort: "parent-456", format: "text"},
+			flags:     &newFlags{parentShort: "parent-456", format: StringFlag{Long: "text"}},
 			args:      []string{"my-new-ticket"},
 			expectErr: false,
 		},
 		{
 			name:      "short parent takes precedence",
-			flags:     &newFlags{parent: "parent-123", parentShort: "parent-456", format: "text"},
+			flags:     &newFlags{parent: "parent-123", parentShort: "parent-456", format: StringFlag{Long: "text"}},
 			args:      []string{"my-new-ticket"},
 			expectErr: false,
 			// After validation, parent should be "parent-456"
 		},
 		{
 			name:      "valid with json format",
-			flags:     &newFlags{format: "json"},
+			flags:     &newFlags{format: StringFlag{Long: "json"}},
 			args:      []string{"my-new-ticket"},
 			expectErr: false,
 		},
@@ -107,38 +107,38 @@ func TestNewCommand_Validate(t *testing.T) {
 		},
 		{
 			name:      "short format takes precedence",
-			flags:     &newFlags{format: "text", formatShort: "json"},
+			flags:     &newFlags{format: StringFlag{Long: "text"}, formatShort: "json"},
 			args:      []string{"my-new-ticket"},
 			expectErr: false,
 			// After validation, format should be "json"
 		},
 		{
 			name:      "short format text overrides long format json",
-			flags:     &newFlags{format: "json", formatShort: "text"},
+			flags:     &newFlags{format: StringFlag{Long: "json"}, formatShort: "text"},
 			args:      []string{"my-new-ticket"},
 			expectErr: false,
 			// After validation, format should be "text" (short form takes precedence)
 		},
 		{
 			name:      "missing slug",
-			flags:     &newFlags{format: "text"},
+			flags:     &newFlags{format: StringFlag{Long: "text"}},
 			args:      []string{},
 			expectErr: true,
 			errMsg:    "missing slug argument",
 		},
 		{
 			name:      "too many arguments",
-			flags:     &newFlags{format: "text"},
+			flags:     &newFlags{format: StringFlag{Long: "text"}},
 			args:      []string{"slug1", "slug2", "slug3"},
 			expectErr: true,
 			errMsg:    `unexpected arguments after slug: [slug2 slug3]`,
 		},
 		{
 			name:      "invalid format",
-			flags:     &newFlags{format: "yaml"},
+			flags:     &newFlags{format: StringFlag{Long: "yaml"}},
 			args:      []string{"my-ticket"},
 			expectErr: true,
-			errMsg:    `invalid format: "yaml" (must be "text" or "json")`,
+			errMsg:    `invalid format: StringFlag{Long: "yaml"} (must be "text" or "json")`,
 		},
 		{
 			name:      "invalid flags type",
@@ -149,13 +149,13 @@ func TestNewCommand_Validate(t *testing.T) {
 		},
 		{
 			name:      "slug with numbers",
-			flags:     &newFlags{format: "text"},
+			flags:     &newFlags{format: StringFlag{Long: "text"}},
 			args:      []string{"ticket-123"},
 			expectErr: false,
 		},
 		{
 			name:      "slug with hyphens",
-			flags:     &newFlags{format: "text"},
+			flags:     &newFlags{format: StringFlag{Long: "text"}},
 			args:      []string{"my-feature-ticket"},
 			expectErr: false,
 		},

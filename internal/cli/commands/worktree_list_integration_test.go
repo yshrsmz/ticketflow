@@ -260,7 +260,7 @@ func TestWorktreeListCommand_Execute_ContextCancellation(t *testing.T) {
 
 		// Execute command with cancelled context
 		cmd := NewWorktreeListCommand()
-		listFlags := &worktreeListFlags{format: "text"}
+		listFlags := &worktreeListFlags{format: StringFlag{Long: "text"}}
 		err := cmd.Execute(ctx, listFlags, []string{})
 		require.Error(t, err)
 		// With early context check, we return context.Canceled immediately

@@ -40,32 +40,18 @@ func (c *NewCommand) Usage() string {
 
 // newFlags holds the flags for the new command
 type newFlags struct {
-	parent      string
-	parentShort string
-	format      string
-	formatShort string
+	parent StringFlag
+	format StringFlag
 }
 
-// normalize merges short and long form flags (short form takes precedence)
-func (f *newFlags) normalize() {
-	if f.parentShort != "" {
-		f.parent = f.parentShort
-	}
-	// Only use formatShort if it was explicitly set (not empty)
-	if f.formatShort != "" {
-		f.format = f.formatShort
-	}
-}
+// normalize is no longer needed - flag utilities handle this automatically
 
 // SetupFlags configures flags for the command
 func (c *NewCommand) SetupFlags(fs *flag.FlagSet) interface{} {
 	flags := &newFlags{}
-	// Long forms
-	fs.StringVar(&flags.parent, "parent", "", "Parent ticket ID")
-	fs.StringVar(&flags.format, "format", FormatText, "Output format (text|json)")
-	// Short forms
-	fs.StringVar(&flags.parentShort, "p", "", "Parent ticket ID (short form)")
-	fs.StringVar(&flags.formatShort, "o", "", "Output format (short form)")
+	// Use the new registration helpers - they handle both long and short forms
+	RegisterString(fs, &flags.parent, "parent", "p", "", "Parent ticket ID")
+	RegisterString(fs, &flags.format, "format", "o", FormatText, "Output format (text|json)")
 	return flags
 }
 
@@ -87,12 +73,10 @@ func (c *NewCommand) Validate(flags interface{}, args []string) error {
 		return fmt.Errorf("invalid flags type: expected *newFlags, got %T", flags)
 	}
 
-	// Merge short and long forms (short form takes precedence if both provided)
-	f.normalize()
-
-	// Validate format flag
-	if f.format != FormatText && f.format != FormatJSON {
-		return fmt.Errorf("invalid format: %q (must be %q or %q)", f.format, FormatText, FormatJSON)
+	// Validate format flag using resolved value
+	format := f.format.Value()
+	if format != FormatText && format != FormatJSON {
+		return fmt.Errorf("invalid format: %q (must be %q or %q)", format, FormatText, FormatJSON)
 	}
 
 	return nil
@@ -113,8 +97,12 @@ func (c *NewCommand) Execute(ctx context.Context, flags interface{}, args []stri
 		return fmt.Errorf("invalid flags type: expected *newFlags, got %T", flags)
 	}
 
+	// Get resolved flag values
+	format := f.format.Value()
+	parent := f.parent.Value()
+
 	// Parse output format first
-	outputFormat := cli.ParseOutputFormat(f.format)
+	outputFormat := cli.ParseOutputFormat(format)
 	cli.SetGlobalOutputFormat(outputFormat) // Ensure errors are formatted correctly
 
 	// Create App instance with format
@@ -127,7 +115,7 @@ func (c *NewCommand) Execute(ctx context.Context, flags interface{}, args []stri
 	slug := args[0]
 
 	// Use the existing NewTicket method from App which handles all the business logic
-	ticket, err := app.NewTicket(ctx, slug, f.parent)
+	ticket, err := app.NewTicket(ctx, slug, parent)
 	if err != nil {
 		return err
 	}
@@ -142,7 +130,7 @@ func (c *NewCommand) Execute(ctx context.Context, flags interface{}, args []stri
 	}
 	// Fall back to explicit parent if not in Related field
 	if parentTicketID == "" {
-		parentTicketID = f.parent
+		parentTicketID = parent
 	}
 
 	// Create the result and use PrintResult

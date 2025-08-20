@@ -112,11 +112,11 @@ func TestRestoreCommand_Validate(t *testing.T) {
 		{
 			name: "invalid format",
 			flags: &restoreFlags{
-				format: "invalid",
+				format: StringFlag{Long: "invalid"},
 			},
 			args:        []string{},
 			expectError: true,
-			errorMsg:    `invalid format: "invalid" (must be "text" or "json")`,
+			errorMsg:    `invalid format: StringFlag{Long: "invalid"} (must be "text" or "json")`,
 		},
 		{
 			name: "format normalization - prefer short form",

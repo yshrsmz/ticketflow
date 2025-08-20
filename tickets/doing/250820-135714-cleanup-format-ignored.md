@@ -46,6 +46,8 @@ Commands without the issue (no `-o` short form):
 - `list`, `show`, `status` - Not affected
 
 ## Tasks
+
+### Phase 1: Bug Investigation & Quick Fix ✅
 - [x] Investigate cleanup command implementation in `internal/cli/commands/cleanup.go`
 - [x] Identify the normalize function bug causing --format to be ignored
 - [x] Fix normalize logic in cleanup and all affected commands (6 commands total)
@@ -53,10 +55,28 @@ Commands without the issue (no `-o` short form):
 - [x] Test dry-run mode with JSON format
 - [x] Fix systemic error formatting issue (all commands)
 - [x] Add JSON format support to version command
+
+### Phase 2: Common Flag Utilities ✅
+- [x] Design common flag handling solution
+- [x] Implement StringFlag and BoolFlag types in `flag_utils.go`
+- [x] Add RegisterString() and RegisterBool() helper functions
+- [x] Create comprehensive test coverage for flag utilities
+- [x] Address golang-pro review feedback on utilities
+
+### Phase 3: Full Refactoring ✅
+- [x] Refactor `new.go` to use flag utilities
+- [x] Refactor `cleanup.go` to use flag utilities
+- [x] Refactor `close.go` to use flag utilities  
+- [x] Refactor `start.go` to use flag utilities
+- [x] Refactor `restore.go` to use flag utilities
+- [x] Refactor `worktree_clean.go` to use flag utilities
+- [x] Update all command tests for new implementation
+- [x] Remove all old normalize() functions
+- [x] Verify all commands work correctly
+
+### Phase 4: Final Steps
 - [x] Run `make test` to run the tests
 - [x] Run `make vet`, `make fmt` and `make lint`
-- [x] Address code review feedback from golang-pro agent
-- [x] Update the ticket with root cause and solution
 - [x] Create PR #82 for review
 - [ ] Get developer approval before closing
 
@@ -115,9 +135,36 @@ Created PR #82: https://github.com/yshrsmz/ticketflow/pull/82
 - ✅ Copilot review approved
 - Ready for developer review
 
-## Proposed Long-term Solution: Common Flag Handling
+## Refactoring Design: Common Flag Handling
 
-The current flag handling approach is error-prone. Here's a better solution:
+### Architecture Overview
+The refactoring introduces a centralized flag handling system that eliminates manual normalization and reduces code duplication across all commands.
+
+### Core Components
+
+#### 1. StringFlag Type
+```go
+type StringFlag struct {
+    Long      string  // Long form value (--format)
+    Short     string  // Short form value (-o)
+    shortSet  bool    // Tracks if short was explicitly set
+}
+```
+
+#### 2. BoolFlag Type  
+```go
+type BoolFlag struct {
+    Long  bool  // Long form value (--force)
+    Short bool  // Short form value (-f)
+}
+```
+
+#### 3. Registration Functions
+- `RegisterString()` - Handles string flag pairs with precedence logic
+- `RegisterBool()` - Handles boolean flag pairs with OR logic
+
+### Refactoring Pattern
+Each command follows this transformation:
 
 ### Current Problems
 1. **Duplicate definitions**: Each flag pair needs 4 fields (`format`, `formatShort`, `parent`, `parentShort`)
