@@ -121,6 +121,7 @@ func (c *StartCommand) Execute(ctx context.Context, flags interface{}, args []st
 
 	// Parse output format first
 	outputFormat := cli.ParseOutputFormat(f.format)
+	cli.SetGlobalOutputFormat(outputFormat) // Ensure errors are formatted correctly
 
 	// Create App instance with format
 	app, err := getAppWithFormat(ctx, outputFormat)

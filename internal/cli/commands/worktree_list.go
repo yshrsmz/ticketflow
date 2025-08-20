@@ -98,6 +98,7 @@ func (c *WorktreeListCommand) Execute(ctx context.Context, flags interface{}, ar
 	}
 
 	outputFormat := cli.ParseOutputFormat(format)
+	cli.SetGlobalOutputFormat(outputFormat) // Ensure errors are formatted correctly
 
 	// Create App instance with the correct format from the start
 	app, err := cli.NewAppWithFormat(ctx, outputFormat)

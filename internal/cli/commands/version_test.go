@@ -20,17 +20,23 @@ func TestVersionCommand(t *testing.T) {
 		assert.Equal(t, "version", cmd.Name())
 		assert.Equal(t, []string{"-v", "--version"}, cmd.Aliases())
 		assert.Equal(t, "Show version information", cmd.Description())
-		assert.Equal(t, "version", cmd.Usage())
+		assert.Equal(t, "version [--format text|json]", cmd.Usage())
 	})
 
-	t.Run("no flags", func(t *testing.T) {
+	t.Run("has format flag", func(t *testing.T) {
 		cmd := NewVersionCommand("1.2.3", "abc123", "2024-01-01")
 
 		fs := flag.NewFlagSet("test", flag.ContinueOnError)
 		flags := cmd.SetupFlags(fs)
 
-		assert.Nil(t, flags)
-		assert.Equal(t, 0, fs.NFlag())
+		assert.NotNil(t, flags)
+		// NFlag returns number of flags that have been set, not defined
+		// Since we just defined it, not set it, NFlag should be 0
+		
+		// Check that format flag exists
+		formatFlag := fs.Lookup("format")
+		assert.NotNil(t, formatFlag)
+		assert.Equal(t, "text", formatFlag.DefValue)
 	})
 
 	t.Run("validation always succeeds", func(t *testing.T) {

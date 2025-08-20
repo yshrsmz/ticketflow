@@ -123,6 +123,7 @@ func (c *CleanupCommand) Execute(ctx context.Context, flags interface{}, args []
 
 	// Get app instance with the correct output format from the start
 	outputFormat := cli.ParseOutputFormat(f.format)
+	cli.SetGlobalOutputFormat(outputFormat) // Ensure errors are formatted correctly
 	app, err := cli.NewAppWithFormat(ctx, outputFormat)
 	if err != nil {
 		return err

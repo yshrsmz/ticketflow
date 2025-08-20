@@ -80,6 +80,7 @@ func (c *StatusCommand) Execute(ctx context.Context, flags interface{}, args []s
 		return fmt.Errorf("invalid flags type: expected *statusFlags, got %T", flags)
 	}
 	outputFormat := cli.ParseOutputFormat(f.format)
+	cli.SetGlobalOutputFormat(outputFormat) // Ensure errors are formatted correctly
 
 	// Create App instance with the correct format from the start
 	app, err := cli.NewAppWithFormat(ctx, outputFormat)
