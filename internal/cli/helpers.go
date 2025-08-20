@@ -39,7 +39,7 @@ func ExtractParentID(t *ticket.Ticket) string {
 
 // FormatDuration formats a duration as human-readable string (e.g., "2h 30m").
 // Returns empty string for zero or negative durations.
-// 
+//
 // Deprecated: This function is maintained for backward compatibility.
 // New code should use formatDuration which provides more comprehensive formatting
 // including support for days and consistent behavior.
