@@ -51,8 +51,8 @@ func (f *newFlags) normalize() {
 	if f.parentShort != "" {
 		f.parent = f.parentShort
 	}
-	// Only use formatShort if it was explicitly set (not the default value)
-	if f.formatShort != "" && f.formatShort != FormatText {
+	// Only use formatShort if it was explicitly set (not empty)
+	if f.formatShort != "" {
 		f.format = f.formatShort
 	}
 }
@@ -65,7 +65,7 @@ func (c *NewCommand) SetupFlags(fs *flag.FlagSet) interface{} {
 	fs.StringVar(&flags.format, "format", FormatText, "Output format (text|json)")
 	// Short forms
 	fs.StringVar(&flags.parentShort, "p", "", "Parent ticket ID (short form)")
-	fs.StringVar(&flags.formatShort, "o", FormatText, "Output format (short form)")
+	fs.StringVar(&flags.formatShort, "o", "", "Output format (short form)")
 	return flags
 }
 

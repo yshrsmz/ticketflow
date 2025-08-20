@@ -50,11 +50,9 @@ type restoreFlags struct {
 // short form flags (e.g., -o) take precedence over long form flags (e.g., --format)
 // when both are provided. This allows users to override long form defaults with
 // short form values in aliases or scripts.
-//
-// The normalization only occurs if the short form is explicitly set to a non-default
-// value, ensuring that an unset short form doesn't override a long form value.
 func (f *restoreFlags) normalize() {
-	if f.formatShort != "" && f.formatShort != FormatText {
+	// Only use formatShort if it was explicitly set (not empty)
+	if f.formatShort != "" {
 		f.format = f.formatShort
 	}
 }
@@ -65,7 +63,7 @@ func (r *RestoreCommand) SetupFlags(fs *flag.FlagSet) interface{} {
 
 	// Output format flags
 	fs.StringVar(&flags.format, "format", FormatText, "Output format (text|json)")
-	fs.StringVar(&flags.formatShort, "o", FormatText, "Output format (short form)")
+	fs.StringVar(&flags.formatShort, "o", "", "Output format (short form)")
 
 	return flags
 }

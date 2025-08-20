@@ -45,8 +45,8 @@ type worktreeCleanFlags struct {
 
 // normalize merges short and long form flags (short form takes precedence)
 func (f *worktreeCleanFlags) normalize() {
-	// Only use formatShort if it was explicitly set (not the default value)
-	if f.formatShort != "" && f.formatShort != FormatText {
+	// Only use formatShort if it was explicitly set (not empty)
+	if f.formatShort != "" {
 		f.format = f.formatShort
 	}
 }
@@ -57,7 +57,7 @@ func (c *WorktreeCleanCommand) SetupFlags(fs *flag.FlagSet) interface{} {
 	// Long forms
 	fs.StringVar(&flags.format, "format", FormatText, "Output format (text|json)")
 	// Short forms
-	fs.StringVar(&flags.formatShort, "o", FormatText, "Output format (short form)")
+	fs.StringVar(&flags.formatShort, "o", "", "Output format (short form)")
 	return flags
 }
 

@@ -44,7 +44,7 @@ func TestRestoreCommand_SetupFlags(t *testing.T) {
 
 	// Test default values
 	assert.Equal(t, FormatText, restoreFlags.format)
-	assert.Equal(t, FormatText, restoreFlags.formatShort)
+	assert.Equal(t, "", restoreFlags.formatShort)
 
 	// Test that flags are registered
 	formatFlag := fs.Lookup("format")
@@ -54,7 +54,7 @@ func TestRestoreCommand_SetupFlags(t *testing.T) {
 
 	formatShortFlag := fs.Lookup("o")
 	assert.NotNil(t, formatShortFlag)
-	assert.Equal(t, FormatText, formatShortFlag.DefValue)
+	assert.Equal(t, "", formatShortFlag.DefValue)
 	assert.Equal(t, "Output format (short form)", formatShortFlag.Usage)
 }
 
@@ -153,7 +153,7 @@ func TestRestoreCommand_Validate(t *testing.T) {
 
 				// Check format normalization
 				if f, ok := tt.flags.(*restoreFlags); ok {
-					if f.formatShort != "" && f.formatShort != FormatText {
+					if f.formatShort != "" {
 						assert.Equal(t, f.formatShort, f.format, "format should be normalized to formatShort")
 					}
 				}
@@ -190,10 +190,10 @@ func TestRestoreCommand_FlagNormalization(t *testing.T) {
 			expectedFormat: FormatJSON,
 		},
 		{
-			name:           "format json, short text - keep format (text is default)",
+			name:           "format json, short text - prefer short",
 			format:         FormatJSON,
 			formatShort:    FormatText,
-			expectedFormat: FormatJSON,
+			expectedFormat: FormatText,
 		},
 		{
 			name:           "both json",
@@ -215,8 +215,10 @@ func TestRestoreCommand_FlagNormalization(t *testing.T) {
 			assert.NoError(t, err)
 
 			// Check that format was normalized correctly
-			if tt.formatShort != "" && tt.formatShort != FormatText {
+			if tt.formatShort != "" {
 				assert.Equal(t, tt.expectedFormat, flags.format)
+			} else {
+				assert.Equal(t, tt.format, flags.format)
 			}
 		})
 	}

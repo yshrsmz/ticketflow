@@ -57,7 +57,7 @@ func TestStartCommand_SetupFlags(t *testing.T) {
 
 	oFlag := fs.Lookup("o")
 	assert.NotNil(t, oFlag)
-	assert.Equal(t, "text", oFlag.DefValue)
+	assert.Equal(t, "", oFlag.DefValue)
 }
 
 func TestStartCommand_Validate(t *testing.T) {

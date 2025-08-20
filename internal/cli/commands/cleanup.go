@@ -50,15 +50,14 @@ type cleanupFlags struct {
 
 // normalize merges short and long form flags using logical OR for booleans
 // and preferring non-empty strings for string flags.
-// When both --format and -o are provided with non-default values, -o takes precedence.
+// When both --format and -o are provided, -o takes precedence.
 func (f *cleanupFlags) normalize() {
 	// Use logical OR for boolean flags - true if either is set
 	f.force = f.force || f.forceShort
 
-	// For string flags, prefer non-empty non-default value (short form if both set)
-	// Only use formatShort if it was explicitly set (not the default value)
-	// This prevents the default value of -o from overwriting an explicit --format
-	if f.formatShort != "" && f.formatShort != FormatText {
+	// For string flags, use short form if it was explicitly set (not empty)
+	// Empty string means the flag wasn't provided by the user
+	if f.formatShort != "" {
 		f.format = f.formatShort
 	}
 }
@@ -72,7 +71,7 @@ func (c *CleanupCommand) SetupFlags(fs *flag.FlagSet) interface{} {
 	fs.StringVar(&flags.format, "format", FormatText, "Output format (text|json)")
 	// Short forms
 	fs.BoolVar(&flags.forceShort, "f", false, "Force cleanup (short form)")
-	fs.StringVar(&flags.formatShort, "o", FormatText, "Output format (short form)")
+	fs.StringVar(&flags.formatShort, "o", "", "Output format (short form)")
 	return flags
 }
 

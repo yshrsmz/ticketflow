@@ -62,15 +62,13 @@ type closeFlags struct {
 	args        []string // Store validated arguments
 }
 
-// normalize merges short and long form flags using logical OR for booleans
-// and preferring non-empty strings for string flags
+// normalize merges short and long form flags (short form takes precedence)
 func (f *closeFlags) normalize() {
-	// Use logical OR for boolean flags - true if either is set
+	// Use logical OR for boolean flags
 	f.force = f.force || f.forceShort
 
-	// For string flags, prefer non-empty non-default value (short form if both set)
-	// Only use formatShort if it was explicitly set (not the default value)
-	if f.formatShort != "" && f.formatShort != FormatText {
+	// Only use formatShort if it was explicitly set (not empty)
+	if f.formatShort != "" {
 		f.format = f.formatShort
 	}
 }
@@ -84,7 +82,7 @@ func (c *CloseCommand) SetupFlags(fs *flag.FlagSet) interface{} {
 	fs.StringVar(&flags.format, "format", FormatText, "Output format (text|json)")
 	// Short forms
 	fs.BoolVar(&flags.forceShort, "f", false, "Force close (short form)")
-	fs.StringVar(&flags.formatShort, "o", FormatText, "Output format (short form)")
+	fs.StringVar(&flags.formatShort, "o", "", "Output format (short form)")
 	return flags
 }
 

@@ -50,8 +50,8 @@ func (f *startFlags) normalize() {
 	if f.forceShort {
 		f.force = f.forceShort
 	}
-	// Only use formatShort if it was explicitly set (not the default value)
-	if f.formatShort != "" && f.formatShort != FormatText {
+	// Only use formatShort if it was explicitly set (not empty)
+	if f.formatShort != "" {
 		f.format = f.formatShort
 	}
 }
@@ -64,7 +64,7 @@ func (c *StartCommand) SetupFlags(fs *flag.FlagSet) interface{} {
 	fs.StringVar(&flags.format, "format", FormatText, "Output format (text|json)")
 	// Short forms
 	fs.BoolVar(&flags.forceShort, "f", false, "Force recreate worktree (short form)")
-	fs.StringVar(&flags.formatShort, "o", FormatText, "Output format (short form)")
+	fs.StringVar(&flags.formatShort, "o", "", "Output format (short form)")
 	return flags
 }
 

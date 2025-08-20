@@ -48,7 +48,7 @@ func TestCloseCommand_SetupFlags(t *testing.T) {
 	assert.False(t, closeFlags.forceShort)
 	assert.Equal(t, "", closeFlags.reason)
 	assert.Equal(t, FormatText, closeFlags.format)
-	assert.Equal(t, FormatText, closeFlags.formatShort)
+	assert.Equal(t, "", closeFlags.formatShort)
 
 	// Test that flags are registered
 	forceFlag := fs.Lookup("force")
@@ -68,7 +68,7 @@ func TestCloseCommand_SetupFlags(t *testing.T) {
 
 	formatShortFlag := fs.Lookup("o")
 	assert.NotNil(t, formatShortFlag)
-	assert.Equal(t, FormatText, formatShortFlag.DefValue)
+	assert.Equal(t, "", formatShortFlag.DefValue)
 }
 
 func TestCloseCommand_Validate(t *testing.T) {
@@ -163,9 +163,9 @@ func TestCloseCommand_Validate(t *testing.T) {
 					if f.forceShort {
 						assert.True(t, f.force, "short form should set long form for force flag")
 					}
-					// Only check format normalization if formatShort is non-default
-					if f.formatShort != "" && f.formatShort != FormatText {
-						assert.Equal(t, f.formatShort, f.format, "non-default short form should set long form")
+					// Only check format normalization if formatShort is not empty
+					if f.formatShort != "" {
+						assert.Equal(t, f.formatShort, f.format, "short form should set long form when provided")
 					}
 					// Verify args are stored
 					assert.Equal(t, tt.args, f.args)

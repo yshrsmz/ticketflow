@@ -39,7 +39,7 @@ func TestNewCommand_SetupFlags(t *testing.T) {
 	assert.Equal(t, "", newFlags.parent)          // Default empty
 	assert.Equal(t, "", newFlags.parentShort)     // Default empty
 	assert.Equal(t, "text", newFlags.format)      // Default value
-	assert.Equal(t, "text", newFlags.formatShort) // Default value
+	assert.Equal(t, "", newFlags.formatShort)     // Default empty (not provided)
 
 	// Test that long form flags are registered
 	parentFlag := fs.Lookup("parent")
@@ -57,7 +57,7 @@ func TestNewCommand_SetupFlags(t *testing.T) {
 
 	oFlag := fs.Lookup("o")
 	assert.NotNil(t, oFlag)
-	assert.Equal(t, "text", oFlag.DefValue)
+	assert.Equal(t, "", oFlag.DefValue)
 }
 
 func TestNewCommand_Validate(t *testing.T) {
