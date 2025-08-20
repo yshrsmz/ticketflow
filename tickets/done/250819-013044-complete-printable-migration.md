@@ -3,7 +3,7 @@ priority: 2
 description: Complete migration of remaining result types to Printable interface
 created_at: "2025-08-19T01:30:44+09:00"
 started_at: "2025-08-19T14:22:12+09:00"
-closed_at: null
+closed_at: "2025-08-20T13:46:44+09:00"
 related:
     - parent:250816-123703-improve-json-output-separation
 ---
