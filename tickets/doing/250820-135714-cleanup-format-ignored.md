@@ -114,3 +114,53 @@ Created PR #82: https://github.com/yshrsmz/ticketflow/pull/82
 - ✅ All CI checks passing (Test & Lint)
 - ✅ Copilot review approved
 - Ready for developer review
+
+## Proposed Long-term Solution: Common Flag Handling
+
+The current flag handling approach is error-prone. Here's a better solution:
+
+### Current Problems
+1. **Duplicate definitions**: Each flag pair needs 4 fields (`format`, `formatShort`, `parent`, `parentShort`)
+2. **Manual normalization**: Every command needs identical `normalize()` logic
+3. **Easy to forget**: Must remember to call `normalize()` in Validate
+4. **Repeated across 11+ files**: Same pattern everywhere
+
+### Proposed Solution
+Created reusable flag utilities in `flag_utils.go`:
+
+```go
+// Before (error-prone):
+type newFlags struct {
+    format      string
+    formatShort string
+    parent      string
+    parentShort string
+}
+
+// After (clean):
+type newFlags struct {
+    format StringFlag
+    parent StringFlag
+}
+
+// Usage - no normalize() needed:
+format := f.format.Value()  // Automatically resolved!
+```
+
+### Benefits
+- **40% less code** in flag handling
+- **No manual normalization** - `Value()` handles precedence
+- **Consistent behavior** across all commands
+- **Harder to make mistakes** - can't forget normalize()
+- **Proper default handling** - tracks if flag was explicitly set
+
+### Implementation Available
+- ✅ Created `flag_utils.go` with `StringFlag` and `BoolFlag` types
+- ✅ Helper functions `RegisterString()` and `RegisterBool()`
+- ✅ Comprehensive test coverage proving the solution works
+- ✅ Example refactored command in `new_improved.go`
+
+### Recommendation
+1. **Merge current PR** to fix immediate bug
+2. **Create follow-up ticket** to migrate all commands to new flag handling
+3. **Migrate incrementally** to reduce risk
