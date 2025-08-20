@@ -48,12 +48,16 @@ Commands without the issue (no `-o` short form):
 ## Tasks
 - [x] Investigate cleanup command implementation in `internal/cli/commands/cleanup.go`
 - [x] Identify the normalize function bug causing --format to be ignored
-- [x] Fix normalize logic in cleanup and all affected commands
+- [x] Fix normalize logic in cleanup and all affected commands (6 commands total)
 - [x] Verify JSON output works correctly with --format json
 - [x] Test dry-run mode with JSON format
+- [x] Fix systemic error formatting issue (all commands)
+- [x] Add JSON format support to version command
 - [x] Run `make test` to run the tests
 - [x] Run `make vet`, `make fmt` and `make lint`
+- [x] Address code review feedback from golang-pro agent
 - [x] Update the ticket with root cause and solution
+- [x] Create PR #82 for review
 - [ ] Get developer approval before closing
 
 ## Testing
@@ -84,3 +88,26 @@ This ticket addressed multiple related JSON formatting issues:
 3. Added JSON support to the version command for consistency
 
 All these issues were related to JSON output formatting and have been fixed together to ensure consistent behavior across all commands.
+
+## Key Insights & Lessons Learned
+
+### 1. Default Values in Flag Handling
+The bug revealed an important lesson about handling default values in CLI flags. When merging long and short form flags, checking for empty string is insufficient - you must also check if the value differs from the default. This pattern likely exists in other codebases and should be watched for.
+
+### 2. Systemic Issues Often Hide Behind Specific Bugs
+What started as "cleanup command ignores --format" revealed a systemic issue where NO commands were outputting errors in JSON format. Always investigate if a bug might be part of a larger pattern.
+
+### 3. Global State Coordination
+The error formatting issue showed the importance of coordinating global state (output format) early in command execution. The `SetGlobalOutputFormat()` calls ensure consistency between normal output and error output.
+
+### 4. Test Assumptions vs Reality
+The existing tests were testing unrealistic scenarios (both flags set programmatically). Real users set one or the other via command line. Tests should model actual usage patterns.
+
+### 5. Standard CLI Patterns Are Good
+The initial review suggestion to deprecate one flag form was misguided. Having both long (`--format`) and short (`-o`) forms is standard CLI practice and user-friendly. The issue was implementation, not design.
+
+### 6. Comprehensive Fixes Save Time
+By fixing all related issues together (normalize bug, error formatting, version command), we ensure consistency and avoid multiple rounds of fixes for related problems.
+
+## Pull Request
+Created PR #82: https://github.com/yshrsmz/ticketflow/pull/82
