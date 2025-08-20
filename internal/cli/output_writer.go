@@ -190,7 +190,10 @@ func outputJSON(data interface{}) error {
 	return encoder.Encode(data)
 }
 
-// formatDuration formats a duration in a human-readable way
+// formatDuration formats a duration in a human-readable way.
+// The format uses space-separated units (e.g., "2d 3h 30m") for better readability.
+// This is the standard format used throughout the application for consistency.
+// Returns "0s" for negative durations and includes days when duration exceeds 24 hours.
 func formatDuration(d time.Duration) string {
 	if d < 0 {
 		return "0s"
@@ -201,6 +204,7 @@ func formatDuration(d time.Duration) string {
 	minutes := int(d.Minutes()) % 60
 
 	// Pre-allocate parts slice with capacity 3 (days, hours, minutes)
+	// Space-separated format chosen for better readability compared to compact format
 	parts := make([]string, 0, 3)
 	if days > 0 {
 		parts = append(parts, fmt.Sprintf("%dd", days))
@@ -212,6 +216,7 @@ func formatDuration(d time.Duration) string {
 		parts = append(parts, fmt.Sprintf("%dm", minutes))
 	}
 
+	// Join with spaces for readability (e.g., "2d 3h 30m" instead of "2d3h30m")
 	return strings.Join(parts, " ")
 }
 

@@ -21,6 +21,14 @@ const (
 	smallBufferSize  = 256  // For simple success/error messages and cleanup summaries
 	mediumBufferSize = 512  // For single ticket details with metadata fields
 	largeBufferSize  = 1024 // For start results with multi-step instructions and worktree info
+
+	// Common error messages for consistency across result types
+	ErrNoTicketAvailable = "Error: No ticket available\n"
+
+	// Duration format for human-readable output
+	// Uses space-separated format (e.g., "2h 30m") for better readability
+	// This format is consistently applied across all duration displays
+	DurationFormatDescription = "space-separated (e.g., '2h 30m')"
 )
 
 // Printable represents a result that knows how to format itself.
@@ -403,7 +411,7 @@ type NewTicketResult struct {
 // TextRepresentation returns human-readable format for new ticket result
 func (r *NewTicketResult) TextRepresentation() string {
 	if r.Ticket == nil {
-		return "Error: No ticket available\n"
+		return ErrNoTicketAvailable
 	}
 
 	var buf strings.Builder
@@ -465,7 +473,7 @@ type CloseTicketResult struct {
 // TextRepresentation returns human-readable format for close result
 func (r *CloseTicketResult) TextRepresentation() string {
 	if r.Ticket == nil {
-		return "Error: No ticket available\n"
+		return ErrNoTicketAvailable
 	}
 
 	var buf strings.Builder
@@ -583,7 +591,7 @@ type RestoreTicketResult struct {
 // TextRepresentation returns human-readable format for restore result
 func (r *RestoreTicketResult) TextRepresentation() string {
 	if r.Ticket == nil {
-		return "Error: No ticket available\n"
+		return ErrNoTicketAvailable
 	}
 	return "✅ Current ticket symlink restored\n"
 }

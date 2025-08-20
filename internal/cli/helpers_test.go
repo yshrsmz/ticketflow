@@ -136,17 +136,17 @@ func TestHelperFormatDuration(t *testing.T) {
 		{
 			name:     "only hours",
 			duration: 3 * time.Hour,
-			expected: "3h 0m",
+			expected: "3h", // formatDuration omits "0m" when minutes are 0
 		},
 		{
 			name:     "only minutes",
 			duration: 45 * time.Minute,
-			expected: "0h 45m",
+			expected: "45m", // formatDuration omits "0h" when hours are 0
 		},
 		{
 			name:     "more than 24 hours",
 			duration: 25*time.Hour + 15*time.Minute,
-			expected: "25h 15m",
+			expected: "1d 1h 15m", // formatDuration includes days
 		},
 	}
 
