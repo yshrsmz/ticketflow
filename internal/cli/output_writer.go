@@ -91,38 +91,20 @@ func (w *textOutputFormatter) PrintResult(data interface{}) error {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 
-	// Check if data implements Printable interface first
+	// Check if data implements Printable interface
 	if p, ok := data.(Printable); ok {
 		_, err := fmt.Fprint(w.w, p.TextRepresentation())
 		return err
 	}
 
-	// Fallback to type switch for backward compatibility
-	switch v := data.(type) {
-	case map[string]interface{}:
-		// Handle generic map data - final fallback for unmigrated commands
-		return w.printMap(v)
-	default:
-		// Fallback to simple string representation
-		_, err := fmt.Fprintf(w.w, "%v\n", v)
-		return err
-	}
+	// For non-Printable types, use simple string representation
+	_, err := fmt.Fprintf(w.w, "%v\n", data)
+	return err
 }
 
 func (w *textOutputFormatter) PrintJSON(data interface{}) error {
 	// In text mode, pretty-print JSON-like data
 	return w.PrintResult(data)
-}
-
-func (w *textOutputFormatter) printMap(m map[string]interface{}) error {
-	// Simple key-value printing for generic maps
-	for k, v := range m {
-		_, err := fmt.Fprintf(w.w, "%s: %v\n", k, v)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 // NewOutputFormatter creates the appropriate output formatter based on the output format
@@ -133,13 +115,13 @@ func NewOutputFormatter(w io.Writer, format OutputFormat) OutputFormatter {
 	return NewTextOutputFormatter(w)
 }
 
-// Legacy OutputWriter - kept for backward compatibility during migration
-// This will be removed once all code is migrated to use OutputFormatter
+// OutputWriter provides a thin wrapper around OutputFormatter for backward compatibility
+// This is kept minimal to support existing code during the transition
 type OutputWriter struct {
+	formatter OutputFormatter
+	format    OutputFormat
 	stdout    io.Writer
 	stderr    io.Writer
-	format    OutputFormat
-	formatter OutputFormatter
 }
 
 // NewOutputWriter creates a new OutputWriter with the specified format
@@ -151,28 +133,21 @@ func NewOutputWriter(stdout, stderr io.Writer, format OutputFormat) *OutputWrite
 		stderr = os.Stderr
 	}
 	return &OutputWriter{
+		formatter: NewOutputFormatter(stdout, format),
+		format:    format,
 		stdout:    stdout,
 		stderr:    stderr,
-		format:    format,
-		formatter: NewOutputFormatter(stdout, format),
 	}
 }
 
-// PrintJSON writes JSON output to stdout
+// PrintResult delegates to the output formatter
+func (w *OutputWriter) PrintResult(data interface{}) error {
+	return w.formatter.PrintResult(data)
+}
+
+// PrintJSON writes JSON output - kept for backward compatibility
 func (w *OutputWriter) PrintJSON(data interface{}) error {
 	return w.formatter.PrintJSON(data)
-}
-
-// Printf writes formatted text to stdout
-// Deprecated: Use StatusWriter for progress messages or OutputFormatter for structured output
-func (w *OutputWriter) Printf(format string, args ...interface{}) {
-	_, _ = fmt.Fprintf(w.stdout, format, args...)
-}
-
-// Println writes a line to stdout
-// Deprecated: Use StatusWriter for progress messages or OutputFormatter for structured output
-func (w *OutputWriter) Println(args ...interface{}) {
-	_, _ = fmt.Fprintln(w.stdout, args...)
 }
 
 // GetFormat returns the current output format
@@ -180,9 +155,25 @@ func (w *OutputWriter) GetFormat() OutputFormat {
 	return w.format
 }
 
-// PrintResult delegates to the output formatter
-func (w *OutputWriter) PrintResult(data interface{}) error {
-	return w.formatter.PrintResult(data)
+// Printf writes formatted text - kept for backward compatibility with existing code
+// New code should use StatusWriter for progress messages or Printable types for output
+func (w *OutputWriter) Printf(format string, args ...interface{}) {
+	if w.format == FormatJSON {
+		// In JSON mode, suppress text output
+		return
+	}
+	// In text mode, write to stdout
+	_, _ = fmt.Fprintf(w.stdout, format, args...)
+}
+
+// Println writes a line - kept for backward compatibility with existing code
+// New code should use StatusWriter for progress messages or Printable types for output
+func (w *OutputWriter) Println(args ...interface{}) {
+	if w.format == FormatJSON {
+		// In JSON mode, suppress text output
+		return
+	}
+	_, _ = fmt.Fprintln(w.stdout, args...)
 }
 
 // Helper functions
@@ -199,7 +190,10 @@ func outputJSON(data interface{}) error {
 	return encoder.Encode(data)
 }
 
-// formatDuration formats a duration in a human-readable way
+// formatDuration formats a duration in a human-readable way.
+// The format uses space-separated units (e.g., "2d 3h 30m") for better readability.
+// This is the standard format used throughout the application for consistency.
+// Returns "0s" for negative durations and includes days when duration exceeds 24 hours.
 func formatDuration(d time.Duration) string {
 	if d < 0 {
 		return "0s"
@@ -210,6 +204,7 @@ func formatDuration(d time.Duration) string {
 	minutes := int(d.Minutes()) % 60
 
 	// Pre-allocate parts slice with capacity 3 (days, hours, minutes)
+	// Space-separated format chosen for better readability compared to compact format
 	parts := make([]string, 0, 3)
 	if days > 0 {
 		parts = append(parts, fmt.Sprintf("%dd", days))
@@ -221,6 +216,7 @@ func formatDuration(d time.Duration) string {
 		parts = append(parts, fmt.Sprintf("%dm", minutes))
 	}
 
+	// Join with spaces for readability (e.g., "2d 3h 30m" instead of "2d3h30m")
 	return strings.Join(parts, " ")
 }
 
