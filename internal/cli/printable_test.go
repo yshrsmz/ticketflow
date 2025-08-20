@@ -613,7 +613,7 @@ func TestNewTicketResult_TextRepresentation(t *testing.T) {
 				Ticket: nil,
 			},
 			contains: []string{
-				"Error: No ticket created",
+				"Error: No ticket available",
 			},
 		},
 	}
@@ -760,7 +760,7 @@ func TestCloseTicketResult_TextRepresentation(t *testing.T) {
 				Ticket: nil,
 			},
 			contains: []string{
-				"Error: No ticket to close",
+				"Error: No ticket available",
 			},
 		},
 	}
@@ -807,7 +807,7 @@ func TestCloseTicketResult_StructuredData(t *testing.T) {
 				assert.Equal(t, "current", m["mode"])
 				assert.Equal(t, true, m["force_used"])
 				assert.Equal(t, true, m["commit_created"])
-				assert.Equal(t, "2h30m", m["duration"])
+				assert.Equal(t, "2h 30m", m["duration"])
 				assert.Equal(t, "parent-123", m["parent_ticket"])
 				assert.Equal(t, "/path/to/worktree", m["worktree_path"])
 				assert.Equal(t, "Completed", m["close_reason"])
@@ -852,14 +852,25 @@ func TestCloseTicketResult_StructuredData(t *testing.T) {
 }
 
 func TestRestoreTicketResult_TextRepresentation(t *testing.T) {
-	result := &RestoreTicketResult{
-		Ticket: &ticket.Ticket{
-			ID: "240101-123456-feature",
-		},
-	}
+	t.Run("with ticket", func(t *testing.T) {
+		result := &RestoreTicketResult{
+			Ticket: &ticket.Ticket{
+				ID: "240101-123456-feature",
+			},
+		}
 
-	output := result.TextRepresentation()
-	assert.Equal(t, "✅ Current ticket symlink restored\n", output)
+		output := result.TextRepresentation()
+		assert.Equal(t, "✅ Current ticket symlink restored\n", output)
+	})
+
+	t.Run("nil ticket", func(t *testing.T) {
+		result := &RestoreTicketResult{
+			Ticket: nil,
+		}
+
+		output := result.TextRepresentation()
+		assert.Equal(t, "Error: No ticket available\n", output)
+	})
 }
 
 func TestRestoreTicketResult_StructuredData(t *testing.T) {

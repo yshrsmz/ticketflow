@@ -18,9 +18,9 @@ const (
 
 	// Buffer pre-allocation sizes for strings.Builder
 	// These are estimates based on typical output sizes to minimize allocations
-	smallBufferSize  = 256  // For simple results with minimal text
-	mediumBufferSize = 512  // For typical results with moderate text
-	largeBufferSize  = 1024 // For complex results with extensive text
+	smallBufferSize  = 256  // For simple success/error messages and cleanup summaries
+	mediumBufferSize = 512  // For single ticket details with metadata fields
+	largeBufferSize  = 1024 // For start results with multi-step instructions and worktree info
 )
 
 // Printable represents a result that knows how to format itself.
@@ -403,7 +403,7 @@ type NewTicketResult struct {
 // TextRepresentation returns human-readable format for new ticket result
 func (r *NewTicketResult) TextRepresentation() string {
 	if r.Ticket == nil {
-		return "Error: No ticket created\n"
+		return "Error: No ticket available\n"
 	}
 
 	var buf strings.Builder
@@ -465,7 +465,7 @@ type CloseTicketResult struct {
 // TextRepresentation returns human-readable format for close result
 func (r *CloseTicketResult) TextRepresentation() string {
 	if r.Ticket == nil {
-		return "Error: No ticket to close\n"
+		return "Error: No ticket available\n"
 	}
 
 	var buf strings.Builder
@@ -548,9 +548,8 @@ func (r *CloseTicketResult) StructuredData() interface{} {
 	}
 
 	if r.Mode == "current" && r.Duration > 0 {
-		hours := int(r.Duration.Hours())
-		minutes := int(r.Duration.Minutes()) % 60
-		output["duration"] = fmt.Sprintf("%dh%dm", hours, minutes)
+		// Use consistent duration formatting with the helper function
+		output["duration"] = formatDuration(r.Duration)
 	}
 
 	if r.ParentTicket != "" {
@@ -583,6 +582,9 @@ type RestoreTicketResult struct {
 
 // TextRepresentation returns human-readable format for restore result
 func (r *RestoreTicketResult) TextRepresentation() string {
+	if r.Ticket == nil {
+		return "Error: No ticket available\n"
+	}
 	return "✅ Current ticket symlink restored\n"
 }
 
