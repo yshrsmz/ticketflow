@@ -32,7 +32,7 @@ func TestVersionCommand(t *testing.T) {
 		assert.NotNil(t, flags)
 		// NFlag returns number of flags that have been set, not defined
 		// Since we just defined it, not set it, NFlag should be 0
-		
+
 		// Check that format flag exists
 		formatFlag := fs.Lookup("format")
 		assert.NotNil(t, formatFlag)

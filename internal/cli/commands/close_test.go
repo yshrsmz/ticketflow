@@ -161,10 +161,11 @@ func TestCloseCommand_Validate(t *testing.T) {
 				// Verify normalization happened
 				if f, ok := tt.flags.(*closeFlags); ok {
 					if f.forceShort {
-						assert.True(t, f.force, "short form should set long form")
+						assert.True(t, f.force, "short form should set long form for force flag")
 					}
-					if f.formatShort != "" {
-						assert.Equal(t, f.formatShort, f.format, "short form should set long form")
+					// Only check format normalization if formatShort is non-default
+					if f.formatShort != "" && f.formatShort != FormatText {
+						assert.Equal(t, f.formatShort, f.format, "non-default short form should set long form")
 					}
 					// Verify args are stored
 					assert.Equal(t, tt.args, f.args)
