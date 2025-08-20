@@ -1,8 +1,8 @@
 ---
 priority: 2
-description: "Fix cleanup command ignoring --format parameter"
+description: Fix cleanup command ignoring --format parameter
 created_at: "2025-08-20T13:57:14+09:00"
-started_at: null
+started_at: "2025-08-20T14:00:33+09:00"
 closed_at: null
 ---
 
