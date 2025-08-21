@@ -115,8 +115,19 @@ func (w *OutputWriter) Error(err error) {
 		return
 	}
 
-	// Generic error
-	_, _ = fmt.Fprintf(w.stderr, "Error: %v\n", err)
+	// Generic error - format based on output format
+	if w.format == FormatJSON {
+		output := map[string]interface{}{
+			"error": map[string]interface{}{
+				"message": err.Error(),
+			},
+		}
+		encoder := json.NewEncoder(w.stderr)
+		encoder.SetIndent("", "  ")
+		_ = encoder.Encode(output)
+	} else {
+		_, _ = fmt.Fprintf(w.stderr, "Error: %v\n", err)
+	}
 }
 
 func (w *OutputWriter) handleCLIError(err *CLIError) {

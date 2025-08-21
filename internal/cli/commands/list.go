@@ -106,6 +106,7 @@ func (c *ListCommand) Execute(ctx context.Context, flags interface{}, args []str
 
 	// Parse output format first
 	outputFormat := cli.ParseOutputFormat(f.format)
+	cli.SetGlobalOutputFormat(outputFormat) // Ensure errors are formatted correctly
 
 	// Create App instance with format
 	app, err := cli.NewAppWithFormat(ctx, outputFormat)

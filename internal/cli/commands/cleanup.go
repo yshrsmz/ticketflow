@@ -40,36 +40,18 @@ func (c *CleanupCommand) Usage() string {
 
 // cleanupFlags holds the flags for the cleanup command
 type cleanupFlags struct {
-	dryRun      bool
-	force       bool
-	forceShort  bool
-	format      string
-	formatShort string
-	args        []string // Store validated arguments
-}
-
-// normalize merges short and long form flags using logical OR for booleans
-// and preferring non-empty strings for string flags
-func (f *cleanupFlags) normalize() {
-	// Use logical OR for boolean flags - true if either is set
-	f.force = f.force || f.forceShort
-
-	// For string flags, prefer non-empty value (short form if both set)
-	if f.formatShort != "" {
-		f.format = f.formatShort
-	}
+	dryRun bool
+	force  BoolFlag
+	format StringFlag
+	args   []string // Store validated arguments
 }
 
 // SetupFlags configures flags for the command
 func (c *CleanupCommand) SetupFlags(fs *flag.FlagSet) interface{} {
 	flags := &cleanupFlags{}
-	// Long forms
 	fs.BoolVar(&flags.dryRun, "dry-run", false, "Show what would be cleaned without making changes")
-	fs.BoolVar(&flags.force, "force", false, "Skip confirmation prompts")
-	fs.StringVar(&flags.format, "format", FormatText, "Output format (text|json)")
-	// Short forms
-	fs.BoolVar(&flags.forceShort, "f", false, "Force cleanup (short form)")
-	fs.StringVar(&flags.formatShort, "o", FormatText, "Output format (short form)")
+	RegisterBool(fs, &flags.force, "force", "f", "Skip confirmation prompts")
+	RegisterString(fs, &flags.format, "format", "o", FormatText, "Output format (text|json)")
 	return flags
 }
 
@@ -89,12 +71,10 @@ func (c *CleanupCommand) Validate(flags interface{}, args []string) error {
 	// Store arguments for Execute method
 	f.args = args
 
-	// Merge short and long forms (short form takes precedence if both provided)
-	f.normalize()
-
-	// Validate format flag
-	if f.format != FormatText && f.format != FormatJSON {
-		return fmt.Errorf("invalid format: %q (must be %q or %q)", f.format, FormatText, FormatJSON)
+	// Validate format flag using resolved value
+	format := f.format.Value()
+	if format != FormatText && format != FormatJSON {
+		return fmt.Errorf("invalid format: %q (must be %q or %q)", format, FormatText, FormatJSON)
 	}
 
 	// dry-run flag only makes sense for auto-cleanup mode (no ticket ID)
@@ -120,8 +100,12 @@ func (c *CleanupCommand) Execute(ctx context.Context, flags interface{}, args []
 		return fmt.Errorf("invalid flags type: expected *cleanupFlags, got %T", flags)
 	}
 
+	// Get resolved values
+	format := f.format.Value()
+
 	// Get app instance with the correct output format from the start
-	outputFormat := cli.ParseOutputFormat(f.format)
+	outputFormat := cli.ParseOutputFormat(format)
+	cli.SetGlobalOutputFormat(outputFormat) // Ensure errors are formatted correctly
 	app, err := cli.NewAppWithFormat(ctx, outputFormat)
 	if err != nil {
 		return err
@@ -139,29 +123,20 @@ func (c *CleanupCommand) Execute(ctx context.Context, flags interface{}, args []
 
 // executeAutoCleanup handles the auto-cleanup mode (no ticket ID provided)
 func (c *CleanupCommand) executeAutoCleanup(ctx context.Context, app *cli.App, flags *cleanupFlags) error {
-	// Show dry-run statistics if requested
-	if flags.dryRun {
-		if err := app.CleanupStats(ctx); err != nil {
-			if flags.format == FormatJSON {
-				return outputAutoCleanupErrorJSON(app, err)
-			}
-			return err
-		}
-		app.StatusWriter.Println("\nDry-run mode: No changes will be made.")
-		return nil
-	}
+	// Get resolved format value
+	format := flags.format.Value()
 
-	// Perform auto-cleanup
+	// Perform auto-cleanup (or dry-run which only shows what would be cleaned without making changes)
 	result, err := app.AutoCleanup(ctx, flags.dryRun)
 	if err != nil {
-		if flags.format == FormatJSON {
+		if format == FormatJSON {
 			return outputAutoCleanupErrorJSON(app, err)
 		}
 		return err
 	}
 
 	// Output results
-	if flags.format == FormatJSON {
+	if format == FormatJSON {
 		return outputAutoCleanupJSON(app, result)
 	}
 
@@ -173,17 +148,21 @@ func (c *CleanupCommand) executeAutoCleanup(ctx context.Context, app *cli.App, f
 func (c *CleanupCommand) executeTicketCleanup(ctx context.Context, app *cli.App, flags *cleanupFlags) error {
 	ticketID := flags.args[0]
 
+	// Get resolved values
+	format := flags.format.Value()
+	force := flags.force.Value()
+
 	// Perform ticket cleanup
-	cleanedTicket, err := app.CleanupTicket(ctx, ticketID, flags.force)
+	cleanedTicket, err := app.CleanupTicket(ctx, ticketID, force)
 	if err != nil {
-		if flags.format == FormatJSON {
+		if format == FormatJSON {
 			return outputTicketCleanupErrorJSON(app, err)
 		}
 		return err
 	}
 
 	// Output results
-	if flags.format == FormatJSON {
+	if format == FormatJSON {
 		return outputTicketCleanupJSON(app, cleanedTicket)
 	}
 

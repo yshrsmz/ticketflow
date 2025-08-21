@@ -41,32 +41,13 @@ func (r *RestoreCommand) Usage() string {
 
 // restoreFlags holds the flags for the restore command
 type restoreFlags struct {
-	format      string
-	formatShort string
-}
-
-// normalize merges short and long form flags, preferring short form.
-// This follows the common pattern used across all ticketflow commands where
-// short form flags (e.g., -o) take precedence over long form flags (e.g., --format)
-// when both are provided. This allows users to override long form defaults with
-// short form values in aliases or scripts.
-//
-// The normalization only occurs if the short form is explicitly set to a non-default
-// value, ensuring that an unset short form doesn't override a long form value.
-func (f *restoreFlags) normalize() {
-	if f.formatShort != "" && f.formatShort != FormatText {
-		f.format = f.formatShort
-	}
+	format StringFlag
 }
 
 // SetupFlags configures the flag set for this command
 func (r *RestoreCommand) SetupFlags(fs *flag.FlagSet) interface{} {
 	flags := &restoreFlags{}
-
-	// Output format flags
-	fs.StringVar(&flags.format, "format", FormatText, "Output format (text|json)")
-	fs.StringVar(&flags.formatShort, "o", FormatText, "Output format (short form)")
-
+	RegisterString(fs, &flags.format, "format", "o", FormatText, "Output format (text|json)")
 	return flags
 }
 
@@ -83,12 +64,10 @@ func (r *RestoreCommand) Validate(flags interface{}, args []string) error {
 		return fmt.Errorf("restore command does not accept any arguments")
 	}
 
-	// Normalize format flags
-	f.normalize()
-
-	// Validate format value
-	if f.format != FormatText && f.format != FormatJSON {
-		return fmt.Errorf("invalid format: %q (must be %q or %q)", f.format, FormatText, FormatJSON)
+	// Validate format value using resolved value
+	format := f.format.Value()
+	if format != FormatText && format != FormatJSON {
+		return fmt.Errorf("invalid format: %q (must be %q or %q)", format, FormatText, FormatJSON)
 	}
 
 	return nil
@@ -105,8 +84,12 @@ func (r *RestoreCommand) Execute(ctx context.Context, flags interface{}, args []
 
 	f := flags.(*restoreFlags)
 
+	// Get resolved format value
+	format := f.format.Value()
+
 	// Parse output format first
-	outputFormat := cli.ParseOutputFormat(f.format)
+	outputFormat := cli.ParseOutputFormat(format)
+	cli.SetGlobalOutputFormat(outputFormat) // Ensure errors are formatted correctly
 
 	// Create App instance with format
 	app, err := cli.NewAppWithFormat(ctx, outputFormat)

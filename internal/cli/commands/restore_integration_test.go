@@ -87,7 +87,7 @@ func TestRestoreCommand_Execute_Integration(t *testing.T) {
 				_ = os.Remove(symlinkPath) // Ignore error - symlink may not exist
 			},
 			args:  []string{},
-			flags: map[string]string{"formatShort": "json"},
+			flags: map[string]string{"format": "json"},
 			validate: func(t *testing.T, env *testharness.TestEnvironment) {
 				// Verify symlink was restored
 				assert.True(t, env.FileExists("current-ticket.md"))
@@ -250,8 +250,7 @@ Content`)
 
 			// Setup flags
 			restoreFlags := &restoreFlags{
-				format:      tt.flags["format"],
-				formatShort: tt.flags["formatShort"],
+				format: StringFlag{Long: tt.flags["format"]},
 			}
 
 			// Validate flags before execution
@@ -321,7 +320,7 @@ func TestRestoreCommand_Execute_ContextCancellation(t *testing.T) {
 
 	// Execute command with cancelled context
 	cmd := NewRestoreCommand()
-	restoreFlags := &restoreFlags{format: "text"}
+	restoreFlags := &restoreFlags{format: StringFlag{Long: "text"}}
 	err = cmd.Execute(ctx, restoreFlags, []string{})
 	require.Error(t, err)
 	// With early context check, we return context.Canceled immediately

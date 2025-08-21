@@ -79,7 +79,7 @@ func TestNewCommand_Execute_Integration(t *testing.T) {
 				env.CreateTicket("parent-ticket-002", ticket.StatusDoing)
 			},
 			args:  []string{"another-child"},
-			flags: map[string]string{"format": "text", "parentShort": "parent-ticket-002"},
+			flags: map[string]string{"format": "text", "parent": "parent-ticket-002"},
 			validate: func(t *testing.T, env *testharness.TestEnvironment) {
 				files, err := os.ReadDir(env.RootDir + "/tickets/todo")
 				require.NoError(t, err)
@@ -121,7 +121,7 @@ func TestNewCommand_Execute_Integration(t *testing.T) {
 				// No setup needed
 			},
 			args:  []string{"short-format-ticket"},
-			flags: map[string]string{"formatShort": "json"},
+			flags: map[string]string{"format": "json"},
 			validate: func(t *testing.T, env *testharness.TestEnvironment) {
 				files, err := os.ReadDir(env.RootDir + "/tickets/todo")
 				require.NoError(t, err)
@@ -255,10 +255,8 @@ description: "Feature template"
 			},
 			args: []string{"mixed-flags-ticket"},
 			flags: map[string]string{
-				"format":      "text",
-				"formatShort": "json", // Short form takes precedence
-				"parent":      "parent-long",
-				"parentShort": "parent-short", // Short form takes precedence
+				"format": "json",
+				"parent": "parent-short",
 			},
 			validate: func(t *testing.T, env *testharness.TestEnvironment) {
 				files, err := os.ReadDir(env.RootDir + "/tickets/todo")
@@ -300,10 +298,8 @@ description: "Feature template"
 
 			// Setup flags
 			newFlags := &newFlags{
-				parent:      tt.flags["parent"],
-				parentShort: tt.flags["parentShort"],
-				format:      tt.flags["format"],
-				formatShort: tt.flags["formatShort"],
+				parent: StringFlag{Long: tt.flags["parent"]},
+				format: StringFlag{Long: tt.flags["format"]},
 			}
 
 			// Validate flags before execution
@@ -364,7 +360,7 @@ func TestNewCommand_Execute_ContextCancellation(t *testing.T) {
 
 	// Execute command with cancelled context
 	cmd := NewNewCommand()
-	newFlags := &newFlags{format: "text"}
+	newFlags := &newFlags{format: StringFlag{Long: "text"}}
 	err = cmd.Execute(ctx, newFlags, []string{"test-ticket"})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "context canceled")

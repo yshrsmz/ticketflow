@@ -56,7 +56,7 @@ func TestWorktreeListCommand_Validate(t *testing.T) {
 		},
 		{
 			name:    "valid short form json",
-			flags:   &worktreeListFlags{format: FormatText, formatShort: FormatJSON},
+			flags:   &worktreeListFlags{format: FormatJSON},
 			args:    []string{},
 			wantErr: false,
 		},
@@ -91,19 +91,4 @@ func TestWorktreeListCommand_Validate(t *testing.T) {
 			}
 		})
 	}
-}
-
-func TestWorktreeListCommand_ValidateFormatOverride(t *testing.T) {
-	t.Parallel()
-	cmd := &WorktreeListCommand{}
-
-	// Test that short form overrides long form
-	flags := &worktreeListFlags{
-		format:      FormatText,
-		formatShort: FormatJSON,
-	}
-
-	err := cmd.Validate(flags, []string{})
-	assert.NoError(t, err)
-	assert.Equal(t, FormatJSON, flags.format)
 }

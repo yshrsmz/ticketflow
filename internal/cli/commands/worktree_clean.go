@@ -39,24 +39,13 @@ func (c *WorktreeCleanCommand) Usage() string {
 
 // worktreeCleanFlags holds the flags for the worktree clean command
 type worktreeCleanFlags struct {
-	format      string
-	formatShort string
-}
-
-// normalize merges short and long form flags (short form takes precedence)
-func (f *worktreeCleanFlags) normalize() {
-	if f.formatShort != "" {
-		f.format = f.formatShort
-	}
+	format StringFlag
 }
 
 // SetupFlags configures the flag set for this command
 func (c *WorktreeCleanCommand) SetupFlags(fs *flag.FlagSet) interface{} {
 	flags := &worktreeCleanFlags{}
-	// Long forms
-	fs.StringVar(&flags.format, "format", FormatText, "Output format (text|json)")
-	// Short forms
-	fs.StringVar(&flags.formatShort, "o", FormatText, "Output format (short form)")
+	RegisterString(fs, &flags.format, "format", "o", FormatText, "Output format (text|json)")
 	return flags
 }
 
@@ -73,12 +62,10 @@ func (c *WorktreeCleanCommand) Validate(flags interface{}, args []string) error 
 		return fmt.Errorf("invalid flags type: expected *worktreeCleanFlags, got %T", flags)
 	}
 
-	// Normalize flags
-	f.normalize()
-
-	// Validate format flag
-	if f.format != FormatText && f.format != FormatJSON {
-		return fmt.Errorf("invalid format: %q (must be %q or %q)", f.format, FormatText, FormatJSON)
+	// Validate format flag using resolved value
+	format := f.format.Value()
+	if format != FormatText && format != FormatJSON {
+		return fmt.Errorf("invalid format: %q (must be %q or %q)", format, FormatText, FormatJSON)
 	}
 
 	return nil
@@ -99,8 +86,12 @@ func (c *WorktreeCleanCommand) Execute(ctx context.Context, flags interface{}, a
 		return fmt.Errorf("invalid flags type: expected *worktreeCleanFlags, got %T", flags)
 	}
 
+	// Get resolved format value
+	format := f.format.Value()
+
 	// Parse output format first
-	outputFormat := cli.ParseOutputFormat(f.format)
+	outputFormat := cli.ParseOutputFormat(format)
+	cli.SetGlobalOutputFormat(outputFormat) // Ensure errors are formatted correctly
 
 	// Create App instance with format
 	app, err := cli.NewAppWithFormat(ctx, outputFormat)

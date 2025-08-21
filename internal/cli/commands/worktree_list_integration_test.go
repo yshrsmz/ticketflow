@@ -90,7 +90,7 @@ func TestWorktreeListCommand_Execute_Integration(t *testing.T) {
 				env.RunGit("worktree", "add", filepath.Join(worktreeBase, "short-flag-ticket"), "short-flag-ticket")
 			},
 			args:  []string{},
-			flags: map[string]string{"formatShort": "json"},
+			flags: map[string]string{"format": "json"},
 			validate: func(t *testing.T, env *testharness.TestEnvironment) {
 				// Should accept -o flag for format
 				output := env.RunGit("worktree", "list")
@@ -202,8 +202,7 @@ func TestWorktreeListCommand_Execute_Integration(t *testing.T) {
 			var flags interface{}
 			if tt.flags != nil {
 				listFlags := &worktreeListFlags{
-					format:      tt.flags["format"],
-					formatShort: tt.flags["formatShort"],
+					format: tt.flags["format"],
 				}
 
 				// Validate flags before execution

@@ -2,11 +2,19 @@ package commands
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
+	"os"
 
+	"github.com/yshrsmz/ticketflow/internal/cli"
 	"github.com/yshrsmz/ticketflow/internal/command"
 )
+
+// versionFlags holds the flags for the version command
+type versionFlags struct {
+	format string
+}
 
 // VersionCommand implements the version command using the new Command interface
 type VersionCommand struct {
@@ -41,18 +49,27 @@ func (c *VersionCommand) Description() string {
 
 // Usage returns the usage string for the command
 func (c *VersionCommand) Usage() string {
-	return "version"
+	return "version [--format text|json]"
 }
 
 // SetupFlags configures flags for the command
 func (c *VersionCommand) SetupFlags(fs *flag.FlagSet) interface{} {
-	// Version command has no flags
-	return nil
+	flags := &versionFlags{}
+	fs.StringVar(&flags.format, "format", FormatText, "Output format (text|json)")
+	return flags
 }
 
 // Validate checks if the command arguments are valid
 func (c *VersionCommand) Validate(flags interface{}, args []string) error {
-	// No validation needed for version command
+	if flags != nil {
+		f, ok := flags.(*versionFlags)
+		if !ok {
+			return fmt.Errorf("invalid flags type: expected *versionFlags, got %T", flags)
+		}
+		if f.format != FormatText && f.format != FormatJSON {
+			return fmt.Errorf("invalid format: %s (must be '%s' or '%s')", f.format, FormatText, FormatJSON)
+		}
+	}
 	return nil
 }
 
@@ -65,6 +82,33 @@ func (c *VersionCommand) Execute(ctx context.Context, flags interface{}, args []
 	default:
 	}
 
+	// Determine output format
+	format := FormatText
+	if flags != nil {
+		f, ok := flags.(*versionFlags)
+		if !ok {
+			return fmt.Errorf("invalid flags type: expected *versionFlags, got %T", flags)
+		}
+		format = f.format
+	}
+
+	// Set global format for error handling
+	outputFormat := cli.ParseOutputFormat(format)
+	cli.SetGlobalOutputFormat(outputFormat)
+
+	// Output version information based on format
+	if format == FormatJSON {
+		versionInfo := map[string]interface{}{
+			"version":    c.Version,
+			"git_commit": c.GitCommit,
+			"build_time": c.BuildTime,
+		}
+		encoder := json.NewEncoder(os.Stdout)
+		encoder.SetIndent("", "  ")
+		return encoder.Encode(versionInfo)
+	}
+
+	// Text format output
 	fmt.Printf("ticketflow version %s\n", c.Version)
 	if c.Version != "dev" || c.GitCommit != "unknown" {
 		fmt.Printf("  Git commit: %s\n", c.GitCommit)
