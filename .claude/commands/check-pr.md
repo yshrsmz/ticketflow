@@ -7,6 +7,7 @@ description: "Check PR review and CI status"
   - Have golang-pro agent fix any suggestions if it's reasonable
   - If you skip resolving issues or suggestions, you must add reasoning behind that dicision.
   - All issues should be considered. Do not skip issues or suggestions just because it's minor or low priority.
+  - Even if it's nitpick, you need to fix it if it's reasonable
 - Check CI status. 
   - Make sure to check what is actually failing in the CI
     - CI has multiple steps in a single job. Identify which step is failing
