@@ -62,17 +62,17 @@ func (c *ShowCommand) Validate(flags interface{}, args []string) error {
 	}
 
 	// Safely assert flags type
-	f, ok := flags.(*showFlags)
-	if !ok {
-		return fmt.Errorf("invalid flags type: expected *showFlags, got %T", flags)
+	f, err := AssertFlags[showFlags](flags)
+	if err != nil {
+		return err
 	}
 
 	// Validate format flag (empty string defaults to text for backward compatibility)
 	if f.format == "" {
 		f.format = FormatText
 	}
-	if f.format != FormatText && f.format != FormatJSON {
-		return fmt.Errorf("invalid format: %q (must be 'text' or 'json')", f.format)
+	if err := ValidateFormat(f.format); err != nil {
+		return err
 	}
 
 	return nil
@@ -88,9 +88,9 @@ func (c *ShowCommand) Execute(ctx context.Context, flags interface{}, args []str
 	}
 
 	// Safely extract flags
-	f, ok := flags.(*showFlags)
-	if !ok {
-		return fmt.Errorf("invalid flags type: expected *showFlags, got %T", flags)
+	f, err := AssertFlags[showFlags](flags)
+	if err != nil {
+		return err
 	}
 
 	// Parse output format first
