@@ -3,7 +3,7 @@ priority: 2
 description: Fix cleanup command ignoring --format parameter
 created_at: "2025-08-20T13:57:14+09:00"
 started_at: "2025-08-20T14:00:33+09:00"
-closed_at: null
+closed_at: "2025-08-21T14:10:08+09:00"
 ---
 
 # Fix cleanup command ignoring --format parameter
