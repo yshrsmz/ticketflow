@@ -6,7 +6,10 @@
 // at program startup. They are not safe for concurrent modification during parsing.
 package commands
 
-import "flag"
+import (
+	"flag"
+	"fmt"
+)
 
 // StringFlag represents a string flag with long and short forms.
 // The shortSet field tracks whether the short form was explicitly set via command line,
@@ -28,7 +31,7 @@ type BoolFlag struct {
 // At least one of longName or shortName must be provided.
 func RegisterString(fs *flag.FlagSet, sf *StringFlag, longName, shortName, defaultValue, usage string) {
 	if longName == "" && shortName == "" {
-		panic("RegisterString: at least one of longName or shortName must be provided")
+		panic(fmt.Sprintf("RegisterString: at least one of longName or shortName must be provided (got longName=%q, shortName=%q)", longName, shortName))
 	}
 
 	sf.Long = defaultValue
@@ -52,7 +55,7 @@ func RegisterString(fs *flag.FlagSet, sf *StringFlag, longName, shortName, defau
 // At least one of longName or shortName must be provided.
 func RegisterBool(fs *flag.FlagSet, bf *BoolFlag, longName, shortName string, usage string) {
 	if longName == "" && shortName == "" {
-		panic("RegisterBool: at least one of longName or shortName must be provided")
+		panic(fmt.Sprintf("RegisterBool: at least one of longName or shortName must be provided (got longName=%q, shortName=%q)", longName, shortName))
 	}
 
 	if longName != "" {

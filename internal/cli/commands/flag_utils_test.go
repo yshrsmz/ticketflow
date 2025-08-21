@@ -135,6 +135,37 @@ func TestBoolFlag(t *testing.T) {
 	}
 }
 
+// TestRegisterPanics tests that RegisterString and RegisterBool panic with helpful messages
+func TestRegisterPanics(t *testing.T) {
+	t.Run("RegisterString panics with empty names", func(t *testing.T) {
+		fs := flag.NewFlagSet("test", flag.ContinueOnError)
+		sf := &StringFlag{}
+		
+		defer func() {
+			r := recover()
+			assert.NotNil(t, r)
+			assert.Contains(t, r.(string), "longName=\"\"")
+			assert.Contains(t, r.(string), "shortName=\"\"")
+		}()
+		
+		RegisterString(fs, sf, "", "", "default", "usage")
+	})
+	
+	t.Run("RegisterBool panics with empty names", func(t *testing.T) {
+		fs := flag.NewFlagSet("test", flag.ContinueOnError)
+		bf := &BoolFlag{}
+		
+		defer func() {
+			r := recover()
+			assert.NotNil(t, r)
+			assert.Contains(t, r.(string), "longName=\"\"")
+			assert.Contains(t, r.(string), "shortName=\"\"")
+		}()
+		
+		RegisterBool(fs, bf, "", "", "usage")
+	})
+}
+
 // TestOldVsNewApproach demonstrates the improvement
 func TestOldVsNewApproach(t *testing.T) {
 	t.Run("old approach - bug with default values", func(t *testing.T) {

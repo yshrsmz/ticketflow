@@ -62,7 +62,10 @@ func (c *VersionCommand) SetupFlags(fs *flag.FlagSet) interface{} {
 // Validate checks if the command arguments are valid
 func (c *VersionCommand) Validate(flags interface{}, args []string) error {
 	if flags != nil {
-		f := flags.(*versionFlags)
+		f, ok := flags.(*versionFlags)
+		if !ok {
+			return fmt.Errorf("invalid flags type: expected *versionFlags, got %T", flags)
+		}
 		if f.format != FormatText && f.format != FormatJSON {
 			return fmt.Errorf("invalid format: %s (must be '%s' or '%s')", f.format, FormatText, FormatJSON)
 		}
@@ -82,7 +85,10 @@ func (c *VersionCommand) Execute(ctx context.Context, flags interface{}, args []
 	// Determine output format
 	format := FormatText
 	if flags != nil {
-		f := flags.(*versionFlags)
+		f, ok := flags.(*versionFlags)
+		if !ok {
+			return fmt.Errorf("invalid flags type: expected *versionFlags, got %T", flags)
+		}
 		format = f.format
 	}
 

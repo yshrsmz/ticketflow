@@ -126,7 +126,7 @@ func (c *CleanupCommand) executeAutoCleanup(ctx context.Context, app *cli.App, f
 	// Get resolved format value
 	format := flags.format.Value()
 
-	// Perform auto-cleanup (or dry-run)
+	// Perform auto-cleanup (or dry-run which only shows what would be cleaned without making changes)
 	result, err := app.AutoCleanup(ctx, flags.dryRun)
 	if err != nil {
 		if format == FormatJSON {
