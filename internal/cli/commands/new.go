@@ -4,7 +4,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"strings"
 
 	"github.com/yshrsmz/ticketflow/internal/cli"
 	"github.com/yshrsmz/ticketflow/internal/command"
@@ -68,15 +67,14 @@ func (c *NewCommand) Validate(flags interface{}, args []string) error {
 	}
 
 	// Safely assert flags type
-	f, ok := flags.(*newFlags)
-	if !ok {
-		return fmt.Errorf("invalid flags type: expected *newFlags, got %T", flags)
+	f, err := AssertFlags[newFlags](flags)
+	if err != nil {
+		return err
 	}
 
 	// Validate format flag using resolved value
-	format := f.format.Value()
-	if format != FormatText && format != FormatJSON {
-		return fmt.Errorf("invalid format: %q (must be %q or %q)", format, FormatText, FormatJSON)
+	if err := ValidateFormat(f.format.Value()); err != nil {
+		return err
 	}
 
 	return nil
@@ -92,9 +90,9 @@ func (c *NewCommand) Execute(ctx context.Context, flags interface{}, args []stri
 	}
 
 	// Safely extract flags
-	f, ok := flags.(*newFlags)
-	if !ok {
-		return fmt.Errorf("invalid flags type: expected *newFlags, got %T", flags)
+	f, err := AssertFlags[newFlags](flags)
+	if err != nil {
+		return err
 	}
 
 	// Get resolved flag values
@@ -121,13 +119,7 @@ func (c *NewCommand) Execute(ctx context.Context, flags interface{}, args []stri
 	}
 
 	// Extract parent ticket ID from Related field
-	var parentTicketID string
-	for _, rel := range ticket.Related {
-		if strings.HasPrefix(rel, "parent:") {
-			parentTicketID = strings.TrimPrefix(rel, "parent:")
-			break
-		}
-	}
+	parentTicketID := ExtractParentFromTicket(ticket)
 	// Fall back to explicit parent if not in Related field
 	if parentTicketID == "" {
 		parentTicketID = parent
