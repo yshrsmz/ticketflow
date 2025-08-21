@@ -1,11 +1,11 @@
 ---
 priority: 3
-description: "Extract common helper functions used across commands"
+description: Extract common helper functions used across commands
 created_at: "2025-08-15T17:15:27+09:00"
-started_at: null
+started_at: "2025-08-21T17:46:24+09:00"
 closed_at: null
 related:
-    - "parent:250812-152927-migrate-remaining-commands"
+    - parent:250812-152927-migrate-remaining-commands
 ---
 
 # Extract Command Helper Functions
