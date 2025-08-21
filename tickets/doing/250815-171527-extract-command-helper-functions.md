@@ -40,26 +40,26 @@ After analyzing the codebase:
 
 ## Tasks
 
-- [ ] Rename `internal/cli/commands/flag_utils.go` to `flag_types.go`
-- [ ] Create `internal/cli/commands/validation.go` file
-- [ ] Extract `ExtractParentFromTicket` helper function
-- [ ] Extract `ValidateFormat` helper function  
-- [ ] Create generic `AssertFlags[T]` helper for safe type assertions
-- [ ] Update close.go to use validation helpers
-- [ ] Update new.go to use validation helpers
-- [ ] Update restore.go to use validation helpers
-- [ ] Update list.go to use validation helpers
-- [ ] Update show.go to use validation helpers
-- [ ] Update status.go to use validation helpers
-- [ ] Update start.go to use validation helpers
-- [ ] Update cleanup.go to use validation helpers
-- [ ] Update worktree_clean.go to use validation helpers
-- [ ] Update worktree_list.go to use validation helpers
-- [ ] Update version.go to use validation helpers
-- [ ] Create validation_test.go with unit tests
-- [ ] Update existing tests to match new imports (flag_utils_test.go)
-- [ ] Run `make test` to verify no breakage
-- [ ] Run `make vet`, `make fmt` and `make lint`
+- [x] Rename `internal/cli/commands/flag_utils.go` to `flag_types.go`
+- [x] Create `internal/cli/commands/validation.go` file
+- [x] Extract `ExtractParentFromTicket` helper function
+- [x] Extract `ValidateFormat` helper function  
+- [x] Create generic `AssertFlags[T]` helper for safe type assertions
+- [x] Update close.go to use validation helpers
+- [x] Update new.go to use validation helpers
+- [x] Update restore.go to use validation helpers
+- [x] Update list.go to use validation helpers
+- [x] Update show.go to use validation helpers
+- [x] Update status.go to use validation helpers
+- [x] Update start.go to use validation helpers
+- [x] Update cleanup.go to use validation helpers
+- [x] Update worktree_clean.go to use validation helpers
+- [x] Update worktree_list.go to use validation helpers
+- [x] Update version.go to use validation helpers
+- [x] Create validation_test.go with unit tests
+- [x] Update existing tests to match new imports (flag_utils_test.go)
+- [x] Run `make test` to verify no breakage
+- [x] Run `make vet`, `make fmt` and `make lint`
 
 ## Example Implementations
 
