@@ -13,17 +13,6 @@ import (
 	"github.com/yshrsmz/ticketflow/internal/ticket"
 )
 
-// CloseTicketInternalError represents an internal error during ticket closing
-type CloseTicketInternalError struct {
-	IsCurrentTicket bool
-	Message         string
-}
-
-// Error implements the error interface
-func (e *CloseTicketInternalError) Error() string {
-	return fmt.Sprintf("internal error: %s (isCurrentTicket=%v)", e.Message, e.IsCurrentTicket)
-}
-
 // CloseCommand implements the close command using the new Command interface
 type CloseCommand struct{}
 
