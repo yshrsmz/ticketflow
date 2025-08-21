@@ -126,7 +126,6 @@ func TestCleanupCommand_Validate(t *testing.T) {
 	}
 }
 
-
 func TestCleanupCommand_Execute_Errors(t *testing.T) {
 	tests := []struct {
 		name        string

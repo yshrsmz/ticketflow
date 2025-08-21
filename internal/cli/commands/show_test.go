@@ -79,14 +79,14 @@ func TestShowCommand_Validate(t *testing.T) {
 		},
 		{
 			name:      "invalid format",
-			flags:     &showFlags{format: StringFlag{Long: "yaml"}},
+			flags:     &showFlags{format: "yaml"},
 			args:      []string{"123456"},
 			expectErr: true,
-			errMsg:    `invalid format: StringFlag{Long: "yaml"} (must be 'text' or 'json')`,
+			errMsg:    `invalid format: "yaml" (must be 'text' or 'json')`,
 		},
 		{
 			name:      "empty format defaults to text",
-			flags:     &showFlags{format: StringFlag{Long: ""}},
+			flags:     &showFlags{format: ""},
 			args:      []string{"123456"},
 			expectErr: false, // Now valid - defaults to "text"
 		},

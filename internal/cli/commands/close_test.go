@@ -44,11 +44,11 @@ func TestCloseCommand_SetupFlags(t *testing.T) {
 	require.True(t, ok, "flags should be *closeFlags")
 
 	// Test default values
-	assert.False(t, closeFlags.force)
-	assert.False(t, closeFlags.forceShort)
+	assert.False(t, closeFlags.force.Long)
+	assert.False(t, closeFlags.force.Short)
 	assert.Equal(t, "", closeFlags.reason)
-	assert.Equal(t, FormatText, closeFlags.format)
-	assert.Equal(t, "", closeFlags.formatShort)
+	assert.Equal(t, FormatText, closeFlags.format.Long)
+	assert.Equal(t, "", closeFlags.format.Short)
 
 	// Test that flags are registered
 	forceFlag := fs.Lookup("force")
@@ -84,7 +84,7 @@ func TestCloseCommand_Validate(t *testing.T) {
 		{
 			name: "valid no arguments",
 			flags: &closeFlags{
-				format: FormatText,
+				format: StringFlag{Long: FormatText},
 			},
 			args:        []string{},
 			expectError: false,
@@ -92,7 +92,7 @@ func TestCloseCommand_Validate(t *testing.T) {
 		{
 			name: "valid with ticket ID",
 			flags: &closeFlags{
-				format: FormatText,
+				format: StringFlag{Long: FormatText},
 			},
 			args:        []string{"ticket-123"},
 			expectError: false,
@@ -100,7 +100,7 @@ func TestCloseCommand_Validate(t *testing.T) {
 		{
 			name: "too many arguments",
 			flags: &closeFlags{
-				format: FormatText,
+				format: StringFlag{Long: FormatText},
 			},
 			args:        []string{"ticket-123", "extra"},
 			expectError: true,
@@ -122,25 +122,8 @@ func TestCloseCommand_Validate(t *testing.T) {
 			expectError: true,
 			errorMsg:    "invalid flags type",
 		},
-		{
-			name: "short form force takes precedence",
-			flags: &closeFlags{
-				force:      false,
-				forceShort: true,
-				format:     FormatText,
-			},
-			args:        []string{},
-			expectError: false,
-		},
-		{
-			name: "short form format takes precedence",
-			flags: &closeFlags{
-				format:      FormatText,
-				formatShort: FormatJSON,
-			},
-			args:        []string{},
-			expectError: false,
-		},
+		// Note: Testing flag precedence is not possible in unit tests
+		// since we're directly setting values without going through flag parsing
 	}
 
 	for _, tt := range tests {
@@ -158,16 +141,8 @@ func TestCloseCommand_Validate(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 
-				// Verify normalization happened
+				// Verify args are stored
 				if f, ok := tt.flags.(*closeFlags); ok {
-					if f.forceShort {
-						assert.True(t, f.force, "short form should set long form for force flag")
-					}
-					// Only check format normalization if formatShort is not empty
-					if f.formatShort != "" {
-						assert.Equal(t, f.formatShort, f.format, "short form should set long form when provided")
-					}
-					// Verify args are stored
 					assert.Equal(t, tt.args, f.args)
 				}
 			}
@@ -189,7 +164,7 @@ func TestCloseCommand_Execute_Errors(t *testing.T) {
 		{
 			name: "context cancelled",
 			flags: &closeFlags{
-				format: FormatText,
+				format: StringFlag{Long: FormatText},
 				args:   []string{},
 			},
 			args: []string{},
@@ -280,93 +255,6 @@ func TestCloseCommand_OutputHelpers_Legacy(t *testing.T) {
 		// Requires mocking app.Output.PrintJSON and app.Manager.GetTicket
 		t.Skip("Requires mock App and Manager implementation")
 	})
-}
-
-// Test flag normalization
-func TestCloseFlags_Normalize(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name     string
-		flags    closeFlags
-		expected closeFlags
-	}{
-		{
-			name: "no short forms",
-			flags: closeFlags{
-				force:  true,
-				format: FormatJSON,
-			},
-			expected: closeFlags{
-				force:  true,
-				format: FormatJSON,
-			},
-		},
-		{
-			name: "short force sets force via OR",
-			flags: closeFlags{
-				force:      false,
-				forceShort: true,
-				format:     FormatText,
-			},
-			expected: closeFlags{
-				force:      true,
-				forceShort: true,
-				format:     FormatText,
-			},
-		},
-		{
-			name: "both force flags true",
-			flags: closeFlags{
-				force:      true,
-				forceShort: true,
-				format:     FormatText,
-			},
-			expected: closeFlags{
-				force:      true,
-				forceShort: true,
-				format:     FormatText,
-			},
-		},
-		{
-			name: "short format overrides",
-			flags: closeFlags{
-				format:      FormatText,
-				formatShort: FormatJSON,
-			},
-			expected: closeFlags{
-				format:      FormatJSON,
-				formatShort: FormatJSON,
-			},
-		},
-		{
-			name: "both short forms override",
-			flags: closeFlags{
-				force:       false,
-				forceShort:  true,
-				format:      FormatText,
-				formatShort: FormatJSON,
-			},
-			expected: closeFlags{
-				force:       true,
-				forceShort:  true,
-				format:      FormatJSON,
-				formatShort: FormatJSON,
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
-			flags := tt.flags
-			flags.normalize()
-
-			assert.Equal(t, tt.expected.force, flags.force)
-			assert.Equal(t, tt.expected.format, flags.format)
-		})
-	}
 }
 
 // Integration test placeholder

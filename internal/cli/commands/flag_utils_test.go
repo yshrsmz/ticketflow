@@ -9,9 +9,9 @@ import (
 
 func TestStringFlag(t *testing.T) {
 	tests := []struct {
-		name         string
-		setupFlags   func(*flag.FlagSet, *StringFlag)
-		args         []string
+		name          string
+		setupFlags    func(*flag.FlagSet, *StringFlag)
+		args          []string
 		expectedValue string
 	}{
 		{
@@ -19,7 +19,7 @@ func TestStringFlag(t *testing.T) {
 			setupFlags: func(fs *flag.FlagSet, sf *StringFlag) {
 				RegisterString(fs, sf, "format", "o", "text", "Output format")
 			},
-			args:         []string{"-format", "json"},
+			args:          []string{"-format", "json"},
 			expectedValue: "json",
 		},
 		{
@@ -27,7 +27,7 @@ func TestStringFlag(t *testing.T) {
 			setupFlags: func(fs *flag.FlagSet, sf *StringFlag) {
 				RegisterString(fs, sf, "format", "o", "text", "Output format")
 			},
-			args:         []string{"-o", "json"},
+			args:          []string{"-o", "json"},
 			expectedValue: "json",
 		},
 		{
@@ -35,7 +35,7 @@ func TestStringFlag(t *testing.T) {
 			setupFlags: func(fs *flag.FlagSet, sf *StringFlag) {
 				RegisterString(fs, sf, "format", "o", "text", "Output format")
 			},
-			args:         []string{"-format", "json", "-o", "yaml"},
+			args:          []string{"-format", "json", "-o", "yaml"},
 			expectedValue: "yaml",
 		},
 		{
@@ -43,7 +43,7 @@ func TestStringFlag(t *testing.T) {
 			setupFlags: func(fs *flag.FlagSet, sf *StringFlag) {
 				RegisterString(fs, sf, "format", "o", "text", "Output format")
 			},
-			args:         []string{},
+			args:          []string{},
 			expectedValue: "text",
 		},
 		{
@@ -51,7 +51,7 @@ func TestStringFlag(t *testing.T) {
 			setupFlags: func(fs *flag.FlagSet, sf *StringFlag) {
 				RegisterString(fs, sf, "format", "o", "text", "Output format")
 			},
-			args:         []string{"-format", "json", "-o", "text"},
+			args:          []string{"-format", "json", "-o", "text"},
 			expectedValue: "text", // Short form wins even when it's the default value
 		},
 	}
@@ -60,12 +60,12 @@ func TestStringFlag(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			fs := flag.NewFlagSet("test", flag.ContinueOnError)
 			sf := &StringFlag{}
-			
+
 			tt.setupFlags(fs, sf)
-			
+
 			err := fs.Parse(tt.args)
 			assert.NoError(t, err)
-			
+
 			assert.Equal(t, tt.expectedValue, sf.Value())
 		})
 	}
@@ -73,9 +73,9 @@ func TestStringFlag(t *testing.T) {
 
 func TestBoolFlag(t *testing.T) {
 	tests := []struct {
-		name         string
-		setupFlags   func(*flag.FlagSet, *BoolFlag)
-		args         []string
+		name          string
+		setupFlags    func(*flag.FlagSet, *BoolFlag)
+		args          []string
 		expectedValue bool
 	}{
 		{
@@ -83,7 +83,7 @@ func TestBoolFlag(t *testing.T) {
 			setupFlags: func(fs *flag.FlagSet, bf *BoolFlag) {
 				RegisterBool(fs, bf, "force", "f", "Force operation")
 			},
-			args:         []string{"-force"},
+			args:          []string{"-force"},
 			expectedValue: true,
 		},
 		{
@@ -91,7 +91,7 @@ func TestBoolFlag(t *testing.T) {
 			setupFlags: func(fs *flag.FlagSet, bf *BoolFlag) {
 				RegisterBool(fs, bf, "force", "f", "Force operation")
 			},
-			args:         []string{"-f"},
+			args:          []string{"-f"},
 			expectedValue: true,
 		},
 		{
@@ -99,7 +99,7 @@ func TestBoolFlag(t *testing.T) {
 			setupFlags: func(fs *flag.FlagSet, bf *BoolFlag) {
 				RegisterBool(fs, bf, "force", "f", "Force operation")
 			},
-			args:         []string{"-force", "-f"},
+			args:          []string{"-force", "-f"},
 			expectedValue: true,
 		},
 		{
@@ -107,7 +107,7 @@ func TestBoolFlag(t *testing.T) {
 			setupFlags: func(fs *flag.FlagSet, bf *BoolFlag) {
 				RegisterBool(fs, bf, "force", "f", "Force operation")
 			},
-			args:         []string{},
+			args:          []string{},
 			expectedValue: false,
 		},
 		{
@@ -115,7 +115,7 @@ func TestBoolFlag(t *testing.T) {
 			setupFlags: func(fs *flag.FlagSet, bf *BoolFlag) {
 				RegisterBool(fs, bf, "force", "f", "Force operation")
 			},
-			args:         []string{"-force=true", "-f=false"},
+			args:          []string{"-force=true", "-f=false"},
 			expectedValue: true, // OR operation means true if either is true
 		},
 	}
@@ -124,12 +124,12 @@ func TestBoolFlag(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			fs := flag.NewFlagSet("test", flag.ContinueOnError)
 			bf := &BoolFlag{}
-			
+
 			tt.setupFlags(fs, bf)
-			
+
 			err := fs.Parse(tt.args)
 			assert.NoError(t, err)
-			
+
 			assert.Equal(t, tt.expectedValue, bf.Value())
 		})
 	}
@@ -141,50 +141,50 @@ func TestOldVsNewApproach(t *testing.T) {
 		// This simulates the old bug where --format json was ignored
 		// when -o had default value "text"
 		fs := flag.NewFlagSet("old", flag.ContinueOnError)
-		
+
 		var format, formatShort string
 		fs.StringVar(&format, "format", "text", "Output format")
 		fs.StringVar(&formatShort, "o", "text", "Output format (short)")
-		
+
 		// User provides --format json (but not -o)
 		err := fs.Parse([]string{"-format", "json"})
 		assert.NoError(t, err)
-		
+
 		// Old normalization logic (buggy)
 		// This was the bug: formatShort is "text" (default) and would override
 		if formatShort != "" && formatShort != "text" {
 			format = formatShort
 		}
-		
+
 		// Bug: format is still "json" because we skip default "text"
 		// But this required a hack to check for default value
 		assert.Equal(t, "json", format)
 	})
-	
+
 	t.Run("new approach - clean solution", func(t *testing.T) {
 		fs := flag.NewFlagSet("new", flag.ContinueOnError)
-		
+
 		sf := &StringFlag{}
 		RegisterString(fs, sf, "format", "o", "text", "Output format")
-		
+
 		// User provides --format json (but not -o)
 		err := fs.Parse([]string{"-format", "json"})
 		assert.NoError(t, err)
-		
+
 		// Clean: Value() method handles it correctly
 		assert.Equal(t, "json", sf.Value())
 	})
-	
+
 	t.Run("new approach - handles explicit default correctly", func(t *testing.T) {
 		fs := flag.NewFlagSet("new", flag.ContinueOnError)
-		
+
 		sf := &StringFlag{}
 		RegisterString(fs, sf, "format", "o", "text", "Output format")
-		
+
 		// User explicitly provides both: --format json -o text
 		err := fs.Parse([]string{"-format", "json", "-o", "text"})
 		assert.NoError(t, err)
-		
+
 		// Correctly returns "text" because -o was explicitly set
 		assert.Equal(t, "text", sf.Value())
 	})

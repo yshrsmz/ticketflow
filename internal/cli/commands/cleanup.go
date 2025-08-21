@@ -46,7 +46,6 @@ type cleanupFlags struct {
 	args   []string // Store validated arguments
 }
 
-
 // SetupFlags configures flags for the command
 func (c *CleanupCommand) SetupFlags(fs *flag.FlagSet) interface{} {
 	flags := &cleanupFlags{}

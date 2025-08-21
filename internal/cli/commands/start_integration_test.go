@@ -213,8 +213,8 @@ func TestStartCommand_Execute_Integration(t *testing.T) {
 
 			// Setup flags
 			startFlags := &startFlags{
-				force:  tt.flags["force"] == "true",
-				format: tt.flags["format"],
+				force:  BoolFlag{Long: tt.flags["force"] == "true"},
+				format: StringFlag{Long: tt.flags["format"]},
 			}
 
 			// Execute command with timeout

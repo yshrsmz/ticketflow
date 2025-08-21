@@ -185,9 +185,9 @@ func TestCloseCommand_Execute_Integration(t *testing.T) {
 
 			// Setup flags
 			closeFlags := &closeFlags{
-				force:  tt.flags["force"] == "true",
+				force:  BoolFlag{Long: tt.flags["force"] == "true"},
 				reason: tt.flags["reason"],
-				format: tt.flags["format"],
+				format: StringFlag{Long: tt.flags["format"]},
 				args:   tt.args,
 			}
 
