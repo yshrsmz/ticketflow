@@ -140,28 +140,28 @@ func TestRegisterPanics(t *testing.T) {
 	t.Run("RegisterString panics with empty names", func(t *testing.T) {
 		fs := flag.NewFlagSet("test", flag.ContinueOnError)
 		sf := &StringFlag{}
-		
+
 		defer func() {
 			r := recover()
 			assert.NotNil(t, r)
 			assert.Contains(t, r.(string), "longName=\"\"")
 			assert.Contains(t, r.(string), "shortName=\"\"")
 		}()
-		
+
 		RegisterString(fs, sf, "", "", "default", "usage")
 	})
-	
+
 	t.Run("RegisterBool panics with empty names", func(t *testing.T) {
 		fs := flag.NewFlagSet("test", flag.ContinueOnError)
 		bf := &BoolFlag{}
-		
+
 		defer func() {
 			r := recover()
 			assert.NotNil(t, r)
 			assert.Contains(t, r.(string), "longName=\"\"")
 			assert.Contains(t, r.(string), "shortName=\"\"")
 		}()
-		
+
 		RegisterBool(fs, bf, "", "", "usage")
 	})
 }
