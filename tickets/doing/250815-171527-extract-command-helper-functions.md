@@ -26,24 +26,46 @@ Pattern for merging short and long form flags.
 ### 4. Safe Type Assertion
 Common pattern for safe type assertion with error handling.
 
+## Implementation Plan
+
+After analyzing the codebase:
+- **9 commands** use type assertions with `ok := flags.(*commandFlags)`
+- **6+ commands** duplicate format validation logic
+- **3 commands** duplicate parent ticket extraction logic
+- Existing `flag_utils.go` already handles flag normalization well
+
+### Refactoring Approach
+1. **Rename**: `flag_utils.go` → `flag_types.go` (better describes content)
+2. **Create**: `validation.go` for validation and extraction helpers
+
 ## Tasks
 
-- [ ] Create `internal/cli/commands/helpers.go` file
-- [ ] Extract `extractParentFromTicket` helper function
-- [ ] Extract `validateFormat` helper function  
-- [ ] Extract `normalizeFlags` helper for flag merging
-- [ ] Create generic `assertFlags[T]` helper for safe type assertions
-- [ ] Update commands to use shared helpers
-- [ ] Remove duplicate implementations
+- [ ] Rename `internal/cli/commands/flag_utils.go` to `flag_types.go`
+- [ ] Create `internal/cli/commands/validation.go` file
+- [ ] Extract `ExtractParentFromTicket` helper function
+- [ ] Extract `ValidateFormat` helper function  
+- [ ] Create generic `AssertFlags[T]` helper for safe type assertions
+- [ ] Update close.go to use validation helpers
+- [ ] Update new.go to use validation helpers
+- [ ] Update restore.go to use validation helpers
+- [ ] Update list.go to use validation helpers
+- [ ] Update show.go to use validation helpers
+- [ ] Update status.go to use validation helpers
+- [ ] Update start.go to use validation helpers
+- [ ] Update cleanup.go to use validation helpers
+- [ ] Update worktree_clean.go to use validation helpers
+- [ ] Update worktree_list.go to use validation helpers
+- [ ] Update version.go to use validation helpers
+- [ ] Create validation_test.go with unit tests
+- [ ] Update existing tests to match new imports (flag_utils_test.go)
 - [ ] Run `make test` to verify no breakage
 - [ ] Run `make vet`, `make fmt` and `make lint`
-- [ ] Add tests for new helper functions
 
 ## Example Implementations
 
 ### Safe Type Assertion Helper
 ```go
-func assertFlags[T any](flags interface{}) (*T, error) {
+func AssertFlags[T any](flags interface{}) (*T, error) {
     f, ok := flags.(*T)
     if !ok {
         return nil, fmt.Errorf("invalid flags type: expected *%T, got %T", *new(T), flags)
@@ -54,7 +76,7 @@ func assertFlags[T any](flags interface{}) (*T, error) {
 
 ### Format Validation Helper
 ```go
-func validateFormat(format string) error {
+func ValidateFormat(format string) error {
     if format != FormatText && format != FormatJSON {
         return fmt.Errorf("invalid format: %q (must be 'text' or 'json')", format)
     }
@@ -64,7 +86,7 @@ func validateFormat(format string) error {
 
 ### Parent Extraction Helper
 ```go
-func extractParentFromTicket(ticket *ticket.Ticket) string {
+func ExtractParentFromTicket(ticket *ticket.Ticket) string {
     if ticket == nil || len(ticket.Related) == 0 {
         return ""
     }
