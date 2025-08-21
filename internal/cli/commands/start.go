@@ -64,15 +64,14 @@ func (c *StartCommand) Validate(flags interface{}, args []string) error {
 	}
 
 	// Safely assert flags type
-	f, ok := flags.(*startFlags)
-	if !ok {
-		return fmt.Errorf("invalid flags type: expected *startFlags, got %T", flags)
+	f, err := AssertFlags[startFlags](flags)
+	if err != nil {
+		return err
 	}
 
 	// Validate format flag using resolved value
-	format := f.format.Value()
-	if format != FormatText && format != FormatJSON {
-		return fmt.Errorf("invalid format: %q (must be %q or %q)", format, FormatText, FormatJSON)
+	if err := ValidateFormat(f.format.Value()); err != nil {
+		return err
 	}
 
 	return nil
@@ -90,9 +89,9 @@ func (c *StartCommand) Execute(ctx context.Context, flags interface{}, args []st
 
 	// Extract flags - Validate already checked this, but we still need to handle the type assertion
 	// for defensive programming (e.g., if Execute is called directly without Validate)
-	f, ok := flags.(*startFlags)
-	if !ok {
-		return fmt.Errorf("invalid flags type: expected *startFlags, got %T", flags)
+	f, err := AssertFlags[startFlags](flags)
+	if err != nil {
+		return err
 	}
 
 	// Check args length for defensive programming (in case Execute is called without Validate)
