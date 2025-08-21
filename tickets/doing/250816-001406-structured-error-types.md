@@ -1,8 +1,8 @@
 ---
 priority: 2
-description: "Refactor CLI commands to use structured error types for better error handling"
+description: Refactor CLI commands to use structured error types for better error handling
 created_at: "2025-08-16T00:14:06+09:00"
-started_at: null
+started_at: "2025-08-21T16:44:08+09:00"
 closed_at: null
 related:
     - parent:250815-171607-improve-command-test-coverage
