@@ -52,14 +52,14 @@ func (c *StatusCommand) SetupFlags(fs *flag.FlagSet) interface{} {
 // Validate checks if the command arguments are valid
 func (c *StatusCommand) Validate(flags interface{}, args []string) error {
 	// Safely assert flags type
-	f, ok := flags.(*statusFlags)
-	if !ok {
-		return fmt.Errorf("invalid flags type: expected *statusFlags, got %T", flags)
+	f, err := AssertFlags[statusFlags](flags)
+	if err != nil {
+		return err
 	}
 
 	// Validate format flag
-	if f.format != FormatText && f.format != FormatJSON {
-		return fmt.Errorf("invalid format: %q (must be 'text' or 'json')", f.format)
+	if err := ValidateFormat(f.format); err != nil {
+		return err
 	}
 
 	return nil
@@ -75,9 +75,9 @@ func (c *StatusCommand) Execute(ctx context.Context, flags interface{}, args []s
 	}
 
 	// Safely extract flags
-	f, ok := flags.(*statusFlags)
-	if !ok {
-		return fmt.Errorf("invalid flags type: expected *statusFlags, got %T", flags)
+	f, err := AssertFlags[statusFlags](flags)
+	if err != nil {
+		return err
 	}
 	outputFormat := cli.ParseOutputFormat(f.format)
 	cli.SetGlobalOutputFormat(outputFormat) // Ensure errors are formatted correctly
