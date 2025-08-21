@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/yshrsmz/ticketflow/internal/cli"
 	"github.com/yshrsmz/ticketflow/internal/command"
@@ -54,9 +53,9 @@ func (r *RestoreCommand) SetupFlags(fs *flag.FlagSet) interface{} {
 // Validate checks if the provided flags and arguments are valid
 func (r *RestoreCommand) Validate(flags interface{}, args []string) error {
 	// Defensive type assertion
-	f, ok := flags.(*restoreFlags)
-	if !ok {
-		return fmt.Errorf("invalid flags type: expected *restoreFlags, got %T", flags)
+	f, err := AssertFlags[restoreFlags](flags)
+	if err != nil {
+		return err
 	}
 
 	// No arguments allowed for restore command
@@ -65,9 +64,8 @@ func (r *RestoreCommand) Validate(flags interface{}, args []string) error {
 	}
 
 	// Validate format value using resolved value
-	format := f.format.Value()
-	if format != FormatText && format != FormatJSON {
-		return fmt.Errorf("invalid format: %q (must be %q or %q)", format, FormatText, FormatJSON)
+	if err := ValidateFormat(f.format.Value()); err != nil {
+		return err
 	}
 
 	return nil
@@ -82,7 +80,10 @@ func (r *RestoreCommand) Execute(ctx context.Context, flags interface{}, args []
 	default:
 	}
 
-	f := flags.(*restoreFlags)
+	f, err := AssertFlags[restoreFlags](flags)
+	if err != nil {
+		return err
+	}
 
 	// Get resolved format value
 	format := f.format.Value()
@@ -119,13 +120,7 @@ func (r *RestoreCommand) Execute(ctx context.Context, flags interface{}, args []
 	}
 
 	// Extract parent ticket
-	var parentTicket string
-	for _, rel := range ticket.Related {
-		if strings.HasPrefix(rel, "parent:") {
-			parentTicket = strings.TrimPrefix(rel, "parent:")
-			break
-		}
-	}
+	parentTicket := ExtractParentFromTicket(ticket)
 
 	// Create result
 	result := &cli.RestoreTicketResult{
