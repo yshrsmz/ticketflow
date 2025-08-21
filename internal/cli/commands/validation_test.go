@@ -165,7 +165,7 @@ func TestAssertFlags(t *testing.T) {
 	t.Run("successful type assertion", func(t *testing.T) {
 		flags := &testFlags{Value: "test"}
 		result, err := AssertFlags[testFlags](flags)
-		
+
 		assert.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Equal(t, "test", result.Value)
@@ -174,7 +174,7 @@ func TestAssertFlags(t *testing.T) {
 	t.Run("failed type assertion - wrong type", func(t *testing.T) {
 		flags := &otherFlags{Number: 42}
 		result, err := AssertFlags[testFlags](flags)
-		
+
 		assert.Error(t, err)
 		assert.Nil(t, result)
 		assert.Contains(t, err.Error(), "invalid flags type")
@@ -185,7 +185,7 @@ func TestAssertFlags(t *testing.T) {
 	t.Run("failed type assertion - non-pointer", func(t *testing.T) {
 		flags := testFlags{Value: "test"} // not a pointer
 		result, err := AssertFlags[testFlags](&flags)
-		
+
 		// This actually succeeds because &flags creates a pointer
 		assert.NoError(t, err)
 		assert.NotNil(t, result)
@@ -194,7 +194,7 @@ func TestAssertFlags(t *testing.T) {
 	t.Run("failed type assertion - interface{} containing wrong type", func(t *testing.T) {
 		var flags interface{} = &otherFlags{Number: 42}
 		result, err := AssertFlags[testFlags](flags)
-		
+
 		assert.Error(t, err)
 		assert.Nil(t, result)
 		assert.Contains(t, err.Error(), "invalid flags type")
@@ -203,7 +203,7 @@ func TestAssertFlags(t *testing.T) {
 	t.Run("failed type assertion - nil interface", func(t *testing.T) {
 		var flags interface{}
 		result, err := AssertFlags[testFlags](flags)
-		
+
 		assert.Error(t, err)
 		assert.Nil(t, result)
 		assert.Contains(t, err.Error(), "invalid flags type")
@@ -215,15 +215,15 @@ func TestAssertFlags(t *testing.T) {
 			force  BoolFlag
 			count  int
 		}
-		
+
 		flags := &complexFlags{
 			count: 10,
 		}
 		flags.format.Long = "json"
 		flags.force.Short = true
-		
+
 		result, err := AssertFlags[complexFlags](flags)
-		
+
 		assert.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Equal(t, "json", result.format.Long)

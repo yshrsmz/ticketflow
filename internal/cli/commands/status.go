@@ -3,7 +3,6 @@ package commands
 import (
 	"context"
 	"flag"
-	"fmt"
 
 	"github.com/yshrsmz/ticketflow/internal/cli"
 	"github.com/yshrsmz/ticketflow/internal/command"
