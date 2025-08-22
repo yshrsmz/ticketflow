@@ -13,7 +13,6 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Configuration
-LEFTHOOK_VERSION="1.12.3"
 GITHUB_REPO="evilmartians/lefthook"
 
 # Helper functions
@@ -77,7 +76,7 @@ check_existing_installation() {
 install_with_go() {
     if command_exists go; then
         print_info "Installing Lefthook using go install..."
-        if go install github.com/evilmartians/lefthook@v${LEFTHOOK_VERSION}; then
+        if go install github.com/evilmartians/lefthook@latest; then
             print_success "Lefthook installed via go install"
             return 0
         else
@@ -115,7 +114,17 @@ install_binary() {
     local os=$1
     local arch=$2
     
-    print_info "Downloading Lefthook binary from GitHub..."
+    print_info "Downloading latest Lefthook binary from GitHub..."
+    
+    # Get the latest release version
+    local latest_version=$(curl -s "https://api.github.com/repos/${GITHUB_REPO}/releases/latest" | grep '"tag_name":' | sed -E 's/.*"v?([^"]+)".*/\1/')
+    
+    if [[ -z "$latest_version" ]]; then
+        print_error "Failed to fetch latest version from GitHub"
+        return 1
+    fi
+    
+    print_info "Latest version: v${latest_version}"
     
     # Construct download URL based on OS and architecture
     local binary_name="lefthook"
@@ -124,9 +133,9 @@ install_binary() {
     # Try to construct the URL based on common patterns
     if [[ "$os" == "darwin" ]]; then
         # For macOS, binaries might be named differently
-        download_url="https://github.com/${GITHUB_REPO}/releases/download/v${LEFTHOOK_VERSION}/lefthook_${LEFTHOOK_VERSION}_${os}_${arch}"
+        download_url="https://github.com/${GITHUB_REPO}/releases/download/v${latest_version}/lefthook_${latest_version}_${os}_${arch}"
     elif [[ "$os" == "linux" ]]; then
-        download_url="https://github.com/${GITHUB_REPO}/releases/download/v${LEFTHOOK_VERSION}/lefthook_${LEFTHOOK_VERSION}_${os}_${arch}"
+        download_url="https://github.com/${GITHUB_REPO}/releases/download/v${latest_version}/lefthook_${latest_version}_${os}_${arch}"
     else
         print_error "Unsupported OS for binary download: $os"
         return 1
