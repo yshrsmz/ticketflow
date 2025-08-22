@@ -10,11 +10,19 @@ import (
 	"github.com/yshrsmz/ticketflow/internal/ticket"
 )
 
+// Error message constants for consistent error formatting
+const (
+	// ErrInvalidFormat is the error message template for invalid format values
+	ErrInvalidFormat = "invalid format: %q (must be %q or %q)"
+	// ErrInvalidFlags is the error message template for invalid flag type assertions
+	ErrInvalidFlags = "invalid flags type: expected *%T, got %T"
+)
+
 // ValidateFormat validates that the format string is either "text" or "json".
 // Returns an error if the format is invalid.
 func ValidateFormat(format string) error {
 	if format != FormatText && format != FormatJSON {
-		return fmt.Errorf("invalid format: %q (must be %q or %q)", format, FormatText, FormatJSON)
+		return fmt.Errorf(ErrInvalidFormat, format, FormatText, FormatJSON)
 	}
 	return nil
 }
@@ -38,7 +46,7 @@ func ExtractParentFromTicket(t *ticket.Ticket) string {
 func AssertFlags[T any](flags interface{}) (*T, error) {
 	f, ok := flags.(*T)
 	if !ok {
-		return nil, fmt.Errorf("invalid flags type: expected *%T, got %T", *new(T), flags)
+		return nil, fmt.Errorf(ErrInvalidFlags, *new(T), flags)
 	}
 	return f, nil
 }
