@@ -2,7 +2,7 @@
 priority: 2
 description: "Set up Lefthook for automated git hooks to run tests, linting, and formatting on pre-commit and pre-push"
 created_at: "2025-08-22T14:17:36+09:00"
-started_at: null
+started_at: "2025-08-22T14:17:36+09:00"
 closed_at: null
 ---
 
