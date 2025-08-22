@@ -1,0 +1,82 @@
+# lefthook.yml - Git hooks configuration for ticketflow
+# Fast pre-commit checks for formatting and basic validation
+# Comprehensive testing only on pre-push to avoid blocking progress commits
+
+# Pre-commit hooks - Quick checks only
+pre-commit:
+  parallel: true
+  commands:
+    # Format Go code
+    fmt:
+      glob: "*.go"
+      run: gofmt -w {staged_files}
+      stage_fixed: true
+      skip:
+        - merge
+        - rebase
+    
+    # Run go vet for static analysis
+    vet:
+      glob: "*.go"
+      run: go vet ./...
+      skip:
+        - merge
+        - rebase
+    
+    # Run linter for code quality
+    lint:
+      glob: "*.go"
+      run: golangci-lint run --fast
+      skip:
+        - merge
+        - rebase
+
+# Pre-push hooks - Comprehensive checks before pushing
+pre-push:
+  parallel: false  # Run sequentially for clearer output
+  commands:
+    # Run all tests
+    test:
+      run: make test
+      tags:
+        - backend
+        - test
+    
+    # Verify build succeeds
+    build:
+      run: make build
+      tags:
+        - backend
+        - build
+    
+    # Full lint check (not just fast mode)
+    lint-full:
+      run: make lint
+      tags:
+        - backend
+        - quality
+
+# Optional: Run specific checks manually
+# Usage: lefthook run check-all
+check-all:
+  parallel: false
+  commands:
+    fmt:
+      run: make fmt
+    vet:
+      run: make vet
+    lint:
+      run: make lint
+    test:
+      run: make test
+    build:
+      run: make build
+
+# Skip hooks in CI environment
+skip:
+  - ci
+
+# Allow local overrides
+# Developers can create .lefthook-local.yml for personal customizations
+extends:
+  - .lefthook-local.yml

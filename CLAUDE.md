@@ -9,6 +9,9 @@ TicketFlow is a git worktree-based ticket management system written in Go. It pr
 
 ### Essential Commands
 ```bash
+# Initialize development environment (first time setup)
+make init               # Sets up dependencies, git hooks, and worktree
+
 # Build the application (binary will be placed at repository root as ./ticketflow)
 make build
 
@@ -30,6 +33,21 @@ make lint   # Run golangci-lint
 # Generate test coverage
 make coverage
 ```
+
+### Git Hooks (Lefthook)
+The project uses Lefthook for git hooks management. Hooks are automatically installed when you run `make init` or `make setup-hooks`.
+
+**Pre-commit hooks** (fast checks):
+- `gofmt` - Formats Go code automatically
+- `go vet` - Static analysis
+- `golangci-lint --fast` - Quick linting
+
+**Pre-push hooks** (comprehensive checks):
+- `make test` - Runs all tests
+- `make build` - Verifies build succeeds
+- `make lint` - Full linting
+
+To skip hooks temporarily: `git commit --no-verify` or `git push --no-verify`
 
 ### Cross-platform builds
 ```bash

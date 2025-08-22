@@ -28,7 +28,7 @@ BENCH_TIME ?= 3s
 BENCH_COUNT ?= 3
 BENCH_TIMEOUT ?= 30m
 
-.PHONY: all build test clean install run run-tui build-current build-linux build-mac build-all release-archives init-worktree
+.PHONY: all build test clean install run run-tui build-current build-linux build-mac build-all release-archives init-worktree setup-hooks init
 
 # Default target
 all: test build
@@ -118,6 +118,16 @@ watch:
 init-worktree:
 	@bash scripts/init-worktree.sh
 
+# Setup git hooks with Lefthook
+setup-hooks:
+	@echo "Setting up git hooks with Lefthook..."
+	@bash scripts/setup-lefthook.sh
+	@echo "Git hooks setup complete!"
+
+# Initialize development environment (dependencies + hooks + worktree)
+init: deps setup-hooks init-worktree
+	@echo "Development environment initialized successfully!"
+
 # Build for Linux platforms
 build-linux:
 	@echo "Building for Linux platforms..."
@@ -191,6 +201,8 @@ release-archives: release-build
 # Show help
 help:
 	@echo "Available targets:"
+	@echo "  make init          - Initialize development environment (deps, hooks, worktree)"
+	@echo "  make setup-hooks   - Setup git hooks with Lefthook"
 	@echo "  make build         - Build the binary for local development"
 	@echo "  make build-current - Build for current platform with arch in filename"
 	@echo "  make build-linux   - Build for Linux (amd64, arm64)"
@@ -204,6 +216,7 @@ help:
 	@echo "  make clean         - Remove build artifacts"
 	@echo "  make deps          - Download dependencies"
 	@echo "  make fmt           - Format Go code"
+	@echo "  make vet           - Run go vet"
 	@echo "  make lint          - Run linter"
 	@echo "  make init-worktree - Initialize worktree with Claude settings"
 	@echo "  make version       - Show version information"

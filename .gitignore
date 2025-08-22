@@ -45,3 +45,7 @@ benchmarks/current.txt
 
 # Profiling artifacts
 *.prof
+
+# Lefthook
+.lefthook/
+.lefthook-local.yml

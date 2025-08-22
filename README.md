@@ -84,6 +84,9 @@ sudo mv ticketflow /usr/local/bin/
 git clone https://github.com/yshrsmz/ticketflow
 cd ticketflow
 
+# Initialize development environment (installs dependencies, git hooks, etc.)
+make init
+
 # Build the binary
 make build
 
@@ -95,6 +98,15 @@ make build-linux   # Build for Linux (amd64, arm64)
 make build-mac     # Build for macOS (amd64, arm64)
 make build-all     # Build for all platforms
 ```
+
+#### Development Setup
+
+For contributors, run `make init` after cloning to set up:
+- Go dependencies
+- Git hooks with Lefthook (format, vet, lint on pre-commit; tests on pre-push)
+- Worktree configuration
+
+Git hooks can be skipped with `--no-verify` for emergency commits.
 
 ### Using Go
 
