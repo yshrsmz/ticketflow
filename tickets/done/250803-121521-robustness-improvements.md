@@ -3,7 +3,7 @@ priority: 4
 description: Add permission checking and concurrent operation handling
 created_at: "2025-08-03T12:15:21+09:00"
 started_at: "2025-08-22T17:46:50+09:00"
-closed_at: null
+closed_at: "2025-08-22T18:05:27+09:00"
 related:
     - parent:250726-183403-fix-branch-already-exist-on-start
 ---
