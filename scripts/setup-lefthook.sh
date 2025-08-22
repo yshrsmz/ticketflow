@@ -59,10 +59,17 @@ command_exists() {
 # Check if Lefthook is already installed
 check_existing_installation() {
     if command_exists lefthook; then
-        local current_version=$(lefthook version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || echo "unknown")
+        local current_version
+        current_version=$(lefthook version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+') || current_version="unknown"
         print_info "Lefthook is already installed (version: $current_version)"
         
-        read -p "Do you want to reinstall/update? (y/N): " -n 1 -r
+        # Add timeout for non-interactive environments
+        if [[ -t 0 ]]; then
+            read -t 30 -p "Do you want to reinstall/update? (y/N): " -n 1 -r || REPLY='N'
+        else
+            print_info "Non-interactive mode detected, keeping existing installation"
+            REPLY='N'
+        fi
         echo
         if [[ ! $REPLY =~ ^[Yy]$ ]]; then
             print_info "Keeping existing installation"
@@ -117,7 +124,13 @@ install_binary() {
     print_info "Downloading latest Lefthook binary from GitHub..."
     
     # Get the latest release version
-    local latest_version=$(curl -s "https://api.github.com/repos/${GITHUB_REPO}/releases/latest" | grep '"tag_name":' | sed -E 's/.*"v?([^"]+)".*/\1/')
+    local latest_version
+    if command_exists jq; then
+        latest_version=$(curl -s "https://api.github.com/repos/${GITHUB_REPO}/releases/latest" | jq -r '.tag_name' | sed 's/^v//')
+    else
+        # Fallback to grep/sed with better error handling
+        latest_version=$(curl -s "https://api.github.com/repos/${GITHUB_REPO}/releases/latest" | grep -o '"tag_name":"[^"]*"' | cut -d'"' -f4 | sed 's/^v//')
+    fi
     
     if [[ -z "$latest_version" ]]; then
         print_error "Failed to fetch latest version from GitHub"
@@ -143,7 +156,7 @@ install_binary() {
     
     # Create temporary directory
     local tmp_dir=$(mktemp -d)
-    trap "rm -rf $tmp_dir" EXIT
+    trap "rm -rf '$tmp_dir'" EXIT
     
     # Download binary
     print_info "Downloading from: $download_url"
@@ -156,7 +169,6 @@ install_binary() {
             local file_type=$(file "$tmp_dir/lefthook" | cut -d: -f2)
             if echo "$file_type" | grep -q "gzip"; then
                 print_info "Extracting compressed binary..."
-                gunzip "$tmp_dir/lefthook"
                 mv "$tmp_dir/lefthook" "$tmp_dir/lefthook.gz"
                 gunzip "$tmp_dir/lefthook.gz"
             elif echo "$file_type" | grep -q "tar"; then

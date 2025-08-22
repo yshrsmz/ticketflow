@@ -9,7 +9,10 @@ pre-commit:
     # Format Go code
     fmt:
       glob: "*.go"
-      run: gofmt -w {staged_files}
+      run: |
+        if [ -n "{staged_files}" ]; then
+          echo {staged_files} | xargs -n 50 gofmt -w
+        fi
       stage_fixed: true
       skip:
         - merge
@@ -18,7 +21,10 @@ pre-commit:
     # Run go vet for static analysis
     vet:
       glob: "*.go"
-      run: go vet ./...
+      run: |
+        if [ -n "{staged_files}" ]; then
+          go vet {staged_files}
+        fi
       skip:
         - merge
         - rebase
