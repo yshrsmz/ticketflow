@@ -1,5 +1,5 @@
 // Package commands provides CLI command implementations and utilities.
-// This file contains flag handling utilities that manage long/short form flag pairs
+// This file contains flag type definitions that manage long/short form flag pairs
 // with proper precedence handling (short form takes precedence when explicitly set).
 //
 // Thread-safety note: These types are designed for single-threaded flag parsing

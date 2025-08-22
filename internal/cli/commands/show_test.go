@@ -82,7 +82,7 @@ func TestShowCommand_Validate(t *testing.T) {
 			flags:     &showFlags{format: "yaml"},
 			args:      []string{"123456"},
 			expectErr: true,
-			errMsg:    `invalid format: "yaml" (must be 'text' or 'json')`,
+			errMsg:    `invalid format: "yaml" (must be "text" or "json")`,
 		},
 		{
 			name:      "empty format defaults to text",
@@ -102,7 +102,7 @@ func TestShowCommand_Validate(t *testing.T) {
 			flags:     "not a showFlags",
 			args:      []string{"123456"},
 			expectErr: true,
-			errMsg:    `invalid flags type: expected *showFlags, got string`,
+			errMsg:    `invalid flags type: expected *commands.showFlags, got string`,
 		},
 	}
 

@@ -63,18 +63,17 @@ func (c *CleanupCommand) Validate(flags interface{}, args []string) error {
 	}
 
 	// Safely assert flags type
-	f, ok := flags.(*cleanupFlags)
-	if !ok {
-		return fmt.Errorf("invalid flags type: expected *cleanupFlags, got %T", flags)
+	f, err := AssertFlags[cleanupFlags](flags)
+	if err != nil {
+		return err
 	}
 
 	// Store arguments for Execute method
 	f.args = args
 
 	// Validate format flag using resolved value
-	format := f.format.Value()
-	if format != FormatText && format != FormatJSON {
-		return fmt.Errorf("invalid format: %q (must be %q or %q)", format, FormatText, FormatJSON)
+	if err := ValidateFormat(f.format.Value()); err != nil {
+		return err
 	}
 
 	// dry-run flag only makes sense for auto-cleanup mode (no ticket ID)
@@ -95,9 +94,9 @@ func (c *CleanupCommand) Execute(ctx context.Context, flags interface{}, args []
 	}
 
 	// Safely assert flags type
-	f, ok := flags.(*cleanupFlags)
-	if !ok {
-		return fmt.Errorf("invalid flags type: expected *cleanupFlags, got %T", flags)
+	f, err := AssertFlags[cleanupFlags](flags)
+	if err != nil {
+		return err
 	}
 
 	// Get resolved values

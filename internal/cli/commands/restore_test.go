@@ -72,7 +72,7 @@ func TestRestoreCommand_Validate(t *testing.T) {
 			flags:       "not a restoreFlags",
 			args:        []string{},
 			expectError: true,
-			errorMsg:    "invalid flags type: expected *restoreFlags, got string",
+			errorMsg:    "invalid flags type: expected *commands.restoreFlags, got string",
 		},
 		{
 			name: "valid no arguments with text format",

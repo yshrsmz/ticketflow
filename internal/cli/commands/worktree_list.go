@@ -71,8 +71,10 @@ func (c *WorktreeListCommand) Validate(flags interface{}, args []string) error {
 	}
 
 	// Validate format (empty string defaults to text which is valid)
-	if f.format != "" && f.format != FormatText && f.format != FormatJSON {
-		return fmt.Errorf("invalid format: %s (must be '%s' or '%s')", f.format, FormatText, FormatJSON)
+	if f.format != "" {
+		if err := ValidateFormat(f.format); err != nil {
+			return err
+		}
 	}
 
 	return nil

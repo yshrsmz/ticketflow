@@ -133,7 +133,7 @@ func TestNewCommand_Validate(t *testing.T) {
 			flags:     "not a newFlags",
 			args:      []string{"my-ticket"},
 			expectErr: true,
-			errMsg:    `invalid flags type: expected *newFlags, got string`,
+			errMsg:    `invalid flags type: expected *commands.newFlags, got string`,
 		},
 		{
 			name:      "slug with numbers",

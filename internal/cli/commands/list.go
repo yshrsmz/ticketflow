@@ -75,8 +75,8 @@ func (c *ListCommand) Validate(flags interface{}, args []string) error {
 	}
 
 	// Validate format flag
-	if f.format != FormatText && f.format != FormatJSON {
-		return fmt.Errorf("invalid format: %q (must be 'text' or 'json')", f.format)
+	if err := ValidateFormat(f.format); err != nil {
+		return err
 	}
 
 	// Validate count flag

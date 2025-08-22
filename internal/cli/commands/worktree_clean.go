@@ -57,15 +57,14 @@ func (c *WorktreeCleanCommand) Validate(flags interface{}, args []string) error 
 	}
 
 	// Safely assert flags type
-	f, ok := flags.(*worktreeCleanFlags)
-	if !ok {
-		return fmt.Errorf("invalid flags type: expected *worktreeCleanFlags, got %T", flags)
+	f, err := AssertFlags[worktreeCleanFlags](flags)
+	if err != nil {
+		return err
 	}
 
 	// Validate format flag using resolved value
-	format := f.format.Value()
-	if format != FormatText && format != FormatJSON {
-		return fmt.Errorf("invalid format: %q (must be %q or %q)", format, FormatText, FormatJSON)
+	if err := ValidateFormat(f.format.Value()); err != nil {
+		return err
 	}
 
 	return nil
@@ -81,9 +80,9 @@ func (c *WorktreeCleanCommand) Execute(ctx context.Context, flags interface{}, a
 	}
 
 	// Safely assert flags type
-	f, ok := flags.(*worktreeCleanFlags)
-	if !ok {
-		return fmt.Errorf("invalid flags type: expected *worktreeCleanFlags, got %T", flags)
+	f, err := AssertFlags[worktreeCleanFlags](flags)
+	if err != nil {
+		return err
 	}
 
 	// Get resolved format value

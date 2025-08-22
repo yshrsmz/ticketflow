@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/yshrsmz/ticketflow/internal/cli"
@@ -66,18 +65,17 @@ func (c *CloseCommand) Validate(flags interface{}, args []string) error {
 	}
 
 	// Safely assert flags type
-	f, ok := flags.(*closeFlags)
-	if !ok {
-		return fmt.Errorf("invalid flags type: expected *closeFlags, got %T", flags)
+	f, err := AssertFlags[closeFlags](flags)
+	if err != nil {
+		return err
 	}
 
 	// Store arguments for Execute method
 	f.args = args
 
 	// Validate format flag using resolved value
-	format := f.format.Value()
-	if format != FormatText && format != FormatJSON {
-		return fmt.Errorf("invalid format: %q (must be %q or %q)", format, FormatText, FormatJSON)
+	if err := ValidateFormat(f.format.Value()); err != nil {
+		return err
 	}
 
 	return nil
@@ -93,9 +91,9 @@ func (c *CloseCommand) Execute(ctx context.Context, flags interface{}, args []st
 	}
 
 	// Safely assert flags type
-	f, ok := flags.(*closeFlags)
-	if !ok {
-		return fmt.Errorf("invalid flags type: expected *closeFlags, got %T", flags)
+	f, err := AssertFlags[closeFlags](flags)
+	if err != nil {
+		return err
 	}
 
 	// Get resolved values
@@ -155,13 +153,7 @@ func (c *CloseCommand) Execute(ctx context.Context, flags interface{}, args []st
 	}
 
 	// Extract parent ticket
-	var parentTicket string
-	for _, rel := range closedTicket.Related {
-		if strings.HasPrefix(rel, "parent:") {
-			parentTicket = strings.TrimPrefix(rel, "parent:")
-			break
-		}
-	}
+	parentTicket := ExtractParentFromTicket(closedTicket)
 
 	// Get worktree path for current mode
 	var worktreePath string
