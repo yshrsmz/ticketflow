@@ -83,6 +83,8 @@ pre-push:
    - Fallback to go install and direct binary download
    - Colored output for better UX
    - Idempotent (safe to run multiple times)
+   - **Fixed**: Always installs git hooks even when keeping existing Lefthook
+   - **Improved**: No version pinning - always installs latest version
 
 2. **Lefthook Configuration** (`lefthook.yml`):
    - Pre-commit: Fast checks only (gofmt, go vet, golangci-lint --fast)
@@ -105,6 +107,37 @@ pre-push:
 - **Tests only on pre-push**: Allows committing work-in-progress without delays
 - **Auto-formatting with stage_fixed**: Automatically stages formatted files
 - **Skip options documented**: `--no-verify` for emergency commits
+- **No version pinning**: Always use latest version (Homebrew does this anyway)
+
+### Issues Found and Fixed:
+1. **Initial bug**: Script would skip git hook installation if user kept existing Lefthook
+   - **Fix**: Restructured flow to always run `lefthook install` for the repository
+2. **Version pinning unnecessary**: Homebrew installs latest anyway
+   - **Fix**: Removed hardcoded version, use `@latest` for go install, fetch latest for binary
+
+## Testing and Verification
+
+### Verified Functionality:
+1. **Pre-commit hooks work**: Tested with multiple commits
+   - Skips when no Go files are staged (efficient)
+   - Runs parallel checks when Go files are present
+   - Clear output showing what ran/skipped
+
+2. **Setup script handles all cases**:
+   - Fresh installation via Homebrew ✓
+   - Keeping existing installation ✓
+   - Properly installs git hooks for repository ✓
+   - Error handling for missing dependencies ✓
+
+3. **Integration with existing workflow**:
+   - Works with worktree-based development
+   - Doesn't interfere with ticket management
+   - Respects `--no-verify` flag for emergencies
+
+### Hook Performance:
+- Pre-commit: < 0.1s when skipping (no Go files)
+- Pre-commit: ~1-2s with Go files (fmt, vet, lint --fast)
+- Pre-push: Full test suite runs (as expected)
 
 ## Notes
 
