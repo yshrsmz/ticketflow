@@ -66,10 +66,10 @@ check_existing_installation() {
         echo
         if [[ ! $REPLY =~ ^[Yy]$ ]]; then
             print_info "Keeping existing installation"
-            return 0
+            return 0  # 0 means user wants to keep existing, skip install
         fi
     fi
-    return 1
+    return 1  # 1 means need to install/reinstall
 }
 
 # Install using Go
@@ -213,62 +213,66 @@ main() {
     print_info "Setting up Lefthook for ticketflow project"
     
     # Check existing installation
+    local skip_install=0
     if check_existing_installation; then
         # User chose to keep existing installation
-        if command_exists lefthook; then
-            print_info "Installing git hooks..."
-            lefthook install
-            print_success "Git hooks installed successfully"
-            return 0
+        skip_install=1
+    fi
+    
+    # If we need to install/reinstall
+    if [[ $skip_install -eq 0 ]]; then
+        # Detect OS and architecture
+        local os=$(detect_os)
+        local arch=$(detect_arch)
+        
+        print_info "Detected OS: $os, Architecture: $arch"
+        
+        if [[ "$os" == "unknown" ]] || [[ "$arch" == "unknown" ]]; then
+            print_error "Unable to detect OS or architecture"
+            exit 1
+        fi
+        
+        # Try installation methods in order of preference
+        # 1. Homebrew (preferred for macOS and Linux)
+        if install_with_homebrew "$os"; then
+            :  # Successfully installed
+        # 2. Go install (for Go developers)
+        elif install_with_go; then
+            :  # Successfully installed
+        # 3. Direct binary download (last resort)
+        elif install_binary "$os" "$arch"; then
+            :  # Successfully installed
+        else
+            print_error "Failed to install Lefthook using all available methods"
+            print_info "Please install Lefthook manually:"
+            print_info "  - Using Homebrew (recommended): brew install lefthook"
+            print_info "  - Using Go: go install github.com/evilmartians/lefthook@latest"
+            print_info "  - Download from: https://github.com/evilmartians/lefthook/releases"
+            exit 1
         fi
     fi
     
-    # Detect OS and architecture
-    local os=$(detect_os)
-    local arch=$(detect_arch)
-    
-    print_info "Detected OS: $os, Architecture: $arch"
-    
-    if [[ "$os" == "unknown" ]] || [[ "$arch" == "unknown" ]]; then
-        print_error "Unable to detect OS or architecture"
-        exit 1
-    fi
-    
-    # Try installation methods in order of preference
-    # 1. Homebrew (preferred for macOS and Linux)
-    if install_with_homebrew "$os"; then
-        :  # Successfully installed
-    # 2. Go install (for Go developers)
-    elif install_with_go; then
-        :  # Successfully installed
-    # 3. Direct binary download (last resort)
-    elif install_binary "$os" "$arch"; then
-        :  # Successfully installed
-    else
-        print_error "Failed to install Lefthook using all available methods"
-        print_info "Please install Lefthook manually:"
-        print_info "  - Using Homebrew (recommended): brew install lefthook"
-        print_info "  - Using Go: go install github.com/evilmartians/lefthook@latest"
-        print_info "  - Download from: https://github.com/evilmartians/lefthook/releases"
-        exit 1
-    fi
-    
-    # Verify installation
+    # Verify Lefthook is available (either existing or newly installed)
     if command_exists lefthook; then
-        print_success "Lefthook installed successfully!"
+        print_success "Lefthook is ready!"
         print_info "Version: $(lefthook version)"
         
-        # Install git hooks
-        print_info "Installing git hooks..."
-        lefthook install
-        print_success "Git hooks installed successfully"
+        # Install git hooks for this repository
+        print_info "Installing git hooks for this repository..."
+        if lefthook install; then
+            print_success "Git hooks installed successfully"
+        else
+            print_error "Failed to install git hooks"
+            print_info "Please run 'lefthook install' manually"
+            exit 1
+        fi
         
         print_info ""
         print_success "Setup complete! Lefthook is now managing your git hooks."
         print_info "Configuration file: lefthook.yml"
         print_info "To skip hooks temporarily, use: git commit --no-verify"
     else
-        print_error "Lefthook installation could not be verified"
+        print_error "Lefthook is not available"
         exit 1
     fi
 }
