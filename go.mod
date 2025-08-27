@@ -7,7 +7,7 @@ require (
 	github.com/charmbracelet/bubbletea v1.3.6
 	github.com/charmbracelet/lipgloss v1.1.0
 	github.com/mattn/go-shellwords v1.0.12
-	github.com/stretchr/testify v1.10.0
+	github.com/stretchr/testify v1.11.1
 	golang.org/x/sync v0.15.0
 	golang.org/x/term v0.34.0
 	gopkg.in/yaml.v3 v3.0.1
