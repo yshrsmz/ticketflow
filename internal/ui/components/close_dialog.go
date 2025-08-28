@@ -26,9 +26,9 @@ const (
 	reasonInputWidth = 60
 
 	// Dialog responsive behavior
-	dialogWidthBreakpoint = 75  // Screen width below which the dialog adjusts its width
-	dialogMargin          = 10  // Margin to leave on each side when adjusting dialog width
-	defaultDialogWidth    = 65  // Default dialog width for larger screens
+	dialogWidthBreakpoint = 75 // Screen width below which the dialog adjusts its width
+	dialogMargin          = 10 // Margin to leave on each side when adjusting dialog width
+	defaultDialogWidth    = 65 // Default dialog width for larger screens
 
 	// Error messages
 	ErrReasonWhitespace = "reason cannot be only whitespace"

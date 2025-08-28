@@ -470,14 +470,14 @@ func (m *Model) closeTicketWithReason(t *ticket.Ticket, reason string) tea.Cmd {
 		// Create a context with timeout for the close operation
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
-		
+
 		// Check for early cancellation
 		select {
 		case <-ctx.Done():
 			return fmt.Errorf("operation cancelled: %w", ctx.Err())
 		default:
 		}
-		
+
 		// Validate ticket can be closed
 		if err := m.validateTicketForClose(t); err != nil {
 			return err
@@ -768,18 +768,13 @@ func (m *Model) checkWorkspaceForClose(t *ticket.Ticket) (string, bool, error) {
 	return worktreePath, isWorktree, nil
 }
 
-// moveTicketToDoneAndCommit moves ticket to done status and commits the change
-func (m *Model) moveTicketToDoneAndCommit(t *ticket.Ticket, reason string) error {
-	return m.moveTicketToDoneAndCommitWithContext(context.Background(), t, reason)
-}
-
 // moveTicketToDoneAndCommitWithContext moves ticket to done status and commits the change with context support
 func (m *Model) moveTicketToDoneAndCommitWithContext(ctx context.Context, t *ticket.Ticket, reason string) error {
 	// Check for cancellation at the start
 	if ctx.Err() != nil {
 		return fmt.Errorf("operation cancelled: %w", ctx.Err())
 	}
-	
+
 	// Update ticket status
 	if err := m.closeTicketWithStatus(t, reason); err != nil {
 		return err
@@ -793,7 +788,7 @@ func (m *Model) moveTicketToDoneAndCommitWithContext(ctx context.Context, t *tic
 	// Move file and update ticket
 	oldPath := t.Path
 	newPath := filepath.Join(m.config.GetDonePath(m.projectRoot), filepath.Base(t.Path))
-	
+
 	if err := m.moveAndUpdateTicket(ctx, t, oldPath, newPath); err != nil {
 		return err
 	}
@@ -831,7 +826,7 @@ func (m *Model) moveAndUpdateTicket(ctx context.Context, t *ticket.Ticket, oldPa
 	if err := os.Rename(oldPath, newPath); err != nil {
 		return fmt.Errorf("failed to move ticket to done: %w", err)
 	}
-	
+
 	t.Path = newPath
 	if err := m.manager.Update(ctx, t); err != nil {
 		_ = os.Rename(newPath, oldPath) // Rollback
@@ -845,12 +840,12 @@ func (m *Model) commitTicketClose(ctx context.Context, t *ticket.Ticket, reason,
 	if err := m.git.Add(ctx, oldPath, newPath); err != nil {
 		return fmt.Errorf("failed to stage ticket move: %w", err)
 	}
-	
+
 	commitMsg := fmt.Sprintf("Close ticket: %s", t.ID)
 	if reason != "" {
 		commitMsg = fmt.Sprintf("Close ticket: %s\n\nReason: %s", t.ID, reason)
 	}
-	
+
 	if err := m.git.Commit(ctx, commitMsg); err != nil {
 		return fmt.Errorf("failed to commit ticket move: %w", err)
 	}
