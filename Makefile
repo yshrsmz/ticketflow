@@ -118,10 +118,10 @@ watch:
 init-worktree:
 	@bash scripts/init-worktree.sh
 
-# Setup git hooks with Lefthook
+# Setup native git hooks
 setup-hooks:
-	@echo "Setting up git hooks with Lefthook..."
-	@bash scripts/setup-lefthook.sh
+	@echo "Setting up native git hooks..."
+	@bash scripts/init-githooks.sh
 	@echo "Git hooks setup complete!"
 
 # Initialize development environment (dependencies + hooks + worktree)
@@ -202,7 +202,7 @@ release-archives: release-build
 help:
 	@echo "Available targets:"
 	@echo "  make init          - Initialize development environment (deps, hooks, worktree)"
-	@echo "  make setup-hooks   - Setup git hooks with Lefthook"
+	@echo "  make setup-hooks   - Setup native git hooks"
 	@echo "  make build         - Build the binary for local development"
 	@echo "  make build-current - Build for current platform with arch in filename"
 	@echo "  make build-linux   - Build for Linux (amd64, arm64)"

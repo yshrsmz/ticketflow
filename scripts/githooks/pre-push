@@ -1,0 +1,114 @@
+#!/bin/bash
+
+# Pre-push hook for ticketflow project
+# Runs comprehensive tests and build checks before pushing
+
+set -e
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Configuration
+VERBOSE=${HOOKS_VERBOSE:-0}
+
+# Timing
+START_TIME=$(date +%s)
+
+# Helper functions
+print_info() {
+    echo -e "${BLUE}[pre-push]${NC} $1"
+}
+
+print_success() {
+    echo -e "${GREEN}[pre-push]${NC} ✓ $1"
+}
+
+print_warning() {
+    echo -e "${YELLOW}[pre-push]${NC} ⚠ $1"
+}
+
+print_error() {
+    echo -e "${RED}[pre-push]${NC} ✗ $1"
+}
+
+print_separator() {
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+}
+
+debug() {
+    if [[ "$VERBOSE" == "1" ]]; then
+        echo -e "${BLUE}[pre-push][DEBUG]${NC} $1"
+    fi
+}
+
+# Check if we should skip hooks
+if [[ "${SKIP_HOOKS}" == "1" ]] || [[ "${NO_VERIFY}" == "1" ]]; then
+    print_warning "Skipping pre-push hooks (SKIP_HOOKS or NO_VERIFY set)"
+    exit 0
+fi
+
+# Skip hooks in CI environment
+if [[ "${CI}" == "true" ]] || [[ -n "${GITHUB_ACTIONS}" ]]; then
+    print_info "CI environment detected, skipping hooks"
+    exit 0
+fi
+
+print_separator
+print_info "Running pre-push checks..."
+print_info "This may take a few moments..."
+print_separator
+
+# Track if any check fails
+FAILED=0
+
+# 1. Run tests
+print_info "Running tests..."
+if make test 2>&1; then
+    print_success "All tests passed"
+else
+    print_error "Tests failed"
+    FAILED=1
+fi
+
+# 2. Run build (only if tests passed)
+if [[ $FAILED -eq 0 ]]; then
+    print_info "Building project..."
+    if make build 2>&1; then
+        print_success "Build successful"
+    else
+        print_error "Build failed"
+        FAILED=1
+    fi
+fi
+
+# 3. Run full lint check (only if previous checks passed)
+if [[ $FAILED -eq 0 ]]; then
+    print_info "Running full lint check..."
+    if make lint 2>&1; then
+        print_success "Linting passed"
+    else
+        print_error "Linting failed"
+        FAILED=1
+    fi
+fi
+
+# Calculate elapsed time
+END_TIME=$(date +%s)
+ELAPSED=$((END_TIME - START_TIME))
+MINUTES=$((ELAPSED / 60))
+SECONDS=$((ELAPSED % 60))
+
+print_separator
+if [[ $FAILED -eq 0 ]]; then
+    print_success "All pre-push checks passed! (${MINUTES}m ${SECONDS}s)"
+    print_info "Pushing to remote..."
+    exit 0
+else
+    print_error "Pre-push checks failed! (${MINUTES}m ${SECONDS}s)"
+    print_info "Fix the issues and try again, or use 'git push --no-verify' to skip checks"
+    exit 1
+fi
