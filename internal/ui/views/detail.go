@@ -68,7 +68,7 @@ func (m TicketDetailModel) Update(msg tea.Msg) (TicketDetailModel, tea.Cmd) {
 			m.shouldBack = true
 
 		case "c":
-			if m.ticket != nil && m.ticket.Status() == ticket.StatusDoing {
+			if m.ticket != nil && (m.ticket.Status() == ticket.StatusDoing || m.ticket.Status() == ticket.StatusTodo) {
 				m.action = DetailActionClose
 			}
 
@@ -236,7 +236,7 @@ func (m TicketDetailModel) View() string {
 	helpItems := []string{"q/esc: back"}
 	if m.ticket != nil {
 		if m.ticket.Status() == ticket.StatusTodo {
-			helpItems = append(helpItems, "s: start")
+			helpItems = append(helpItems, "s: start", "c: close")
 		} else if m.ticket.Status() == ticket.StatusDoing {
 			helpItems = append(helpItems, "c: close")
 		}
