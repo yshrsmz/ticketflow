@@ -214,8 +214,8 @@ Priority is set to 2 (medium) as this provides feature parity between CLI and TU
 
 ## Final Implementation Insights from PR Review Process
 
-### Business Logic Refinement
-The most significant insight was clarifying when closure reasons are required:
+### Business Logic Refinement (OUTDATED - See Critical Fix Below)
+The initial implementation incorrectly based reason requirements on ticket status:
 - **TODO tickets**: ALWAYS require a reason (being abandoned without work)
 - **DOING tickets**: Reason is optional (normal workflow, closing before PR merge)
 - This differs from initial assumption that unmerged branches require reasons
@@ -252,3 +252,44 @@ The most significant insight was clarifying when closure reasons are required:
 - Automated code review tools catch important consistency issues
 - Comprehensive test coverage reveals edge cases and improves confidence
 - Small details matter (trailing whitespace, unused variables) for CI success
+
+## Critical Fix: Aligning TUI with CLI Behavior
+
+### Problem Discovered
+The TUI implementation had fundamental issues:
+1. **Incorrect business logic**: Based reason requirement on ticket status (TODO/DOING) instead of branch merge status
+2. **TUI crashes**: Synchronous calls in Update method causing panics
+3. **Inconsistent with CLI**: TUI only supported closing current ticket, while CLI supports closing any ticket by ID
+
+### Root Cause Analysis
+- **Misunderstanding of requirements**: Assumed TODO tickets always need reasons, but CLI actually checks branch merge status
+- **TUI limitations**: Initial design only allowed closing current ticket, unlike CLI which has two modes
+- **Synchronous operations**: Direct calls to GetCurrentTicket in Update method caused crashes
+
+### Solution: Align TUI with CLI's CloseTicketByID Logic
+The CLI has two distinct close modes:
+1. **Close current ticket** (`ticketflow close`): No reason required unless branch is unmerged  
+2. **Close by ID** (`ticketflow close <id>`): Requires reason if branch is not merged to main
+
+TUI should behave like "close by ID" mode with special handling when selected ticket IS the current ticket:
+- **If current ticket**: Optional reason (like `ticketflow close`)
+- **If not current ticket**: Check branch merge status
+  - If merged: Optional reason
+  - If not merged: Require reason
+
+### Implementation Tasks
+- [ ] Revert status-based validation that prevents TODO tickets from being closed
+- [ ] Add `closeTicketByID` method mirroring CLI behavior
+- [ ] Add branch merge checking (`git.IsBranchMerged`)
+- [ ] Update dialog to show based on merge status, not ticket status
+- [ ] Fix async handling to prevent crashes
+- [ ] Add comprehensive error handling
+
+### Expected Behavior After Fix
+1. **Any ticket can be selected for closing** (no status restrictions)
+2. **Current ticket**: Dialog with optional reason
+3. **Non-current ticket**:
+   - Branch merged → Optional reason
+   - Branch not merged → Required reason
+4. **No crashes**, proper async operations
+5. **Consistent with CLI behavior**
