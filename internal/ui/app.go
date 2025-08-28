@@ -319,19 +319,19 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case views.DetailActionClose:
 			t := m.ticketDetail.SelectedTicket()
 			if t != nil {
-				// First validate if this ticket can be closed
-				// Check if it's the current ticket before showing dialog
-				current, err := m.manager.GetCurrentTicket(context.Background())
-				if err != nil {
-					m.err = fmt.Errorf("failed to get current ticket: %w", err)
+				// Quick check: only show dialog for tickets that could be current
+				// Full validation will happen in closeTicketWithReason
+				if t.Status() == ticket.StatusDone {
+					m.err = fmt.Errorf("ticket is already closed")
 					return m, nil
 				}
-				if current == nil {
-					m.err = fmt.Errorf("no active ticket - use 'ticketflow start <ticket-id>' first")
-					return m, nil
-				}
-				if current.ID != t.ID {
-					m.err = fmt.Errorf("can only close the current active ticket (%s). Selected ticket: %s", current.ID, t.ID)
+				
+				// For TODO tickets not in doing, do a pre-validation
+				// This avoids showing the dialog unnecessarily
+				if t.Status() == ticket.StatusTodo {
+					// TODO tickets in the todo directory can't be current
+					// (current tickets are always in doing directory)
+					m.err = fmt.Errorf("can only close the current active ticket - start this ticket first")
 					return m, nil
 				}
 				
