@@ -77,6 +77,16 @@ func (m *CloseDialogModel) Hide() {
 	m.showError = false
 }
 
+// SetRequireReason updates the reason requirement without hiding the dialog
+func (m *CloseDialogModel) SetRequireReason(require bool) {
+	m.requireReason = require
+	// Clear any error if switching from required to optional
+	if !require && m.showError {
+		m.showError = false
+		m.errorMsg = ""
+	}
+}
+
 // IsVisible returns whether the dialog is visible
 func (m *CloseDialogModel) IsVisible() bool {
 	return m.state == CloseDialogInput

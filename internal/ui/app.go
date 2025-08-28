@@ -25,6 +25,10 @@ import (
 
 // Operation timeout constants
 const (
+	// closeOperationTimeout is the maximum time allowed for a close operation.
+	// This includes file operations, git commits, and ticket status updates.
+	// 30 seconds provides sufficient time for slower systems or network operations
+	// while preventing indefinite hangs.
 	closeOperationTimeout = 30 * time.Second
 )
 
@@ -286,10 +290,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case closeRequirementsMsg:
 		// Update dialog with actual requirements
 		if m.pendingCloseTicket != nil && m.pendingCloseTicket.ID == msg.ticket.ID {
-			// Update dialog to show correct requirements
-			m.closeDialog.Hide() // Hide briefly to reset state
-			m.closeDialog.Show(msg.requireReason)
-			m.pendingCloseTicket = msg.ticket
+			// Update dialog requirements without hiding (prevents flicker)
+			if m.closeDialog.IsVisible() {
+				// Only update if still visible (user hasn't cancelled)
+				m.closeDialog.SetRequireReason(msg.requireReason)
+			}
 		}
 		return m, nil
 	}
@@ -343,11 +348,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, nil
 				}
 
-				// We'll determine if reason is required asynchronously
-				// For now, show dialog with reason optional and validate later
-				// This prevents synchronous operations in Update method
-				m.closeDialog.Show(false) // Will be updated based on actual requirements
-				m.pendingCloseTicket = t  // Store for async processing
+				// Start with dialog disabled while we determine requirements
+				// This prevents premature confirmation before validation
+				m.closeDialog.Show(true) // Show with reason required initially (safer default)
+				m.pendingCloseTicket = t // Store for async processing
 				return m, m.checkCloseRequirements(t)
 			}
 
@@ -495,10 +499,16 @@ func (m *Model) startTicket(t *ticket.Ticket) tea.Cmd {
 	}
 }
 
+// isCurrentTicket checks if the given ticket is the current active ticket
+func isCurrentTicket(current, target *ticket.Ticket) bool {
+	return current != nil && target != nil && current.ID == target.ID
+}
+
 // checkBranchMerged checks if a branch has been merged to the default branch
 func (m *Model) checkBranchMerged(ticketID string) (bool, error) {
 	if m.config.Git.DefaultBranch == "" {
-		return false, nil
+		// If no default branch configured, we can't determine merge status
+		return false, fmt.Errorf("default branch not configured in .ticketflow.yaml")
 	}
 	return m.git.IsBranchMerged(context.Background(), ticketID, m.config.Git.DefaultBranch)
 }
@@ -515,7 +525,7 @@ func (m *Model) checkCloseRequirements(t *ticket.Ticket) tea.Cmd {
 
 		// Determine if reason is required
 		var requireReason bool
-		if current != nil && current.ID == t.ID {
+		if isCurrentTicket(current, t) {
 			// Current ticket - reason is optional (like `ticketflow close`)
 			requireReason = false
 		} else {
@@ -533,7 +543,7 @@ func (m *Model) checkCloseRequirements(t *ticket.Ticket) tea.Cmd {
 		return closeRequirementsMsg{
 			ticket:        t,
 			requireReason: requireReason,
-			isCurrent:     current != nil && current.ID == t.ID,
+			isCurrent:     isCurrentTicket(current, t),
 		}
 	}
 }
@@ -545,12 +555,7 @@ func (m *Model) closeTicketWithReason(t *ticket.Ticket, reason string) tea.Cmd {
 		ctx, cancel := context.WithTimeout(context.Background(), closeOperationTimeout)
 		defer cancel()
 
-		// Check for early cancellation
-		select {
-		case <-ctx.Done():
-			return fmt.Errorf("operation cancelled: %w", ctx.Err())
-		default:
-		}
+		// No need to check for cancellation right after creating context
 
 		logger := log.Global().WithOperation("close_ticket_tui").WithTicket(t.ID)
 
@@ -567,7 +572,7 @@ func (m *Model) closeTicketWithReason(t *ticket.Ticket, reason string) tea.Cmd {
 			current = nil
 		}
 
-		isCurrent := current != nil && current.ID == t.ID
+		isCurrent := isCurrentTicket(current, t)
 
 		// If not current ticket and no reason provided, check if branch is merged
 		if !isCurrent && reason == "" {
@@ -832,7 +837,7 @@ func (m *Model) checkWorkspaceForClose(t *ticket.Ticket) (string, bool, error) {
 		log.Global().WithError(err).Debug("failed to get current ticket")
 		current = nil
 	}
-	isCurrent := current != nil && current.ID == t.ID
+	isCurrent := isCurrentTicket(current, t)
 
 	if m.config.Worktree.Enabled {
 		// Check if a worktree exists for this ticket
@@ -856,8 +861,18 @@ func (m *Model) checkWorkspaceForClose(t *ticket.Ticket) (string, bool, error) {
 				}
 			}
 		} else if !isCurrent {
-			// For non-current tickets without worktrees, we can't close them
-			return "", false, fmt.Errorf("no worktree found for ticket %s", t.ID)
+			// For non-current tickets without worktrees, check if branch is merged
+			// If merged, we might still be able to close it
+			merged, err := m.checkBranchMerged(t.ID)
+			if err != nil {
+				// If we can't check merge status, we can't proceed without a worktree
+				return "", false, fmt.Errorf("no worktree found for ticket %s and unable to verify branch status: %w", t.ID, err)
+			}
+			if !merged {
+				// Branch not merged and no worktree - can't close
+				return "", false, fmt.Errorf("no worktree found for ticket %s (branch not merged)", t.ID)
+			}
+			// Branch is merged, we can proceed without a worktree
 		}
 	}
 
