@@ -258,7 +258,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.initWarning != "" {
 			m.err = fmt.Errorf("⚠️  Warning: %s", msg.initWarning)
 		}
-		
+
 		// Refresh the list
 		cmds = append(cmds, m.ticketList.Refresh())
 		return m, tea.Batch(cmds...)
@@ -267,7 +267,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Ticket was successfully closed
 		// Don't set success messages as errors - this causes the TUI to crash
 		// Instead, we could show a temporary notification or just refresh silently
-		
+
 		// Go back to list and refresh
 		if m.view == ViewTicketDetail {
 			m.view = m.previousView
@@ -781,7 +781,7 @@ func (m *Model) moveTicketToDoingAndCommit(t *ticket.Ticket, worktreePath, curre
 	if err := m.git.Add(context.Background(), newPath); err != nil {
 		return fmt.Errorf("failed to stage new ticket location: %w", err)
 	}
-	
+
 	// Try to stage the removal of the old path from todo/
 	// This might fail if the file was never committed (just created)
 	if err := m.git.Add(context.Background(), oldPath); err != nil {
