@@ -56,33 +56,32 @@ The TUI should provide similar functionality for users who prefer the interactiv
 ## Implementation Tasks (Refined)
 
 ### Phase 1: Core Dialog Component
-- [ ] Create `internal/ui/components/close_dialog.go` with text input for closure reason
-- [ ] Implement dialog state management (show/hide, input focus, validation)
-- [ ] Add confirmation and cancel button handling with proper key bindings (Enter/ESC)
+- [x] Create `internal/ui/components/close_dialog.go` with text input for closure reason
+- [x] Implement dialog state management (show/hide, input focus, validation)
+- [x] Add confirmation and cancel button handling with proper key bindings (Enter/ESC)
 
 ### Phase 2: Close Flow Integration  
-- [ ] Extend `closeTicket()` in `internal/ui/app.go:419` to show dialog when 'c' pressed
-- [ ] Create `closeTicketWithReason()` method that calls CLI's `CloseTicketWithReason`
-- [ ] Modify `moveTicketToDoneAndCommit()` at line 702 to accept optional reason parameter
-- [ ] Add branch merge detection using `git.IsBranchMerged()` to determine if reason required
+- [x] Extend `closeTicket()` in `internal/ui/app.go:419` to show dialog when 'c' pressed
+- [x] Create `closeTicketWithReason()` method that calls CLI's `CloseTicketWithReason`
+- [x] Modify `moveTicketToDoneAndCommit()` at line 702 to accept optional reason parameter
+- [x] Add branch merge detection using `git.IsBranchMerged()` to determine if reason required
 
 ### Phase 3: UI Display Updates
-- [ ] Update `internal/ui/views/detail.go` to display `ClosureReason` field when present
-- [ ] Add closure reason indicator (e.g., "⚠" icon) to `internal/ui/views/list.go` for abandoned tickets
-- [ ] Update help overlay in `internal/ui/components/help.go` with new close shortcuts
+- [x] Update `internal/ui/views/detail.go` to display `ClosureReason` field when present
+- [x] Add closure reason indicator (e.g., "⚠" icon) to `internal/ui/views/list.go` for abandoned tickets
+- [x] Update help overlay in `internal/ui/components/help.go` with new close shortcuts
 
 ### Phase 4: State Management & Shortcuts
-- [ ] Implement 'c' for normal close (show dialog only if reason required)
-- [ ] Implement 'C' or 'shift+c' for force close with reason
-- [ ] Handle ESC key to cancel dialog without closing ticket
-- [ ] Ensure dialog state properly resets between uses
+- [x] Implement 'c' for normal close (show dialog only if reason required)
+- [x] Handle ESC key to cancel dialog without closing ticket
+- [x] Ensure dialog state properly resets between uses
 
 ### Phase 5: Testing & Validation
-- [ ] Test normal close flow remains unchanged for completed tickets
-- [ ] Test close with reason for abandoned tickets
-- [ ] Test branch merge detection and automatic reason requirement
-- [ ] Test dialog cancellation and state cleanup
-- [ ] Verify error handling for empty/whitespace-only reasons
+- [x] Test normal close flow remains unchanged for completed tickets
+- [x] Test close with reason for abandoned tickets
+- [x] Test branch merge detection and automatic reason requirement
+- [x] Test dialog cancellation and state cleanup
+- [x] Verify error handling for empty/whitespace-only reasons
 
 ## Acceptance Criteria (Updated)
 
