@@ -228,6 +228,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case error:
 		m.err = msg
+		// Hide close dialog if visible to prevent inconsistent state
+		if m.closeDialog.IsVisible() {
+			m.closeDialog.Hide()
+		}
 		return m, nil
 
 	case ticketStartedMsg:
@@ -717,8 +721,11 @@ func (m *Model) validateTicketForClose(t *ticket.Ticket) error {
 	if err != nil {
 		return fmt.Errorf("failed to get current ticket: %w", err)
 	}
-	if current == nil || current.ID != t.ID {
-		return fmt.Errorf("can only close the current active ticket")
+	if current == nil {
+		return fmt.Errorf("no active ticket - use 'ticketflow start <ticket-id>' first")
+	}
+	if current.ID != t.ID {
+		return fmt.Errorf("can only close the current active ticket (%s). Selected ticket: %s", current.ID, t.ID)
 	}
 	return nil
 }

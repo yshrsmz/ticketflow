@@ -261,7 +261,11 @@ func (m TicketListModel) View() string {
 		"Description")
 	s.WriteString(styles.SubtitleStyle.Render(header))
 	s.WriteString("\n")
-	s.WriteString(strings.Repeat("─", m.width-4))
+	separatorWidth := m.width - 4
+	if separatorWidth < 0 {
+		separatorWidth = 0
+	}
+	s.WriteString(strings.Repeat("─", separatorWidth))
 	s.WriteString("\n")
 
 	// Handle empty state
