@@ -3,7 +3,7 @@ priority: 2
 description: Add TUI support for closing tickets with reasons
 created_at: "2025-08-09T20:02:29+09:00"
 started_at: "2025-08-28T16:10:38+09:00"
-closed_at: null
+closed_at: "2025-08-28T23:19:53+09:00"
 related:
     - parent:250809-115810-extend-close-for-abandoned-tickets
 ---
