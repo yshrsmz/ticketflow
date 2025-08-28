@@ -317,7 +317,12 @@ func (m TicketListModel) View() string {
 			statusStyle := styles.GetStatusStyle(string(t.Status()))
 			priorityStyle := styles.GetPriorityStyle(t.Priority)
 
-			id := truncate(t.ID, idWidth)
+			// Add abandoned indicator for closed tickets with reason
+			idStr := t.ID
+			if t.Status() == ticket.StatusDone && t.ClosureReason != "" {
+				idStr = "⚠ " + t.ID
+			}
+			id := truncate(idStr, idWidth)
 			status := statusStyle.Render(fmt.Sprintf("%-*s", statusWidth, t.Status()))
 			priority := priorityStyle.Render(fmt.Sprintf("%d", t.Priority))
 

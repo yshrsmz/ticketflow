@@ -172,6 +172,12 @@ func (m TicketDetailModel) View() string {
 			styles.InfoStyle.Render(m.ticket.ClosedAt.Time.Format(time.RFC3339))))
 	}
 
+	if m.ticket.ClosureReason != "" {
+		meta.WriteString(fmt.Sprintf("%s %s\n",
+			styles.SubtitleStyle.Render("Closure Reason:"),
+			styles.WarningStyle.Render(m.ticket.ClosureReason)))
+	}
+
 	if len(m.ticket.Related) > 0 {
 		meta.WriteString(fmt.Sprintf("%s %s\n",
 			styles.SubtitleStyle.Render("Related:"),

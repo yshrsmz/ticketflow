@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/mattn/go-shellwords"
@@ -98,6 +99,9 @@ type Model struct {
 	newTicket    views.NewTicketModel
 	worktreeList views.WorktreeListModel
 
+	// Components
+	closeDialog components.CloseDialogModel
+
 	// UI state
 	help   components.HelpModel
 	width  int
@@ -119,6 +123,7 @@ func New(cfg *config.Config, manager ticket.TicketManager, gitClient git.GitClie
 		ticketDetail: views.NewTicketDetailModel(manager),
 		newTicket:    views.NewNewTicketModel(manager),
 		worktreeList: views.NewWorktreeListModel(gitClient, cfg),
+		closeDialog:  components.NewCloseDialogModel(),
 		help:         components.NewHelpModel(),
 		ready:        false,
 	}
@@ -140,6 +145,24 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// Handle global keys first
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
+		// Close dialog takes highest precedence
+		if m.closeDialog.IsVisible() {
+			m.closeDialog, cmd = m.closeDialog.Update(msg)
+
+			// Handle dialog result
+			if m.closeDialog.IsConfirmed() {
+				if selected := m.ticketDetail.SelectedTicket(); selected != nil {
+					reason := m.closeDialog.GetReason()
+					return m, m.closeTicketWithReason(selected, reason)
+				}
+				m.closeDialog.Hide()
+			} else if m.closeDialog.IsCancelled() {
+				m.closeDialog.Hide()
+			}
+
+			return m, cmd
+		}
+
 		// Help overlay takes precedence
 		if m.help.IsVisible() {
 			switch msg.String() {
@@ -195,6 +218,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.ticketDetail.SetSize(msg.Width, msg.Height)
 		m.newTicket.SetSize(msg.Width, msg.Height)
 		m.worktreeList.SetSize(msg.Width, msg.Height)
+		m.closeDialog.SetSize(msg.Width, msg.Height)
 
 	case error:
 		m.err = msg
@@ -285,7 +309,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case views.DetailActionClose:
 			t := m.ticketDetail.SelectedTicket()
 			if t != nil {
-				cmds = append(cmds, m.closeTicket(t))
+				// Check if reason is required (branch not merged)
+				requireReason := false
+				if m.config.Worktree.Enabled {
+					merged, _ := m.git.IsBranchMerged(context.Background(), t.ID, m.config.Git.DefaultBranch)
+					requireReason = !merged
+				}
+				// Show close dialog
+				m.closeDialog.Show(requireReason)
+				return m, textinput.Blink
 			}
 
 		case views.DetailActionEdit:
@@ -348,6 +380,23 @@ func (m Model) View() string {
 		content = m.newTicket.View()
 	case ViewWorktreeList:
 		content = m.worktreeList.View()
+	}
+
+	// Add close dialog overlay if visible
+	if m.closeDialog.IsVisible() {
+		dialogView := m.closeDialog.View()
+		// Center the dialog overlay
+		dialogWidth := lipgloss.Width(dialogView)
+		dialogHeight := lipgloss.Height(dialogView)
+		x := (m.width - dialogWidth) / 2
+		y := (m.height - dialogHeight) / 2
+
+		// Overlay dialog on content
+		dialogOverlay := lipgloss.Place(m.width, m.height, lipgloss.Left, lipgloss.Top,
+			lipgloss.NewStyle().Margin(y, 0, 0, x).Render(dialogView))
+
+		// Return dialog overlay on top of content
+		return dialogOverlay
 	}
 
 	// Add help overlay if visible
@@ -415,8 +464,8 @@ func (m *Model) startTicket(t *ticket.Ticket) tea.Cmd {
 	}
 }
 
-// closeTicket closes a ticket
-func (m *Model) closeTicket(t *ticket.Ticket) tea.Cmd {
+// closeTicketWithReason closes a ticket with an optional reason
+func (m *Model) closeTicketWithReason(t *ticket.Ticket, reason string) tea.Cmd {
 	return func() tea.Msg {
 		// Validate ticket can be closed
 		if err := m.validateTicketForClose(t); err != nil {
@@ -429,8 +478,8 @@ func (m *Model) closeTicket(t *ticket.Ticket) tea.Cmd {
 			return err
 		}
 
-		// Move ticket to done status and commit
-		if err := m.moveTicketToDoneAndCommit(t); err != nil {
+		// Move ticket to done status and commit with reason
+		if err := m.moveTicketToDoneAndCommit(t, reason); err != nil {
 			return err
 		}
 
@@ -699,10 +748,16 @@ func (m *Model) checkWorkspaceForClose(t *ticket.Ticket) (string, bool, error) {
 }
 
 // moveTicketToDoneAndCommit moves ticket to done status and commits the change
-func (m *Model) moveTicketToDoneAndCommit(t *ticket.Ticket) error {
-	// Update ticket status
-	if err := t.Close(); err != nil {
-		return fmt.Errorf("failed to close ticket: %w", err)
+func (m *Model) moveTicketToDoneAndCommit(t *ticket.Ticket, reason string) error {
+	// Update ticket status with or without reason
+	if reason != "" {
+		if err := t.CloseWithReason(reason); err != nil {
+			return fmt.Errorf("failed to close ticket with reason: %w", err)
+		}
+	} else {
+		if err := t.Close(); err != nil {
+			return fmt.Errorf("failed to close ticket: %w", err)
+		}
 	}
 
 	// Move ticket file from doing to done
@@ -728,8 +783,14 @@ func (m *Model) moveTicketToDoneAndCommit(t *ticket.Ticket) error {
 		return fmt.Errorf("failed to stage ticket move: %w", err)
 	}
 
+	// Prepare commit message
+	commitMsg := fmt.Sprintf("Close ticket: %s", t.ID)
+	if reason != "" {
+		commitMsg = fmt.Sprintf("Close ticket: %s\n\nReason: %s", t.ID, reason)
+	}
+
 	// Commit the move
-	if err := m.git.Commit(context.Background(), fmt.Sprintf("Close ticket: %s", t.ID)); err != nil {
+	if err := m.git.Commit(context.Background(), commitMsg); err != nil {
 		return fmt.Errorf("failed to commit ticket move: %w", err)
 	}
 

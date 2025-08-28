@@ -53,37 +53,77 @@ The TUI should provide similar functionality for users who prefer the interactiv
    - Maintain consistency with CLI behavior
    - Handle all error cases gracefully with user-friendly messages
 
-## Implementation Tasks
+## Implementation Tasks (Refined)
 
-### UI Components
-- [ ] Create reason input dialog component
-- [ ] Add close confirmation dialog with reason preview
-- [ ] Update ticket detail view to show closure reason
-- [ ] Add closure reason indicator to list view
+### Phase 1: Core Dialog Component
+- [ ] Create `internal/ui/components/close_dialog.go` with text input for closure reason
+- [ ] Implement dialog state management (show/hide, input focus, validation)
+- [ ] Add confirmation and cancel button handling with proper key bindings (Enter/ESC)
 
-### Integration
-- [ ] Add "Close with Reason" option to ticket actions menu
-- [ ] Implement branch merge detection in TUI
-- [ ] Add validation for required reasons
-- [ ] Handle error messages and user feedback
+### Phase 2: Close Flow Integration  
+- [ ] Extend `closeTicket()` in `internal/ui/app.go:419` to show dialog when 'c' pressed
+- [ ] Create `closeTicketWithReason()` method that calls CLI's `CloseTicketWithReason`
+- [ ] Modify `moveTicketToDoneAndCommit()` at line 702 to accept optional reason parameter
+- [ ] Add branch merge detection using `git.IsBranchMerged()` to determine if reason required
 
-### Testing
-- [ ] Test closing current ticket with/without reason
-- [ ] Test closing other tickets with required reason
-- [ ] Test branch merge detection display
-- [ ] Test error handling for invalid inputs
+### Phase 3: UI Display Updates
+- [ ] Update `internal/ui/views/detail.go` to display `ClosureReason` field when present
+- [ ] Add closure reason indicator (e.g., "⚠" icon) to `internal/ui/views/list.go` for abandoned tickets
+- [ ] Update help overlay in `internal/ui/components/help.go` with new close shortcuts
 
-## Acceptance Criteria
+### Phase 4: State Management & Shortcuts
+- [ ] Implement 'c' for normal close (show dialog only if reason required)
+- [ ] Implement 'C' or 'shift+c' for force close with reason
+- [ ] Handle ESC key to cancel dialog without closing ticket
+- [ ] Ensure dialog state properly resets between uses
 
-- [ ] Can close current ticket with optional reason in TUI
-- [ ] Can close any ticket with reason from TUI
-- [ ] Closure reason displayed in ticket detail view
-- [ ] Branch merge status shown when relevant
-- [ ] Error messages match CLI behavior
-- [ ] User experience is intuitive and consistent
+### Phase 5: Testing & Validation
+- [ ] Test normal close flow remains unchanged for completed tickets
+- [ ] Test close with reason for abandoned tickets
+- [ ] Test branch merge detection and automatic reason requirement
+- [ ] Test dialog cancellation and state cleanup
+- [ ] Verify error handling for empty/whitespace-only reasons
 
-## Notes
+## Acceptance Criteria (Updated)
 
-This is a follow-up enhancement to the CLI close with reason feature. The core logic already exists in the `internal/cli` package and should be reused where possible.
+### Core Functionality
+- [ ] Dialog appears when closing ticket with 'c' key in detail view
+- [ ] Can enter closure reason in text input field
+- [ ] Can confirm with Enter or cancel with ESC
+- [ ] Empty/whitespace-only reasons are rejected with error message
+- [ ] Dialog automatically appears when branch is not merged (reason required)
 
-Priority is set to 2 (medium) as this is a nice-to-have enhancement that improves UX consistency but isn't blocking core functionality.
+### Display & Indicators
+- [ ] Closure reason shown in ticket detail view under metadata
+- [ ] Abandoned tickets (with closure reason) show "⚠" icon in list view
+- [ ] Help overlay documents new close shortcuts ('c' and 'C')
+
+### Integration & Consistency
+- [ ] TUI uses same `CloseTicketWithReason` backend as CLI
+- [ ] Branch merge detection works same as CLI implementation
+- [ ] Error messages match CLI format and content
+- [ ] Context cancellation handled properly throughout
+
+## Technical Notes
+
+### Key Integration Points
+1. **Backend Methods Available**:
+   - `app.CloseTicketWithReason(ctx, reason, force)` - in `internal/cli/commands.go:567`
+   - `ticket.CloseWithReason(reason)` - in `internal/ticket/ticket.go:194`
+   - `git.IsBranchMerged(branch, base)` - for merge detection
+
+2. **Existing UI Patterns to Follow**:
+   - Text input: See `internal/ui/views/new.go` for textinput usage
+   - Dialog styling: Use `styles.DialogStyle` from `internal/ui/styles/theme.go`
+   - State management: Follow pattern in `ViewNewTicket` for input handling
+
+3. **Files Requiring Modification**:
+   - `internal/ui/app.go` - Main close flow logic
+   - `internal/ui/components/` - New dialog component
+   - `internal/ui/views/detail.go` - Display closure reason
+   - `internal/ui/views/list.go` - Add abandoned indicator
+
+### Implementation Approach
+This ticket focuses ONLY on the TUI layer. All business logic exists in the CLI package and should be reused. The implementation should follow existing Bubble Tea patterns for consistency.
+
+Priority is set to 2 (medium) as this provides feature parity between CLI and TUI interfaces.
