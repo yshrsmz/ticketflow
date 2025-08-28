@@ -19,6 +19,14 @@ const (
 	CloseDialogCancelled
 )
 
+// Dialog responsive behavior constants
+const (
+	// dialogWidthBreakpoint is the screen width below which the dialog adjusts its width
+	dialogWidthBreakpoint = 75
+	// dialogMargin is the margin to leave on each side when adjusting dialog width
+	dialogMargin = 10
+)
+
 // CloseDialogModel represents the close dialog component
 type CloseDialogModel struct {
 	state         CloseDialogState
@@ -112,10 +120,18 @@ func (m *CloseDialogModel) Update(msg tea.Msg) (*CloseDialogModel, tea.Cmd) {
 			reason := m.GetReason()
 
 			// Validate input - reason is required when branch is not merged
-			if m.requireReason && reason == "" {
-				m.showError = true
-				m.errorMsg = "Reason is required for unmerged branches"
-				return m, nil
+			if m.requireReason {
+				originalInput := m.reasonInput.Value()
+				if originalInput != "" && reason == "" {
+					m.showError = true
+					m.errorMsg = "Reason cannot be only whitespace"
+					return m, nil
+				}
+				if reason == "" {
+					m.showError = true
+					m.errorMsg = "Reason is required for unmerged branches"
+					return m, nil
+				}
 			}
 
 			m.state = CloseDialogConfirmed
@@ -179,8 +195,8 @@ func (m *CloseDialogModel) View() string {
 
 	// Calculate appropriate width based on screen size
 	dialogWidth := 65
-	if m.width > 0 && m.width < 75 {
-		dialogWidth = m.width - 10 // Leave some margin
+	if m.width > 0 && m.width < dialogWidthBreakpoint {
+		dialogWidth = m.width - dialogMargin // Leave some margin
 	}
 
 	return styles.DialogStyle.

@@ -315,7 +315,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					merged, err := m.git.IsBranchMerged(context.Background(), t.ID, m.config.Git.DefaultBranch)
 					if err != nil {
 						// Log error and default to requiring reason as safe fallback
-						log.Global().Warn("failed to check branch merge status, defaulting to require reason",
+						log.Global().Warn("failed to check branch merge status, requiring reason as safety fallback",
 							"error", err, "ticket", t.ID)
 						requireReason = true // Safe default when we can't determine merge status
 					} else {
