@@ -169,13 +169,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			// Handle dialog result
 			if m.closeDialog.IsConfirmed() {
-				if selected := m.ticketDetail.SelectedTicket(); selected != nil {
+				// Use the pending ticket that was stored when dialog was shown
+				if m.pendingCloseTicket != nil {
 					reason := m.closeDialog.GetReason()
-					return m, m.closeTicketWithReason(selected, reason)
+					cmd := m.closeTicketWithReason(m.pendingCloseTicket, reason)
+					m.closeDialog.Hide()
+					m.pendingCloseTicket = nil // Clear pending ticket
+					return m, cmd
 				}
 				m.closeDialog.Hide()
 			} else if m.closeDialog.IsCancelled() {
 				m.closeDialog.Hide()
+				m.pendingCloseTicket = nil // Clear pending ticket
 			}
 
 			return m, cmd
@@ -248,30 +253,21 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case ticketStartedMsg:
 		// Ticket was successfully started
-		var successMsg string
-		if msg.worktreePath != "" {
-			successMsg = fmt.Sprintf("✅ Ticket started! Worktree created at: %s", msg.worktreePath)
-		} else {
-			successMsg = fmt.Sprintf("✅ Ticket started! Switched to branch: %s", msg.ticket.ID)
-		}
-
-		// Add warning if init commands failed
+		// Don't set success messages as errors - this causes issues with the TUI
+		// Only set m.err if there's an actual warning
 		if msg.initWarning != "" {
-			successMsg += fmt.Sprintf("\n⚠️  Warning: %s", msg.initWarning)
+			m.err = fmt.Errorf("⚠️  Warning: %s", msg.initWarning)
 		}
-
-		m.err = fmt.Errorf("%s", successMsg)
+		
 		// Refresh the list
 		cmds = append(cmds, m.ticketList.Refresh())
 		return m, tea.Batch(cmds...)
 
 	case ticketClosedMsg:
 		// Ticket was successfully closed
-		if msg.isWorktree {
-			m.err = fmt.Errorf("✅ Ticket closed! Worktree remains at: %s", msg.worktreePath)
-		} else {
-			m.err = fmt.Errorf("✅ Ticket closed! Branch: %s", msg.ticket.ID)
-		}
+		// Don't set success messages as errors - this causes the TUI to crash
+		// Instead, we could show a temporary notification or just refresh silently
+		
 		// Go back to list and refresh
 		if m.view == ViewTicketDetail {
 			m.view = m.previousView
@@ -781,8 +777,22 @@ func (m *Model) moveTicketToDoingAndCommit(t *ticket.Ticket, worktreePath, curre
 	}
 
 	// Git add both old and new paths
-	if err := m.git.Add(context.Background(), oldPath, newPath); err != nil {
-		return fmt.Errorf("failed to stage ticket move: %w", err)
+	// First, try to add the new path (the ticket in doing/)
+	if err := m.git.Add(context.Background(), newPath); err != nil {
+		return fmt.Errorf("failed to stage new ticket location: %w", err)
+	}
+	
+	// Try to stage the removal of the old path from todo/
+	// This might fail if the file was never committed (just created)
+	if err := m.git.Add(context.Background(), oldPath); err != nil {
+		// Check if the oldPath file exists - if not, it was moved and we're good
+		if _, statErr := os.Stat(oldPath); os.IsNotExist(statErr) {
+			log.Global().WithTicket(t.ID).Debug("old ticket path doesn't exist, likely was never committed")
+			// File was moved, no need to stage removal
+		} else {
+			// Some other error occurred
+			return fmt.Errorf("failed to stage old ticket path: %w", err)
+		}
 	}
 
 	// Commit the move
@@ -861,45 +871,40 @@ func (m *Model) checkWorkspaceForClose(t *ticket.Ticket) (string, bool, error) {
 				}
 			}
 		} else if !isCurrent {
-			// For non-current tickets without worktrees, check if branch is merged
-			// If merged, we might still be able to close it
-			merged, err := m.checkBranchMerged(t.ID)
-			if err != nil {
-				// If we can't check merge status, we can't proceed without a worktree
-				return "", false, fmt.Errorf("no worktree found for ticket %s and unable to verify branch status: %w", t.ID, err)
-			}
-			if !merged {
-				// Branch not merged and no worktree - can't close
-				return "", false, fmt.Errorf("no worktree found for ticket %s (branch not merged)", t.ID)
-			}
-			// Branch is merged, we can proceed without a worktree
+			// For non-current tickets without worktrees, we can still proceed
+			// The close operation will handle validation based on whether a reason is provided
+			// This allows closing abandoned tickets even without worktrees
+			log.Global().WithTicket(t.ID).Debug("non-current ticket without worktree, proceeding anyway")
 		}
 	}
 
 	if !isWorktree {
-		// In non-worktree mode, we can only close the current ticket
-		if !isCurrent {
-			return "", false, fmt.Errorf("can only close the current ticket in non-worktree mode")
-		}
+		// In non-worktree mode
+		if isCurrent {
+			// For current ticket, check workspace state
+			// Check for uncommitted changes
+			dirty, err := m.git.HasUncommittedChanges(context.Background())
+			if err != nil {
+				return "", false, fmt.Errorf("failed to check git status: %w", err)
+			}
+			if dirty {
+				return "", false, fmt.Errorf("uncommitted changes - please commit before closing")
+			}
 
-		// Check for uncommitted changes
-		dirty, err := m.git.HasUncommittedChanges(context.Background())
-		if err != nil {
-			return "", false, fmt.Errorf("failed to check git status: %w", err)
-		}
-		if dirty {
-			return "", false, fmt.Errorf("uncommitted changes - please commit before closing")
-		}
+			// Get current branch
+			currentBranch, err := m.git.CurrentBranch(context.Background())
+			if err != nil {
+				return "", false, fmt.Errorf("failed to get current branch: %w", err)
+			}
 
-		// Get current branch
-		currentBranch, err := m.git.CurrentBranch(context.Background())
-		if err != nil {
-			return "", false, fmt.Errorf("failed to get current branch: %w", err)
-		}
-
-		// Ensure we're on the ticket branch
-		if currentBranch != t.ID {
-			return "", false, fmt.Errorf("not on ticket branch, expected %s but on %s", t.ID, currentBranch)
+			// Ensure we're on the ticket branch
+			if currentBranch != t.ID {
+				return "", false, fmt.Errorf("not on ticket branch, expected %s but on %s", t.ID, currentBranch)
+			}
+		} else {
+			// For non-current tickets in non-worktree mode, we can still close them
+			// This matches CLI behavior where you can close any ticket by ID
+			log.Global().WithTicket(t.ID).Debug("closing non-current ticket in non-worktree mode")
 		}
 	}
 
@@ -975,8 +980,25 @@ func (m *Model) moveAndUpdateTicket(ctx context.Context, t *ticket.Ticket, oldPa
 
 // commitTicketClose stages and commits the ticket closure
 func (m *Model) commitTicketClose(ctx context.Context, t *ticket.Ticket, reason, oldPath, newPath string) error {
-	if err := m.git.Add(ctx, oldPath, newPath); err != nil {
-		return fmt.Errorf("failed to stage ticket move: %w", err)
+	// Try to stage both paths, but handle the case where oldPath might not be tracked
+	// First, try to add the new path (this should always work if the file exists)
+	if err := m.git.Add(ctx, newPath); err != nil {
+		return fmt.Errorf("failed to stage new ticket location: %w", err)
+	}
+
+	// Try to stage the removal of the old path
+	// This might fail if the file was never committed (just created)
+	// In that case, we can ignore the error as there's nothing to remove from git
+	if err := m.git.Add(ctx, oldPath); err != nil {
+		// Check if the oldPath file exists - if not, it means it was moved successfully
+		// and we just need to stage the new file
+		if _, statErr := os.Stat(oldPath); os.IsNotExist(statErr) {
+			log.Global().WithTicket(t.ID).Debug("old ticket path doesn't exist, likely was never committed")
+			// File was moved, no need to stage removal
+		} else {
+			// Some other error occurred
+			return fmt.Errorf("failed to stage old ticket path: %w", err)
+		}
 	}
 
 	commitMsg := fmt.Sprintf("Close ticket: %s", t.ID)
