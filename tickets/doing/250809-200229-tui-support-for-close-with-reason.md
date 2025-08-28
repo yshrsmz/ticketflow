@@ -278,12 +278,12 @@ TUI should behave like "close by ID" mode with special handling when selected ti
   - If not merged: Require reason
 
 ### Implementation Tasks
-- [ ] Revert status-based validation that prevents TODO tickets from being closed
-- [ ] Add `closeTicketByID` method mirroring CLI behavior
-- [ ] Add branch merge checking (`git.IsBranchMerged`)
-- [ ] Update dialog to show based on merge status, not ticket status
-- [ ] Fix async handling to prevent crashes
-- [ ] Add comprehensive error handling
+- [x] Revert status-based validation that prevents TODO tickets from being closed
+- [x] Add `closeTicketByID` method mirroring CLI behavior
+- [x] Add branch merge checking (`git.IsBranchMerged`)
+- [x] Update dialog to show based on merge status, not ticket status
+- [x] Fix async handling to prevent crashes
+- [x] Add comprehensive error handling
 
 ### Expected Behavior After Fix
 1. **Any ticket can be selected for closing** (no status restrictions)
@@ -293,3 +293,27 @@ TUI should behave like "close by ID" mode with special handling when selected ti
    - Branch not merged → Required reason
 4. **No crashes**, proper async operations
 5. **Consistent with CLI behavior**
+
+## Fix Implementation Complete - Ready for Testing
+
+### Summary of Changes
+Successfully aligned TUI close behavior with CLI's `CloseTicketByID` logic:
+
+1. **Removed status-based validation**: Tickets can now be closed regardless of their status (TODO/DOING/etc)
+2. **Added branch merge checking**: `checkBranchMerged` method checks if a branch is merged to the default branch
+3. **Implemented closeTicketByID logic**: TUI now behaves like CLI's close-by-ID mode with special handling for current ticket
+4. **Fixed async operations**: Added `checkCloseRequirements` for async validation to prevent TUI crashes
+5. **Updated workspace validation**: `checkWorkspaceForClose` now supports any ticket, not just current
+6. **Added proper error handling**: Graceful handling when current ticket can't be determined
+
+### Key Implementation Details
+- **Current ticket gets special treatment**: Optional reason, like `ticketflow close`
+- **Non-current tickets**: Require reason if branch not merged, like `ticketflow close <id>`
+- **Asynchronous validation**: Prevents synchronous operations in Update method that were causing crashes
+- **Worktree support**: Works correctly in both worktree and non-worktree modes
+
+### Testing Status
+- ✅ All unit tests passing
+- ✅ Build successful
+- ✅ No compilation errors
+- Ready for manual testing in TUI
