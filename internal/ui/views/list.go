@@ -261,7 +261,11 @@ func (m TicketListModel) View() string {
 		"Description")
 	s.WriteString(styles.SubtitleStyle.Render(header))
 	s.WriteString("\n")
-	s.WriteString(strings.Repeat("─", m.width-4))
+	separatorWidth := m.width - 4
+	if separatorWidth < 0 {
+		separatorWidth = 0
+	}
+	s.WriteString(strings.Repeat("─", separatorWidth))
 	s.WriteString("\n")
 
 	// Handle empty state
@@ -317,7 +321,27 @@ func (m TicketListModel) View() string {
 			statusStyle := styles.GetStatusStyle(string(t.Status()))
 			priorityStyle := styles.GetPriorityStyle(t.Priority)
 
-			id := truncate(t.ID, idWidth)
+			// Add abandoned indicator for closed tickets with reason
+			warningPrefix := ""
+			if t.Status() == ticket.StatusDone && t.ClosureReason != "" {
+				warningPrefix = "⚠ "
+			}
+
+			// Build the ID with warning prefix and proper truncation
+			id := ""
+			if warningPrefix != "" {
+				// Calculate space needed for warning icon (2 chars for '⚠ ')
+				warningIconWidth := 2
+				if idWidth > warningIconWidth {
+					// Truncate ID to leave room for warning icon
+					id = warningPrefix + truncate(t.ID, idWidth-warningIconWidth)
+				} else {
+					// Not enough space, just show warning icon
+					id = truncate(warningPrefix, idWidth)
+				}
+			} else {
+				id = truncate(t.ID, idWidth)
+			}
 			status := statusStyle.Render(fmt.Sprintf("%-*s", statusWidth, t.Status()))
 			priority := priorityStyle.Render(fmt.Sprintf("%d", t.Priority))
 

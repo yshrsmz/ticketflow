@@ -166,7 +166,7 @@ func TestValidateTicketForClose(t *testing.T) {
 				ID: "test-ticket",
 			},
 			wantErr:     true,
-			errContains: "can only close the current active ticket",
+			errContains: "no active ticket",
 		},
 		{
 			name: "different ticket",
