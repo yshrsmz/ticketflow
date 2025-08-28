@@ -322,7 +322,7 @@ func (m TicketListModel) View() string {
 			if t.Status() == ticket.StatusDone && t.ClosureReason != "" {
 				warningPrefix = "⚠ "
 			}
-			
+
 			// Account for warning icon when truncating
 			effectiveWidth := idWidth
 			if warningPrefix != "" {
