@@ -319,6 +319,22 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case views.DetailActionClose:
 			t := m.ticketDetail.SelectedTicket()
 			if t != nil {
+				// First validate if this ticket can be closed
+				// Check if it's the current ticket before showing dialog
+				current, err := m.manager.GetCurrentTicket(context.Background())
+				if err != nil {
+					m.err = fmt.Errorf("failed to get current ticket: %w", err)
+					return m, nil
+				}
+				if current == nil {
+					m.err = fmt.Errorf("no active ticket - use 'ticketflow start <ticket-id>' first")
+					return m, nil
+				}
+				if current.ID != t.ID {
+					m.err = fmt.Errorf("can only close the current active ticket (%s). Selected ticket: %s", current.ID, t.ID)
+					return m, nil
+				}
+				
 				// Determine if reason is required based on ticket status:
 				// - Todo tickets: require reason (being abandoned without starting work)
 				// - Doing tickets: optional reason (normal workflow, closing before PR merge)
