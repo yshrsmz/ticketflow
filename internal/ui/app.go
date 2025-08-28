@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -147,7 +148,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Close dialog takes highest precedence
 		if m.closeDialog.IsVisible() {
 			dialogResult, cmd := m.closeDialog.Update(msg)
-			m.closeDialog = *dialogResult
+			m.closeDialog = dialogResult
 
 			// Handle dialog result
 			if m.closeDialog.IsConfirmed() {
@@ -466,9 +467,25 @@ func (m *Model) startTicket(t *ticket.Ticket) tea.Cmd {
 // closeTicketWithReason closes a ticket with an optional reason
 func (m *Model) closeTicketWithReason(t *ticket.Ticket, reason string) tea.Cmd {
 	return func() tea.Msg {
+		// Create a context with timeout for the close operation
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		
+		// Check for early cancellation
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("operation cancelled: %w", ctx.Err())
+		default:
+		}
+		
 		// Validate ticket can be closed
 		if err := m.validateTicketForClose(t); err != nil {
 			return err
+		}
+
+		// Check for cancellation before workspace check
+		if ctx.Err() != nil {
+			return fmt.Errorf("operation cancelled before workspace check: %w", ctx.Err())
 		}
 
 		// Check workspace state and get worktree info
@@ -477,8 +494,13 @@ func (m *Model) closeTicketWithReason(t *ticket.Ticket, reason string) tea.Cmd {
 			return err
 		}
 
+		// Check for cancellation before committing
+		if ctx.Err() != nil {
+			return fmt.Errorf("operation cancelled before commit: %w", ctx.Err())
+		}
+
 		// Move ticket to done status and commit with reason
-		if err := m.moveTicketToDoneAndCommit(t, reason); err != nil {
+		if err := m.moveTicketToDoneAndCommitWithContext(ctx, t, reason); err != nil {
 			return err
 		}
 
@@ -748,7 +770,50 @@ func (m *Model) checkWorkspaceForClose(t *ticket.Ticket) (string, bool, error) {
 
 // moveTicketToDoneAndCommit moves ticket to done status and commits the change
 func (m *Model) moveTicketToDoneAndCommit(t *ticket.Ticket, reason string) error {
-	// Update ticket status with or without reason
+	return m.moveTicketToDoneAndCommitWithContext(context.Background(), t, reason)
+}
+
+// moveTicketToDoneAndCommitWithContext moves ticket to done status and commits the change with context support
+func (m *Model) moveTicketToDoneAndCommitWithContext(ctx context.Context, t *ticket.Ticket, reason string) error {
+	// Check for cancellation at the start
+	if ctx.Err() != nil {
+		return fmt.Errorf("operation cancelled: %w", ctx.Err())
+	}
+	
+	// Update ticket status
+	if err := m.closeTicketWithStatus(t, reason); err != nil {
+		return err
+	}
+
+	// Check for cancellation before file operations
+	if ctx.Err() != nil {
+		return fmt.Errorf("operation cancelled before file move: %w", ctx.Err())
+	}
+
+	// Move file and update ticket
+	oldPath := t.Path
+	newPath := filepath.Join(m.config.GetDonePath(m.projectRoot), filepath.Base(t.Path))
+	
+	if err := m.moveAndUpdateTicket(ctx, t, oldPath, newPath); err != nil {
+		return err
+	}
+
+	// Check for cancellation before git operations
+	if ctx.Err() != nil {
+		return fmt.Errorf("operation cancelled before commit: %w", ctx.Err())
+	}
+
+	// Commit changes
+	if err := m.commitTicketClose(ctx, t, reason, oldPath, newPath); err != nil {
+		return err
+	}
+
+	// Remove current ticket link
+	return m.manager.SetCurrentTicket(ctx, nil)
+}
+
+// closeTicketWithStatus closes the ticket with optional reason
+func (m *Model) closeTicketWithStatus(t *ticket.Ticket, reason string) error {
 	if reason != "" {
 		if err := t.CloseWithReason(reason); err != nil {
 			return fmt.Errorf("failed to close ticket with reason: %w", err)
@@ -758,45 +823,36 @@ func (m *Model) moveTicketToDoneAndCommit(t *ticket.Ticket, reason string) error
 			return fmt.Errorf("failed to close ticket: %w", err)
 		}
 	}
+	return nil
+}
 
-	// Move ticket file from doing to done
-	oldPath := t.Path
-	donePath := m.config.GetDonePath(m.projectRoot)
-	newPath := filepath.Join(donePath, filepath.Base(t.Path))
-
-	// Move the file
+// moveAndUpdateTicket moves the ticket file and updates its path
+func (m *Model) moveAndUpdateTicket(ctx context.Context, t *ticket.Ticket, oldPath, newPath string) error {
 	if err := os.Rename(oldPath, newPath); err != nil {
 		return fmt.Errorf("failed to move ticket to done: %w", err)
 	}
-
-	// Update ticket data with new path
+	
 	t.Path = newPath
-	if err := m.manager.Update(context.Background(), t); err != nil {
-		// Rollback file move
-		_ = os.Rename(newPath, oldPath)
+	if err := m.manager.Update(ctx, t); err != nil {
+		_ = os.Rename(newPath, oldPath) // Rollback
 		return fmt.Errorf("failed to update ticket: %w", err)
 	}
+	return nil
+}
 
-	// Git add both old and new paths
-	if err := m.git.Add(context.Background(), oldPath, newPath); err != nil {
+// commitTicketClose stages and commits the ticket closure
+func (m *Model) commitTicketClose(ctx context.Context, t *ticket.Ticket, reason, oldPath, newPath string) error {
+	if err := m.git.Add(ctx, oldPath, newPath); err != nil {
 		return fmt.Errorf("failed to stage ticket move: %w", err)
 	}
-
-	// Prepare commit message
+	
 	commitMsg := fmt.Sprintf("Close ticket: %s", t.ID)
 	if reason != "" {
 		commitMsg = fmt.Sprintf("Close ticket: %s\n\nReason: %s", t.ID, reason)
 	}
-
-	// Commit the move
-	if err := m.git.Commit(context.Background(), commitMsg); err != nil {
+	
+	if err := m.git.Commit(ctx, commitMsg); err != nil {
 		return fmt.Errorf("failed to commit ticket move: %w", err)
 	}
-
-	// Remove current ticket link
-	if err := m.manager.SetCurrentTicket(context.Background(), nil); err != nil {
-		return fmt.Errorf("failed to remove current ticket link: %w", err)
-	}
-
 	return nil
 }

@@ -19,12 +19,20 @@ const (
 	CloseDialogCancelled
 )
 
-// Dialog responsive behavior constants
+// Dialog configuration constants
 const (
-	// dialogWidthBreakpoint is the screen width below which the dialog adjusts its width
-	dialogWidthBreakpoint = 75
-	// dialogMargin is the margin to leave on each side when adjusting dialog width
-	dialogMargin = 10
+	// Input configuration
+	reasonCharLimit  = 200
+	reasonInputWidth = 60
+
+	// Dialog responsive behavior
+	dialogWidthBreakpoint = 75  // Screen width below which the dialog adjusts its width
+	dialogMargin          = 10  // Margin to leave on each side when adjusting dialog width
+	defaultDialogWidth    = 65  // Default dialog width for larger screens
+
+	// Error messages
+	ErrReasonWhitespace = "reason cannot be only whitespace"
+	ErrReasonRequired   = "reason is required for abandoned tickets"
 )
 
 // CloseDialogModel represents the close dialog component
@@ -33,7 +41,7 @@ type CloseDialogModel struct {
 	reasonInput   textinput.Model
 	width         int
 	height        int
-	requireReason bool // Whether reason is required (branch not merged)
+	requireReason bool // Whether reason is required (todo tickets require reason, doing tickets do not)
 	showError     bool
 	errorMsg      string
 }
@@ -42,8 +50,8 @@ type CloseDialogModel struct {
 func NewCloseDialogModel() CloseDialogModel {
 	ti := textinput.New()
 	ti.Placeholder = "Enter reason for closing (e.g., requirements changed, duplicate, etc.)"
-	ti.CharLimit = 200
-	ti.Width = 60
+	ti.CharLimit = reasonCharLimit
+	ti.Width = reasonInputWidth
 
 	return CloseDialogModel{
 		state:       CloseDialogHidden,
@@ -101,7 +109,7 @@ func (m *CloseDialogModel) Init() tea.Cmd {
 }
 
 // Update handles messages
-func (m *CloseDialogModel) Update(msg tea.Msg) (*CloseDialogModel, tea.Cmd) {
+func (m CloseDialogModel) Update(msg tea.Msg) (CloseDialogModel, tea.Cmd) {
 	var cmd tea.Cmd
 
 	if m.state != CloseDialogInput {
@@ -112,24 +120,26 @@ func (m *CloseDialogModel) Update(msg tea.Msg) (*CloseDialogModel, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "esc":
-			m.state = CloseDialogCancelled
-			m.Hide()
+			m.state = CloseDialogHidden
+			m.reasonInput.Blur()
+			m.reasonInput.Reset()
+			m.showError = false
 			return m, nil
 
 		case "enter":
 			reason := m.GetReason()
 
-			// Validate input - reason is required when branch is not merged
+			// Validate input - reason is required for todo tickets
 			if m.requireReason {
 				originalInput := m.reasonInput.Value()
 				if originalInput != "" && reason == "" {
 					m.showError = true
-					m.errorMsg = "Reason cannot be only whitespace"
+					m.errorMsg = ErrReasonWhitespace
 					return m, nil
 				}
 				if reason == "" {
 					m.showError = true
-					m.errorMsg = "Reason is required for todo tickets"
+					m.errorMsg = ErrReasonRequired
 					return m, nil
 				}
 			}
@@ -194,7 +204,7 @@ func (m *CloseDialogModel) View() string {
 	dialogContent := content.String()
 
 	// Calculate appropriate width based on screen size
-	dialogWidth := 65
+	dialogWidth := defaultDialogWidth
 	if m.width > 0 && m.width < dialogWidthBreakpoint {
 		dialogWidth = m.width - dialogMargin // Leave some margin
 	}
