@@ -26,9 +26,13 @@ const (
 	reasonInputWidth = 60
 
 	// Dialog responsive behavior
-	dialogWidthBreakpoint = 75 // Screen width below which the dialog adjusts its width
-	dialogMargin          = 10 // Margin to leave on each side when adjusting dialog width
-	defaultDialogWidth    = 65 // Default dialog width for larger screens
+	defaultDialogWidth = 65 // Default dialog width for larger screens
+	dialogMargin       = 10 // Margin to leave on each side when adjusting dialog width
+	minDialogWidth     = 20 // Minimum dialog width to prevent rendering issues
+
+	// dialogWidthBreakpoint is the screen width below which the dialog adjusts its width.
+	// Calculated as defaultDialogWidth + dialogMargin for clarity.
+	dialogWidthBreakpoint = defaultDialogWidth + dialogMargin
 
 	// Error messages
 	ErrReasonWhitespace = "reason cannot be only whitespace"
@@ -138,17 +142,19 @@ func (m CloseDialogModel) Update(msg tea.Msg) (CloseDialogModel, tea.Cmd) {
 
 		case "enter":
 			reason := m.GetReason()
+			originalInput := m.reasonInput.Value()
 
 			// Validate input - reason is required for todo tickets
 			if m.requireReason && reason == "" {
 				m.showError = true
-				// Determine appropriate error message
-				originalInput := m.reasonInput.Value()
-				if originalInput == "" {
-					m.errorMsg = ErrReasonRequired
-				} else {
-					// Input was only whitespace
-					m.errorMsg = ErrReasonWhitespace
+				// Check if original input was empty or only whitespace
+				if strings.TrimSpace(originalInput) == "" {
+					// More precise check: if there's any content but it's all whitespace
+					if originalInput != "" {
+						m.errorMsg = ErrReasonWhitespace
+					} else {
+						m.errorMsg = ErrReasonRequired
+					}
 				}
 				return m, nil
 			}
@@ -216,6 +222,10 @@ func (m *CloseDialogModel) View() string {
 	dialogWidth := defaultDialogWidth
 	if m.width > 0 && m.width < dialogWidthBreakpoint {
 		dialogWidth = m.width - dialogMargin // Leave some margin
+		// Ensure minimum width to prevent rendering issues
+		if dialogWidth < minDialogWidth {
+			dialogWidth = minDialogWidth
+		}
 	}
 
 	return styles.DialogStyle.

@@ -327,12 +327,21 @@ func (m TicketListModel) View() string {
 				warningPrefix = "⚠ "
 			}
 
-			// Account for warning icon when truncating
-			effectiveWidth := idWidth
+			// Build the ID with warning prefix and proper truncation
+			id := ""
 			if warningPrefix != "" {
-				effectiveWidth = idWidth - len(warningPrefix)
+				// Calculate space needed for warning icon (2 chars for '⚠ ')
+				warningIconWidth := 2
+				if idWidth > warningIconWidth {
+					// Truncate ID to leave room for warning icon
+					id = warningPrefix + truncate(t.ID, idWidth-warningIconWidth)
+				} else {
+					// Not enough space, just show warning icon
+					id = truncate(warningPrefix, idWidth)
+				}
+			} else {
+				id = truncate(t.ID, idWidth)
 			}
-			id := warningPrefix + truncate(t.ID, effectiveWidth)
 			status := statusStyle.Render(fmt.Sprintf("%-*s", statusWidth, t.Status()))
 			priority := priorityStyle.Render(fmt.Sprintf("%d", t.Priority))
 

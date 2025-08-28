@@ -501,12 +501,12 @@ func isCurrentTicket(current, target *ticket.Ticket) bool {
 }
 
 // checkBranchMerged checks if a branch has been merged to the default branch
-func (m *Model) checkBranchMerged(ticketID string) (bool, error) {
+func (m *Model) checkBranchMerged(ctx context.Context, ticketID string) (bool, error) {
 	if m.config.Git.DefaultBranch == "" {
 		// If no default branch configured, we can't determine merge status
 		return false, fmt.Errorf("default branch not configured in .ticketflow.yaml")
 	}
-	return m.git.IsBranchMerged(context.Background(), ticketID, m.config.Git.DefaultBranch)
+	return m.git.IsBranchMerged(ctx, ticketID, m.config.Git.DefaultBranch)
 }
 
 // checkCloseRequirements checks if a ticket can be closed and determines requirements
@@ -526,7 +526,7 @@ func (m *Model) checkCloseRequirements(t *ticket.Ticket) tea.Cmd {
 			requireReason = false
 		} else {
 			// Not current ticket - check if branch is merged
-			merged, err := m.checkBranchMerged(t.ID)
+			merged, err := m.checkBranchMerged(context.Background(), t.ID)
 			if err != nil {
 				// If we can't check merge status, assume not merged (safer)
 				requireReason = true
@@ -572,9 +572,9 @@ func (m *Model) closeTicketWithReason(t *ticket.Ticket, reason string) tea.Cmd {
 
 		// If not current ticket and no reason provided, check if branch is merged
 		if !isCurrent && reason == "" {
-			merged, err := m.checkBranchMerged(t.ID)
+			merged, err := m.checkBranchMerged(ctx, t.ID)
 			if err != nil {
-				logger.WithError(err).Warn("failed to check if branch is merged, assuming not merged")
+				logger.WithError(err).Warn("failed to check if branch is merged, requiring reason as safety fallback")
 				merged = false
 			}
 

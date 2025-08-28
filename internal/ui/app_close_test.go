@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -120,7 +121,7 @@ func TestCheckBranchMerged(t *testing.T) {
 					Return(tt.isMerged, tt.mergeError)
 			}
 
-			result, err := m.checkBranchMerged(tt.ticketID)
+			result, err := m.checkBranchMerged(context.Background(), tt.ticketID)
 
 			if tt.wantErr {
 				assert.Error(t, err)
