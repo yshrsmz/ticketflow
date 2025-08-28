@@ -23,6 +23,11 @@ import (
 	"github.com/yshrsmz/ticketflow/internal/worktree"
 )
 
+// Operation timeout constants
+const (
+	closeOperationTimeout = 30 * time.Second
+)
+
 // InitCommandError represents a non-fatal error during worktree initialization
 type InitCommandError struct {
 	FailedCommands []string
@@ -313,6 +318,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				// Determine if reason is required based on ticket status:
 				// - Todo tickets: require reason (being abandoned without starting work)
 				// - Doing tickets: optional reason (normal workflow, closing before PR merge)
+				// NOTE: This logic could be moved to a ticket.RequiresCloseReason() method
+				// in a future refactor to better separate business logic from UI
 				requireReason := t.Status() == ticket.StatusTodo
 
 				// Show close dialog with optional reason
@@ -468,7 +475,7 @@ func (m *Model) startTicket(t *ticket.Ticket) tea.Cmd {
 func (m *Model) closeTicketWithReason(t *ticket.Ticket, reason string) tea.Cmd {
 	return func() tea.Msg {
 		// Create a context with timeout for the close operation
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), closeOperationTimeout)
 		defer cancel()
 
 		// Check for early cancellation
@@ -777,7 +784,7 @@ func (m *Model) moveTicketToDoneAndCommitWithContext(ctx context.Context, t *tic
 
 	// Update ticket status
 	if err := m.closeTicketWithStatus(t, reason); err != nil {
-		return err
+		return fmt.Errorf("failed to close ticket %s: %w", t.ID, err)
 	}
 
 	// Check for cancellation before file operations

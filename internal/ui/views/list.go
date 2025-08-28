@@ -318,11 +318,17 @@ func (m TicketListModel) View() string {
 			priorityStyle := styles.GetPriorityStyle(t.Priority)
 
 			// Add abandoned indicator for closed tickets with reason
-			idStr := t.ID
+			warningPrefix := ""
 			if t.Status() == ticket.StatusDone && t.ClosureReason != "" {
-				idStr = "⚠ " + t.ID
+				warningPrefix = "⚠ "
 			}
-			id := truncate(idStr, idWidth)
+			
+			// Account for warning icon when truncating
+			effectiveWidth := idWidth
+			if warningPrefix != "" {
+				effectiveWidth = idWidth - len(warningPrefix)
+			}
+			id := warningPrefix + truncate(t.ID, effectiveWidth)
 			status := statusStyle.Render(fmt.Sprintf("%-*s", statusWidth, t.Status()))
 			priority := priorityStyle.Render(fmt.Sprintf("%d", t.Priority))
 

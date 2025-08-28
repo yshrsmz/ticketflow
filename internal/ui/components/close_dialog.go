@@ -130,18 +130,17 @@ func (m CloseDialogModel) Update(msg tea.Msg) (CloseDialogModel, tea.Cmd) {
 			reason := m.GetReason()
 
 			// Validate input - reason is required for todo tickets
-			if m.requireReason {
+			if m.requireReason && reason == "" {
+				m.showError = true
+				// Determine appropriate error message
 				originalInput := m.reasonInput.Value()
-				if originalInput != "" && reason == "" {
-					m.showError = true
-					m.errorMsg = ErrReasonWhitespace
-					return m, nil
-				}
-				if reason == "" {
-					m.showError = true
+				if originalInput == "" {
 					m.errorMsg = ErrReasonRequired
-					return m, nil
+				} else {
+					// Input was only whitespace
+					m.errorMsg = ErrReasonWhitespace
 				}
+				return m, nil
 			}
 
 			m.state = CloseDialogConfirmed
