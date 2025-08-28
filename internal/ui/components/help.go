@@ -37,7 +37,7 @@ func NewHelpModel() HelpModel {
 				{Key: "enter", Desc: "Select/View"},
 				{Key: "n", Desc: "New ticket"},
 				{Key: "s", Desc: "Start ticket"},
-				{Key: "c", Desc: "Close ticket"},
+				{Key: "c", Desc: "Close ticket (with optional reason)"},
 				{Key: "w", Desc: "Worktree view"},
 			},
 			// View controls
