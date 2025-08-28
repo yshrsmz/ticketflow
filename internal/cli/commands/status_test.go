@@ -145,19 +145,19 @@ func TestStatusCommand_Execute(t *testing.T) {
 	t.Run("text format", func(t *testing.T) {
 		// Cannot run in parallel due to os.Chdir
 		env := testharness.NewTestEnvironment(t)
-		
+
 		// Create a ticket in doing status
 		_ = env.CreateTicket("status-test-ticket", ticket.StatusDoing,
 			testharness.WithDescription("Test ticket for status command"))
 		env.RunGit("add", ".")
 		env.RunGit("commit", "-m", "Add test ticket")
-		
+
 		// Execute status command
 		env.WithWorkingDirectory(t, func() {
 			cmd := &StatusCommand{}
 			ctx := context.Background()
 			flags := &statusFlags{format: FormatText}
-			
+
 			err := cmd.Execute(ctx, flags, []string{})
 			assert.NoError(t, err)
 		})
@@ -166,25 +166,25 @@ func TestStatusCommand_Execute(t *testing.T) {
 	t.Run("json format", func(t *testing.T) {
 		// Cannot run in parallel due to os.Chdir
 		env := testharness.NewTestEnvironment(t)
-		
+
 		// Create a ticket in doing status
 		_ = env.CreateTicket("status-json-ticket", ticket.StatusDoing,
 			testharness.WithDescription("Test ticket for JSON status"))
 		env.RunGit("add", ".")
 		env.RunGit("commit", "-m", "Add test ticket")
-		
+
 		// Execute status command and capture output
 		outputStr := testharness.CaptureOutput(t, func() {
 			env.WithWorkingDirectory(t, func() {
 				cmd := &StatusCommand{}
 				ctx := context.Background()
 				flags := &statusFlags{format: FormatJSON}
-				
+
 				err := cmd.Execute(ctx, flags, []string{})
 				require.NoError(t, err)
 			})
 		})
-		
+
 		// Validate JSON output
 		jsonData := testharness.ValidateJSON(t, outputStr)
 		testharness.AssertJSONFieldExists(t, jsonData, "current_ticket")

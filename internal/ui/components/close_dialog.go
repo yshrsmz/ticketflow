@@ -129,7 +129,7 @@ func (m *CloseDialogModel) Update(msg tea.Msg) (*CloseDialogModel, tea.Cmd) {
 				}
 				if reason == "" {
 					m.showError = true
-					m.errorMsg = "Reason is required for unmerged branches"
+					m.errorMsg = "Reason is required for todo tickets"
 					return m, nil
 				}
 			}

@@ -309,22 +309,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case views.DetailActionClose:
 			t := m.ticketDetail.SelectedTicket()
 			if t != nil {
-				// Check if reason is required (branch not merged)
-				requireReason := false
-				if m.config.Worktree.Enabled && t.Status() == ticket.StatusDoing {
-					// Only check merge status for tickets that are in progress
-					// Todo tickets might not have branches yet
-					merged, err := m.git.IsBranchMerged(context.Background(), t.ID, m.config.Git.DefaultBranch)
-					if err != nil {
-						// Log error but don't require reason - could be a todo ticket without branch
-						log.Global().Debug("could not check branch merge status, making reason optional",
-							"error", err, "ticket", t.ID)
-						requireReason = false // Make reason optional when we can't determine merge status
-					} else {
-						requireReason = !merged
-					}
-				}
-				// Show close dialog
+				// Determine if reason is required based on ticket status:
+				// - Todo tickets: require reason (being abandoned without starting work)
+				// - Doing tickets: optional reason (normal workflow, closing before PR merge)
+				requireReason := t.Status() == ticket.StatusTodo
+
+				// Show close dialog with optional reason
 				m.closeDialog.Show(requireReason)
 				return m, nil // Dialog handles its own blink command
 			}
