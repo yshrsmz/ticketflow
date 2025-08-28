@@ -311,13 +311,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if t != nil {
 				// Check if reason is required (branch not merged)
 				requireReason := false
-				if m.config.Worktree.Enabled {
+				if m.config.Worktree.Enabled && t.Status() == ticket.StatusDoing {
+					// Only check merge status for tickets that are in progress
+					// Todo tickets might not have branches yet
 					merged, err := m.git.IsBranchMerged(context.Background(), t.ID, m.config.Git.DefaultBranch)
 					if err != nil {
-						// Log error and default to requiring reason as safe fallback
-						log.Global().Warn("failed to check branch merge status, requiring reason as safety fallback",
+						// Log error but don't require reason - could be a todo ticket without branch
+						log.Global().Debug("could not check branch merge status, making reason optional",
 							"error", err, "ticket", t.ID)
-						requireReason = true // Safe default when we can't determine merge status
+						requireReason = false // Make reason optional when we can't determine merge status
 					} else {
 						requireReason = !merged
 					}
