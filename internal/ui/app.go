@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/mattn/go-shellwords"
@@ -147,7 +146,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		// Close dialog takes highest precedence
 		if m.closeDialog.IsVisible() {
-			m.closeDialog, cmd = m.closeDialog.Update(msg)
+			dialogResult, cmd := m.closeDialog.Update(msg)
+			m.closeDialog = *dialogResult
 
 			// Handle dialog result
 			if m.closeDialog.IsConfirmed() {
@@ -312,12 +312,19 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				// Check if reason is required (branch not merged)
 				requireReason := false
 				if m.config.Worktree.Enabled {
-					merged, _ := m.git.IsBranchMerged(context.Background(), t.ID, m.config.Git.DefaultBranch)
-					requireReason = !merged
+					merged, err := m.git.IsBranchMerged(context.Background(), t.ID, m.config.Git.DefaultBranch)
+					if err != nil {
+						// Log error and default to requiring reason as safe fallback
+						log.Global().Warn("failed to check branch merge status, defaulting to require reason",
+							"error", err, "ticket", t.ID)
+						requireReason = true // Safe default when we can't determine merge status
+					} else {
+						requireReason = !merged
+					}
 				}
 				// Show close dialog
 				m.closeDialog.Show(requireReason)
-				return m, textinput.Blink
+				return m, nil // Dialog handles its own blink command
 			}
 
 		case views.DetailActionEdit:

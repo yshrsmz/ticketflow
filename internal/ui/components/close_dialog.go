@@ -62,22 +62,22 @@ func (m *CloseDialogModel) Hide() {
 }
 
 // IsVisible returns whether the dialog is visible
-func (m CloseDialogModel) IsVisible() bool {
+func (m *CloseDialogModel) IsVisible() bool {
 	return m.state == CloseDialogInput
 }
 
 // IsConfirmed returns whether the dialog was confirmed
-func (m CloseDialogModel) IsConfirmed() bool {
+func (m *CloseDialogModel) IsConfirmed() bool {
 	return m.state == CloseDialogConfirmed
 }
 
 // IsCancelled returns whether the dialog was cancelled
-func (m CloseDialogModel) IsCancelled() bool {
+func (m *CloseDialogModel) IsCancelled() bool {
 	return m.state == CloseDialogCancelled
 }
 
 // GetReason returns the entered reason
-func (m CloseDialogModel) GetReason() string {
+func (m *CloseDialogModel) GetReason() string {
 	return strings.TrimSpace(m.reasonInput.Value())
 }
 
@@ -88,12 +88,12 @@ func (m *CloseDialogModel) SetSize(width, height int) {
 }
 
 // Init initializes the model
-func (m CloseDialogModel) Init() tea.Cmd {
+func (m *CloseDialogModel) Init() tea.Cmd {
 	return textinput.Blink
 }
 
 // Update handles messages
-func (m CloseDialogModel) Update(msg tea.Msg) (CloseDialogModel, tea.Cmd) {
+func (m *CloseDialogModel) Update(msg tea.Msg) (*CloseDialogModel, tea.Cmd) {
 	var cmd tea.Cmd
 
 	if m.state != CloseDialogInput {
@@ -111,17 +111,10 @@ func (m CloseDialogModel) Update(msg tea.Msg) (CloseDialogModel, tea.Cmd) {
 		case "enter":
 			reason := m.GetReason()
 
-			// Validate input
+			// Validate input - reason is required when branch is not merged
 			if m.requireReason && reason == "" {
 				m.showError = true
-				m.errorMsg = "Reason is required when closing abandoned tickets"
-				return m, nil
-			}
-
-			// If reason is provided, validate it's not just whitespace
-			if reason != "" && len(reason) == 0 {
-				m.showError = true
-				m.errorMsg = "Reason cannot be empty or just whitespace"
+				m.errorMsg = "Reason is required for unmerged branches"
 				return m, nil
 			}
 
@@ -142,7 +135,7 @@ func (m CloseDialogModel) Update(msg tea.Msg) (CloseDialogModel, tea.Cmd) {
 }
 
 // View renders the dialog
-func (m CloseDialogModel) View() string {
+func (m *CloseDialogModel) View() string {
 	if m.state != CloseDialogInput {
 		return ""
 	}
@@ -181,10 +174,17 @@ func (m CloseDialogModel) View() string {
 	helpText := "Enter: Confirm • ESC: Cancel"
 	content.WriteString(helpStyle.Render(helpText))
 
-	// Apply dialog styling
+	// Apply dialog styling with dynamic width
 	dialogContent := content.String()
+
+	// Calculate appropriate width based on screen size
+	dialogWidth := 65
+	if m.width > 0 && m.width < 75 {
+		dialogWidth = m.width - 10 // Leave some margin
+	}
+
 	return styles.DialogStyle.
-		Width(65).
+		Width(dialogWidth).
 		Padding(1, 2).
 		Render(dialogContent)
 }

@@ -86,22 +86,22 @@ The TUI should provide similar functionality for users who prefer the interactiv
 ## Acceptance Criteria (Updated)
 
 ### Core Functionality
-- [ ] Dialog appears when closing ticket with 'c' key in detail view
-- [ ] Can enter closure reason in text input field
-- [ ] Can confirm with Enter or cancel with ESC
-- [ ] Empty/whitespace-only reasons are rejected with error message
-- [ ] Dialog automatically appears when branch is not merged (reason required)
+- [x] Dialog appears when closing ticket with 'c' key in detail view
+- [x] Can enter closure reason in text input field
+- [x] Can confirm with Enter or cancel with ESC
+- [x] Empty/whitespace-only reasons are rejected with error message
+- [x] Dialog automatically appears when branch is not merged (reason required)
 
 ### Display & Indicators
-- [ ] Closure reason shown in ticket detail view under metadata
-- [ ] Abandoned tickets (with closure reason) show "⚠" icon in list view
-- [ ] Help overlay documents new close shortcuts ('c' and 'C')
+- [x] Closure reason shown in ticket detail view under metadata
+- [x] Abandoned tickets (with closure reason) show "⚠" icon in list view
+- [x] Help overlay documents new close shortcuts ('c' and 'C')
 
 ### Integration & Consistency
-- [ ] TUI uses same `CloseTicketWithReason` backend as CLI
-- [ ] Branch merge detection works same as CLI implementation
-- [ ] Error messages match CLI format and content
-- [ ] Context cancellation handled properly throughout
+- [x] TUI uses same `CloseTicketWithReason` backend as CLI
+- [x] Branch merge detection works same as CLI implementation
+- [x] Error messages match CLI format and content
+- [x] Context cancellation handled properly throughout
 
 ## Technical Notes
 
