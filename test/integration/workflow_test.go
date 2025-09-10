@@ -27,6 +27,9 @@ func setupTestRepo(t *testing.T) string {
 	require.NoError(t, err)
 	_, err = cmd.Exec(context.Background(), "config", "user.email", "test@example.com")
 	require.NoError(t, err)
+	// Disable GPG signing for test commits
+	_, err = cmd.Exec(context.Background(), "config", "commit.gpgSign", "false")
+	require.NoError(t, err)
 
 	// Create initial commit
 	readmePath := filepath.Join(tmpDir, "README.md")

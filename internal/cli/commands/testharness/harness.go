@@ -52,6 +52,8 @@ func NewTestEnvironment(t *testing.T) *TestEnvironment {
 		env.RunGit("add", "README.md")
 		env.RunGit("config", "user.name", "Test User")
 		env.RunGit("config", "user.email", "test@example.com")
+		// Disable GPG signing for test commits
+		env.RunGit("config", "commit.gpgSign", "false")
 		env.RunGit("commit", "-m", "Initial commit")
 		// Now rename the branch to main
 		env.RunGit("branch", "-M", "main")
@@ -59,6 +61,8 @@ func NewTestEnvironment(t *testing.T) *TestEnvironment {
 		// Successfully created with main branch, now configure
 		env.RunGit("config", "user.name", "Test User")
 		env.RunGit("config", "user.email", "test@example.com")
+		// Disable GPG signing for test commits
+		env.RunGit("config", "commit.gpgSign", "false")
 		// Create initial commit to have a valid HEAD
 		env.WriteFile("README.md", "# Test Repository")
 		env.RunGit("add", "README.md")

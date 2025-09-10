@@ -47,7 +47,7 @@ The project uses Lefthook for git hooks management. Hooks are automatically inst
 - `make build` - Verifies build succeeds
 - `make lint` - Full linting
 
-To skip hooks temporarily: `git commit --no-verify` or `git push --no-verify`
+**IMPORTANT**: When committing/pushing code, you MUST pass all git hooks. Do not use `--no-verify` to skip them.
 
 ### Cross-platform builds
 ```bash
@@ -285,6 +285,7 @@ func TestCommand_Execute_Integration(t *testing.T) {
 - Integration tests provide meaningful coverage of Execute methods
 - Don't chase coverage percentages with mocks - prefer real behavior verification
 - Accept that some error paths may only be testable through integration tests
+- **IMPORTANT**: You must fix ALL test failures, no matter how small
 
 ### Git Configuration in Tests
 - **NEVER use `git config --global` in tests** - This modifies the user's git configuration and can cause commits with wrong authors
