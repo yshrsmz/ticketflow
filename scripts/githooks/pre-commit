@@ -93,23 +93,13 @@ else
     print_success "All files properly formatted"
 fi
 
-# 2. Run go vet on staged files
+# 2. Run go vet using make
 print_info "Running go vet..."
-VET_ERRORS=""
-for FILE in $STAGED_GO_FILES; do
-    if [[ -f "$FILE" ]]; then
-        debug "Vetting: $FILE"
-        if ! go vet "$FILE" 2>&1; then
-            VET_ERRORS="yes"
-        fi
-    fi
-done
-
-if [[ -n "$VET_ERRORS" ]]; then
+if make vet 2>&1; then
+    print_success "go vet passed"
+else
     print_error "go vet found issues"
     exit 1
-else
-    print_success "go vet passed"
 fi
 
 # 3. Run golangci-lint (fast mode)

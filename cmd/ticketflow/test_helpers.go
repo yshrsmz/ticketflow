@@ -59,6 +59,12 @@ func setupTestRepo(t *testing.T, tmpDir string) {
 	err = cmd.Run()
 	require.NoError(t, err)
 
+	// Disable GPG signing for test commits
+	cmd = exec.Command("git", "config", "commit.gpgSign", "false")
+	cmd.Dir = tmpDir
+	err = cmd.Run()
+	require.NoError(t, err)
+
 	cmd = exec.Command("git", "config", "init.defaultBranch", "main")
 	cmd.Dir = tmpDir
 	err = cmd.Run()

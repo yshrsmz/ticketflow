@@ -32,6 +32,10 @@ func initGitRepo(ctx context.Context, dir string) error {
 	if _, err := g.Exec(ctx, "config", "user.email", "test@example.com"); err != nil {
 		return err
 	}
+	// Disable GPG signing for test commits
+	if _, err := g.Exec(ctx, "config", "commit.gpgSign", "false"); err != nil {
+		return err
+	}
 
 	return nil
 }
