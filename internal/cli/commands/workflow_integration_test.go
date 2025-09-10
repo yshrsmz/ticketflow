@@ -89,9 +89,9 @@ func TestWorkflowCommand_Integration(t *testing.T) {
 	output := stdout.String()
 
 	// Check for main sections
-	assert.Contains(t, output, "# TicketFlow Development Workflow")
+	assert.Contains(t, output, "# TicketFlow Workflow Guide")
 	assert.Contains(t, output, "## Overview")
-	assert.Contains(t, output, "## Development Workflow for New Features")
+	assert.Contains(t, output, "## Workflow for Managing Tasks")
 
 	// Check for key workflow steps
 	assert.Contains(t, output, "### 1. Create a Feature Ticket")
@@ -104,12 +104,12 @@ func TestWorkflowCommand_Integration(t *testing.T) {
 	// Check for important commands
 	assert.Contains(t, output, "ticketflow close")
 	assert.Contains(t, output, "ticketflow cleanup")
-	assert.Contains(t, output, "make test")
-	assert.Contains(t, output, "make fmt")
-	assert.Contains(t, output, "make lint")
+	assert.Contains(t, output, "<your-test-command>")
+	assert.Contains(t, output, "<your-lint-command>")
+	assert.Contains(t, output, "<your-format-command>")
 
 	// Check for integration instructions
-	assert.Contains(t, output, "## Integration with AI Tools")
+	assert.Contains(t, output, "## Integration with Development Tools")
 	assert.Contains(t, output, "ticketflow workflow > CLAUDE.md")
 	assert.Contains(t, output, "ticketflow workflow >> .cursorrules")
 
@@ -176,6 +176,6 @@ func TestWorkflowCommand_OutputRedirection(t *testing.T) {
 	content, err := os.ReadFile(outputFile)
 	require.NoError(t, err)
 	assert.NotEmpty(t, content)
-	assert.Contains(t, string(content), "# TicketFlow Development Workflow")
+	assert.Contains(t, string(content), "# TicketFlow Workflow Guide")
 	assert.Contains(t, string(content), "ticketflow new my-feature")
 }

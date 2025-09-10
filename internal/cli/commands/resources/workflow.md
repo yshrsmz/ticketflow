@@ -1,9 +1,11 @@
-# TicketFlow Development Workflow
+# TicketFlow Workflow Guide
 
 ## Overview
 TicketFlow is a git worktree-based ticket management system that helps manage development tasks using a directory-based status tracking system (todo/doing/done).
 
-## Development Workflow for New Features
+This guide shows how to use ticketflow to manage tickets and development workflow in your project.
+
+## Workflow for Managing Tasks
 
 ### 1. Create a Feature Ticket
 ```bash
@@ -40,24 +42,29 @@ cd ../ticketflow.worktrees/<ticket-id>
 
 ### 5. Test Your Changes
 ```bash
-# Run tests
-make test
+# Run your project's tests
+# The exact commands depend on your project type:
+#   Node.js: npm test, yarn test
+#   Go: go test ./..., make test
+#   Rust: cargo test
+#   Python: pytest, python -m unittest
+#   Java: mvn test, gradle test
 
-# Run specific test suites if available
-make test-unit
-make test-integration
+<your-test-command>
 ```
 
 ### 6. Run Code Quality Checks
 ```bash
-# Format code
-make fmt
+# Run your project's code quality tools
+# The exact commands depend on your project:
+#   Node.js: npm run lint, prettier --write
+#   Go: go fmt ./..., go vet ./..., golangci-lint run
+#   Rust: cargo fmt, cargo clippy
+#   Python: black ., flake8, mypy
+#   Java: checkstyle, spotbugs
 
-# Run static analysis
-make vet
-
-# Run linter
-make lint
+<your-lint-command>
+<your-format-command>
 ```
 
 ### 7. Commit and Push Changes
@@ -145,10 +152,19 @@ TicketFlow is configured via .ticketflow.yaml in your repository root:
 # Example configuration
 worktrees:
   enabled: true
-  base_dir: ../ticketflow.worktrees
+  base_dir: ../<project>.worktrees
+  # Configure project-specific setup commands
   init_commands:
+    # Node.js projects:
     - npm install
-    - make build
+    # Go projects:
+    - go mod download
+    # Rust projects:
+    - cargo build
+    # Python projects:
+    - pip install -r requirements.txt
+    # Or any custom setup:
+    - ./scripts/setup.sh
 
 git:
   default_branch: main
@@ -156,6 +172,17 @@ git:
 tickets:
   directory: tickets
 ```
+
+### Project-Specific Commands
+
+The `init_commands` are executed automatically when you start work on a ticket. Configure these based on your project's needs:
+
+- **Node.js**: `npm install`, `npm run build`
+- **Go**: `go mod download`, `go build ./...`
+- **Rust**: `cargo fetch`, `cargo build`
+- **Python**: `pip install -r requirements.txt`, `python setup.py develop`
+- **Ruby**: `bundle install`
+- **Java**: `mvn install`, `gradle build`
 
 ## Tips and Best Practices
 
@@ -165,9 +192,11 @@ tickets:
 4. **Follow the workflow** - The structured approach helps maintain a clean git history
 5. **Regular cleanup** - Use `ticketflow cleanup` after PRs are merged to keep worktrees organized
 
-## Integration with AI Tools
+## Integration with Development Tools
 
-This workflow output can be integrated with various AI coding assistants:
+### AI Coding Assistants
+
+Export this workflow guide to help AI assistants understand your project workflow:
 
 ```bash
 # Save to Claude configuration
@@ -178,6 +207,26 @@ ticketflow workflow >> .cursorrules
 
 # Save to any AI tool configuration
 ticketflow workflow > .ai/instructions.md
+```
+
+### Custom Scripts
+
+You can integrate ticketflow with your project's build system:
+
+```bash
+# In package.json scripts:
+"scripts": {
+  "ticket:new": "ticketflow new",
+  "ticket:start": "ticketflow start",
+  "ticket:status": "ticketflow status"
+}
+
+# In Makefile:
+ticket-new:
+	ticketflow new $(ARGS)
+
+ticket-start:
+	ticketflow start $(ID)
 ```
 
 ## Getting Help

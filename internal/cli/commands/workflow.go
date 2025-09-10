@@ -38,7 +38,7 @@ func (c *WorkflowCommand) Aliases() []string {
 
 // Description returns a short description of the command
 func (c *WorkflowCommand) Description() string {
-	return "Print development workflow guide"
+	return "Print ticketflow workflow guide"
 }
 
 // Usage returns the usage string for the command

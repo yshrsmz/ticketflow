@@ -15,7 +15,7 @@ func TestWorkflowCommand_Metadata(t *testing.T) {
 
 	assert.Equal(t, "workflow", cmd.Name())
 	assert.Nil(t, cmd.Aliases())
-	assert.Equal(t, "Print development workflow guide", cmd.Description())
+	assert.Equal(t, "Print ticketflow workflow guide", cmd.Description())
 	assert.Equal(t, "workflow", cmd.Usage())
 }
 
@@ -48,11 +48,11 @@ func TestWorkflowCommand_Execute(t *testing.T) {
 		output := buf.String()
 
 		// Verify the output starts with the expected header
-		assert.True(t, strings.HasPrefix(output, "# TicketFlow Development Workflow"))
+		assert.True(t, strings.HasPrefix(output, "# TicketFlow Workflow Guide"))
 
 		// Verify key sections are present
 		assert.Contains(t, output, "## Overview")
-		assert.Contains(t, output, "## Development Workflow for New Features")
+		assert.Contains(t, output, "## Workflow for Managing Tasks")
 		assert.Contains(t, output, "### 1. Create a Feature Ticket")
 		assert.Contains(t, output, "### 2. Start Work on the Ticket")
 		assert.Contains(t, output, "### 3. Navigate to the Worktree")
@@ -67,8 +67,8 @@ func TestWorkflowCommand_Execute(t *testing.T) {
 		assert.Contains(t, output, "```bash")
 		assert.Contains(t, output, "```")
 
-		// Verify AI integration section
-		assert.Contains(t, output, "## Integration with AI Tools")
+		// Verify development tools integration section
+		assert.Contains(t, output, "## Integration with Development Tools")
 		assert.Contains(t, output, "ticketflow workflow > CLAUDE.md")
 	})
 
