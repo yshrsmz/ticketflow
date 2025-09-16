@@ -1,8 +1,8 @@
 ---
 priority: 2
-description: "Improve start command messages and error hints for doing tickets"
+description: Improve start command messages and error hints for doing tickets
 created_at: "2025-09-16T23:50:37+09:00"
-started_at: null
+started_at: "2025-09-17T00:01:13+09:00"
 closed_at: null
 ---
 
