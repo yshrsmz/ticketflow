@@ -61,6 +61,7 @@ type App struct {
 	Git          git.GitClient
 	Manager      ticket.TicketManager
 	ProjectRoot  string
+	RepoRoot     string
 	workingDir   string        // Working directory for the app (defaults to ".")
 	Output       *OutputWriter // Output writer for formatted output
 	StatusWriter StatusWriter  // Status writer for progress messages
@@ -119,6 +120,11 @@ func NewAppWithOptions(ctx context.Context, opts ...AppOption) (*App, error) {
 			})
 	}
 
+	repoRoot := projectRoot
+	if mainRoot, rootErr := git.FindMainRepositoryRoot(ctx, projectRoot); rootErr == nil {
+		repoRoot = mainRoot
+	}
+
 	// Load config with context
 	cfg, err := config.LoadWithContext(ctx, projectRoot)
 	if err != nil {
@@ -131,6 +137,7 @@ func NewAppWithOptions(ctx context.Context, opts ...AppOption) (*App, error) {
 
 	app.Config = cfg
 	app.ProjectRoot = projectRoot
+	app.RepoRoot = repoRoot
 
 	// Set defaults if not provided
 	if app.Git == nil {
@@ -1336,7 +1343,7 @@ func (app *App) checkExistingWorktree(ctx context.Context, t *ticket.Ticket, for
 	if exists, err := app.Git.HasWorktree(ctx, t.ID); err != nil {
 		return fmt.Errorf("failed to check worktree: %w", err)
 	} else if exists {
-		worktreePath := worktree.GetPath(ctx, app.Git, app.Config, app.ProjectRoot, t.ID)
+		worktreePath := worktree.GetPath(ctx, app.Git, app.Config, app.RepoRoot, t.ID)
 		if !force {
 			return NewError(ErrWorktreeExists, "Worktree already exists",
 				fmt.Sprintf("Worktree for ticket %s already exists at: %s", t.ID, worktreePath), nil)
@@ -1362,7 +1369,7 @@ func (app *App) createAndSetupWorktree(ctx context.Context, t *ticket.Ticket) (s
 	}
 
 	// Always use flat worktree structure
-	baseDir := app.Config.GetWorktreePath(app.ProjectRoot)
+	baseDir := app.Config.GetWorktreePath(app.RepoRoot)
 	worktreePath := filepath.Join(baseDir, t.ID)
 
 	err := app.Git.AddWorktree(ctx, worktreePath, t.ID)

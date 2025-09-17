@@ -2,6 +2,7 @@ package git
 
 import (
 	"context"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -141,6 +142,27 @@ func TestRunInWorktreePreservesTimeout(t *testing.T) {
 	// but we can verify the method doesn't panic
 	ctx := context.Background()
 	_, _ = g.RunInWorktree(ctx, "/tmp/fake-worktree", "status")
+}
+
+func TestFindMainRepositoryRoot_FromWorktree(t *testing.T) {
+	t.Parallel()
+	git, tmpDir := setupTestGitRepo(t)
+	ctx := context.Background()
+
+	// Create a linked worktree for a new branch
+	wtPath := filepath.Join(tmpDir, ".worktrees", "wt-root")
+	err := git.AddWorktree(ctx, wtPath, "wt-root")
+	assert.NoError(t, err)
+
+	// Resolve project root starting from inside the worktree
+	root, err := FindMainRepositoryRoot(ctx, wtPath)
+	assert.NoError(t, err)
+
+	gotRoot, err := filepath.EvalSymlinks(root)
+	assert.NoError(t, err)
+	wantRoot, err := filepath.EvalSymlinks(tmpDir)
+	assert.NoError(t, err)
+	assert.Equal(t, wantRoot, gotRoot)
 }
 
 func TestIsValidBranchCharEdgeCases(t *testing.T) {

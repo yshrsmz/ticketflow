@@ -104,6 +104,7 @@ type Model struct {
 	manager     ticket.TicketManager
 	git         git.GitClient
 	projectRoot string
+	repoRoot    string
 
 	// View state
 	view         ViewType
@@ -129,11 +130,17 @@ type Model struct {
 
 // New creates a new TUI application
 func New(cfg *config.Config, manager ticket.TicketManager, gitClient git.GitClient, projectRoot string) Model {
+	repoRoot := projectRoot
+	if mainRoot, err := git.FindMainRepositoryRoot(context.Background(), projectRoot); err == nil {
+		repoRoot = mainRoot
+	}
+
 	return Model{
 		config:       cfg,
 		manager:      manager,
 		git:          gitClient,
 		projectRoot:  projectRoot,
+		repoRoot:     repoRoot,
 		view:         ViewTicketList,
 		previousView: ViewTicketList,
 		ticketList:   views.NewTicketListModel(manager),
@@ -675,13 +682,13 @@ func (m *Model) setupTicketBranchOrWorktree(t *ticket.Ticket) (string, error) {
 			logger.WithError(err).Error("failed to check worktree")
 			return "", fmt.Errorf("failed to check worktree: %w", err)
 		} else if exists {
-			worktreePath := worktree.GetPath(context.Background(), m.git, m.config, m.projectRoot, t.ID)
+			worktreePath := worktree.GetPath(context.Background(), m.git, m.config, m.repoRoot, t.ID)
 			logger.Debug("worktree already exists", "path", worktreePath)
 			return "", fmt.Errorf("worktree for ticket %s already exists at: %s", t.ID, worktreePath)
 		}
 
 		// Create worktree
-		baseDir := m.config.GetWorktreePath(m.projectRoot)
+		baseDir := m.config.GetWorktreePath(m.repoRoot)
 		worktreePath = filepath.Join(baseDir, t.ID)
 
 		if err := m.git.AddWorktree(context.Background(), worktreePath, t.ID); err != nil {

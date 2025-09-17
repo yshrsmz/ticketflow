@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -430,6 +431,31 @@ func FindProjectRoot(ctx context.Context, startPath string) (string, error) {
 	}
 
 	return strings.TrimSpace(stdout.String()), nil
+}
+
+// FindMainRepositoryRoot returns the main repository root even when executed from a linked worktree.
+// Falls back to the current project root if git cannot determine the common directory.
+func FindMainRepositoryRoot(ctx context.Context, startPath string) (string, error) {
+	cmd := exec.CommandContext(ctx, GitCmd, SubcmdRevParse, FlagGitCommonDir)
+	cmd.Dir = startPath
+
+	var stdout bytes.Buffer
+	cmd.Stdout = &stdout
+
+	if err := cmd.Run(); err != nil {
+		return "", fmt.Errorf("failed to resolve git common dir: %w", err)
+	}
+
+	commonDir := strings.TrimSpace(stdout.String())
+	if commonDir == "" {
+		return "", fmt.Errorf("git common dir output is empty")
+	}
+
+	if !filepath.IsAbs(commonDir) {
+		commonDir = filepath.Clean(filepath.Join(startPath, commonDir))
+	}
+
+	return filepath.Dir(commonDir), nil
 }
 
 // RootPath returns the git repository root path (thread-safe)

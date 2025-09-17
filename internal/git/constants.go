@@ -30,6 +30,7 @@ const (
 	FlagAbbrevRef    = "--abbrev-ref"
 	FlagPorcelain    = "--porcelain"
 	FlagShowToplevel = "--show-toplevel"
+	FlagGitCommonDir = "--git-common-dir"
 	FlagSquash       = "--squash"
 	FlagGitDir       = "--git-dir"
 	FlagUpstream     = "-u"
