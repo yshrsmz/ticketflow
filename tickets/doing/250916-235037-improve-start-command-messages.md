@@ -38,6 +38,12 @@ The `ticketflow start` command already supports creating/recreating worktrees fo
 - [x] Extend StructuredData test to verify new fields
 - [x] Add integration test for branch mode suggestions
 
+### Test Isolation Fix (Completed)
+- [x] Fixed critical test isolation issue where tests modified the main repository when run from git hooks in worktrees
+- [x] Implemented `env -u` solution in pre-push and pre-commit hooks to clean git environment variables
+- [x] Reverted unsuccessful GIT_CEILING_DIRECTORIES approach that didn't work with worktrees
+- [x] Restored test parallelization by removing unnecessary t.Setenv() calls
+
 ### Pending
 - [ ] Get developer approval before closing
 
@@ -97,6 +103,20 @@ The integration tests proved valuable in catching edge cases, particularly aroun
 
 ### 5. Code Review Feedback Integration
 The golang-pro review identified the missing JSON fields in `StructuredData()`, which was important for maintaining consistency in the API output. This highlights the value of thorough code review in catching completeness issues.
+
+### 6. Critical Test Isolation Issue in Worktrees
+Discovered a critical issue where tests run from git hooks within a worktree would inherit git environment variables (GIT_DIR, GIT_WORK_TREE, GIT_COMMON_DIR) pointing to the parent repository. This caused tests to modify the actual repository instead of creating isolated test environments.
+
+**Why GIT_CEILING_DIRECTORIES didn't work**: The `.git` file in worktrees (which contains `gitdir: /path/to/parent/.git/worktrees/name`) allows git to discover the parent repository even with GIT_CEILING_DIRECTORIES set. This is because git reads the `.git` file directly before checking ceiling directories.
+
+**The Solution**: Using `env -u` to unset git environment variables before running tests ensures they start with a clean environment. This is a minimal, surgical fix that:
+- Prevents tests from accessing the parent repository
+- Allows tests to create proper isolated test repositories
+- Has no side effects on the hook's environment after tests complete
+- Works consistently across different platforms
+
+### 7. Git Hook Script Improvements
+Updated both pre-commit and pre-push hooks to use `env -u GIT_DIR -u GIT_WORK_TREE -u GIT_COMMON_DIR` before running make commands. This ensures any git operations within the make targets (like tests) don't inherit the worktree context.
 
 ## Notes
 
