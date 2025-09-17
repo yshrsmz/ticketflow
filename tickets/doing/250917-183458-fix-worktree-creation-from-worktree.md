@@ -1,8 +1,8 @@
 ---
 priority: 2
-description: "Fix worktree base directory calculation when running from within a worktree"
+description: Fix worktree base directory calculation when running from within a worktree
 created_at: "2025-09-17T18:34:58+09:00"
-started_at: null
+started_at: "2025-09-17T18:38:24+09:00"
 closed_at: null
 ---
 
