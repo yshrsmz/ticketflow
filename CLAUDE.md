@@ -34,13 +34,13 @@ make lint   # Run golangci-lint
 make coverage
 ```
 
-### Git Hooks (Lefthook)
-The project uses Lefthook for git hooks management. Hooks are automatically installed when you run `make init` or `make setup-hooks`.
+### Git Hooks
+The project uses plain scripts for git hooks management. Hooks are automatically installed when you run `make init` or `make setup-hooks`.
 
 **Pre-commit hooks** (fast checks):
 - `gofmt` - Formats Go code automatically
 - `go vet` - Static analysis
-- `golangci-lint --fast` - Quick linting
+- `golangci-lint --fast-only` - Quick linting
 
 **Pre-push hooks** (comprehensive checks):
 - `make test` - Runs all tests
