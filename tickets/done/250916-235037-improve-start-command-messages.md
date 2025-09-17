@@ -3,7 +3,7 @@ priority: 2
 description: Improve start command messages and error hints for doing tickets
 created_at: "2025-09-16T23:50:37+09:00"
 started_at: "2025-09-17T00:01:13+09:00"
-closed_at: null
+closed_at: "2025-09-17T13:53:08+09:00"
 ---
 
 # Improve Start Command Messages for Doing Tickets
