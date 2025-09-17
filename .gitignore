@@ -49,3 +49,5 @@ benchmarks/current.txt
 # Lefthook
 .lefthook/
 .lefthook-local.yml
+
+!.vscode/extensions.json
