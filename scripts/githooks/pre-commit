@@ -95,7 +95,8 @@ fi
 
 # 2. Run go vet using make
 print_info "Running go vet..."
-if make vet 2>&1; then
+# Clean git environment to prevent issues when running from a worktree
+if env -u GIT_DIR -u GIT_WORK_TREE -u GIT_COMMON_DIR make vet 2>&1; then
     print_success "go vet passed"
 else
     print_error "go vet found issues"
