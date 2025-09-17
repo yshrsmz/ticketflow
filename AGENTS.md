@@ -42,9 +42,9 @@
 - Don’t commit binaries or `dist/`; don’t add license headers.
 
 ### Execution & Approvals (Required)
-- Always request explicit approval before running commands during development. This includes but is not limited to: `make test`, `make build`, `go test`, `go build`, `go clean`, `git` operations, dependency/tool installations, or any commands that interact with the filesystem or network.
-- Do not skip running tests or builds after making changes. If tests/builds are needed to validate changes, ask for permission and then run them.
-- Use concise preambles that group related actions when requesting to run commands (e.g., “Run fmt, vet, then unit+integration tests”).
+- Run the commands you need (tests, builds, fmt, vet, lint, etc.) as part of normal development – don’t skip critical validation steps.
+- When a command needs elevated permissions, touches outside the workspace, triggers network access, or might surprise the user, explain why and request approval instead of silently skipping it.
+- Give a concise preview of grouped commands before running them (e.g., “Run fmt, vet, then unit+integration tests”).
 
 ### Go Toolchain for Tests/Builds
 - The project targets Go 1.24.x (see `mise.toml`). When running tests/builds, use the matching toolchain.
