@@ -435,6 +435,8 @@ func FindProjectRoot(ctx context.Context, startPath string) (string, error) {
 
 // FindMainRepositoryRoot returns the main repository root even when executed from a linked worktree.
 // Falls back to the current project root if git cannot determine the common directory.
+// Note: submodule checkouts are not currently supported by this helper (common dir resolves
+// into .git/modules; callers should add handling before enabling that scenario).
 func FindMainRepositoryRoot(ctx context.Context, startPath string) (string, error) {
 	cmd := exec.CommandContext(ctx, GitCmd, SubcmdRevParse, FlagGitCommonDir)
 	cmd.Dir = startPath

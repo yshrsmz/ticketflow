@@ -83,6 +83,7 @@ The fix has been implemented with a different approach than originally planned:
 - The fix is backwards compatible - `FindProjectRoot()` remains unchanged
 - The new `FindMainRepositoryRoot()` function is only used for worktree base path calculation
 - No migration needed as the fix prevents future nested worktrees without affecting existing ones
+- Submodule checkouts are currently out of scope; `FindMainRepositoryRoot()` assumes a primary repository or linked worktree context
 
 ## Implementation Insights
 
