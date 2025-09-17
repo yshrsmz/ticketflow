@@ -35,6 +35,10 @@ type StartTicketResult struct {
 	ParentBranch string
 	// InitCommandsExecuted indicates whether initialization commands were successfully run
 	InitCommandsExecuted bool
+	// OriginalStatus is the ticket's status before the start operation
+	OriginalStatus ticket.Status
+	// IsRecreatingWorktree indicates if we're recreating an existing worktree (force mode)
+	IsRecreatingWorktree bool
 }
 
 // CleanWorktreesResult represents the result of cleaning worktrees
@@ -455,6 +459,14 @@ func (app *App) StartTicket(ctx context.Context, ticketID string, force bool) (*
 		return nil, err
 	}
 
+	// Capture original status before any modifications
+	originalStatus := t.Status()
+	// We're recreating a worktree if:
+	// 1. The ticket is already in "doing" status
+	// 2. Force flag is set
+	// 3. Worktrees are enabled
+	isRecreatingWorktree := originalStatus == ticket.StatusDoing && force && app.Config.Worktree.Enabled
+
 	// Check workspace state
 	if err := app.checkWorkspaceForStart(ctx); err != nil {
 		return nil, err
@@ -502,6 +514,8 @@ func (app *App) StartTicket(ctx context.Context, ticketID string, force bool) (*
 		WorktreePath:         worktreePath,
 		ParentBranch:         parentBranch,
 		InitCommandsExecuted: initCommandsExecuted,
+		OriginalStatus:       originalStatus,
+		IsRecreatingWorktree: isRecreatingWorktree,
 	}, nil
 }
 
@@ -990,8 +1004,23 @@ func (app *App) validateTicketForStart(ctx context.Context, ticketID string, for
 		if force && app.Config.Worktree.Enabled {
 			return t, nil
 		}
+
+		// Provide different suggestions based on worktree mode
+		var suggestions []string
+		if app.Config.Worktree.Enabled {
+			suggestions = []string{
+				"Use --force to recreate the worktree for this ticket",
+			}
+		} else {
+			suggestions = []string{
+				fmt.Sprintf("Switch to the existing branch: git checkout %s", t.ID),
+				"Use 'ticketflow status' to see current ticket",
+			}
+		}
+
 		return nil, NewError(ErrTicketAlreadyStarted, "Ticket already started",
-			fmt.Sprintf("Ticket %s is already in progress", t.ID), nil)
+			fmt.Sprintf("Ticket %s is already in progress", t.ID),
+			suggestions)
 	}
 
 	return t, nil

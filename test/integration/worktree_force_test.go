@@ -67,26 +67,39 @@ func TestStartTicketWithForceFlag(t *testing.T) {
 	err = os.WriteFile(testFile, []byte("test content"), 0644)
 	require.NoError(t, err)
 
-	// Try to start again without force (should fail)
+	// Try to start again without force (should fail with suggestion to use --force)
 	_, err = app.StartTicket(context.Background(), ticketID, false)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Ticket already started")
+
+	// Verify the error is a CLIError with the --force suggestion
+	if cliErr, ok := err.(*cli.CLIError); ok {
+		assert.Equal(t, cli.ErrTicketAlreadyStarted, cliErr.Code)
+		assert.Len(t, cliErr.Suggestions, 1)
+		assert.Contains(t, cliErr.Suggestions[0], "Use --force to recreate the worktree for this ticket")
+	} else {
+		t.Fatal("Expected error to be a CLIError")
+	}
 
 	// Verify test file exists before force recreation
 	assert.FileExists(t, testFile)
 
 	// Start with force flag (should succeed)
-	_, err = app.StartTicket(context.Background(), ticketID, true)
+	result, err := app.StartTicket(context.Background(), ticketID, true)
 	assert.NoError(t, err)
+
+	// Verify the result indicates this was a recreation
+	assert.Equal(t, ticket.StatusDoing, result.OriginalStatus, "Original status should be 'doing'")
+	assert.True(t, result.IsRecreatingWorktree, "IsRecreatingWorktree should be true")
 
 	// Verify worktree was recreated (test file should be gone)
 	assert.DirExists(t, worktreePath)
 	assert.NoFileExists(t, testFile)
 
 	// Verify ticket is still in doing status
-	ticket, err := app.Manager.Get(context.Background(), ticketID)
+	updatedTicket, err := app.Manager.Get(context.Background(), ticketID)
 	require.NoError(t, err)
-	assert.Equal(t, "doing", string(ticket.Status()))
+	assert.Equal(t, "doing", string(updatedTicket.Status()))
 }
 
 func TestStartTicketForceWithoutWorktree(t *testing.T) {
@@ -141,6 +154,24 @@ func TestStartTicketForceWithoutWorktree(t *testing.T) {
 	_, err = app.StartTicket(context.Background(), ticketID, true)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Ticket already started")
+
+	// Verify error suggests branch mode alternatives (not --force)
+	if cliErr, ok := err.(*cli.CLIError); ok {
+		assert.Equal(t, cli.ErrTicketAlreadyStarted, cliErr.Code)
+
+		// Should NOT suggest --force when worktrees are disabled
+		for _, suggestion := range cliErr.Suggestions {
+			assert.NotContains(t, suggestion, "--force", "Should not suggest --force when worktrees are disabled")
+		}
+
+		// Should suggest git checkout and status commands
+		assert.Len(t, cliErr.Suggestions, 2, "Should have 2 suggestions for branch mode")
+		assert.Contains(t, cliErr.Suggestions[0], "git checkout", "Should suggest git checkout")
+		assert.Contains(t, cliErr.Suggestions[0], ticketID, "Should include ticket ID in git checkout suggestion")
+		assert.Contains(t, cliErr.Suggestions[1], "ticketflow status", "Should suggest ticketflow status")
+	} else {
+		t.Fatal("Expected error to be a CLIError")
+	}
 
 	// Verify no worktree directory was created
 	worktreePath := filepath.Join(repoPath, ".worktrees", ticketID)

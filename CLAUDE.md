@@ -34,20 +34,24 @@ make lint   # Run golangci-lint
 make coverage
 ```
 
-### Git Hooks (Lefthook)
-The project uses Lefthook for git hooks management. Hooks are automatically installed when you run `make init` or `make setup-hooks`.
+### Git Hooks
+The project uses custom git hooks located in `scripts/githooks/`. Hooks are automatically installed when you run `make init` or `make setup-hooks` (which runs `scripts/init-githooks.sh`).
 
 **Pre-commit hooks** (fast checks):
-- `gofmt` - Formats Go code automatically
-- `go vet` - Static analysis
-- `golangci-lint --fast` - Quick linting
+- `gofmt` - Formats Go code automatically and stages the formatted files
+- `go vet` - Static analysis via `make vet`
+- `golangci-lint --fast-only --new-from-rev=HEAD` - Fast linting on changed files (if golangci-lint is installed)
 
 **Pre-push hooks** (comprehensive checks):
 - `make test` - Runs all tests
 - `make build` - Verifies build succeeds
-- `make lint` - Full linting
+- `make lint` - Full golangci-lint check (if installed)
 
-**IMPORTANT**: When committing/pushing code, you MUST pass all git hooks. Do not use `--no-verify` to skip them.
+**Hook Configuration**:
+- Set `HOOKS_VERBOSE=1` for debug output
+- Hooks automatically skip in CI environments
+
+**IMPORTANT**: When committing/pushing code, you MUST pass all git hooks. NEVER use `--no-verify`, `SKIP_HOOKS=1`, or `NO_VERIFY=1` to skip them. If hooks fail, fix the issues before committing.
 
 ### Cross-platform builds
 ```bash

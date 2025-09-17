@@ -105,19 +105,19 @@ fi
 # 3. Run golangci-lint (fast mode)
 if command -v golangci-lint >/dev/null 2>&1; then
     print_info "Running golangci-lint (fast mode)..."
-    
+
     # Create a temporary file list for golangci-lint
     TEMP_FILE_LIST=$(mktemp)
     echo "$STAGED_GO_FILES" | tr ' ' '\n' > "$TEMP_FILE_LIST"
-    
-    if golangci-lint run --fast --new-from-rev=HEAD 2>&1; then
+
+    if golangci-lint run --fast-only --new-from-rev=HEAD 2>&1; then
         print_success "golangci-lint passed"
     else
         print_error "golangci-lint found issues"
         rm -f "$TEMP_FILE_LIST"
         exit 1
     fi
-    
+
     rm -f "$TEMP_FILE_LIST"
 else
     print_warning "golangci-lint not installed, skipping"

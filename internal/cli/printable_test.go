@@ -555,6 +555,8 @@ func TestStartResultPrintable(t *testing.T) {
 				WorktreePath:         "/test/path",
 				ParentBranch:         "develop",
 				InitCommandsExecuted: true,
+				OriginalStatus:       ticket.StatusTodo,
+				IsRecreatingWorktree: false,
 			},
 		}
 
@@ -565,6 +567,63 @@ func TestStartResultPrintable(t *testing.T) {
 		assert.Equal(t, "/test/path", m["worktree_path"])
 		assert.Equal(t, "develop", m["parent_branch"])
 		assert.Equal(t, true, m["init_commands_executed"])
+		assert.Equal(t, "todo", m["original_status"], "Should include original_status field")
+		assert.Equal(t, false, m["is_recreating_worktree"], "Should include is_recreating_worktree field")
+	})
+
+	t.Run("TextRepresentation with empty OriginalStatus", func(t *testing.T) {
+		result := &StartResult{
+			StartTicketResult: &StartTicketResult{
+				Ticket: &ticket.Ticket{
+					ID:          "empty-status",
+					Description: "Test empty status fallback",
+				},
+				WorktreePath:   "/worktrees/empty-status",
+				OriginalStatus: "", // Empty status should fallback to todo
+			},
+			WorktreeEnabled: true,
+		}
+
+		text := result.TextRepresentation()
+		assert.Contains(t, text, "Status: todo → doing", "Empty OriginalStatus should fallback to 'todo'")
+	})
+
+	t.Run("TextRepresentation with worktree recreation", func(t *testing.T) {
+		result := &StartResult{
+			StartTicketResult: &StartTicketResult{
+				Ticket: &ticket.Ticket{
+					ID:          "recreate-test",
+					Description: "Recreating worktree test",
+				},
+				WorktreePath:         "/worktrees/recreate-test",
+				OriginalStatus:       ticket.StatusDoing,
+				IsRecreatingWorktree: true,
+			},
+			WorktreeEnabled: true,
+		}
+
+		text := result.TextRepresentation()
+		assert.Contains(t, text, "Worktree recreated: /worktrees/recreate-test", "Should show 'recreated' not 'created'")
+		assert.Contains(t, text, "Status: doing → doing (worktree recreated)", "Should show recreation status")
+		assert.NotContains(t, text, "Committed: \"Start ticket:", "Should NOT show commit message for recreation")
+	})
+
+	t.Run("TextRepresentation branch mode with empty OriginalStatus", func(t *testing.T) {
+		result := &StartResult{
+			StartTicketResult: &StartTicketResult{
+				Ticket: &ticket.Ticket{
+					ID:          "branch-empty-status",
+					Description: "Test branch mode empty status fallback",
+				},
+				OriginalStatus: "", // Empty status should fallback to todo
+			},
+			WorktreeEnabled: false, // Branch mode
+		}
+
+		text := result.TextRepresentation()
+		assert.Contains(t, text, "Switched to branch: branch-empty-status", "Should show branch switch")
+		assert.Contains(t, text, "Status: todo → doing", "Empty OriginalStatus should fallback to 'todo'")
+		assert.Contains(t, text, "Committed: \"Start ticket: branch-empty-status\"", "Should show commit message when orig != doing")
 	})
 }
 
