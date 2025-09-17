@@ -17,7 +17,10 @@
       "Bash(make lint)",
       "Bash(go build:*)",
       "Bash(go test:*)",
-      "Bash(ticketflow start:*)"
+      "Bash(ticketflow start:*)",
+      "Bash(gh pr view:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
     ],
     "ask": ["Bash(rm:*)"]
   }
