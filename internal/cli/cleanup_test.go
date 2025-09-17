@@ -64,6 +64,7 @@ func TestAutoCleanupStaleBranches(t *testing.T) {
 		Git:          gitOps,
 		Config:       cfg,
 		ProjectRoot:  repoPath,
+		RepoRoot:     repoPath,
 		workingDir:   repoPath,
 		Output:       NewOutputWriter(nil, nil, FormatText),
 		StatusWriter: NewNullStatusWriter(), // Use null writer for tests

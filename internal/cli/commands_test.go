@@ -88,6 +88,7 @@ func TestApp_NewTicket(t *testing.T) {
 				Manager:     mockManager,
 				Git:         mockGit,
 				ProjectRoot: "/test/project",
+				RepoRoot:    "/test/project",
 				Output:      NewOutputWriter(nil, nil, FormatText),
 			}
 
@@ -190,6 +191,7 @@ func TestApp_ListTickets(t *testing.T) {
 				Manager:     mockManager,
 				Git:         mockGit,
 				ProjectRoot: tmpDir,
+				RepoRoot:    tmpDir,
 				Output:      NewOutputWriter(nil, nil, FormatText),
 			}
 
@@ -303,6 +305,7 @@ Test ticket content`
 				Manager:     mockManager,
 				Git:         mockGit,
 				ProjectRoot: tmpDir,
+				RepoRoot:    tmpDir,
 				Output:      NewOutputWriter(nil, nil, FormatText),
 			}
 
@@ -395,6 +398,7 @@ Test ticket content`
 		Manager:     mockManager,
 		Git:         mockGit,
 		ProjectRoot: tmpDir,
+		RepoRoot:    tmpDir,
 		Output:      NewOutputWriter(nil, nil, FormatText),
 	}
 
@@ -472,6 +476,7 @@ Test ticket content`
 		Manager:     mockManager,
 		Git:         mockGit,
 		ProjectRoot: tmpDir,
+		RepoRoot:    tmpDir,
 		Output:      NewOutputWriter(nil, nil, FormatText),
 	}
 
@@ -620,6 +625,7 @@ func TestValidateTicketForClose_SymlinkError(t *testing.T) {
 				Manager:     mockManager,
 				Git:         mockGit,
 				ProjectRoot: "/test/project",
+				RepoRoot:    "/test/project",
 				Output:      NewOutputWriter(nil, nil, FormatText),
 			}
 
@@ -911,6 +917,7 @@ func TestApp_CloseTicketByID(t *testing.T) {
 				Manager:     mockManager,
 				Git:         mockGit,
 				ProjectRoot: tmpDir,
+				RepoRoot:    tmpDir,
 				Config: &config.Config{
 					Git: config.GitConfig{
 						DefaultBranch: "main",
@@ -1064,6 +1071,7 @@ func TestApp_CloseTicketWithReason(t *testing.T) {
 				Manager:     mockManager,
 				Git:         mockGit,
 				ProjectRoot: tmpDir,
+				RepoRoot:    tmpDir,
 				Config: &config.Config{
 					Git: config.GitConfig{
 						DefaultBranch: "main",

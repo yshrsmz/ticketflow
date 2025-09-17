@@ -274,6 +274,7 @@ func TestApp_NewTicket_WithParent(t *testing.T) {
 				Manager:     mockManager,
 				Git:         mockGit,
 				ProjectRoot: "/test/project",
+				RepoRoot:    "/test/project",
 				Output:      NewOutputWriter(output, output.StderrWriter(), FormatText),
 			}
 

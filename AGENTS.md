@@ -40,3 +40,14 @@
 - Prefer minimal, targeted patches; align with existing patterns and naming.
 - Update README or command help when modifying CLI/TUI behavior.
 - Don’t commit binaries or `dist/`; don’t add license headers.
+
+### Execution & Approvals (Required)
+- Run the commands you need (tests, builds, fmt, vet, lint, etc.) as part of normal development – don’t skip critical validation steps.
+- When a command needs elevated permissions, touches outside the workspace, triggers network access, or might surprise the user, explain why and request approval instead of silently skipping it.
+- Give a concise preview of grouped commands before running them (e.g., “Run fmt, vet, then unit+integration tests”).
+
+### Go Toolchain for Tests/Builds
+- The project targets Go 1.24.x (see `mise.toml`). When running tests/builds, use the matching toolchain.
+- If a toolchain mismatch occurs, ask for approval to run with the correct toolchain, for example:
+  - `GOTOOLCHAIN=go1.24.6 make test`
+- If a tool installer (e.g., `mise`) must be used, request permission before invoking it since it may require network access.
