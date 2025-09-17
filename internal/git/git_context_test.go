@@ -17,7 +17,7 @@ import (
 
 // TestGitOperationsWithCancelledContext tests all git operations with cancelled context
 func TestGitOperationsWithCancelledContext(t *testing.T) {
-	// Cannot use t.Parallel() - setupTestGitRepo uses t.Setenv()
+	t.Parallel()
 	git, _ := setupTestGitRepo(t)
 
 	tests := []struct {
@@ -103,7 +103,7 @@ func TestGitOperationsWithCancelledContext(t *testing.T) {
 
 // TestGitStaticFunctionsWithCancelledContext tests static functions with cancelled context
 func TestGitStaticFunctionsWithCancelledContext(t *testing.T) {
-	// Cannot use t.Parallel() - setupTestGitRepo uses t.Setenv()
+	t.Parallel()
 	_, tmpDir := setupTestGitRepo(t)
 
 	tests := []struct {
@@ -146,7 +146,7 @@ func TestGitStaticFunctionsWithCancelledContext(t *testing.T) {
 
 // TestContextWithTimeout tests operations with timeout contexts
 func TestContextWithTimeout(t *testing.T) {
-	// Cannot use t.Parallel() - setupTestGitRepo uses t.Setenv()
+	t.Parallel()
 	git, _ := setupTestGitRepo(t)
 
 	tests := []struct {
@@ -191,7 +191,7 @@ func TestContextWithTimeout(t *testing.T) {
 
 // TestContextWithValues tests that context values are preserved even when cancelled
 func TestContextWithValues(t *testing.T) {
-	// Cannot use t.Parallel() - setupTestGitRepo uses t.Setenv()
+	t.Parallel()
 	type contextKey string
 	const testKey contextKey = "test-key"
 
@@ -212,7 +212,7 @@ func TestContextWithValues(t *testing.T) {
 
 // TestConcurrentCancellation tests concurrent operations with shared context
 func TestConcurrentCancellation(t *testing.T) {
-	// Cannot use t.Parallel() - setupTestGitRepo uses t.Setenv()
+	t.Parallel()
 	git, _ := setupTestGitRepo(t)
 
 	// Create a channel to coordinate goroutines
@@ -266,7 +266,7 @@ func TestConcurrentCancellation(t *testing.T) {
 
 // TestContextPropagationInExec tests that context is properly propagated to exec.CommandContext
 func TestContextPropagationInExec(t *testing.T) {
-	// Cannot use t.Parallel() - setupTestGitRepo uses t.Setenv()
+	t.Parallel()
 	git, _ := setupTestGitRepo(t)
 
 	// Test with a deadline context
@@ -292,7 +292,7 @@ func TestContextPropagationInExec(t *testing.T) {
 
 // TestLongRunningOperationCancellation tests cancelling a long-running operation
 func TestLongRunningOperationCancellation(t *testing.T) {
-	// Cannot use t.Parallel() - setupTestGitRepo uses t.Setenv()
+	t.Parallel()
 	git, tmpDir := setupTestGitRepo(t)
 
 	// Create a small test file instead of a large one
@@ -331,7 +331,7 @@ func TestLongRunningOperationCancellation(t *testing.T) {
 
 // TestContextInheritance tests parent-child context cancellation behavior
 func TestContextInheritance(t *testing.T) {
-	// Cannot use t.Parallel() - setupTestGitRepo uses t.Setenv()
+	t.Parallel()
 	git, _ := setupTestGitRepo(t)
 
 	// Create parent context with timeout
@@ -355,11 +355,6 @@ func TestContextInheritance(t *testing.T) {
 func BenchmarkContextCheckOverhead(b *testing.B) {
 	// Setup outside the benchmark loop
 	tmpDir := b.TempDir()
-
-	// Prevent git from discovering parent repositories
-	// This ensures test git commands only affect the test repository
-	b.Setenv("GIT_CEILING_DIRECTORIES", tmpDir)
-
 	git := New(tmpDir)
 	ctx := context.Background()
 
@@ -391,11 +386,6 @@ func BenchmarkContextCheckOverhead(b *testing.B) {
 func BenchmarkContextCheckWithCancellation(b *testing.B) {
 	// Setup outside the benchmark loop
 	tmpDir := b.TempDir()
-
-	// Prevent git from discovering parent repositories
-	// This ensures test git commands only affect the test repository
-	b.Setenv("GIT_CEILING_DIRECTORIES", tmpDir)
-
 	git := New(tmpDir)
 	ctx := context.Background()
 
@@ -441,7 +431,7 @@ func simulateSlowGitOperation(ctx context.Context, git *Git, duration time.Durat
 
 // TestSimulatedSlowOperationCancellation tests the slow operation simulation with cancellation
 func TestSimulatedSlowOperationCancellation(t *testing.T) {
-	// Cannot use t.Parallel() - setupTestGitRepo uses t.Setenv()
+	t.Parallel()
 	git, _ := setupTestGitRepo(t)
 
 	tests := []struct {
@@ -489,11 +479,6 @@ func TestSimulatedSlowOperationCancellation(t *testing.T) {
 // BenchmarkContextTypes compares different context types
 func BenchmarkContextTypes(b *testing.B) {
 	tmpDir := b.TempDir()
-
-	// Prevent git from discovering parent repositories
-	// This ensures test git commands only affect the test repository
-	b.Setenv("GIT_CEILING_DIRECTORIES", tmpDir)
-
 	git := New(tmpDir)
 	ctx := context.Background()
 

@@ -14,8 +14,7 @@
             "Bash(make deps)",
             "Bash(make fmt)",
             "Bash(make vet)",
-            "Bash(make lint)",
-            "Bash(go test:*)"
+            "Bash(make lint)"
         ]
     }
 }

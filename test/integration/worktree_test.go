@@ -140,7 +140,7 @@ func TestWorktreeWorkflow(t *testing.T) {
 }
 
 func TestWorktreeCleanCommand(t *testing.T) {
-	// Cannot use t.Parallel() - setupTestRepo uses t.Setenv()
+	t.Parallel()
 
 	// Setup test repository
 	repoPath := setupTestRepo(t)
@@ -232,7 +232,7 @@ func TestWorktreeCleanCommand(t *testing.T) {
 }
 
 func TestWorktreeListCommand(t *testing.T) {
-	// Cannot use t.Parallel() - setupTestRepo uses t.Setenv()
+	t.Parallel()
 
 	// Setup test repository
 	repoPath := setupTestRepo(t)

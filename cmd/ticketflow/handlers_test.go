@@ -19,14 +19,10 @@ import (
 )
 
 func TestHandleInit(t *testing.T) {
-	// Cannot use t.Parallel() with t.Setenv()
+	t.Parallel()
 
 	// Create a temporary directory for the test
 	tmpDir := t.TempDir()
-
-	// Prevent git from discovering parent repositories
-	// This ensures test git commands only affect the test repository
-	t.Setenv("GIT_CEILING_DIRECTORIES", tmpDir)
 
 	// Initialize git repo
 	cmd := exec.Command("git", "init")
@@ -54,7 +50,7 @@ func TestHandleInit(t *testing.T) {
 }
 
 func TestHandleNew(t *testing.T) {
-	// Cannot use t.Parallel() - sub-tests use setupTestRepo with t.Setenv()
+	t.Parallel()
 
 	tests := []struct {
 		name          string
@@ -104,7 +100,7 @@ func TestHandleNew(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Cannot use t.Parallel() - setupTestRepo uses t.Setenv()
+			t.Parallel()
 
 			tmpDir := t.TempDir()
 			tt.setupFunc(t, tmpDir)
@@ -172,7 +168,7 @@ func TestHandleNew(t *testing.T) {
 }
 
 func TestHandleList(t *testing.T) {
-	// Cannot use t.Parallel() - sub-tests use setupTestRepo with t.Setenv()
+	t.Parallel()
 
 	tests := []struct {
 		name          string
@@ -218,7 +214,7 @@ func TestHandleList(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Cannot use t.Parallel() - setupTestRepo uses t.Setenv()
+			t.Parallel()
 
 			tmpDir := t.TempDir()
 			tt.setupFunc(t, tmpDir)
@@ -269,7 +265,7 @@ func TestHandleList(t *testing.T) {
 }
 
 func TestHandleShow(t *testing.T) {
-	// Cannot use t.Parallel() - sub-tests use setupTestRepo with t.Setenv()
+	t.Parallel()
 
 	tests := []struct {
 		name          string
@@ -306,7 +302,7 @@ func TestHandleShow(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Cannot use t.Parallel() - setupTestRepo uses t.Setenv()
+			t.Parallel()
 
 			tmpDir := t.TempDir()
 			ticketID := tt.setupFunc(t, tmpDir)
@@ -401,7 +397,7 @@ func TestHandleShow(t *testing.T) {
 }
 
 func TestHandleStart(t *testing.T) {
-	// Cannot use t.Parallel() - sub-tests use setupTestRepo with t.Setenv()
+	t.Parallel()
 
 	tests := []struct {
 		name          string
@@ -432,7 +428,7 @@ func TestHandleStart(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Cannot use t.Parallel() - setupTestRepo uses t.Setenv()
+			t.Parallel()
 
 			tmpDir := t.TempDir()
 			ticketID := tt.setupFunc(t, tmpDir)
@@ -474,7 +470,7 @@ func TestHandleStart(t *testing.T) {
 }
 
 func TestHandleClose(t *testing.T) {
-	// Cannot use t.Parallel() - sub-tests use setupTestRepo with t.Setenv()
+	t.Parallel()
 
 	tests := []struct {
 		name          string
@@ -507,7 +503,7 @@ func TestHandleClose(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Cannot use t.Parallel() - setupTestRepo uses t.Setenv()
+			t.Parallel()
 
 			tmpDir := t.TempDir()
 			tt.setupFunc(t, tmpDir)

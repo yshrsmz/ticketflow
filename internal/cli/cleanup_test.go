@@ -16,16 +16,12 @@ import (
 )
 
 func TestAutoCleanupStaleBranches(t *testing.T) {
-	// Cannot use t.Parallel() with t.Setenv()
+	t.Parallel()
 
 	// Create a temporary directory for our test repo
 	tmpDir := t.TempDir()
 	repoPath := filepath.Join(tmpDir, "test-repo")
 	require.NoError(t, os.MkdirAll(repoPath, 0755))
-
-	// Prevent git from discovering parent repositories
-	// This ensures test git commands only affect the test repository
-	t.Setenv("GIT_CEILING_DIRECTORIES", repoPath)
 
 	// Initialize git repo with specific path
 	gitOps := git.New(repoPath)
@@ -154,16 +150,12 @@ func TestAutoCleanupStaleBranches(t *testing.T) {
 }
 
 func TestCleanupStatsWithDoneTickets(t *testing.T) {
-	// Cannot use t.Parallel() with t.Setenv()
+	t.Parallel()
 
 	// Create a temporary directory for our test repo
 	tmpDir := t.TempDir()
 	repoPath := filepath.Join(tmpDir, "test-repo")
 	require.NoError(t, os.MkdirAll(repoPath, 0755))
-
-	// Prevent git from discovering parent repositories
-	// This ensures test git commands only affect the test repository
-	t.Setenv("GIT_CEILING_DIRECTORIES", repoPath)
 
 	// Initialize git repo with specific path
 	gitOps := git.New(repoPath)

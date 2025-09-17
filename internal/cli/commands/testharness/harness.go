@@ -33,11 +33,6 @@ func NewTestEnvironment(t *testing.T) *TestEnvironment {
 	t.Helper()
 
 	tmpDir := t.TempDir()
-
-	// Prevent git from discovering parent repositories
-	// This ensures test git commands only affect the test repository
-	t.Setenv("GIT_CEILING_DIRECTORIES", tmpDir)
-
 	env := &TestEnvironment{
 		t:          t,
 		RootDir:    tmpDir,

@@ -14,7 +14,7 @@ import (
 )
 
 func TestCloseWithReason(t *testing.T) {
-	// Cannot use t.Parallel() - setupTestRepo uses t.Setenv()
+	t.Parallel()
 
 	ctx := context.Background()
 
