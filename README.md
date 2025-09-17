@@ -103,7 +103,7 @@ make build-all     # Build for all platforms
 
 For contributors, run `make init` after cloning to set up:
 - Go dependencies
-- Git hooks with Lefthook (format, vet, lint on pre-commit; tests on pre-push)
+- Git hooks (format, vet, lint on pre-commit; tests on pre-push)
 - Worktree configuration
 
 Git hooks can be skipped with `--no-verify` for emergency commits.
