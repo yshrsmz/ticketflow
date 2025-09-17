@@ -15,7 +15,7 @@ import (
 )
 
 func TestStartTicket_WorktreeCreatedAfterCommit(t *testing.T) {
-	t.Parallel()
+	// Cannot use t.Parallel() - setupTestRepo uses t.Setenv()
 
 	// Setup test repository
 	repoPath := setupTestRepo(t)

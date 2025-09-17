@@ -15,7 +15,7 @@ import (
 )
 
 func TestAutoCleanupStaleBranchesIntegration(t *testing.T) {
-	t.Parallel()
+	// Cannot use t.Parallel() - setupTestRepo uses t.Setenv()
 
 	// Setup test repository
 	repoPath := setupTestRepo(t)
@@ -112,7 +112,7 @@ func TestAutoCleanupStaleBranchesIntegration(t *testing.T) {
 }
 
 func TestAutoCleanupDryRun(t *testing.T) {
-	t.Parallel()
+	// Cannot use t.Parallel() - setupTestRepo uses t.Setenv()
 
 	// Setup test repository
 	repoPath := setupTestRepo(t)

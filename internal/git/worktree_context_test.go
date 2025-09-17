@@ -15,7 +15,7 @@ import (
 
 // TestWorktreeOperationsWithCancelledContext tests all worktree operations with cancelled context
 func TestWorktreeOperationsWithCancelledContext(t *testing.T) {
-	t.Parallel()
+	// Cannot use t.Parallel() - setupTestGitRepo uses t.Setenv()
 	git, tmpDir := setupTestGitRepo(t)
 
 	// Setup a worktree for testing operations that need an existing worktree
@@ -113,7 +113,7 @@ func TestWorktreeOperationsWithCancelledContext(t *testing.T) {
 
 // TestWorktreeOperationsWithTimeout tests worktree operations with timeout
 func TestWorktreeOperationsWithTimeout(t *testing.T) {
-	t.Parallel()
+	// Cannot use t.Parallel() - setupTestGitRepo uses t.Setenv()
 	git, _ := setupTestGitRepo(t)
 
 	tests := []struct {
@@ -160,7 +160,7 @@ func TestWorktreeOperationsWithTimeout(t *testing.T) {
 
 // TestConcurrentWorktreeOperations tests concurrent worktree operations
 func TestConcurrentWorktreeOperations(t *testing.T) {
-	t.Parallel()
+	// Cannot use t.Parallel() - setupTestGitRepo uses t.Setenv()
 	git, tmpDir := setupTestGitRepo(t)
 
 	// Create some worktrees first
@@ -241,7 +241,7 @@ func TestConcurrentWorktreeOperations(t *testing.T) {
 
 // TestWorktreeStateConsistency tests worktree state consistency after cancellation
 func TestWorktreeStateConsistency(t *testing.T) {
-	t.Parallel()
+	// Cannot use t.Parallel() - setupTestGitRepo uses t.Setenv()
 	git, tmpDir := setupTestGitRepo(t)
 
 	// Create a context that we'll cancel during AddWorktree
@@ -278,7 +278,7 @@ func TestWorktreeStateConsistency(t *testing.T) {
 
 // TestWorktreeContextInheritance tests context inheritance in worktree operations
 func TestWorktreeContextInheritance(t *testing.T) {
-	t.Parallel()
+	// Cannot use t.Parallel() - setupTestGitRepo uses t.Setenv()
 	git, _ := setupTestGitRepo(t)
 
 	// Create parent context with timeout

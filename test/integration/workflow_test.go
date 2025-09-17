@@ -17,6 +17,10 @@ func setupTestRepo(t *testing.T) string {
 	// Create temp directory
 	tmpDir := t.TempDir()
 
+	// Prevent git from discovering parent repositories
+	// This ensures test git commands only affect the test repository
+	t.Setenv("GIT_CEILING_DIRECTORIES", tmpDir)
+
 	// Initialize git repo
 	cmd := git.New(tmpDir)
 	_, err := cmd.Exec(context.Background(), "init")
@@ -53,7 +57,7 @@ func setupTestRepo(t *testing.T) string {
 }
 
 func TestCompleteWorkflow(t *testing.T) {
-	t.Parallel()
+	// Cannot use t.Parallel() - setupTestRepo uses t.Setenv()
 
 	// Setup test repository
 	repoPath := setupTestRepo(t)
@@ -156,7 +160,7 @@ func TestCompleteWorkflow(t *testing.T) {
 }
 
 func TestRestoreWorkflow(t *testing.T) {
-	t.Parallel()
+	// Cannot use t.Parallel() - setupTestRepo uses t.Setenv()
 
 	// Setup test repository
 	repoPath := setupTestRepo(t)

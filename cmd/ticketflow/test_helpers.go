@@ -42,6 +42,10 @@ const (
 //
 // This would change the user's global git config and should never be used in tests.
 func setupTestRepo(t *testing.T, tmpDir string) {
+	// Prevent git from discovering parent repositories
+	// This ensures test git commands only affect the test repository
+	t.Setenv("GIT_CEILING_DIRECTORIES", tmpDir)
+
 	// Initialize git repo first
 	cmd := exec.Command("git", "init")
 	cmd.Dir = tmpDir

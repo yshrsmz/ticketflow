@@ -13,6 +13,11 @@ import (
 
 func setupTestGitRepo(t *testing.T) (*Git, string) {
 	tmpDir := t.TempDir()
+
+	// Prevent git from discovering parent repositories
+	// This ensures test git commands only affect the test repository
+	t.Setenv("GIT_CEILING_DIRECTORIES", tmpDir)
+
 	git := New(tmpDir)
 	ctx := context.Background()
 
@@ -40,7 +45,7 @@ func setupTestGitRepo(t *testing.T) (*Git, string) {
 }
 
 func TestAddWorktree(t *testing.T) {
-	t.Parallel()
+	// Cannot use t.Parallel() - setupTestGitRepo uses t.Setenv()
 	git, tmpDir := setupTestGitRepo(t)
 	ctx := context.Background()
 
@@ -76,7 +81,7 @@ func TestAddWorktree(t *testing.T) {
 }
 
 func TestListWorktrees(t *testing.T) {
-	t.Parallel()
+	// Cannot use t.Parallel() - setupTestGitRepo uses t.Setenv()
 	git, tmpDir := setupTestGitRepo(t)
 	ctx := context.Background()
 
@@ -106,7 +111,7 @@ func TestListWorktrees(t *testing.T) {
 }
 
 func TestRemoveWorktree(t *testing.T) {
-	t.Parallel()
+	// Cannot use t.Parallel() - setupTestGitRepo uses t.Setenv()
 	git, tmpDir := setupTestGitRepo(t)
 	ctx := context.Background()
 
@@ -135,7 +140,7 @@ func TestRemoveWorktree(t *testing.T) {
 }
 
 func TestFindWorktreeByBranch(t *testing.T) {
-	t.Parallel()
+	// Cannot use t.Parallel() - setupTestGitRepo uses t.Setenv()
 	git, tmpDir := setupTestGitRepo(t)
 	ctx := context.Background()
 
@@ -164,7 +169,7 @@ func TestFindWorktreeByBranch(t *testing.T) {
 }
 
 func TestHasWorktree(t *testing.T) {
-	t.Parallel()
+	// Cannot use t.Parallel() - setupTestGitRepo uses t.Setenv()
 	git, tmpDir := setupTestGitRepo(t)
 	ctx := context.Background()
 
@@ -185,7 +190,7 @@ func TestHasWorktree(t *testing.T) {
 }
 
 func TestRunInWorktree(t *testing.T) {
-	t.Parallel()
+	// Cannot use t.Parallel() - setupTestGitRepo uses t.Setenv()
 	git, tmpDir := setupTestGitRepo(t)
 	ctx := context.Background()
 
@@ -218,7 +223,7 @@ func TestRunInWorktree(t *testing.T) {
 }
 
 func TestPruneWorktrees(t *testing.T) {
-	t.Parallel()
+	// Cannot use t.Parallel() - setupTestGitRepo uses t.Setenv()
 	git, tmpDir := setupTestGitRepo(t)
 	ctx := context.Background()
 
@@ -244,7 +249,7 @@ func TestPruneWorktrees(t *testing.T) {
 }
 
 func TestAddWorktreeWithExistingBranch(t *testing.T) {
-	t.Parallel()
+	// Cannot use t.Parallel() - setupTestGitRepo uses t.Setenv()
 	git, tmpDir := setupTestGitRepo(t)
 	ctx := context.Background()
 
@@ -277,7 +282,7 @@ func TestAddWorktreeWithExistingBranch(t *testing.T) {
 }
 
 func TestAddWorktreeWithNewBranch(t *testing.T) {
-	t.Parallel()
+	// Cannot use t.Parallel() - setupTestGitRepo uses t.Setenv()
 	git, tmpDir := setupTestGitRepo(t)
 	ctx := context.Background()
 

@@ -15,7 +15,7 @@ import (
 )
 
 func TestDirectoryAutoCreation(t *testing.T) {
-	t.Parallel()
+	// Cannot use t.Parallel() - setupTestRepo uses t.Setenv()
 
 	// Setup test repository
 	repoPath := setupTestRepo(t)
@@ -89,7 +89,7 @@ func TestDirectoryAutoCreation(t *testing.T) {
 }
 
 func TestDirectoryCreationWithWorktrees(t *testing.T) {
-	t.Parallel()
+	// Cannot use t.Parallel() - setupTestRepo uses t.Setenv()
 
 	// Setup test repository
 	repoPath := setupTestRepo(t)

@@ -38,6 +38,10 @@ func TestNewTestEnvironment_HandlesGitVersionCompatibility(t *testing.T) {
 	// newer git versions (2.28+) with -b flag and older versions
 	tmpDir := t.TempDir()
 
+	// Prevent git from discovering parent repositories
+	// This ensures test git commands only affect the test repository
+	t.Setenv("GIT_CEILING_DIRECTORIES", tmpDir)
+
 	// Test with explicit -b flag (newer git versions)
 	cmd := exec.Command("git", "init", "-b", "main")
 	cmd.Dir = tmpDir

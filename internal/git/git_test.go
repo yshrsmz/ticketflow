@@ -225,9 +225,14 @@ func TestIsValidBranchName(t *testing.T) {
 }
 
 func TestBranchExists(t *testing.T) {
-	t.Parallel()
+	// Cannot use t.Parallel() with t.Setenv()
 	// Setup test git repo
 	tmpDir := t.TempDir()
+
+	// Prevent git from discovering parent repositories
+	// This ensures test git commands only affect the test repository
+	t.Setenv("GIT_CEILING_DIRECTORIES", tmpDir)
+
 	git := New(tmpDir)
 	ctx := context.Background()
 
