@@ -67,7 +67,9 @@ FAILED=0
 
 # 1. Run tests
 print_info "Running tests..."
-if make test 2>&1; then
+# Clean git environment to prevent tests from modifying the parent repository
+# when running from a worktree
+if env -u GIT_DIR -u GIT_WORK_TREE -u GIT_COMMON_DIR make test 2>&1; then
     print_success "All tests passed"
 else
     print_error "Tests failed"
