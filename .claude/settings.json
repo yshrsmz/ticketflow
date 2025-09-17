@@ -1,0 +1,21 @@
+{
+    "permissions": {
+        "allow": [
+            "Bash(make build)",
+            "Bash(make build-current)",
+            "Bash(make install)",
+            "Bash(make test)",
+            "Bash(make test-unit)",
+            "Bash(make test-integration)",
+            "Bash(make test-e2e)",
+            "Bash(make coverage)",
+            "Bash(make bench)",
+            "Bash(make clean)",
+            "Bash(make deps)",
+            "Bash(make fmt)",
+            "Bash(make vet)",
+            "Bash(make lint)",
+            "Bash(go test:*)"
+        ]
+    }
+}

@@ -352,15 +352,35 @@ func (r *StartResult) TextRepresentation() string {
 	fmt.Fprintf(&buf, "\n✅ Started work on ticket: %s\n", r.Ticket.ID)
 	fmt.Fprintf(&buf, "   Description: %s\n", r.Ticket.Description)
 
+	// Add defensive fallback for empty OriginalStatus
+	orig := r.OriginalStatus
+	if orig == "" {
+		orig = ticket.StatusTodo
+	}
+
 	if r.WorktreeEnabled {
 		// Worktree mode
-		fmt.Fprintf(&buf, "\n📁 Worktree created: %s\n", r.WorktreePath)
+		if r.IsRecreatingWorktree {
+			fmt.Fprintf(&buf, "\n📁 Worktree recreated: %s\n", r.WorktreePath)
+		} else {
+			fmt.Fprintf(&buf, "\n📁 Worktree created: %s\n", r.WorktreePath)
+		}
 		if r.ParentBranch != "" {
 			fmt.Fprintf(&buf, "   Parent ticket: %s\n", r.ParentBranch)
 			fmt.Fprintf(&buf, "   Branch from: %s\n", r.ParentBranch)
 		}
-		fmt.Fprintf(&buf, "   Status: todo → doing\n")
-		fmt.Fprintf(&buf, "   Committed: \"Start ticket: %s\"\n", r.Ticket.ID)
+
+		// Show correct status transition
+		if r.IsRecreatingWorktree {
+			fmt.Fprintf(&buf, "   Status: doing → doing (worktree recreated)\n")
+		} else {
+			fmt.Fprintf(&buf, "   Status: %s → doing\n", orig)
+		}
+
+		if !r.IsRecreatingWorktree {
+			fmt.Fprintf(&buf, "   Committed: \"Start ticket: %s\"\n", r.Ticket.ID)
+		}
+
 		fmt.Fprintf(&buf, "\n📋 Next steps:\n")
 		fmt.Fprintf(&buf, "1. Navigate to worktree:\n")
 		fmt.Fprintf(&buf, "   cd %s\n", r.WorktreePath)
@@ -375,8 +395,14 @@ func (r *StartResult) TextRepresentation() string {
 	} else {
 		// Branch mode
 		fmt.Fprintf(&buf, "\n🌿 Switched to branch: %s\n", r.Ticket.ID)
-		fmt.Fprintf(&buf, "   Status: todo → doing\n")
-		fmt.Fprintf(&buf, "   Committed: \"Start ticket: %s\"\n", r.Ticket.ID)
+
+		// Show status transition without "branch recreated" suffix
+		fmt.Fprintf(&buf, "   Status: %s → doing\n", orig)
+
+		if orig != ticket.StatusDoing {
+			fmt.Fprintf(&buf, "   Committed: \"Start ticket: %s\"\n", r.Ticket.ID)
+		}
+
 		fmt.Fprintf(&buf, "\n📋 Next steps:\n")
 		fmt.Fprintf(&buf, "1. Make your changes and commit regularly\n")
 		fmt.Fprintf(&buf, "   \n")
@@ -395,6 +421,8 @@ func (r *StartResult) StructuredData() interface{} {
 	return map[string]interface{}{
 		"ticket_id":              r.Ticket.ID,
 		"status":                 string(r.Ticket.Status()),
+		"original_status":        string(r.OriginalStatus),
+		"is_recreating_worktree": r.IsRecreatingWorktree,
 		"worktree_path":          r.WorktreePath,
 		"branch":                 r.Ticket.ID,
 		"parent_branch":          r.ParentBranch,
