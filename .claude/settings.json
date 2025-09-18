@@ -1,6 +1,13 @@
 {
   "permissions": {
     "allow": [
+      "Bash(find:*)",
+      "Bash(go build:*)",
+      "Bash(go test:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(gh pr comment:*)",
+      "Bash(gh pr view:*)",
       "Bash(make build)",
       "Bash(make build-current)",
       "Bash(make install)",
@@ -15,13 +22,8 @@
       "Bash(make fmt)",
       "Bash(make vet)",
       "Bash(make lint)",
-      "Bash(go build:*)",
-      "Bash(go test:*)",
       "Bash(ticketflow start:*)",
-      "Bash(gh pr comment:*)",
-      "Bash(gh pr view:*)",
-      "Bash(git add:*)",
-      "Bash(git commit:*)",
+      "Fetch(https://dev.to/*)"
     ],
     "ask": ["Bash(rm:*)"]
   }
