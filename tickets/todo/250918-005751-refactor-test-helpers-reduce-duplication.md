@@ -96,7 +96,7 @@ Create composable test traits.
    - ✅ Mock helpers (`mocks.go`)
    - ❌ Missing: Common test constants
 2. Add missing functionality:
-   - Add `constants.go` for shared test constants
+   - Add `constants.go` for truly shared test constants (keep export surface tight)
    - Enhance git helpers if needed
    - Add any missing ticket creation patterns
 
@@ -116,10 +116,9 @@ Create composable test traits.
 4. Run tests after each migration to ensure nothing breaks
 
 ### Phase 4: Documentation & Guidelines
-1. Update `internal/testutil/README.md` with migration examples
-2. Create `docs/testing-guidelines.md`
-3. Document when to use testutil vs testharness
-4. Add deprecation comments to old helpers
+1. Expand `internal/testutil/README.md` with migration examples and usage guidance
+2. Document when to use testutil vs testharness (in the README)
+3. Add deprecation comments to old helpers pointing at the consolidated utilities
 
 ## Expected Benefits
 - Eliminate ~200 lines of duplicated code
