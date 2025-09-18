@@ -15,6 +15,19 @@ The codebase has multiple test helper files with duplicated functionality across
 - `internal/cli/commands/testharness/harness.go` - Integration test environment
 - `test/integration/workflow_test.go` - Has its own setupTestRepo (duplicate)
 
+**Critical Discovery**: `internal/testutil` package already exists with comprehensive test utilities (git setup, fixtures, mocks, etc.) but is only used by 1 test file. The package was created but migration never happened, resulting in parallel test utility systems.
+
+### Current State Analysis
+
+| Package/File | Purpose | Usage | Key Functions |
+|-------------|---------|--------|---------------|
+| `internal/testutil` | Comprehensive utilities | 1 file only | SetupGitRepo(), TicketFixture(), mocks |
+| `cmd/ticketflow/test_helpers.go` | CLI handler tests | ~5 files | setupTestRepo() variants |
+| `internal/cli/test_helpers.go` | CLI app unit tests | ~10 files | testFixture, mocks |
+| `internal/cli/commands/test_helpers.go` | Command unit tests | ~10 files | TestFixture, mocks |
+| `testharness/harness.go` | Integration tests | ~15 files | TestEnvironment (keep as-is) |
+| `test/integration/workflow_test.go` | Integration test | 1 file | Duplicate setupTestRepo() |
+
 The main duplication is in git repository setup code (~200 lines) and test constants.
 
 ## Options Considered
@@ -24,12 +37,13 @@ Keep existing structure but extract only common constants and utilities.
 - ✅ Minimal disruption
 - ❌ Doesn't address main duplication
 
-### Option 2: Unified Test Helpers Package ✅ **CHOSEN**
-Create central `internal/testutil` package with sub-packages for organization.
+### Option 2: Migrate to Existing internal/testutil ✅ **CHOSEN**
+Use and enhance the existing `internal/testutil` package instead of creating new structure.
+- ✅ Package already exists with good design
 - ✅ Addresses real duplication
 - ✅ Maintains unit/integration separation
 - ✅ Gradual migration possible
-- ✅ Simple and pragmatic
+- ✅ Leverages existing work
 
 ### Option 3: TestHarness Everywhere
 Expand testharness to handle both unit and integration tests.
@@ -66,41 +80,46 @@ Create composable test traits.
 
 ## Why Option 2 Was Chosen
 
-1. **Respects Testing Philosophy**: Maintains clear separation between unit tests (mocks) and integration tests (real environment)
-2. **Addresses Real Problem**: Directly targets actual duplication (git setup, constants) without over-engineering
-3. **Pragmatic and Simple**: Organizes helpers better without creating unnecessary abstractions
-4. **Gradual Migration**: Allows incremental updates without breaking existing tests
-5. **Proven Pattern**: Similar structure used successfully in many Go projects
+1. **Leverages Existing Work**: `internal/testutil` already exists with well-designed utilities
+2. **Respects Testing Philosophy**: Maintains clear separation between unit tests (mocks) and integration tests (real environment)
+3. **Addresses Real Problem**: Directly targets actual duplication (git setup, constants) without over-engineering
+4. **Pragmatic and Simple**: Uses existing package rather than creating new abstractions
+5. **Gradual Migration**: Allows incremental updates without breaking existing tests
+6. **Already Documented**: Package has comprehensive README and examples
 
 ## Implementation Plan
 
-### Phase 1: Create Structure
-```
-internal/testutil/
-├── constants.go           # Shared test constants
-├── unit/
-│   └── fixture.go         # Mock-based fixtures
-├── integration/
-│   ├── repo.go           # Git repository setup
-│   └── ticket.go         # Ticket creation helpers
-└── builders/
-    └── ticket.go         # Test data builders (if needed)
-```
+### Phase 1: Audit & Enhance Existing testutil
+1. Review what `internal/testutil` already provides:
+   - ✅ Git setup (`git.go` - `SetupGitRepo()`)
+   - ✅ Ticket fixtures (`fixtures.go` - `TicketFixture()`)
+   - ✅ Mock helpers (`mocks.go`)
+   - ❌ Missing: Common test constants
+2. Add missing functionality:
+   - Add `constants.go` for shared test constants
+   - Enhance git helpers if needed
+   - Add any missing ticket creation patterns
 
-### Phase 2: Extract Common Code
-1. Move shared constants to `testutil/constants.go`
-2. Create unified git setup in `testutil/integration/repo.go`
-3. Extract common ticket creation patterns
+### Phase 2: Migrate Duplicated Functions
+1. **Replace `setupTestRepo` duplicates**:
+   - `cmd/ticketflow/test_helpers.go` → use `testutil.SetupGitRepo()`
+   - `test/integration/workflow_test.go` → use `testutil.SetupGitRepo()`
+2. **Migrate ticket creation**:
+   - Replace manual ticket creation with `testutil.TicketFixture()`
+3. **Extract constants**:
+   - Move test constants to `testutil/constants.go`
 
-### Phase 3: Update Existing Code
-1. Update `cmd/ticketflow/test_helpers.go` to use testutil
-2. Remove duplicate in `test/integration/workflow_test.go`
-3. Keep existing helpers as thin wrappers for compatibility
+### Phase 3: Update Test Files (Gradual)
+1. Start with files that have most duplication
+2. Keep existing helpers as thin wrappers initially
+3. Update imports to use `internal/testutil`
+4. Run tests after each migration to ensure nothing breaks
 
-### Phase 4: Documentation
-1. Create `docs/testing-guidelines.md`
-2. Document when to use each helper
-3. Add examples of proper usage
+### Phase 4: Documentation & Guidelines
+1. Update `internal/testutil/README.md` with migration examples
+2. Create `docs/testing-guidelines.md`
+3. Document when to use testutil vs testharness
+4. Add deprecation comments to old helpers
 
 ## Expected Benefits
 - Eliminate ~200 lines of duplicated code
@@ -112,12 +131,14 @@ internal/testutil/
 ## Migration Strategy
 - Keep existing tests working (backward compatibility)
 - Update gradually as files are touched
-- New tests use the new structure
+- New tests should use `internal/testutil` utilities
 - Full migration over several months
+- Keep testharness for integration tests (it's working well)
 
 ## Success Criteria
 - [ ] All existing tests still pass
-- [ ] Git setup duplication eliminated
-- [ ] Test constants centralized
-- [ ] Documentation created
+- [ ] Git setup duplication eliminated (setupTestRepo functions removed)
+- [ ] Test constants centralized in testutil/constants.go
+- [ ] testutil README updated with migration guide
 - [ ] At least 2 existing test files migrated as examples
+- [ ] Usage of testutil increased from 1 file to 10+ files
