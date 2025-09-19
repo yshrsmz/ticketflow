@@ -39,22 +39,7 @@ func (r *GitRepo) execCommand(t *testing.T, args ...string) error {
 func SetupGitRepo(t *testing.T, dir string) *GitRepo {
 	t.Helper()
 
-	// Initialize git repository
-	cmd := exec.Command("git", "init")
-	cmd.Dir = dir
-	err := cmd.Run()
-	require.NoError(t, err, "Failed to initialize git repository")
-
-	// Configure git locally (NEVER use --global in tests!)
-	ConfigureGitLocally(t, dir, "Test User", "test@example.com")
-
-	// Create initial commit
-	cmd = exec.Command("git", "commit", "--allow-empty", "-m", "Initial commit")
-	cmd.Dir = dir
-	err = cmd.Run()
-	require.NoError(t, err, "Failed to create initial commit")
-
-	return &GitRepo{Dir: dir}
+	return SetupGitRepoWithOptions(t, dir, DefaultGitOptions())
 }
 
 // ConfigureGitLocally configures git user in the specified directory
@@ -138,23 +123,27 @@ func (r *GitRepo) Tag(t *testing.T, tagName string) {
 
 // GitOptions for customizing git setup
 type GitOptions struct {
-	UserName      string
-	UserEmail     string
-	DefaultBranch string
-	InitialCommit bool
-	AddRemote     bool
-	RemoteName    string
-	RemoteURL     string
+	UserName          string
+	UserEmail         string
+	DefaultBranch     string
+	InitialCommit     bool
+	AddRemote         bool
+	RemoteName        string
+	RemoteURL         string
+	DisableSigning    bool
+	InitDefaultBranch bool
 }
 
 // DefaultGitOptions returns default options for git setup
 func DefaultGitOptions() GitOptions {
 	return GitOptions{
-		UserName:      "Test User",
-		UserEmail:     "test@example.com",
-		DefaultBranch: "main",
-		InitialCommit: true,
-		AddRemote:     false,
+		UserName:          "Test User",
+		UserEmail:         "test@example.com",
+		DefaultBranch:     "main",
+		InitialCommit:     true,
+		AddRemote:         false,
+		DisableSigning:    true,
+		InitDefaultBranch: true,
 	}
 }
 
@@ -181,12 +170,36 @@ func SetupGitRepoWithOptions(t *testing.T, dir string, opts GitOptions) *GitRepo
 	repo := &GitRepo{Dir: dir}
 
 	// Initialize git repository
-	stderr, err := execGitCommand(t, dir, "init")
+	args := []string{"init"}
+	if opts.DefaultBranch != "" {
+		args = append(args, "-b", opts.DefaultBranch)
+	}
+	stderr, err := execGitCommand(t, dir, args...)
 	repo.LastStderr = stderr
-	require.NoError(t, err, "Failed to initialize git repository")
+	if err != nil {
+		// Retry without -b for older git versions
+		stderr, err = execGitCommand(t, dir, "init")
+		repo.LastStderr = stderr
+		require.NoError(t, err, "Failed to initialize git repository")
+		if opts.DefaultBranch != "" {
+			stderr, err = execGitCommand(t, dir, "symbolic-ref", "HEAD", "refs/heads/"+opts.DefaultBranch)
+			repo.LastStderr = stderr
+			require.NoError(t, err, "Failed to configure HEAD for default branch")
+		}
+	}
 
 	// Configure git locally
 	ConfigureGitLocally(t, dir, opts.UserName, opts.UserEmail)
+	if opts.DisableSigning {
+		stderr, err = execGitCommand(t, dir, "config", "commit.gpgSign", "false")
+		repo.LastStderr = stderr
+		require.NoError(t, err, "Failed to disable commit signing")
+	}
+	if opts.InitDefaultBranch && opts.DefaultBranch != "" {
+		stderr, err = execGitCommand(t, dir, "config", "init.defaultBranch", opts.DefaultBranch)
+		repo.LastStderr = stderr
+		require.NoError(t, err, "Failed to set init.defaultBranch")
+	}
 
 	// Create initial commit if requested
 	if opts.InitialCommit {
@@ -195,11 +208,11 @@ func SetupGitRepoWithOptions(t *testing.T, dir string, opts GitOptions) *GitRepo
 		require.NoError(t, err, "Failed to create initial commit")
 	}
 
-	// Create default branch
-	if opts.DefaultBranch != "" && opts.DefaultBranch != "master" {
-		stderr, err = execGitCommand(t, dir, "checkout", "-b", opts.DefaultBranch)
+	// Ensure the repository is on the requested branch when an initial commit exists
+	if opts.DefaultBranch != "" && opts.InitialCommit {
+		stderr, err = execGitCommand(t, dir, "checkout", opts.DefaultBranch)
 		repo.LastStderr = stderr
-		require.NoError(t, err, "Failed to create default branch")
+		require.NoError(t, err, "Failed to checkout default branch")
 	}
 
 	// Add remote if requested

@@ -32,6 +32,13 @@ The codebase has multiple test helper files with duplicated functionality across
 
 The main duplication is in git repository setup code (~200 lines) and test constants.
 
+### Additional Findings (2025-09-19)
+
+- `internal/testutil.SetupGitRepo` currently leaves repositories on whatever default branch the local git prefers and does not disable commit signing, so it cannot replace the bespoke helpers that guarantee a `main` branch and predictable config (`internal/testutil/git.go:37-57`, `cmd/ticketflow/test_helpers.go:44-130`).
+- `internal/testutil.CreateConfigFile` writes hard-coded values that break our expected directory layout (e.g., it emits `todo_dir: tickets/todo` instead of `todo`) and ignores the provided `config.Config`, making the existing options like `WithCustomConfig` ineffective (`internal/testutil/filesystem.go:60-103`, `internal/testutil/filesystem.go:217-243`).
+- The scaffold does not create the `tickets/.current` marker that several CLI handler tests assume exists (`cmd/ticketflow/test_helpers.go:117-119`).
+- `internal/cli/commands/test_helpers.go` appears to be dead code today—`rg` finds no call sites for `NewTestFixture`, `SetupMockForStart`, etc.—so we should decide whether to remove it or fold its intent into `testutil` instead of migrating it as-is.
+
 ## Options Considered
 
 ### Option 1: Minimal Consolidation
@@ -91,36 +98,28 @@ Create composable test traits.
 
 ## Implementation Plan
 
-### Phase 1: Audit & Enhance Existing testutil
-1. Review what `internal/testutil` already provides:
-   - ✅ Git setup (`git.go` - `SetupGitRepo()`)
-   - ✅ Ticket fixtures (`fixtures.go` - `TicketFixture()`)
-   - ✅ Mock helpers (`mocks.go`)
-   - ❌ Missing: Common test constants
-2. Add missing functionality:
-   - Add `constants.go` for truly shared test constants (keep export surface tight)
-   - Enhance git helpers if needed
-   - Add any missing ticket creation patterns
+### Phase 1: Harden `internal/testutil`
+1. ✅ Refactor `SetupGitRepo` to delegate to `SetupGitRepoWithOptions` so the default branch is forced to `main`, empty commits are optional, and commit signing is disabled for tests.
+2. ✅ Teach the filesystem scaffold to honour caller-provided configs: generate `.ticketflow.yaml` from the struct, fix the ticket directory fields (`todo`, `doing`, `done`), and make `WithCustomConfig`/`Without*` options actually influence the output.
+3. ✅ Add a helper (e.g., `SetupTicketflowRepo`) that bundles git init, config creation, ticket directories, and the `tickets/.current` marker so packages no longer need to hand-roll the same steps.
+4. ✅ Introduce `constants.go` once the shared helpers are in place, limiting it to truly global fixtures (ticket IDs, timestamps) that multiple packages rely on.
 
-### Phase 2: Migrate Duplicated Functions
-1. **Replace `setupTestRepo` duplicates**:
-   - `cmd/ticketflow/test_helpers.go` → use `testutil.SetupGitRepo()`
-   - `test/integration/workflow_test.go` → use `testutil.SetupGitRepo()`
-2. **Migrate ticket creation**:
-   - Replace manual ticket creation with `testutil.TicketFixture()`
-3. **Extract constants**:
-   - Move test constants to `testutil/constants.go`
+### Phase 2: Introduce adapter wrappers
+1. Update `cmd/ticketflow/test_helpers.go` and the integration test package to call the new scaffold while keeping their existing signatures, easing migration.
+2. Decide the fate of `internal/cli/commands/test_helpers.go` (delete if unused, otherwise port the useful pieces onto the shared helpers).
 
-### Phase 3: Update Test Files (Gradual)
-1. Start with files that have most duplication
-2. Keep existing helpers as thin wrappers initially
-3. Update imports to use `internal/testutil`
-4. Run tests after each migration to ensure nothing breaks
+### Phase 3: Migrate CLI/unit tests
+1. Remove direct git/config setup from `cmd/ticketflow/test_helpers.go`, replacing it with the shared helper.
+2. Swap duplicated constants/usages in `cmd/ticketflow` and `internal/cli` tests to reference `testutil/constants.go`.
+3. Run focused suites (`go test ./cmd/ticketflow/...`, `go test ./internal/cli/...`) after each migration step.
 
-### Phase 4: Documentation & Guidelines
-1. Expand `internal/testutil/README.md` with migration examples and usage guidance
-2. Document when to use testutil vs testharness (in the README)
-3. Add deprecation comments to old helpers pointing at the consolidated utilities
+### Phase 4: Migrate integration tests
+1. Replace the `setupTestRepo` implementations under `test/integration` with the shared helper while keeping `os.Chdir` discipline intact.
+2. Re-run the integration suite (`make test-integration`) to confirm behaviours like branch naming and current-ticket symlink handling remain intact.
+
+### Phase 5: Documentation & cleanup
+1. Expand `internal/testutil/README.md` with the new helpers, options, and migration examples.
+2. Mark any remaining ad-hoc helpers with deprecation comments and open follow-up tickets for packages that still need to migrate.
 
 ## Expected Benefits
 - Eliminate ~200 lines of duplicated code
@@ -137,9 +136,13 @@ Create composable test traits.
 - Keep testharness for integration tests (it's working well)
 
 ## Success Criteria
-- [ ] All existing tests still pass
-- [ ] Git setup duplication eliminated (setupTestRepo functions removed)
-- [ ] Test constants centralized in testutil/constants.go
-- [ ] testutil README updated with migration guide
-- [ ] At least 2 existing test files migrated as examples
-- [ ] Usage of testutil increased from 1 file to 10+ files
+- [x] `internal/testutil.SetupGitRepo` forces a `main` branch, disables signing, and is covered by unit tests.
+- [x] The shared scaffold can emit the canonical `.ticketflow.yaml` (including configurable worktree settings) and create the `tickets/.current` marker.
+- [ ] `cmd/ticketflow/test_helpers.go` and `test/integration` no longer invoke `exec.Command` directly for repo setup (they rely on the shared helper/wrapper).
+- [ ] Shared test constants live in `internal/testutil/constants.go` with consumers updated to use them.
+- [ ] `internal/testutil/README.md` documents the new helpers and migration guidance.
+- [ ] `make test` passes locally after the migrations.
+
+### Progress (2025-09-19)
+
+- Hardened `internal/testutil` git and filesystem scaffolds with new unit coverage, and added shared constants in preparation for migrating downstream helpers.
