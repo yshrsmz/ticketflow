@@ -11,6 +11,7 @@ import (
 	"github.com/yshrsmz/ticketflow/internal/config"
 	"github.com/yshrsmz/ticketflow/internal/git"
 	"github.com/yshrsmz/ticketflow/internal/mocks"
+	"github.com/yshrsmz/ticketflow/internal/testutil"
 	"github.com/yshrsmz/ticketflow/internal/ticket"
 )
 
@@ -21,8 +22,8 @@ import (
 
 // Test constants
 const (
-	testTicketID                  = "250101-120000-test-feature"
-	testDefaultBranch             = "main"
+	testTicketID                  = testutil.TestTicketID
+	testDefaultBranch             = testutil.TestDefaultBranch
 	expectedOrphanedWorktreeCount = 1
 	expectedStaleBranchCount      = 2
 )

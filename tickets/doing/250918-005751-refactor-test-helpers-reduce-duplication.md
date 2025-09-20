@@ -105,8 +105,8 @@ Create composable test traits.
 4. ✅ Introduce `constants.go` once the shared helpers are in place, limiting it to truly global fixtures (ticket IDs, timestamps) that multiple packages rely on.
 
 ### Phase 2: Introduce adapter wrappers
-1. Update `cmd/ticketflow/test_helpers.go` and the integration test package to call the new scaffold while keeping their existing signatures, easing migration.
-2. Decide the fate of `internal/cli/commands/test_helpers.go` (delete if unused, otherwise port the useful pieces onto the shared helpers).
+1. ✅ Update `cmd/ticketflow/test_helpers.go` and the integration test package to call the new scaffold while keeping their existing signatures, easing migration.
+2. ✅ Decide the fate of `internal/cli/commands/test_helpers.go` (delete if unused, otherwise port the useful pieces onto the shared helpers).
 
 ### Phase 3: Migrate CLI/unit tests
 1. Remove direct git/config setup from `cmd/ticketflow/test_helpers.go`, replacing it with the shared helper.
@@ -138,11 +138,11 @@ Create composable test traits.
 ## Success Criteria
 - [x] `internal/testutil.SetupGitRepo` forces a `main` branch, disables signing, and is covered by unit tests.
 - [x] The shared scaffold can emit the canonical `.ticketflow.yaml` (including configurable worktree settings) and create the `tickets/.current` marker.
-- [ ] `cmd/ticketflow/test_helpers.go` and `test/integration` no longer invoke `exec.Command` directly for repo setup (they rely on the shared helper/wrapper).
-- [ ] Shared test constants live in `internal/testutil/constants.go` with consumers updated to use them.
+- [x] `cmd/ticketflow/test_helpers.go` and `test/integration` no longer invoke `exec.Command` directly for repo setup (they rely on the shared helper/wrapper).
+- [x] Shared test constants live in `internal/testutil/constants.go` with consumers updated to use them.
 - [ ] `internal/testutil/README.md` documents the new helpers and migration guidance.
 - [ ] `make test` passes locally after the migrations.
 
 ### Progress (2025-09-19)
 
-- Hardened `internal/testutil` git and filesystem scaffolds with new unit coverage, and added shared constants in preparation for migrating downstream helpers.
+- Hardened `internal/testutil` git and filesystem scaffolds with new unit coverage, added shared constants, and switched CLI + integration repositories to the consolidated helper while deleting the unused commands helper.

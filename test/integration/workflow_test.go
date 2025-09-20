@@ -10,44 +10,15 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/yshrsmz/ticketflow/internal/cli"
 	"github.com/yshrsmz/ticketflow/internal/git"
+	"github.com/yshrsmz/ticketflow/internal/testutil"
 	"github.com/yshrsmz/ticketflow/internal/ticket"
 )
 
 func setupTestRepo(t *testing.T) string {
-	// Create temp directory
 	tmpDir := t.TempDir()
 
-	// Initialize git repo
-	cmd := git.New(tmpDir)
-	_, err := cmd.Exec(context.Background(), "init")
-	require.NoError(t, err)
-
-	// Set git config
-	_, err = cmd.Exec(context.Background(), "config", "user.name", "Test User")
-	require.NoError(t, err)
-	_, err = cmd.Exec(context.Background(), "config", "user.email", "test@example.com")
-	require.NoError(t, err)
-	// Disable GPG signing for test commits
-	_, err = cmd.Exec(context.Background(), "config", "commit.gpgSign", "false")
-	require.NoError(t, err)
-
-	// Create initial commit
-	readmePath := filepath.Join(tmpDir, "README.md")
-	err = os.WriteFile(readmePath, []byte("# Test Project\n"), 0644)
-	require.NoError(t, err)
-
-	_, err = cmd.Exec(context.Background(), "add", "README.md")
-	require.NoError(t, err)
-	_, err = cmd.Exec(context.Background(), "commit", "-m", "Initial commit")
-	require.NoError(t, err)
-
-	// Ensure we're on the main branch (important for CI where tests may run on PR branches)
-	_, err = cmd.Exec(context.Background(), "checkout", "main")
-	if err != nil {
-		// Branch does not exist, create it
-		_, err = cmd.Exec(context.Background(), "checkout", "-b", "main")
-		require.NoError(t, err)
-	}
+	// Initialize git repo with deterministic defaults
+	_ = testutil.SetupGitRepo(t, tmpDir)
 
 	return tmpDir
 }
