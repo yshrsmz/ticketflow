@@ -2,6 +2,7 @@ package testutil
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -10,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/yshrsmz/ticketflow/internal/testsupport/gitconfig"
 )
 
 // GitRepo represents a test git repository
@@ -18,11 +20,40 @@ type GitRepo struct {
 	LastStderr string // Capture stderr for debugging
 }
 
-// execCommand executes a git command and captures both stdout and stderr
+// GitExecutor exposes the minimal Exec behaviour required to apply shared git configuration.
+type GitExecutor = gitconfig.Executor
+
+// gitCommandExecutor adapts git CLI invocations to the shared gitconfig.Executor interface.
+type gitCommandExecutor struct {
+	dir string
+}
+
+func (e gitCommandExecutor) Exec(ctx context.Context, args ...string) (string, error) {
+	cmd := exec.CommandContext(ctx, "git", args...)
+	cmd.Dir = e.dir
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	err := cmd.Run()
+	if err != nil {
+		return "", fmt.Errorf("git %v failed: %w\nstderr: %s", args, err, stderr.String())
+	}
+	return stdout.String(), nil
+}
+
+// execCommand executes a git command and captures both stdout and stderr.
+// The stderr is stored in r.LastStderr for debugging purposes.
 func (r *GitRepo) execCommand(t *testing.T, args ...string) error {
 	t.Helper()
+	return r.execCommandWithOutput(t, r.Dir, args...)
+}
+
+// execCommandWithOutput is a shared implementation for executing git commands.
+// It captures stderr in r.LastStderr for debugging when errors occur.
+func (r *GitRepo) execCommandWithOutput(t *testing.T, dir string, args ...string) error {
+	t.Helper()
 	cmd := exec.Command("git", args...)
-	cmd.Dir = r.Dir
+	cmd.Dir = dir
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
@@ -39,22 +70,7 @@ func (r *GitRepo) execCommand(t *testing.T, args ...string) error {
 func SetupGitRepo(t *testing.T, dir string) *GitRepo {
 	t.Helper()
 
-	// Initialize git repository
-	cmd := exec.Command("git", "init")
-	cmd.Dir = dir
-	err := cmd.Run()
-	require.NoError(t, err, "Failed to initialize git repository")
-
-	// Configure git locally (NEVER use --global in tests!)
-	ConfigureGitLocally(t, dir, "Test User", "test@example.com")
-
-	// Create initial commit
-	cmd = exec.Command("git", "commit", "--allow-empty", "-m", "Initial commit")
-	cmd.Dir = dir
-	err = cmd.Run()
-	require.NoError(t, err, "Failed to create initial commit")
-
-	return &GitRepo{Dir: dir}
+	return SetupGitRepoWithOptions(t, dir, DefaultGitOptions())
 }
 
 // ConfigureGitLocally configures git user in the specified directory
@@ -62,17 +78,33 @@ func SetupGitRepo(t *testing.T, dir string) *GitRepo {
 func ConfigureGitLocally(t *testing.T, dir, name, email string) {
 	t.Helper()
 
-	// Configure user name locally
-	cmd := exec.Command("git", "config", "user.name", name)
-	cmd.Dir = dir // Critical: sets the working directory for local config
-	err := cmd.Run()
-	require.NoError(t, err, "Failed to configure git user.name")
+	ConfigureGitClient(t, gitCommandExecutor{dir: dir}, GitOptions{
+		UserName:          name,
+		UserEmail:         email,
+		DisableSigning:    false,
+		DefaultBranch:     "",
+		InitialCommit:     false,
+		AddRemote:         false,
+		InitDefaultBranch: false,
+	})
+}
 
-	// Configure user email locally
-	cmd = exec.Command("git", "config", "user.email", email)
-	cmd.Dir = dir // Critical: sets the working directory for local config
-	err = cmd.Run()
-	require.NoError(t, err, "Failed to configure git user.email")
+// ConfigureGitClient applies canonical test git configuration via an Exec-capable client.
+func ConfigureGitClient(t *testing.T, exec GitExecutor, opts ...GitOptions) {
+	t.Helper()
+
+	options := DefaultGitOptions()
+	if len(opts) > 0 {
+		options = opts[0]
+	}
+
+	gitconfig.Apply(t, exec, gitconfig.Options{
+		UserName:             options.UserName,
+		UserEmail:            options.UserEmail,
+		DisableSigning:       options.DisableSigning,
+		DefaultBranch:        options.DefaultBranch,
+		SetInitDefaultBranch: options.InitDefaultBranch && options.DefaultBranch != "",
+	})
 }
 
 // AddCommit adds a file and commits it
@@ -138,40 +170,41 @@ func (r *GitRepo) Tag(t *testing.T, tagName string) {
 
 // GitOptions for customizing git setup
 type GitOptions struct {
-	UserName      string
-	UserEmail     string
-	DefaultBranch string
-	InitialCommit bool
-	AddRemote     bool
-	RemoteName    string
-	RemoteURL     string
+	UserName          string
+	UserEmail         string
+	DefaultBranch     string
+	InitialCommit     bool
+	AddRemote         bool
+	RemoteName        string
+	RemoteURL         string
+	DisableSigning    bool
+	InitDefaultBranch bool
 }
 
 // DefaultGitOptions returns default options for git setup
 func DefaultGitOptions() GitOptions {
 	return GitOptions{
-		UserName:      "Test User",
-		UserEmail:     "test@example.com",
-		DefaultBranch: "main",
-		InitialCommit: true,
-		AddRemote:     false,
+		UserName:          "Test User",
+		UserEmail:         "test@example.com",
+		DefaultBranch:     "main",
+		InitialCommit:     true,
+		AddRemote:         false,
+		DisableSigning:    true,
+		InitDefaultBranch: true,
 	}
 }
 
-// execGitCommand is a standalone helper for executing git commands with stderr capture
-// This is used by SetupGitRepoWithOptions and other functions that don't have access to GitRepo methods
-func execGitCommand(t *testing.T, dir string, args ...string) (string, error) {
+// execGitCommand executes a git command in a directory for setup operations.
+// This function only returns an error status - it doesn't return command output.
+// The error message includes stderr for debugging failed commands.
+// If repo is provided, its LastStderr field will be populated by execCommandWithOutput.
+func execGitCommand(t *testing.T, dir string, repo *GitRepo, args ...string) error {
 	t.Helper()
-	cmd := exec.Command("git", args...)
-	cmd.Dir = dir
-	var stdout, stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-	err := cmd.Run()
-	if err != nil {
-		return stderr.String(), fmt.Errorf("git %v failed: %w\nstderr: %s", args, err, stderr.String())
+	if repo == nil {
+		// Create temporary repo just for execution
+		repo = &GitRepo{Dir: dir}
 	}
-	return stderr.String(), nil
+	return repo.execCommandWithOutput(t, dir, args...)
 }
 
 // SetupGitRepoWithOptions creates a git repository with custom options
@@ -181,31 +214,49 @@ func SetupGitRepoWithOptions(t *testing.T, dir string, opts GitOptions) *GitRepo
 	repo := &GitRepo{Dir: dir}
 
 	// Initialize git repository
-	stderr, err := execGitCommand(t, dir, "init")
-	repo.LastStderr = stderr
-	require.NoError(t, err, "Failed to initialize git repository")
+	args := []string{"init"}
+	if opts.DefaultBranch != "" {
+		args = append(args, "-b", opts.DefaultBranch)
+	}
+	err := execGitCommand(t, dir, repo, args...)
+	if err != nil {
+		// Only retry without -b if the error is due to an unrecognized -b flag
+		errStr := err.Error()
+		if strings.Contains(errStr, "unknown option") ||
+			strings.Contains(errStr, "unrecognized option") ||
+			strings.Contains(errStr, "unknown switch") ||
+			strings.Contains(errStr, "invalid option") {
+			// Older git version doesn't support -b flag
+			err = execGitCommand(t, dir, repo, "init")
+			require.NoError(t, err, "Failed to initialize git repository")
+			if opts.DefaultBranch != "" {
+				err = execGitCommand(t, dir, repo, "symbolic-ref", "HEAD", "refs/heads/"+opts.DefaultBranch)
+				require.NoError(t, err, "Failed to configure HEAD for default branch")
+			}
+		} else {
+			// Other error (permissions, disk space, etc.)
+			require.NoError(t, err, "Failed to initialize git repository")
+		}
+	}
 
 	// Configure git locally
-	ConfigureGitLocally(t, dir, opts.UserName, opts.UserEmail)
+	ConfigureGitClient(t, gitCommandExecutor{dir: dir}, opts)
 
 	// Create initial commit if requested
 	if opts.InitialCommit {
-		stderr, err = execGitCommand(t, dir, "commit", "--allow-empty", "-m", "Initial commit")
-		repo.LastStderr = stderr
+		err = execGitCommand(t, dir, repo, "commit", "--allow-empty", "-m", "Initial commit")
 		require.NoError(t, err, "Failed to create initial commit")
 	}
 
-	// Create default branch
-	if opts.DefaultBranch != "" && opts.DefaultBranch != "master" {
-		stderr, err = execGitCommand(t, dir, "checkout", "-b", opts.DefaultBranch)
-		repo.LastStderr = stderr
-		require.NoError(t, err, "Failed to create default branch")
+	// Ensure the repository is on the requested branch when an initial commit exists
+	if opts.DefaultBranch != "" && opts.InitialCommit {
+		err = execGitCommand(t, dir, repo, "checkout", opts.DefaultBranch)
+		require.NoError(t, err, "Failed to checkout default branch")
 	}
 
 	// Add remote if requested
 	if opts.AddRemote && opts.RemoteName != "" && opts.RemoteURL != "" {
-		stderr, err = execGitCommand(t, dir, "remote", "add", opts.RemoteName, opts.RemoteURL)
-		repo.LastStderr = stderr
+		err = execGitCommand(t, dir, repo, "remote", "add", opts.RemoteName, opts.RemoteURL)
 		require.NoError(t, err, "Failed to add remote")
 	}
 

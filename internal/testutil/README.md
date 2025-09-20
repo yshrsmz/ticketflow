@@ -10,6 +10,7 @@ The testutil package is organized into several categories of helpers:
 - **Git Helpers** (`git.go`) - Git repository setup and operations
 - **Mock Helpers** (`mocks.go`) - Mock setup and expectations
 - **Filesystem** (`filesystem.go`) - File and directory operations
+- **Constants** (`constants.go`) - Shared ticket IDs, timestamps, and other canonical test data
 - **Context** (`context.go`) - Context testing utilities
 - **Assertions** (`assertions.go`) - Common assertion helpers
 - **Output** (`output.go`) - Output capture utilities
@@ -47,8 +48,22 @@ repo.AddCommit(t, "test.txt", "content", "Add test file")
 // Create and checkout a branch
 repo.CreateBranch(t, "feature-branch")
 
-// IMPORTANT: Git configuration is always done locally, never globally
-// This prevents test code from modifying the user's git config
+// IMPORTANT:
+// - `SetupGitRepo` always configures git locally (never global)
+// - The default branch is forced to "main"
+// - Commit signing is disabled to keep tests non-interactive
+```
+
+### Bootstrapping Ticketflow Projects
+
+```go
+tmpDir := testutil.CreateTempDir(t)
+
+// Create config, tickets directories, tickets/.current, and an initialized git repo
+repo := testutil.SetupTicketflowRepo(t, tmpDir)
+
+// You can immediately commit or branch without extra git wiring
+repo.AddCommit(t, ".", "", "Bootstrap ticketflow project")
 ```
 
 ### Mock Setup
@@ -70,9 +85,9 @@ setup.AssertExpectations(t)
 ### Filesystem Operations
 
 ```go
-// Create a complete ticketflow project
+// Create a complete ticketflow project (returns *GitRepo when git init enabled)
 tmpDir := testutil.CreateTempDir(t)
-testutil.SetupTicketflowProject(t, tmpDir)
+repo := testutil.SetupTicketflowProject(t, tmpDir)
 
 // Create a ticket file
 ticketPath := testutil.CreateTicketFile(t, tmpDir, "test-123", "todo")
@@ -149,11 +164,12 @@ result := testutil.AssertJSONOutput(t, output.Stdout(), "id", "status")
 
 When refactoring existing tests to use these utilities:
 
-1. Replace manual git setup with `testutil.SetupGitRepo()`
+1. Replace manual git/config scaffolding with `testutil.SetupTicketflowRepo()` (or combine `SetupTicketflowProject` and `SetupGitRepoWithOptions()` when you need custom behaviour).
 2. Replace mock creation with `testutil.NewMockSetup()`
 3. Replace ticket creation with `testutil.TicketFixture()`
-4. Replace file assertions with `testutil.AssertFileExists()` etc.
-5. Replace output capture with `testutil.NewOutputCapture()`
+4. Prefer canonical fixtures/constants from `constants.go` (`testutil.TestTicketID`, `testutil.TestCreatedTime`, etc.) instead of redefining literals.
+5. Replace file assertions with `testutil.AssertFileExists()` etc.
+6. Replace output capture with `testutil.NewOutputCapture()`
 
 ## Adding New Helpers
 

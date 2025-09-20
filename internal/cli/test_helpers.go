@@ -11,6 +11,8 @@ import (
 	"github.com/yshrsmz/ticketflow/internal/config"
 	"github.com/yshrsmz/ticketflow/internal/git"
 	"github.com/yshrsmz/ticketflow/internal/mocks"
+	"github.com/yshrsmz/ticketflow/internal/testsupport/gitconfig"
+	"github.com/yshrsmz/ticketflow/internal/testutil"
 	"github.com/yshrsmz/ticketflow/internal/ticket"
 )
 
@@ -21,8 +23,8 @@ import (
 
 // Test constants
 const (
-	testTicketID                  = "250101-120000-test-feature"
-	testDefaultBranch             = "main"
+	testTicketID                  = testutil.TestTicketID
+	testDefaultBranch             = testutil.TestDefaultBranch
 	expectedOrphanedWorktreeCount = 1
 	expectedStaleBranchCount      = 2
 )
@@ -102,15 +104,11 @@ func ConfigureTestGit(t *testing.T, repoPath string) {
 	ctx := context.Background()
 	gitOps := git.New(repoPath)
 
-	// Configure user name locally
-	if _, err := gitOps.Exec(ctx, "config", "user.name", "Test User"); err != nil {
-		t.Fatalf("Failed to configure git user.name: %v", err)
+	if err := ctx.Err(); err != nil {
+		t.Fatalf("Context error before configuring git: %v", err)
 	}
 
-	// Configure user email locally
-	if _, err := gitOps.Exec(ctx, "config", "user.email", "test@example.com"); err != nil {
-		t.Fatalf("Failed to configure git user.email: %v", err)
-	}
+	gitconfig.Apply(t, gitOps)
 }
 
 // NewTestOutputWriter creates an OutputWriter that captures output for testing

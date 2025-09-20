@@ -15,6 +15,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/yshrsmz/ticketflow/internal/config"
+	"github.com/yshrsmz/ticketflow/internal/testutil"
 	"github.com/yshrsmz/ticketflow/internal/ticket"
 	"gopkg.in/yaml.v3"
 )
@@ -50,19 +51,13 @@ func NewTestEnvironment(t *testing.T) *TestEnvironment {
 		// Create initial commit first (can't rename empty branch)
 		env.WriteFile("README.md", "# Test Repository")
 		env.RunGit("add", "README.md")
-		env.RunGit("config", "user.name", "Test User")
-		env.RunGit("config", "user.email", "test@example.com")
-		// Disable GPG signing for test commits
-		env.RunGit("config", "commit.gpgSign", "false")
+		testutil.ConfigureGitClient(t, envGitExecutor{env: env})
 		env.RunGit("commit", "-m", "Initial commit")
 		// Now rename the branch to main
 		env.RunGit("branch", "-M", "main")
 	} else {
 		// Successfully created with main branch, now configure
-		env.RunGit("config", "user.name", "Test User")
-		env.RunGit("config", "user.email", "test@example.com")
-		// Disable GPG signing for test commits
-		env.RunGit("config", "commit.gpgSign", "false")
+		testutil.ConfigureGitClient(t, envGitExecutor{env: env})
 		// Create initial commit to have a valid HEAD
 		env.WriteFile("README.md", "# Test Repository")
 		env.RunGit("add", "README.md")
@@ -96,6 +91,17 @@ func NewTestEnvironment(t *testing.T) *TestEnvironment {
 	require.NoError(t, os.MkdirAll(worktreeDir, 0755))
 
 	return env
+}
+
+type envGitExecutor struct {
+	env *TestEnvironment
+}
+
+func (e envGitExecutor) Exec(ctx context.Context, args ...string) (string, error) {
+	if err := ctx.Err(); err != nil {
+		return "", err
+	}
+	return e.env.RunGit(args...), nil
 }
 
 // Context returns the test context

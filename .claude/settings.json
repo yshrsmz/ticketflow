@@ -25,6 +25,9 @@
       "Bash(ticketflow start:*)",
       "Fetch(https://dev.to/*)"
     ],
-    "ask": ["Bash(rm:*)"]
+    "ask": [
+      "Bash(git push:*)",
+      "Bash(rm:*)"
+    ]
   }
 }

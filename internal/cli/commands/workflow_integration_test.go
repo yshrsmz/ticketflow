@@ -11,6 +11,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/yshrsmz/ticketflow/internal/testsupport/gitconfig"
+	"github.com/yshrsmz/ticketflow/internal/testutil"
 )
 
 // findProjectRoot traverses up from the current directory to find the project root
@@ -54,15 +56,7 @@ func TestWorkflowCommand_Integration(t *testing.T) {
 	require.NoError(t, err)
 
 	// Configure git locally (not globally) for the test repo
-	cmd = exec.Command("git", "config", "user.name", "Test User")
-	cmd.Dir = tmpDir
-	err = cmd.Run()
-	require.NoError(t, err)
-
-	cmd = exec.Command("git", "config", "user.email", "test@example.com")
-	cmd.Dir = tmpDir
-	err = cmd.Run()
-	require.NoError(t, err)
+	gitconfig.Apply(t, testutil.SimpleGitExecutor{Dir: tmpDir})
 
 	// Build the ticketflow binary
 	projectRoot := findProjectRoot(t, originalWd)
@@ -146,15 +140,7 @@ func TestWorkflowCommand_OutputRedirection(t *testing.T) {
 	require.NoError(t, err)
 
 	// Configure git locally for the test repo
-	cmd = exec.Command("git", "config", "user.name", "Test User")
-	cmd.Dir = tmpDir
-	err = cmd.Run()
-	require.NoError(t, err)
-
-	cmd = exec.Command("git", "config", "user.email", "test@example.com")
-	cmd.Dir = tmpDir
-	err = cmd.Run()
-	require.NoError(t, err)
+	gitconfig.Apply(t, testutil.SimpleGitExecutor{Dir: tmpDir})
 
 	// Build the ticketflow binary
 	projectRoot := findProjectRoot(t, originalWd)

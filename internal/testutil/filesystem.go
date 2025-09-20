@@ -11,34 +11,37 @@ import (
 )
 
 // SetupTicketflowProject creates a complete ticketflow project structure
-func SetupTicketflowProject(t *testing.T, dir string, opts ...ProjectOption) {
+func SetupTicketflowProject(t *testing.T, dir string, opts ...ProjectOption) *GitRepo {
 	t.Helper()
 
-	// Default options
-	options := projectOptions{
-		createConfig: true,
-		createDirs:   true,
-		gitInit:      true,
-	}
+	options := resolveProjectOptions(opts...)
 
-	for _, opt := range opts {
-		opt(&options)
-	}
-
-	// Create directory structure
 	if options.createDirs {
 		CreateTicketDirs(t, dir)
+		createCurrentTicketMarker(t, dir)
 	}
 
-	// Create config file
 	if options.createConfig {
 		CreateConfigFile(t, dir, options.config)
 	}
 
-	// Initialize git if requested
+	var repo *GitRepo
 	if options.gitInit {
-		SetupGitRepo(t, dir)
+		repo = SetupGitRepo(t, dir)
 	}
+
+	return repo
+}
+
+// SetupTicketflowRepo ensures a fully initialized ticketflow repository including git metadata
+func SetupTicketflowRepo(t *testing.T, dir string, opts ...ProjectOption) *GitRepo {
+	t.Helper()
+
+	forceGit := append(opts, func(o *projectOptions) {
+		o.gitInit = true
+	})
+
+	return SetupTicketflowProject(t, dir, forceGit...)
 }
 
 // CreateTicketDirs creates the standard ticket directory structure
@@ -58,48 +61,20 @@ func CreateTicketDirs(t *testing.T, baseDir string) {
 }
 
 // CreateConfigFile creates a .ticketflow.yaml config file with default configuration
-// TODO: In the future, use the cfg parameter to generate custom config content
 func CreateConfigFile(t *testing.T, dir string, cfg *config.Config) {
 	t.Helper()
 
-	// Currently using hardcoded config, cfg parameter reserved for future use
+	var cfgCopy *config.Config
+	if cfg == nil {
+		cfgCopy = config.Default()
+	} else {
+		// Shallow copy is safe here as config.Config contains only value types
+		copyVal := *cfg
+		cfgCopy = &copyVal
+	}
 
-	configPath := filepath.Join(dir, ".ticketflow.yaml")
-	content := `git:
-  default_branch: main
-
-worktree:
-  enabled: true
-  base_dir: "../test.worktrees"
-  init_commands:
-    - git fetch origin
-
-tickets:
-  dir: tickets
-  todo_dir: tickets/todo
-  doing_dir: tickets/doing
-  done_dir: tickets/done
-  template: |
-    # Summary
-    
-    [Describe the ticket summary here]
-    
-    ## Tasks
-    - [ ] Task 1
-    - [ ] Task 2
-    - [ ] Task 3
-
-output:
-  default_format: text
-  json_pretty: true
-
-timeouts:
-  git: 300
-  init_commands: 600
-`
-
-	err := os.WriteFile(configPath, []byte(content), 0644)
-	require.NoError(t, err, "Failed to create config file")
+	configPath := filepath.Join(dir, config.ConfigFileName)
+	require.NoError(t, cfgCopy.Save(configPath), "Failed to create config file")
 }
 
 // CreateTicketFile creates a ticket file with frontmatter
@@ -211,6 +186,27 @@ func ChDir(t *testing.T, dir string) {
 		err := os.Chdir(originalWd)
 		require.NoError(t, err, "Failed to restore original directory")
 	})
+}
+
+func resolveProjectOptions(opts ...ProjectOption) projectOptions {
+	options := projectOptions{
+		createConfig: true,
+		createDirs:   true,
+		gitInit:      true,
+	}
+
+	for _, opt := range opts {
+		opt(&options)
+	}
+
+	return options
+}
+
+func createCurrentTicketMarker(t *testing.T, dir string) {
+	t.Helper()
+
+	markerPath := filepath.Join(dir, "tickets", ".current")
+	require.NoError(t, os.WriteFile(markerPath, []byte(""), 0644), "Failed to create tickets/.current marker")
 }
 
 // projectOptions holds options for project setup
