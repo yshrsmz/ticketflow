@@ -3,7 +3,7 @@ priority: 2
 description: Merge testsupport git helpers into internal/testutil without reintroducing import cycles
 created_at: "2025-09-20T11:39:01+09:00"
 started_at: "2025-09-20T18:08:59+09:00"
-closed_at: null
+closed_at: "2025-09-20T23:09:37+09:00"
 related:
     - parent:250918-005751-refactor-test-helpers-reduce-duplication
 ---
