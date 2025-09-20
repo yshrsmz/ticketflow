@@ -16,9 +16,10 @@ type SimpleGitExecutor struct {
 }
 
 // Exec runs a git command in the configured directory.
-// The implementation combines stdout and stderr into a single output buffer.
-// This simplifies test usage but means error messages are mixed with regular output.
-// The combined output is returned along with any execution error.
+// The implementation intentionally combines stdout and stderr into a single output buffer
+// to match the gitconfig.Executor interface signature which requires (string, error).
+// This simplifies test usage where exact output separation is not critical.
+// For tests requiring separate stdout/stderr, use GitRepo methods instead.
 func (e SimpleGitExecutor) Exec(ctx context.Context, args ...string) (string, error) {
 	cmd := exec.CommandContext(ctx, "git", args...)
 	cmd.Dir = e.Dir

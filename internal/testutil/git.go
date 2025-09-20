@@ -29,9 +29,6 @@ type gitCommandExecutor struct {
 }
 
 func (e gitCommandExecutor) Exec(ctx context.Context, args ...string) (string, error) {
-	if ctx == nil {
-		ctx = context.Background()
-	}
 	cmd := exec.CommandContext(ctx, "git", args...)
 	cmd.Dir = e.dir
 	var stdout, stderr bytes.Buffer
@@ -200,7 +197,7 @@ func DefaultGitOptions() GitOptions {
 // execGitCommand executes a git command in a directory and returns any error.
 // This is used during setup before GitRepo is created. For debugging failed
 // commands, the error message includes stderr output.
-// If repo is provided, its LastStderr field will be populated.
+// If repo is provided, its LastStderr field will be populated by execCommandWithOutput.
 func execGitCommand(t *testing.T, dir string, repo *GitRepo, args ...string) error {
 	t.Helper()
 	if repo == nil {

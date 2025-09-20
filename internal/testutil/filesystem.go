@@ -68,6 +68,7 @@ func CreateConfigFile(t *testing.T, dir string, cfg *config.Config) {
 	if cfg == nil {
 		cfgCopy = config.Default()
 	} else {
+		// Shallow copy is safe here as config.Config contains only value types
 		copyVal := *cfg
 		cfgCopy = &copyVal
 	}
