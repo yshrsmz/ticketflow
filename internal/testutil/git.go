@@ -36,7 +36,7 @@ func (e gitCommandExecutor) Exec(ctx context.Context, args ...string) (string, e
 	cmd.Stderr = &stderr
 	err := cmd.Run()
 	if err != nil {
-		return stdout.String(), fmt.Errorf("git %v failed: %w\nstderr: %s", args, err, stderr.String())
+		return "", fmt.Errorf("git %v failed: %w\nstderr: %s", args, err, stderr.String())
 	}
 	return stdout.String(), nil
 }
@@ -194,9 +194,9 @@ func DefaultGitOptions() GitOptions {
 	}
 }
 
-// execGitCommand executes a git command in a directory and returns any error.
-// This is used during setup before GitRepo is created. For debugging failed
-// commands, the error message includes stderr output.
+// execGitCommand executes a git command in a directory for setup operations.
+// This function only returns an error status - it doesn't return command output.
+// The error message includes stderr for debugging failed commands.
 // If repo is provided, its LastStderr field will be populated by execCommandWithOutput.
 func execGitCommand(t *testing.T, dir string, repo *GitRepo, args ...string) error {
 	t.Helper()
