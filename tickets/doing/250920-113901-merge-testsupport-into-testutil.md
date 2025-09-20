@@ -22,12 +22,12 @@ related:
 
 ## Tasks
 
-- [ ] Map the current import relationships between `internal/git`, `internal/testutil`, and `internal/testsupport`.
-- [ ] Prototype a dependency break (e.g. move mocks or introduce interfaces) that allows `gitconfig.Apply` to live under `internal/testutil`.
-- [ ] Move the helper, delete `internal/testsupport/gitconfig`, and update all call sites.
-- [ ] Refresh `internal/testutil/README.md` (and other docs if needed) with the new structure.
-- [ ] Run `make fmt`, `make vet`, and `make lint`.
-- [ ] Run `make test`.
+- [x] Map the current import relationships between `internal/git`, `internal/testutil`, and `internal/testsupport`.
+- [x] Prototype a dependency break (e.g. move mocks or introduce interfaces) that allows `gitconfig.Apply` to live under `internal/testutil`.
+- [x] Move the helper, delete `internal/testsupport/gitconfig`, and update all call sites.
+- [x] Refresh `internal/testutil/README.md` (and other docs if needed) with the new structure.
+- [x] Run `make fmt`, `make vet`, and `make lint`.
+- [x] Run `make test`.
 - [ ] Capture before/after notes in this ticket and seek developer approval before closing.
 
 ## Current Import Cycle Analysis
@@ -128,6 +128,40 @@ Create `internal/testutil/git_config.go` with no imports to mocks, and `internal
 - Build tags can be confusing
 - May complicate the build process
 - Not a common pattern for solving import cycles
+
+## Implementation Summary (Option C - Delete Dead Code)
+
+### What Was Done
+1. **Deleted `internal/testutil/mocks.go`** - Contained only unused MockSetup code (136 lines)
+2. **Moved gitconfig functionality to `internal/testutil/git.go`**:
+   - Added `GitExecutor` interface
+   - Added `GitConfigOptions` struct
+   - Added `GitConfigApply` function (exported for use by git tests)
+3. **Updated all imports** (10 files total):
+   - 4 git test files
+   - 4 CLI test files
+   - 2 command test files
+4. **Deleted `internal/testsupport` directory entirely**
+5. **Updated documentation**:
+   - Removed MockSetup references from README
+   - Cleaned up the migration guide
+
+### Why This Solution is Optimal
+- **Removes dead code**: MockSetup was completely unused
+- **Breaks the cycle instantly**: No mocks import = no cycle
+- **Achieves perfect consolidation**: Everything now under `internal/testutil`
+- **Minimal complexity**: We removed complexity rather than adding it
+
+### Changes Made
+- Files deleted: 3 (`mocks.go`, `testsupport/gitconfig/gitconfig.go`, `testsupport/gitconfig/gitconfig_test.go`)
+- Files modified: 11 (updated imports and integrated gitconfig functionality)
+- Lines removed: ~200+ (dead code + testsupport package)
+- Lines added: ~60 (gitconfig functionality in testutil)
+
+### Testing
+- All tests pass: `make test` ✓
+- All linting passes: `make fmt vet lint` ✓
+- No import cycles detected
 
 ## Notes
 

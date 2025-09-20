@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	ticketerrors "github.com/yshrsmz/ticketflow/internal/errors"
-	"github.com/yshrsmz/ticketflow/internal/testsupport/gitconfig"
+	"github.com/yshrsmz/ticketflow/internal/testutil"
 )
 
 // TestGitOperationsWithCancelledContext tests all git operations with cancelled context
@@ -366,7 +366,7 @@ func BenchmarkContextCheckOverhead(b *testing.B) {
 	// Initialize repo
 	_, err := git.Exec(ctx, "init")
 	require.NoError(b, err)
-	gitconfig.Apply(b, git)
+	testutil.GitConfigApply(b, git)
 
 	// Create initial commit
 	readmePath := filepath.Join(tmpDir, "README.md")
@@ -394,7 +394,7 @@ func BenchmarkContextCheckWithCancellation(b *testing.B) {
 	// Initialize repo
 	_, err := git.Exec(ctx, "init")
 	require.NoError(b, err)
-	gitconfig.Apply(b, git)
+	testutil.GitConfigApply(b, git)
 
 	b.ReportAllocs()
 	b.ResetTimer()

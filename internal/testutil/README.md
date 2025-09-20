@@ -7,8 +7,7 @@ This package provides common test utilities and helpers to reduce code duplicati
 The testutil package is organized into several categories of helpers:
 
 - **Fixtures** (`fixtures.go`) - Factory functions for creating test data
-- **Git Helpers** (`git.go`) - Git repository setup and operations
-- **Mock Helpers** (`mocks.go`) - Mock setup and expectations
+- **Git Helpers** (`git.go`) - Git repository setup and operations, including git configuration
 - **Filesystem** (`filesystem.go`) - File and directory operations
 - **Constants** (`constants.go`) - Shared ticket IDs, timestamps, and other canonical test data
 - **Context** (`context.go`) - Context testing utilities
@@ -64,22 +63,6 @@ repo := testutil.SetupTicketflowRepo(t, tmpDir)
 
 // You can immediately commit or branch without extra git wiring
 repo.AddCommit(t, ".", "", "Bootstrap ticketflow project")
-```
-
-### Mock Setup
-
-```go
-// Create a complete mock setup
-setup := testutil.NewMockSetup(t, tmpDir)
-
-// Set expectations
-setup.ExpectGitCurrentBranch("main", nil)
-setup.ExpectManagerList([]*ticket.Ticket{ticket1, ticket2}, nil)
-
-// Run your code...
-
-// Assert all expectations were met
-setup.AssertExpectations(t)
 ```
 
 ### Filesystem Operations
@@ -142,16 +125,11 @@ result := testutil.AssertJSONOutput(t, output.Stdout(), "id", "status")
    - `CreateTempDir` removes the directory on test completion
    - `ChDir` restores the original directory
 
-3. **Mock Expectations**: Always assert expectations were met
-   ```go
-   defer setup.AssertExpectations(t)
-   ```
-
-4. **Parallel Tests**: Be careful with tests that use `os.Chdir()`
+3. **Parallel Tests**: Be careful with tests that use `os.Chdir()`
    - These tests cannot run in parallel
    - Integration tests typically cannot use `t.Parallel()`
 
-5. **Test Data**: Use fixture functions for consistency
+4. **Test Data**: Use fixture functions for consistency
    ```go
    // Good
    ticket := testutil.TicketFixture(testutil.WithStatus(ticket.StatusDoing))
@@ -165,11 +143,10 @@ result := testutil.AssertJSONOutput(t, output.Stdout(), "id", "status")
 When refactoring existing tests to use these utilities:
 
 1. Replace manual git/config scaffolding with `testutil.SetupTicketflowRepo()` (or combine `SetupTicketflowProject` and `SetupGitRepoWithOptions()` when you need custom behaviour).
-2. Replace mock creation with `testutil.NewMockSetup()`
-3. Replace ticket creation with `testutil.TicketFixture()`
-4. Prefer canonical fixtures/constants from `constants.go` (`testutil.TestTicketID`, `testutil.TestCreatedTime`, etc.) instead of redefining literals.
-5. Replace file assertions with `testutil.AssertFileExists()` etc.
-6. Replace output capture with `testutil.NewOutputCapture()`
+2. Replace ticket creation with `testutil.TicketFixture()`
+3. Prefer canonical fixtures/constants from `constants.go` (`testutil.TestTicketID`, `testutil.TestCreatedTime`, etc.) instead of redefining literals.
+4. Replace file assertions with `testutil.AssertFileExists()` etc.
+5. Replace output capture with `testutil.NewOutputCapture()`
 
 ## Adding New Helpers
 

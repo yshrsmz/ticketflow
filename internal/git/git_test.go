@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/yshrsmz/ticketflow/internal/testsupport/gitconfig"
+	"github.com/yshrsmz/ticketflow/internal/testutil"
 )
 
 func TestNewWithTimeout(t *testing.T) {
@@ -259,7 +259,7 @@ func TestBranchExists(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Configure git locally for test repo (not globally)
-	gitconfig.Apply(t, git)
+	testutil.GitConfigApply(t, git)
 
 	// Create initial commit
 	_, err = git.Exec(ctx, "commit", "--allow-empty", "-m", "Initial commit")

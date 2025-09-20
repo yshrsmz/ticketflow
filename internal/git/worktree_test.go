@@ -9,7 +9,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/yshrsmz/ticketflow/internal/testsupport/gitconfig"
+	"github.com/yshrsmz/ticketflow/internal/testutil"
 )
 
 func setupTestGitRepo(t *testing.T) (*Git, string) {
@@ -22,7 +22,7 @@ func setupTestGitRepo(t *testing.T) (*Git, string) {
 	require.NoError(t, err)
 
 	// Set git config
-	gitconfig.Apply(t, git)
+	testutil.GitConfigApply(t, git)
 
 	// Create initial commit
 	readmePath := filepath.Join(tmpDir, "README.md")

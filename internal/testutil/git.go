@@ -11,7 +11,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/yshrsmz/ticketflow/internal/testsupport/gitconfig"
 )
 
 // GitRepo represents a test git repository
@@ -20,10 +19,21 @@ type GitRepo struct {
 	LastStderr string // Capture stderr for debugging
 }
 
-// GitExecutor exposes the minimal Exec behaviour required to apply shared git configuration.
-type GitExecutor = gitconfig.Executor
+// GitExecutor is the minimal interface needed to run git configuration commands.
+type GitExecutor interface {
+	Exec(ctx context.Context, args ...string) (string, error)
+}
 
-// gitCommandExecutor adapts git CLI invocations to the shared gitconfig.Executor interface.
+// GitConfigOptions customizes the git configuration applied to a test repository.
+type GitConfigOptions struct {
+	UserName             string
+	UserEmail            string
+	DisableSigning       bool
+	DefaultBranch        string
+	SetInitDefaultBranch bool
+}
+
+// gitCommandExecutor adapts git CLI invocations to the GitExecutor interface.
 type gitCommandExecutor struct {
 	dir string
 }
@@ -39,6 +49,47 @@ func (e gitCommandExecutor) Exec(ctx context.Context, args ...string) (string, e
 		return "", fmt.Errorf("git %v failed: %w\nstderr: %s", args, err, stderr.String())
 	}
 	return stdout.String(), nil
+}
+
+func defaultGitConfigOptions() GitConfigOptions {
+	return GitConfigOptions{
+		UserName:             "Test User",
+		UserEmail:            "test@example.com",
+		DisableSigning:       true,
+		DefaultBranch:        "",
+		SetInitDefaultBranch: false,
+	}
+}
+
+// GitConfigApply configures git for tests in a consistent manner using the provided executor.
+// This ensures consistent git configuration across all tests, avoiding issues with
+// global git configuration that might affect test results.
+func GitConfigApply(tb testing.TB, exec GitExecutor, opts ...GitConfigOptions) {
+	tb.Helper()
+
+	options := defaultGitConfigOptions()
+	if len(opts) > 0 {
+		options = opts[0]
+	}
+
+	ctx := context.Background()
+	commands := [][]string{
+		{"config", "user.name", options.UserName},
+		{"config", "user.email", options.UserEmail},
+	}
+
+	if options.DisableSigning {
+		commands = append(commands, []string{"config", "commit.gpgSign", "false"})
+	}
+
+	if options.SetInitDefaultBranch && options.DefaultBranch != "" {
+		commands = append(commands, []string{"config", "init.defaultBranch", options.DefaultBranch})
+	}
+
+	for _, args := range commands {
+		_, err := exec.Exec(ctx, args...)
+		require.NoError(tb, err, "failed to run git %v", args)
+	}
 }
 
 // execCommand executes a git command and captures both stdout and stderr.
@@ -98,7 +149,7 @@ func ConfigureGitClient(t *testing.T, exec GitExecutor, opts ...GitOptions) {
 		options = opts[0]
 	}
 
-	gitconfig.Apply(t, exec, gitconfig.Options{
+	GitConfigApply(t, exec, GitConfigOptions{
 		UserName:             options.UserName,
 		UserEmail:            options.UserEmail,
 		DisableSigning:       options.DisableSigning,
