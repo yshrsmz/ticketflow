@@ -28,6 +28,8 @@ related:
 - [x] Refresh `internal/testutil/README.md` (and other docs if needed) with the new structure.
 - [x] Run `make fmt`, `make vet`, and `make lint`.
 - [x] Run `make test`.
+- [x] Fix issues identified in code review (variable shadowing bug in GitConfigApply)
+- [x] Add comprehensive unit tests for GitConfigApply functionality
 - [ ] Capture before/after notes in this ticket and seek developer approval before closing.
 
 ## Current Import Cycle Analysis
@@ -162,6 +164,26 @@ Create `internal/testutil/git_config.go` with no imports to mocks, and `internal
 - All tests pass: `make test` ✓
 - All linting passes: `make fmt vet lint` ✓
 - No import cycles detected
+- Added comprehensive unit tests for GitConfigApply (8 test cases)
+- Tests cover default options, custom options, command ordering, and interface compliance
+
+## Post-Implementation Review
+
+### Code Review Findings (via golang-pro)
+1. **Variable Shadowing Bug**: Found that the parameter name `exec` was shadowing the imported `exec` package, which could have caused compilation errors. Fixed by renaming to `executor`.
+2. **Missing Tests**: The migrated functionality lacked unit tests. Added comprehensive test coverage.
+
+### Key Insights
+1. **Dead Code Detection is Valuable**: The discovery that MockSetup was completely unused led to the simplest possible solution. Regular dead code analysis should be part of our maintenance routine.
+2. **Simplest Solution Often Best**: While we considered 5 complex architectural solutions, the best answer was simply deleting unused code.
+3. **Import Cycles Hide Deeper Issues**: The import cycle was a symptom of dead code creating unnecessary dependencies, not a fundamental architectural problem.
+4. **Code Review is Essential**: The golang-pro review caught a subtle but important bug that passed all tests but could have caused issues later.
+
+### Lessons Learned
+- Always check for dead code before refactoring around perceived architectural issues
+- When facing import cycles, map the actual usage (not just the imports) to find unnecessary dependencies
+- Automated code review tools can catch issues that humans and tests might miss
+- Adding tests during refactoring (not just after) helps ensure correctness
 
 ## Notes
 
