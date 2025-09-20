@@ -11,7 +11,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/yshrsmz/ticketflow/internal/testutil"
+	"github.com/yshrsmz/ticketflow/internal/testsupport/gitconfig"
 )
 
 // findProjectRoot traverses up from the current directory to find the project root
@@ -68,7 +68,7 @@ func TestWorkflowCommand_Integration(t *testing.T) {
 	require.NoError(t, err)
 
 	// Configure git locally (not globally) for the test repo
-	testutil.ConfigureGitClient(t, execGitExecutor{dir: tmpDir})
+	gitconfig.Apply(t, execGitExecutor{dir: tmpDir})
 
 	// Build the ticketflow binary
 	projectRoot := findProjectRoot(t, originalWd)
@@ -152,7 +152,7 @@ func TestWorkflowCommand_OutputRedirection(t *testing.T) {
 	require.NoError(t, err)
 
 	// Configure git locally for the test repo
-	testutil.ConfigureGitClient(t, execGitExecutor{dir: tmpDir})
+	gitconfig.Apply(t, execGitExecutor{dir: tmpDir})
 
 	// Build the ticketflow binary
 	projectRoot := findProjectRoot(t, originalWd)

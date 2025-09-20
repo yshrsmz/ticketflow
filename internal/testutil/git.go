@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/yshrsmz/ticketflow/internal/testsupport/gitconfig"
 )
 
 // GitRepo represents a test git repository
@@ -20,8 +21,27 @@ type GitRepo struct {
 }
 
 // GitExecutor exposes the minimal Exec behaviour required to apply shared git configuration.
-type GitExecutor interface {
-	Exec(ctx context.Context, args ...string) (string, error)
+type GitExecutor = gitconfig.Executor
+
+// gitCommandExecutor adapts git CLI invocations to the shared gitconfig.Executor interface.
+type gitCommandExecutor struct {
+	dir string
+}
+
+func (e gitCommandExecutor) Exec(ctx context.Context, args ...string) (string, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	cmd := exec.CommandContext(ctx, "git", args...)
+	cmd.Dir = e.dir
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	err := cmd.Run()
+	if err != nil {
+		return stdout.String(), fmt.Errorf("git %v failed: %w\nstderr: %s", args, err, stderr.String())
+	}
+	return stdout.String(), nil
 }
 
 // execCommand executes a git command and captures both stdout and stderr
@@ -53,17 +73,15 @@ func SetupGitRepo(t *testing.T, dir string) *GitRepo {
 func ConfigureGitLocally(t *testing.T, dir, name, email string) {
 	t.Helper()
 
-	// Configure user name locally
-	cmd := exec.Command("git", "config", "user.name", name)
-	cmd.Dir = dir // Critical: sets the working directory for local config
-	err := cmd.Run()
-	require.NoError(t, err, "Failed to configure git user.name")
-
-	// Configure user email locally
-	cmd = exec.Command("git", "config", "user.email", email)
-	cmd.Dir = dir // Critical: sets the working directory for local config
-	err = cmd.Run()
-	require.NoError(t, err, "Failed to configure git user.email")
+	ConfigureGitClient(t, gitCommandExecutor{dir: dir}, GitOptions{
+		UserName:          name,
+		UserEmail:         email,
+		DisableSigning:    false,
+		DefaultBranch:     "",
+		InitialCommit:     false,
+		AddRemote:         false,
+		InitDefaultBranch: false,
+	})
 }
 
 // ConfigureGitClient applies canonical test git configuration via an Exec-capable client.
@@ -75,24 +93,13 @@ func ConfigureGitClient(t *testing.T, exec GitExecutor, opts ...GitOptions) {
 		options = opts[0]
 	}
 
-	ctx := context.Background()
-	commands := [][]string{
-		{"config", "user.name", options.UserName},
-		{"config", "user.email", options.UserEmail},
-	}
-
-	if options.DisableSigning {
-		commands = append(commands, []string{"config", "commit.gpgSign", "false"})
-	}
-
-	if options.InitDefaultBranch && options.DefaultBranch != "" {
-		commands = append(commands, []string{"config", "init.defaultBranch", options.DefaultBranch})
-	}
-
-	for _, args := range commands {
-		_, err := exec.Exec(ctx, args...)
-		require.NoError(t, err, "Failed to run git %s", strings.Join(args, " "))
-	}
+	gitconfig.Apply(t, exec, gitconfig.Options{
+		UserName:             options.UserName,
+		UserEmail:            options.UserEmail,
+		DisableSigning:       options.DisableSigning,
+		DefaultBranch:        options.DefaultBranch,
+		SetInitDefaultBranch: options.InitDefaultBranch && options.DefaultBranch != "",
+	})
 }
 
 // AddCommit adds a file and commits it
@@ -224,17 +231,7 @@ func SetupGitRepoWithOptions(t *testing.T, dir string, opts GitOptions) *GitRepo
 	}
 
 	// Configure git locally
-	ConfigureGitLocally(t, dir, opts.UserName, opts.UserEmail)
-	if opts.DisableSigning {
-		stderr, err = execGitCommand(t, dir, "config", "commit.gpgSign", "false")
-		repo.LastStderr = stderr
-		require.NoError(t, err, "Failed to disable commit signing")
-	}
-	if opts.InitDefaultBranch && opts.DefaultBranch != "" {
-		stderr, err = execGitCommand(t, dir, "config", "init.defaultBranch", opts.DefaultBranch)
-		repo.LastStderr = stderr
-		require.NoError(t, err, "Failed to set init.defaultBranch")
-	}
+	ConfigureGitClient(t, gitCommandExecutor{dir: dir}, opts)
 
 	// Create initial commit if requested
 	if opts.InitialCommit {

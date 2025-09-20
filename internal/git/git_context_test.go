@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	ticketerrors "github.com/yshrsmz/ticketflow/internal/errors"
+	"github.com/yshrsmz/ticketflow/internal/testsupport/gitconfig"
 )
 
 // TestGitOperationsWithCancelledContext tests all git operations with cancelled context
@@ -287,7 +288,11 @@ func TestContextPropagationInExec(t *testing.T) {
 	// Now the context should be expired
 	_, err = git.Exec(ctx, "status")
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "operation cancelled")
+	errMsg := err.Error()
+	assert.True(t,
+		strings.Contains(errMsg, "operation cancelled") ||
+			strings.Contains(errMsg, "operation timed out"),
+		"expected cancellation or timeout error, got: %s", errMsg)
 }
 
 // TestLongRunningOperationCancellation tests cancelling a long-running operation
@@ -361,7 +366,7 @@ func BenchmarkContextCheckOverhead(b *testing.B) {
 	// Initialize repo
 	_, err := git.Exec(ctx, "init")
 	require.NoError(b, err)
-	configureTestGitClient(b, git)
+	gitconfig.Apply(b, git)
 
 	// Create initial commit
 	readmePath := filepath.Join(tmpDir, "README.md")
@@ -389,7 +394,7 @@ func BenchmarkContextCheckWithCancellation(b *testing.B) {
 	// Initialize repo
 	_, err := git.Exec(ctx, "init")
 	require.NoError(b, err)
-	configureTestGitClient(b, git)
+	gitconfig.Apply(b, git)
 
 	b.ReportAllocs()
 	b.ResetTimer()

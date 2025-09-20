@@ -11,7 +11,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/yshrsmz/ticketflow/internal/testutil"
+	"github.com/yshrsmz/ticketflow/internal/testsupport/gitconfig"
 )
 
 type execGitExecutor struct {
@@ -80,7 +80,7 @@ func TestInitCommand(t *testing.T) {
 		gitInit := exec.Command("git", "init")
 		gitInit.Dir = tmpDir
 		require.NoError(t, gitInit.Run())
-		testutil.ConfigureGitClient(t, execGitExecutor{dir: tmpDir})
+		gitconfig.Apply(t, execGitExecutor{dir: tmpDir})
 
 		// Execute the init command
 		cmd := NewInitCommand()
@@ -124,7 +124,7 @@ func TestInitCommand(t *testing.T) {
 		gitInit := exec.Command("git", "init")
 		gitInit.Dir = tmpDir
 		require.NoError(t, gitInit.Run())
-		testutil.ConfigureGitClient(t, execGitExecutor{dir: tmpDir})
+		gitconfig.Apply(t, execGitExecutor{dir: tmpDir})
 
 		// Execute the init command first time
 		cmd := NewInitCommand()
