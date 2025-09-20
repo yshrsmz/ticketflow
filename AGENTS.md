@@ -51,3 +51,25 @@
 - If a toolchain mismatch occurs, ask for approval to run with the correct toolchain, for example:
   - `GOTOOLCHAIN=go1.24.6 make test`
 - If a tool installer (e.g., `mise`) must be used, request permission before invoking it since it may require network access.
+
+## Development Workflow for New Features
+
+1. Create a feature ticket: `ticketflow new my-feature`
+   - Or create a sub-ticket with explicit parent: `ticketflow new --parent parent-ticket-id my-sub-feature`
+   - Note: Flags must come before the ticket slug
+2. Start work (creates worktree): `ticketflow start <ticket-id>`
+   - You don't need to actually start work. just execute ticketflow command.
+   - Actual work is done by another Coding Agent by launching new editor
+3. Navigate to the worktree: `cd ../ticketflow.worktrees/<ticket-id>`
+4. Make changes in the worktree
+5. Run tests: `make test`
+6. Run linters: `make fmt vet lint`
+7. Commit and push changes
+8. Create PR: `git push -u origin <branch>` and `gh pr create`
+9. **IMPORTANT: Wait for developer approval before closing the ticket**
+   - Check if the ticket contains approval requirements (e.g., "Get developer approval before closing")
+   - If approval is required, DO NOT close the ticket until explicitly approved
+   - Developer will review the PR and provide feedback or approval
+10. **Only after approval, close the ticket FROM THE WORKTREE**: `ticketflow close`
+11. Push the branch with the close commit: `git push`
+12. After PR merge: `ticketflow cleanup <ticket-id>`
