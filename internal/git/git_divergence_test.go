@@ -8,7 +8,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/yshrsmz/ticketflow/internal/testsupport/gitconfig"
+	"github.com/yshrsmz/ticketflow/internal/testutil"
 )
 
 // initGitRepo initializes a git repository in the given directory
@@ -27,7 +27,7 @@ func initGitRepo(t *testing.T, ctx context.Context, dir string) error {
 	}
 
 	// Set git config
-	gitconfig.Apply(t, g)
+	testutil.GitConfigApply(t, g)
 
 	return nil
 }

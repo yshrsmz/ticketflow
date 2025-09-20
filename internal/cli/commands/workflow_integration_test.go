@@ -11,7 +11,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/yshrsmz/ticketflow/internal/testsupport/gitconfig"
 	"github.com/yshrsmz/ticketflow/internal/testutil"
 )
 
@@ -56,7 +55,7 @@ func TestWorkflowCommand_Integration(t *testing.T) {
 	require.NoError(t, err)
 
 	// Configure git locally (not globally) for the test repo
-	gitconfig.Apply(t, testutil.SimpleGitExecutor{Dir: tmpDir})
+	testutil.GitConfigApply(t, testutil.SimpleGitExecutor{Dir: tmpDir})
 
 	// Build the ticketflow binary
 	projectRoot := findProjectRoot(t, originalWd)
@@ -140,7 +139,7 @@ func TestWorkflowCommand_OutputRedirection(t *testing.T) {
 	require.NoError(t, err)
 
 	// Configure git locally for the test repo
-	gitconfig.Apply(t, testutil.SimpleGitExecutor{Dir: tmpDir})
+	testutil.GitConfigApply(t, testutil.SimpleGitExecutor{Dir: tmpDir})
 
 	// Build the ticketflow binary
 	projectRoot := findProjectRoot(t, originalWd)

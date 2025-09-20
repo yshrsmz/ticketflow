@@ -1,4 +1,4 @@
-package gitconfig_test
+package testutil_test
 
 import (
 	"context"
@@ -8,10 +8,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/yshrsmz/ticketflow/internal/git"
-	"github.com/yshrsmz/ticketflow/internal/testsupport/gitconfig"
+	"github.com/yshrsmz/ticketflow/internal/testutil"
 )
 
-func TestApplyDefaultOptions(t *testing.T) {
+func TestGitConfigApply_DefaultOptions_Integration(t *testing.T) {
+	t.Helper()
+
 	tmpDir := t.TempDir()
 	g := git.New(tmpDir)
 	ctx := context.Background()
@@ -19,7 +21,7 @@ func TestApplyDefaultOptions(t *testing.T) {
 	_, err := g.Exec(ctx, "init")
 	require.NoError(t, err)
 
-	gitconfig.Apply(t, g)
+	testutil.GitConfigApply(t, g)
 
 	name, err := g.Exec(ctx, "config", "--local", "--get", "user.name")
 	require.NoError(t, err)
@@ -34,7 +36,9 @@ func TestApplyDefaultOptions(t *testing.T) {
 	assert.Equal(t, "false", strings.TrimSpace(signing))
 }
 
-func TestApplyCustomOptions(t *testing.T) {
+func TestGitConfigApply_CustomOptions_Integration(t *testing.T) {
+	t.Helper()
+
 	tmpDir := t.TempDir()
 	g := git.New(tmpDir)
 	ctx := context.Background()
@@ -42,7 +46,7 @@ func TestApplyCustomOptions(t *testing.T) {
 	_, err := g.Exec(ctx, "init")
 	require.NoError(t, err)
 
-	gitconfig.Apply(t, g, gitconfig.Options{
+	testutil.GitConfigApply(t, g, testutil.GitConfigOptions{
 		UserName:             "Alice",
 		UserEmail:            "alice@example.com",
 		DisableSigning:       false,

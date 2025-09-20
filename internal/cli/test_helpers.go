@@ -11,7 +11,6 @@ import (
 	"github.com/yshrsmz/ticketflow/internal/config"
 	"github.com/yshrsmz/ticketflow/internal/git"
 	"github.com/yshrsmz/ticketflow/internal/mocks"
-	"github.com/yshrsmz/ticketflow/internal/testsupport/gitconfig"
 	"github.com/yshrsmz/ticketflow/internal/testutil"
 	"github.com/yshrsmz/ticketflow/internal/ticket"
 )
@@ -108,7 +107,7 @@ func ConfigureTestGit(t *testing.T, repoPath string) {
 		t.Fatalf("Context error before configuring git: %v", err)
 	}
 
-	gitconfig.Apply(t, gitOps)
+	testutil.GitConfigApply(t, gitOps)
 }
 
 // NewTestOutputWriter creates an OutputWriter that captures output for testing
