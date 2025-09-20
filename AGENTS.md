@@ -16,7 +16,7 @@
 - `make build-all` – cross‑compile into `dist/`; `make version` prints ldflags.
 
 ## Coding Style & Naming
-- Go 1.24.x (see `mise.toml`). Always `make fmt` and fix `vet` findings.
+- Go 1.25.x (see `mise.toml`). Always `make fmt` and fix `vet` findings.
 - Prefer small packages under `internal/`; avoid new deps unless necessary.
 - Use contexts for operations that touch git or I/O; honor cancellation.
 - Log via `internal/log` (not `fmt`) for non‑UI diagnostics.
@@ -47,9 +47,9 @@
 - Give a concise preview of grouped commands before running them (e.g., “Run fmt, vet, then unit+integration tests”).
 
 ### Go Toolchain for Tests/Builds
-- The project targets Go 1.24.x (see `mise.toml`). When running tests/builds, use the matching toolchain.
+- The project targets Go 1.25.x (see `mise.toml`). When running tests/builds, use the matching toolchain.
 - If a toolchain mismatch occurs, ask for approval to run with the correct toolchain, for example:
-  - `GOTOOLCHAIN=go1.24.6 make test`
+  - `GOTOOLCHAIN=go1.25.1 make test`
 - If a tool installer (e.g., `mise`) must be used, request permission before invoking it since it may require network access.
 
 ## Development Workflow for New Features
