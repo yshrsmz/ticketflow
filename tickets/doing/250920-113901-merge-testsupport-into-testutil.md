@@ -41,7 +41,34 @@ Files currently using `testsupport/gitconfig` (10 files total):
 - `internal/cli/` test helpers and test files
 - `internal/testutil/git.go` (already wrapping the functionality)
 
-## Proposed Solutions
+## Discovered Issue
+
+After deeper analysis with Codex, we discovered that **MockSetup in internal/testutil/mocks.go is completely unused**. This unused code is the ONLY thing creating the import cycle! By deleting it, we can achieve a much cleaner solution than any of the options below.
+
+## Recommended Solution: Option C - Delete Dead Code
+
+**DELETE the unused MockSetup from testutil/mocks.go, then move gitconfig.Apply directly into testutil.**
+
+This is the best solution because:
+- **Removes 136 lines of dead code** (the entire mocks.go file is unused)
+- **Immediately breaks the import cycle** without any architectural changes
+- **Achieves perfect consolidation** - gitconfig.Apply moves directly into internal/testutil
+- **Simplest possible solution** - follows Occam's Razor
+
+### Implementation Steps:
+1. Delete `internal/testutil/mocks.go` (contains only unused MockSetup)
+2. Move gitconfig functionality from `internal/testsupport/gitconfig` to `internal/testutil`
+3. Update all imports from `testsupport/gitconfig` to `testutil`
+4. Delete the entire `internal/testsupport` directory
+5. Update documentation to remove MockSetup references
+
+### Why This Beats All Other Options:
+- No new packages needed (unlike Options 1, 2, 4)
+- No code duplication (unlike Option 3)
+- No build tag complexity (unlike Option 5)
+- Reduces overall codebase complexity instead of adding to it
+
+## Alternative Solutions (Kept for Reference)
 
 ### Option 1: Interface in testutil/interfaces
 Move just the `GitExecutor` interface to `internal/testutil/interfaces/executor.go`. Then `gitconfig.Apply` can live in `internal/testutil/git.go`. Both `internal/git` and `internal/mocks` can import the interface without creating a cycle.
