@@ -44,11 +44,19 @@ func (e gitCommandExecutor) Exec(ctx context.Context, args ...string) (string, e
 	return stdout.String(), nil
 }
 
-// execCommand executes a git command and captures both stdout and stderr
+// execCommand executes a git command and captures both stdout and stderr.
+// The stderr is stored in r.LastStderr for debugging purposes.
 func (r *GitRepo) execCommand(t *testing.T, args ...string) error {
 	t.Helper()
+	return r.execCommandWithOutput(t, r.Dir, args...)
+}
+
+// execCommandWithOutput is a shared implementation for executing git commands.
+// It captures stderr in r.LastStderr for debugging when errors occur.
+func (r *GitRepo) execCommandWithOutput(t *testing.T, dir string, args ...string) error {
+	t.Helper()
 	cmd := exec.Command("git", args...)
-	cmd.Dir = r.Dir
+	cmd.Dir = dir
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
@@ -189,21 +197,14 @@ func DefaultGitOptions() GitOptions {
 	}
 }
 
-// execGitCommand is a standalone helper for executing git commands
-// This is used by SetupGitRepoWithOptions and other functions that don't have access to GitRepo methods
-// Returns error on failure, nil on success. stderr is captured for debugging when needed.
+// execGitCommand executes a git command in a directory and returns any error.
+// This is used during setup before GitRepo is created. For debugging failed
+// commands, the error message includes stderr output.
 func execGitCommand(t *testing.T, dir string, args ...string) error {
 	t.Helper()
-	cmd := exec.Command("git", args...)
-	cmd.Dir = dir
-	var stdout, stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-	err := cmd.Run()
-	if err != nil {
-		return fmt.Errorf("git %v failed: %w\nstderr: %s", args, err, stderr.String())
-	}
-	return nil
+	// Use a temporary GitRepo just for the execCommandWithOutput method
+	tempRepo := &GitRepo{Dir: dir}
+	return tempRepo.execCommandWithOutput(t, dir, args...)
 }
 
 // SetupGitRepoWithOptions creates a git repository with custom options
@@ -219,12 +220,22 @@ func SetupGitRepoWithOptions(t *testing.T, dir string, opts GitOptions) *GitRepo
 	}
 	err := execGitCommand(t, dir, args...)
 	if err != nil {
-		// Retry without -b for older git versions
-		err = execGitCommand(t, dir, "init")
-		require.NoError(t, err, "Failed to initialize git repository")
-		if opts.DefaultBranch != "" {
-			err = execGitCommand(t, dir, "symbolic-ref", "HEAD", "refs/heads/"+opts.DefaultBranch)
-			require.NoError(t, err, "Failed to configure HEAD for default branch")
+		// Only retry without -b if the error is due to an unrecognized -b flag
+		errStr := err.Error()
+		if strings.Contains(errStr, "unknown option") ||
+			strings.Contains(errStr, "unrecognized option") ||
+			strings.Contains(errStr, "unknown switch") ||
+			strings.Contains(errStr, "invalid option") {
+			// Older git version doesn't support -b flag
+			err = execGitCommand(t, dir, "init")
+			require.NoError(t, err, "Failed to initialize git repository")
+			if opts.DefaultBranch != "" {
+				err = execGitCommand(t, dir, "symbolic-ref", "HEAD", "refs/heads/"+opts.DefaultBranch)
+				require.NoError(t, err, "Failed to configure HEAD for default branch")
+			}
+		} else {
+			// Other error (permissions, disk space, etc.)
+			require.NoError(t, err, "Failed to initialize git repository")
 		}
 	}
 
