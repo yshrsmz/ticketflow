@@ -200,11 +200,14 @@ func DefaultGitOptions() GitOptions {
 // execGitCommand executes a git command in a directory and returns any error.
 // This is used during setup before GitRepo is created. For debugging failed
 // commands, the error message includes stderr output.
-func execGitCommand(t *testing.T, dir string, args ...string) error {
+// If repo is provided, its LastStderr field will be populated.
+func execGitCommand(t *testing.T, dir string, repo *GitRepo, args ...string) error {
 	t.Helper()
-	// Use a temporary GitRepo just for the execCommandWithOutput method
-	tempRepo := &GitRepo{Dir: dir}
-	return tempRepo.execCommandWithOutput(t, dir, args...)
+	if repo == nil {
+		// Create temporary repo just for execution
+		repo = &GitRepo{Dir: dir}
+	}
+	return repo.execCommandWithOutput(t, dir, args...)
 }
 
 // SetupGitRepoWithOptions creates a git repository with custom options
@@ -218,7 +221,7 @@ func SetupGitRepoWithOptions(t *testing.T, dir string, opts GitOptions) *GitRepo
 	if opts.DefaultBranch != "" {
 		args = append(args, "-b", opts.DefaultBranch)
 	}
-	err := execGitCommand(t, dir, args...)
+	err := execGitCommand(t, dir, repo, args...)
 	if err != nil {
 		// Only retry without -b if the error is due to an unrecognized -b flag
 		errStr := err.Error()
@@ -227,10 +230,10 @@ func SetupGitRepoWithOptions(t *testing.T, dir string, opts GitOptions) *GitRepo
 			strings.Contains(errStr, "unknown switch") ||
 			strings.Contains(errStr, "invalid option") {
 			// Older git version doesn't support -b flag
-			err = execGitCommand(t, dir, "init")
+			err = execGitCommand(t, dir, repo, "init")
 			require.NoError(t, err, "Failed to initialize git repository")
 			if opts.DefaultBranch != "" {
-				err = execGitCommand(t, dir, "symbolic-ref", "HEAD", "refs/heads/"+opts.DefaultBranch)
+				err = execGitCommand(t, dir, repo, "symbolic-ref", "HEAD", "refs/heads/"+opts.DefaultBranch)
 				require.NoError(t, err, "Failed to configure HEAD for default branch")
 			}
 		} else {
@@ -244,19 +247,19 @@ func SetupGitRepoWithOptions(t *testing.T, dir string, opts GitOptions) *GitRepo
 
 	// Create initial commit if requested
 	if opts.InitialCommit {
-		err = execGitCommand(t, dir, "commit", "--allow-empty", "-m", "Initial commit")
+		err = execGitCommand(t, dir, repo, "commit", "--allow-empty", "-m", "Initial commit")
 		require.NoError(t, err, "Failed to create initial commit")
 	}
 
 	// Ensure the repository is on the requested branch when an initial commit exists
 	if opts.DefaultBranch != "" && opts.InitialCommit {
-		err = execGitCommand(t, dir, "checkout", opts.DefaultBranch)
+		err = execGitCommand(t, dir, repo, "checkout", opts.DefaultBranch)
 		require.NoError(t, err, "Failed to checkout default branch")
 	}
 
 	// Add remote if requested
 	if opts.AddRemote && opts.RemoteName != "" && opts.RemoteURL != "" {
-		err = execGitCommand(t, dir, "remote", "add", opts.RemoteName, opts.RemoteURL)
+		err = execGitCommand(t, dir, repo, "remote", "add", opts.RemoteName, opts.RemoteURL)
 		require.NoError(t, err, "Failed to add remote")
 	}
 
