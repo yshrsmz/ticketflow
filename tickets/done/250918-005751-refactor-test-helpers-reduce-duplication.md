@@ -3,7 +3,7 @@ priority: 2
 description: Refactor test helpers to reduce duplication while maintaining unit/integration separation
 created_at: "2025-09-18T00:57:51+09:00"
 started_at: "2025-09-20T01:33:29+09:00"
-closed_at: null
+closed_at: "2025-09-20T18:07:39+09:00"
 ---
 
 # Refactor Test Helpers to Reduce Duplication
