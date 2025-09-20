@@ -64,7 +64,7 @@ func defaultGitConfigOptions() GitConfigOptions {
 // GitConfigApply configures git for tests in a consistent manner using the provided executor.
 // This ensures consistent git configuration across all tests, avoiding issues with
 // global git configuration that might affect test results.
-func GitConfigApply(tb testing.TB, exec GitExecutor, opts ...GitConfigOptions) {
+func GitConfigApply(tb testing.TB, executor GitExecutor, opts ...GitConfigOptions) {
 	tb.Helper()
 
 	options := defaultGitConfigOptions()
@@ -87,7 +87,7 @@ func GitConfigApply(tb testing.TB, exec GitExecutor, opts ...GitConfigOptions) {
 	}
 
 	for _, args := range commands {
-		_, err := exec.Exec(ctx, args...)
+		_, err := executor.Exec(ctx, args...)
 		require.NoError(tb, err, "failed to run git %v", args)
 	}
 }
@@ -141,7 +141,7 @@ func ConfigureGitLocally(t *testing.T, dir, name, email string) {
 }
 
 // ConfigureGitClient applies canonical test git configuration via an Exec-capable client.
-func ConfigureGitClient(t *testing.T, exec GitExecutor, opts ...GitOptions) {
+func ConfigureGitClient(t *testing.T, executor GitExecutor, opts ...GitOptions) {
 	t.Helper()
 
 	options := DefaultGitOptions()
@@ -149,7 +149,7 @@ func ConfigureGitClient(t *testing.T, exec GitExecutor, opts ...GitOptions) {
 		options = opts[0]
 	}
 
-	GitConfigApply(t, exec, GitConfigOptions{
+	GitConfigApply(t, executor, GitConfigOptions{
 		UserName:             options.UserName,
 		UserEmail:            options.UserEmail,
 		DisableSigning:       options.DisableSigning,
