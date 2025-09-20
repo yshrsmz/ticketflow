@@ -258,12 +258,7 @@ func TestBranchExists(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Configure git locally for test repo (not globally)
-	_, err = git.Exec(ctx, "config", "user.name", "Test User")
-	assert.NoError(t, err)
-	_, err = git.Exec(ctx, "config", "user.email", "test@example.com")
-	assert.NoError(t, err)
-	_, err = git.Exec(ctx, "config", "commit.gpgSign", "false")
-	assert.NoError(t, err)
+	configureTestGitClient(t, git)
 
 	// Create initial commit
 	_, err = git.Exec(ctx, "commit", "--allow-empty", "--no-gpg-sign", "-m", "Initial commit")

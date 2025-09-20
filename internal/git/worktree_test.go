@@ -21,12 +21,7 @@ func setupTestGitRepo(t *testing.T) (*Git, string) {
 	require.NoError(t, err)
 
 	// Set git config
-	_, err = git.Exec(ctx, "config", "user.name", "Test User")
-	require.NoError(t, err)
-	_, err = git.Exec(ctx, "config", "user.email", "test@example.com")
-	require.NoError(t, err)
-	_, err = git.Exec(ctx, "config", "commit.gpgSign", "false")
-	require.NoError(t, err)
+	configureTestGitClient(t, git)
 
 	// Create initial commit
 	readmePath := filepath.Join(tmpDir, "README.md")
