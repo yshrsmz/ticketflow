@@ -11,7 +11,7 @@ import (
 )
 
 // initGitRepo initializes a git repository in the given directory
-func initGitRepo(ctx context.Context, dir string) error {
+func initGitRepo(t *testing.T, ctx context.Context, dir string) error {
 	g := New(dir)
 
 	// Initialize repo with main as default branch
@@ -26,16 +26,7 @@ func initGitRepo(ctx context.Context, dir string) error {
 	}
 
 	// Set git config
-	if _, err := g.Exec(ctx, "config", "user.name", "Test User"); err != nil {
-		return err
-	}
-	if _, err := g.Exec(ctx, "config", "user.email", "test@example.com"); err != nil {
-		return err
-	}
-	// Disable GPG signing for test commits
-	if _, err := g.Exec(ctx, "config", "commit.gpgSign", "false"); err != nil {
-		return err
-	}
+	configureTestGitClient(t, g)
 
 	return nil
 }
@@ -110,7 +101,7 @@ func TestGetDefaultBranch(t *testing.T) {
 			// Initialize git repo
 			ctx := context.Background()
 			g := New(tmpDir)
-			require.NoError(t, initGitRepo(ctx, tmpDir))
+			require.NoError(t, initGitRepo(t, ctx, tmpDir))
 
 			// Create initial commit on main
 			testFile := filepath.Join(tmpDir, "test.txt")
@@ -147,7 +138,7 @@ func TestBranchDivergence(t *testing.T) {
 	// Initialize git repo
 	ctx := context.Background()
 	g := New(tmpDir)
-	require.NoError(t, initGitRepo(ctx, tmpDir))
+	require.NoError(t, initGitRepo(t, ctx, tmpDir))
 
 	// Create initial commit on main
 	testFile := filepath.Join(tmpDir, "test.txt")
@@ -251,7 +242,7 @@ func TestGetBranchCommit(t *testing.T) {
 			// Initialize git repo
 			ctx := context.Background()
 			g := New(tmpDir)
-			require.NoError(t, initGitRepo(ctx, tmpDir))
+			require.NoError(t, initGitRepo(t, ctx, tmpDir))
 
 			// Create initial commit
 			testFile := filepath.Join(tmpDir, "test.txt")
@@ -286,7 +277,7 @@ func TestIsBranchMerged(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	// Initialize git repo
-	require.NoError(t, initGitRepo(ctx, tmpDir))
+	require.NoError(t, initGitRepo(t, ctx, tmpDir))
 
 	g := New(tmpDir)
 

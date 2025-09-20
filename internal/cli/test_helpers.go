@@ -103,15 +103,11 @@ func ConfigureTestGit(t *testing.T, repoPath string) {
 	ctx := context.Background()
 	gitOps := git.New(repoPath)
 
-	// Configure user name locally
-	if _, err := gitOps.Exec(ctx, "config", "user.name", "Test User"); err != nil {
-		t.Fatalf("Failed to configure git user.name: %v", err)
+	if err := ctx.Err(); err != nil {
+		t.Fatalf("Context error before configuring git: %v", err)
 	}
 
-	// Configure user email locally
-	if _, err := gitOps.Exec(ctx, "config", "user.email", "test@example.com"); err != nil {
-		t.Fatalf("Failed to configure git user.email: %v", err)
-	}
+	testutil.ConfigureGitClient(t, gitOps)
 }
 
 // NewTestOutputWriter creates an OutputWriter that captures output for testing

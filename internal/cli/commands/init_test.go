@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"bytes"
 	"context"
 	"flag"
 	"os"
@@ -10,7 +11,21 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/yshrsmz/ticketflow/internal/testutil"
 )
+
+type execGitExecutor struct {
+	dir string
+}
+
+func (e execGitExecutor) Exec(ctx context.Context, args ...string) (string, error) {
+	cmd := exec.CommandContext(ctx, "git", args...)
+	cmd.Dir = e.dir
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &out
+	return out.String(), cmd.Run()
+}
 
 func TestInitCommand(t *testing.T) {
 	t.Run("command metadata", func(t *testing.T) {
@@ -65,15 +80,7 @@ func TestInitCommand(t *testing.T) {
 		gitInit := exec.Command("git", "init")
 		gitInit.Dir = tmpDir
 		require.NoError(t, gitInit.Run())
-
-		// Configure git locally (not globally) for the test
-		gitConfig := exec.Command("git", "config", "user.name", "Test User")
-		gitConfig.Dir = tmpDir
-		require.NoError(t, gitConfig.Run())
-
-		gitConfigEmail := exec.Command("git", "config", "user.email", "test@example.com")
-		gitConfigEmail.Dir = tmpDir
-		require.NoError(t, gitConfigEmail.Run())
+		testutil.ConfigureGitClient(t, execGitExecutor{dir: tmpDir})
 
 		// Execute the init command
 		cmd := NewInitCommand()
@@ -117,15 +124,7 @@ func TestInitCommand(t *testing.T) {
 		gitInit := exec.Command("git", "init")
 		gitInit.Dir = tmpDir
 		require.NoError(t, gitInit.Run())
-
-		// Configure git locally (not globally) for the test
-		gitConfig := exec.Command("git", "config", "user.name", "Test User")
-		gitConfig.Dir = tmpDir
-		require.NoError(t, gitConfig.Run())
-
-		gitConfigEmail := exec.Command("git", "config", "user.email", "test@example.com")
-		gitConfigEmail.Dir = tmpDir
-		require.NoError(t, gitConfigEmail.Run())
+		testutil.ConfigureGitClient(t, execGitExecutor{dir: tmpDir})
 
 		// Execute the init command first time
 		cmd := NewInitCommand()

@@ -7,8 +7,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func configureTestGitClient(t *testing.T, g *Git) {
-	t.Helper()
+func configureTestGitClient(tb testing.TB, g *Git) {
+	tb.Helper()
 
 	steps := [][]string{
 		{"config", "user.name", "Test User"},
@@ -19,6 +19,6 @@ func configureTestGitClient(t *testing.T, g *Git) {
 	ctx := context.Background()
 	for _, args := range steps {
 		_, err := g.Exec(ctx, args...)
-		require.NoError(t, err)
+		require.NoError(tb, err)
 	}
 }

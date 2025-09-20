@@ -361,10 +361,7 @@ func BenchmarkContextCheckOverhead(b *testing.B) {
 	// Initialize repo
 	_, err := git.Exec(ctx, "init")
 	require.NoError(b, err)
-	_, err = git.Exec(ctx, "config", "user.name", "Test User")
-	require.NoError(b, err)
-	_, err = git.Exec(ctx, "config", "user.email", "test@example.com")
-	require.NoError(b, err)
+	configureTestGitClient(b, git)
 
 	// Create initial commit
 	readmePath := filepath.Join(tmpDir, "README.md")
@@ -392,10 +389,7 @@ func BenchmarkContextCheckWithCancellation(b *testing.B) {
 	// Initialize repo
 	_, err := git.Exec(ctx, "init")
 	require.NoError(b, err)
-	_, err = git.Exec(ctx, "config", "user.name", "Test User")
-	require.NoError(b, err)
-	_, err = git.Exec(ctx, "config", "user.email", "test@example.com")
-	require.NoError(b, err)
+	configureTestGitClient(b, git)
 
 	b.ReportAllocs()
 	b.ResetTimer()

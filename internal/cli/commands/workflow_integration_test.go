@@ -11,6 +11,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/yshrsmz/ticketflow/internal/testutil"
 )
 
 // findProjectRoot traverses up from the current directory to find the project root
@@ -28,6 +29,19 @@ func findProjectRoot(t *testing.T, startDir string) string {
 		}
 		projectRoot = parent
 	}
+}
+
+type execGitExecutor struct {
+	dir string
+}
+
+func (e execGitExecutor) Exec(ctx context.Context, args ...string) (string, error) {
+	cmd := exec.CommandContext(ctx, "git", args...)
+	cmd.Dir = e.dir
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &out
+	return out.String(), cmd.Run()
 }
 
 // TestWorkflowCommand_Integration tests the workflow command in a real environment
@@ -54,15 +68,7 @@ func TestWorkflowCommand_Integration(t *testing.T) {
 	require.NoError(t, err)
 
 	// Configure git locally (not globally) for the test repo
-	cmd = exec.Command("git", "config", "user.name", "Test User")
-	cmd.Dir = tmpDir
-	err = cmd.Run()
-	require.NoError(t, err)
-
-	cmd = exec.Command("git", "config", "user.email", "test@example.com")
-	cmd.Dir = tmpDir
-	err = cmd.Run()
-	require.NoError(t, err)
+	testutil.ConfigureGitClient(t, execGitExecutor{dir: tmpDir})
 
 	// Build the ticketflow binary
 	projectRoot := findProjectRoot(t, originalWd)
@@ -146,15 +152,7 @@ func TestWorkflowCommand_OutputRedirection(t *testing.T) {
 	require.NoError(t, err)
 
 	// Configure git locally for the test repo
-	cmd = exec.Command("git", "config", "user.name", "Test User")
-	cmd.Dir = tmpDir
-	err = cmd.Run()
-	require.NoError(t, err)
-
-	cmd = exec.Command("git", "config", "user.email", "test@example.com")
-	cmd.Dir = tmpDir
-	err = cmd.Run()
-	require.NoError(t, err)
+	testutil.ConfigureGitClient(t, execGitExecutor{dir: tmpDir})
 
 	// Build the ticketflow binary
 	projectRoot := findProjectRoot(t, originalWd)

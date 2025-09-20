@@ -2,6 +2,7 @@ package testutil
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -16,6 +17,11 @@ import (
 type GitRepo struct {
 	Dir        string
 	LastStderr string // Capture stderr for debugging
+}
+
+// GitExecutor exposes the minimal Exec behaviour required to apply shared git configuration.
+type GitExecutor interface {
+	Exec(ctx context.Context, args ...string) (string, error)
 }
 
 // execCommand executes a git command and captures both stdout and stderr
@@ -58,6 +64,35 @@ func ConfigureGitLocally(t *testing.T, dir, name, email string) {
 	cmd.Dir = dir // Critical: sets the working directory for local config
 	err = cmd.Run()
 	require.NoError(t, err, "Failed to configure git user.email")
+}
+
+// ConfigureGitClient applies canonical test git configuration via an Exec-capable client.
+func ConfigureGitClient(t *testing.T, exec GitExecutor, opts ...GitOptions) {
+	t.Helper()
+
+	options := DefaultGitOptions()
+	if len(opts) > 0 {
+		options = opts[0]
+	}
+
+	ctx := context.Background()
+	commands := [][]string{
+		{"config", "user.name", options.UserName},
+		{"config", "user.email", options.UserEmail},
+	}
+
+	if options.DisableSigning {
+		commands = append(commands, []string{"config", "commit.gpgSign", "false"})
+	}
+
+	if options.InitDefaultBranch && options.DefaultBranch != "" {
+		commands = append(commands, []string{"config", "init.defaultBranch", options.DefaultBranch})
+	}
+
+	for _, args := range commands {
+		_, err := exec.Exec(ctx, args...)
+		require.NoError(t, err, "Failed to run git %s", strings.Join(args, " "))
+	}
 }
 
 // AddCommit adds a file and commits it

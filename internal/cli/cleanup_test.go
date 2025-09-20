@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/yshrsmz/ticketflow/internal/config"
 	"github.com/yshrsmz/ticketflow/internal/git"
+	"github.com/yshrsmz/ticketflow/internal/testutil"
 	"github.com/yshrsmz/ticketflow/internal/ticket"
 )
 
@@ -27,12 +28,7 @@ func TestAutoCleanupStaleBranches(t *testing.T) {
 	gitOps := git.New(repoPath)
 	_, err := gitOps.Exec(context.Background(), "init")
 	require.NoError(t, err)
-	_, err = gitOps.Exec(context.Background(), "config", "user.email", "test@example.com")
-	require.NoError(t, err)
-	_, err = gitOps.Exec(context.Background(), "config", "user.name", "Test User")
-	require.NoError(t, err)
-	_, err = gitOps.Exec(context.Background(), "config", "commit.gpgSign", "false")
-	require.NoError(t, err)
+	testutil.ConfigureGitClient(t, gitOps)
 
 	// Create initial commit
 	require.NoError(t, os.WriteFile(filepath.Join(repoPath, "README.md"), []byte("Test repo"), 0644))
@@ -164,12 +160,7 @@ func TestCleanupStatsWithDoneTickets(t *testing.T) {
 	gitOps := git.New(repoPath)
 	_, err := gitOps.Exec(context.Background(), "init")
 	require.NoError(t, err)
-	_, err = gitOps.Exec(context.Background(), "config", "user.email", "test@example.com")
-	require.NoError(t, err)
-	_, err = gitOps.Exec(context.Background(), "config", "user.name", "Test User")
-	require.NoError(t, err)
-	_, err = gitOps.Exec(context.Background(), "config", "commit.gpgSign", "false")
-	require.NoError(t, err)
+	testutil.ConfigureGitClient(t, gitOps)
 
 	// Create initial commit
 	require.NoError(t, os.WriteFile(filepath.Join(repoPath, "README.md"), []byte("Test repo"), 0644))
