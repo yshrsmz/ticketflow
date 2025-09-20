@@ -109,17 +109,17 @@ Create composable test traits.
 2. ✅ Decide the fate of `internal/cli/commands/test_helpers.go` (delete if unused, otherwise port the useful pieces onto the shared helpers).
 
 ### Phase 3: Migrate CLI/unit tests
-1. Remove direct git/config setup from `cmd/ticketflow/test_helpers.go`, replacing it with the shared helper.
-2. Swap duplicated constants/usages in `cmd/ticketflow` and `internal/cli` tests to reference `testutil/constants.go`.
-3. Run focused suites (`go test ./cmd/ticketflow/...`, `go test ./internal/cli/...`) after each migration step.
+- ✅ Remove direct git/config setup from `cmd/ticketflow/test_helpers.go`, replacing it with the shared helper.
+- ✅ Swap duplicated constants/usages in `cmd/ticketflow` and `internal/cli` tests to reference `testutil/constants.go`.
+- ✅ Run focused suites (`go test ./cmd/ticketflow/...`, `go test ./internal/cli/...`) after each migration step.
 
 ### Phase 4: Migrate integration tests
-1. Replace the `setupTestRepo` implementations under `test/integration` with the shared helper while keeping `os.Chdir` discipline intact.
-2. Re-run the integration suite (`make test-integration`) to confirm behaviours like branch naming and current-ticket symlink handling remain intact.
+- ✅ Replace the `setupTestRepo` implementations under `test/integration` with the shared helper while keeping `os.Chdir` discipline intact.
+- ✅ Re-run the integration suite (`make test-integration`) to confirm behaviours like branch naming and current-ticket symlink handling remain intact.
 
 ### Phase 5: Documentation & cleanup
-1. Expand `internal/testutil/README.md` with the new helpers, options, and migration examples.
-2. Mark any remaining ad-hoc helpers with deprecation comments and open follow-up tickets for packages that still need to migrate.
+- ✅ Expand `internal/testutil/README.md` with the new helpers, options, and migration examples.
+- ✅ Mark any remaining ad-hoc helpers with deprecation comments and open follow-up tickets for packages that still need to migrate.
 
 ## Expected Benefits
 - Eliminate ~200 lines of duplicated code
