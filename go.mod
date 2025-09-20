@@ -9,7 +9,7 @@ require (
 	github.com/mattn/go-shellwords v1.0.12
 	github.com/stretchr/testify v1.10.0
 	golang.org/x/sync v0.15.0
-	golang.org/x/term v0.34.0
+	golang.org/x/term v0.35.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
