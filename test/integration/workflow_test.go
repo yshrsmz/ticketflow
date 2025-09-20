@@ -17,8 +17,13 @@ import (
 func setupTestRepo(t *testing.T) string {
 	tmpDir := t.TempDir()
 
-	// Initialize git repo with deterministic defaults
-	_ = testutil.SetupGitRepo(t, tmpDir)
+	repo := testutil.SetupTicketflowProject(
+		t,
+		tmpDir,
+		testutil.WithoutConfig(),
+		testutil.WithoutDirs(),
+	)
+	require.NotNil(t, repo)
 
 	return tmpDir
 }

@@ -140,9 +140,10 @@ Create composable test traits.
 - [x] The shared scaffold can emit the canonical `.ticketflow.yaml` (including configurable worktree settings) and create the `tickets/.current` marker.
 - [x] `cmd/ticketflow/test_helpers.go` and `test/integration` no longer invoke `exec.Command` directly for repo setup (they rely on the shared helper/wrapper).
 - [x] Shared test constants live in `internal/testutil/constants.go` with consumers updated to use them.
-- [ ] `internal/testutil/README.md` documents the new helpers and migration guidance.
-- [ ] `make test` passes locally after the migrations.
+- [x] `internal/testutil/README.md` documents the new helpers and migration guidance.
+- [x] `make test` passes locally after the migrations.
 
 ### Progress (2025-09-19)
 
-- Hardened `internal/testutil` git and filesystem scaffolds with new unit coverage, added shared constants, and switched CLI + integration repositories to the consolidated helper while deleting the unused commands helper.
+- Hardened `internal/testutil` git and filesystem scaffolds with new unit coverage, added shared constants, switched CLI + integration repositories to the consolidated helper while deleting the unused commands helper, documented usage, and verified `make test` succeeds.
+- Rewired every integration suite to consume the shared setup helper so `setupTestRepo` no longer shells out to git directly.
