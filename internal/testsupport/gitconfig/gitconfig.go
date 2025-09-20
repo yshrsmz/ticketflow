@@ -1,3 +1,6 @@
+// Package gitconfig provides utilities for configuring git in test environments.
+// It ensures consistent git configuration across all tests, avoiding issues with
+// global git configuration that might affect test results.
 package gitconfig
 
 import (

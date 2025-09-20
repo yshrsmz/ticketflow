@@ -11,7 +11,7 @@ import (
 	"github.com/yshrsmz/ticketflow/internal/testutil"
 )
 
-// setupTestRepo creates a basic test repository with config and directories
+// setupTestRepo creates a ticketflow test repository with config and ticket directories
 func setupTestRepo(t *testing.T, tmpDir string) *testutil.GitRepo {
 	cfg := config.Default()
 	cfg.Git.DefaultBranch = testutil.TestDefaultBranch

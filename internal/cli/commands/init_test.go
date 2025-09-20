@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"bytes"
 	"context"
 	"flag"
 	"os"
@@ -12,20 +11,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/yshrsmz/ticketflow/internal/testsupport/gitconfig"
+	"github.com/yshrsmz/ticketflow/internal/testutil"
 )
-
-type execGitExecutor struct {
-	dir string
-}
-
-func (e execGitExecutor) Exec(ctx context.Context, args ...string) (string, error) {
-	cmd := exec.CommandContext(ctx, "git", args...)
-	cmd.Dir = e.dir
-	var out bytes.Buffer
-	cmd.Stdout = &out
-	cmd.Stderr = &out
-	return out.String(), cmd.Run()
-}
 
 func TestInitCommand(t *testing.T) {
 	t.Run("command metadata", func(t *testing.T) {
@@ -80,7 +67,7 @@ func TestInitCommand(t *testing.T) {
 		gitInit := exec.Command("git", "init")
 		gitInit.Dir = tmpDir
 		require.NoError(t, gitInit.Run())
-		gitconfig.Apply(t, execGitExecutor{dir: tmpDir})
+		gitconfig.Apply(t, testutil.SimpleGitExecutor{Dir: tmpDir})
 
 		// Execute the init command
 		cmd := NewInitCommand()
@@ -124,7 +111,7 @@ func TestInitCommand(t *testing.T) {
 		gitInit := exec.Command("git", "init")
 		gitInit.Dir = tmpDir
 		require.NoError(t, gitInit.Run())
-		gitconfig.Apply(t, execGitExecutor{dir: tmpDir})
+		gitconfig.Apply(t, testutil.SimpleGitExecutor{Dir: tmpDir})
 
 		// Execute the init command first time
 		cmd := NewInitCommand()
