@@ -262,9 +262,11 @@ func TestBranchExists(t *testing.T) {
 	assert.NoError(t, err)
 	_, err = git.Exec(ctx, "config", "user.email", "test@example.com")
 	assert.NoError(t, err)
+	_, err = git.Exec(ctx, "config", "commit.gpgSign", "false")
+	assert.NoError(t, err)
 
 	// Create initial commit
-	_, err = git.Exec(ctx, "commit", "--allow-empty", "-m", "Initial commit")
+	_, err = git.Exec(ctx, "commit", "--allow-empty", "--no-gpg-sign", "-m", "Initial commit")
 	assert.NoError(t, err)
 
 	tests := []struct {

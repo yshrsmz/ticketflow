@@ -25,6 +25,8 @@ func setupTestGitRepo(t *testing.T) (*Git, string) {
 	require.NoError(t, err)
 	_, err = git.Exec(ctx, "config", "user.email", "test@example.com")
 	require.NoError(t, err)
+	_, err = git.Exec(ctx, "config", "commit.gpgSign", "false")
+	require.NoError(t, err)
 
 	// Create initial commit
 	readmePath := filepath.Join(tmpDir, "README.md")
@@ -33,7 +35,7 @@ func setupTestGitRepo(t *testing.T) (*Git, string) {
 
 	_, err = git.Exec(ctx, "add", "README.md")
 	require.NoError(t, err)
-	_, err = git.Exec(ctx, "commit", "-m", "Initial commit")
+	_, err = git.Exec(ctx, "commit", "--no-gpg-sign", "-m", "Initial commit")
 	require.NoError(t, err)
 
 	return git, tmpDir
