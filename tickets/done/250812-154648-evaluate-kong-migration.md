@@ -3,7 +3,7 @@ priority: 4
 description: "Evaluate migration to Kong CLI library after current refactoring"
 created_at: "2025-08-12T15:46:48+09:00"
 started_at: null
-closed_at: null
+closed_at: "2025-09-24T09:50:00+09:00"
 related:
     - parent:250810-003001-refactor-command-interface
     - "blocks:250812-152824-migrate-help-command"
@@ -11,7 +11,10 @@ related:
     - "blocks:250812-152927-migrate-remaining-commands"
 ---
 
-# Evaluate Kong CLI Library Migration
+# Evaluate Kong CLI Library Migration [ABANDONED]
+
+**Status: Abandoned in favor of pflag migration**
+**Reason: After thorough analysis, pflag provides a simpler, drop-in solution for the immediate need of supporting flags after positional arguments**
 
 After completing the current command interface migration, evaluate whether migrating to Kong (github.com/alecthomas/kong) would provide benefits over the custom implementation.
 
