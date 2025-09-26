@@ -1,10 +1,9 @@
 ---
 priority: 2
-description: "Migrate from standard flag to spf13/pflag to support flags after positional arguments"
+description: Migrate from standard flag to spf13/pflag to support flags after positional arguments
 created_at: "2025-09-24T14:35:04+09:00"
-started_at: null
+started_at: "2025-09-26T16:41:16+09:00"
 closed_at: null
-related: []
 ---
 
 # Migrate to pflag for Flexible CLI Arguments
