@@ -1,11 +1,11 @@
 ---
 priority: 1
-description: "Phase 1: Basic pflag import migration - mechanical replacement of flag imports"
+description: 'Phase 1: Basic pflag import migration - mechanical replacement of flag imports'
 created_at: "2025-09-26T16:59:45+09:00"
-started_at: null
+started_at: "2025-09-27T21:07:45+09:00"
 closed_at: null
 related:
-  - "parent:250924-143504-migrate-to-pflag-for-flexible-cli-args"
+    - parent:250924-143504-migrate-to-pflag-for-flexible-cli-args
 ---
 
 # Phase 1: Basic pflag Import Migration
