@@ -25,6 +25,14 @@ Add comprehensive test coverage to verify interspersed flag functionality works 
 - Create test utilities for flag parsing scenarios
 - Document expected behavior
 
+## Important Phase 1 Findings
+
+During Phase 1 migration, we discovered pflag-specific behaviors that need testing:
+- Single-character flags registered with `StringVar`/`IntVar` don't work as shorthand flags
+- pflag requires `StringVarP`/`BoolVarP` for proper short/long flag registration
+- Test cases had to be updated from `-s` to `--s` for single-char StringVar registrations
+- The reflection workaround in Phase 1's flag_types.go will be removed in Phase 2
+
 ## Test Categories
 
 ### 1. Update Existing Validation Tests

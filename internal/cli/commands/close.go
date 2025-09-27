@@ -2,8 +2,8 @@ package commands
 
 import (
 	"context"
-	"flag"
 	"fmt"
+	flag "github.com/spf13/pflag"
 	"os"
 	"time"
 

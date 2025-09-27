@@ -2,7 +2,7 @@ package command
 
 import (
 	"context"
-	"flag"
+	flag "github.com/spf13/pflag"
 )
 
 // Command represents a CLI command that can be executed

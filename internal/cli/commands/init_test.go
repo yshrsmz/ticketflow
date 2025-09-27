@@ -2,7 +2,7 @@ package commands
 
 import (
 	"context"
-	"flag"
+	flag "github.com/spf13/pflag"
 	"os"
 	"os/exec"
 	"path/filepath"

@@ -3,8 +3,8 @@ package commands
 import (
 	"context"
 	_ "embed"
-	"flag"
 	"fmt"
+	flag "github.com/spf13/pflag"
 	"io"
 	"os"
 

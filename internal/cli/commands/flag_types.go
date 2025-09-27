@@ -7,8 +7,9 @@
 package commands
 
 import (
-	"flag"
 	"fmt"
+	flag "github.com/spf13/pflag"
+	"reflect"
 )
 
 // StringFlag represents a string flag with long and short forms.
@@ -36,16 +37,39 @@ func RegisterString(fs *flag.FlagSet, sf *StringFlag, longName, shortName, defau
 
 	sf.Long = defaultValue
 
-	// Register long form with default if provided
-	if longName != "" {
-		fs.StringVar(&sf.Long, longName, defaultValue, usage)
-	}
+	// Phase 1 pflag compatibility: Use pflag's StringVarP when both are provided
+	// This is a temporary fix for Phase 1 - will be properly refactored in Phase 2
+	if longName != "" && shortName != "" {
+		// StringVarP is a pflag-specific method that registers both long and short forms
+		// We use reflection to call it if available (when using pflag)
+		if method := reflect.ValueOf(fs).MethodByName("StringVarP"); method.IsValid() {
+			// Call StringVarP(p *string, name, shorthand string, value string, usage string)
+			method.Call([]reflect.Value{
+				reflect.ValueOf(&sf.Long),
+				reflect.ValueOf(longName),
+				reflect.ValueOf(shortName),
+				reflect.ValueOf(defaultValue),
+				reflect.ValueOf(usage),
+			})
+		} else {
+			// Fallback for standard flag package (shouldn't happen in Phase 1)
+			fs.StringVar(&sf.Long, longName, defaultValue, usage)
+		}
 
-	// Register short form with custom handler to track if it was set
-	if shortName != "" {
+		// Still register short form handler to track if it was set
 		fs.Func(shortName, usage+" (short form)", func(value string) error {
 			sf.Short = value
 			sf.shortSet = true
+			return nil
+		})
+	} else if longName != "" {
+		fs.StringVar(&sf.Long, longName, defaultValue, usage)
+	} else {
+		// Only short form
+		fs.Func(shortName, usage, func(value string) error {
+			sf.Short = value
+			sf.shortSet = true
+			sf.Long = value // Also set Long for compatibility
 			return nil
 		})
 	}
@@ -58,11 +82,33 @@ func RegisterBool(fs *flag.FlagSet, bf *BoolFlag, longName, shortName string, us
 		panic(fmt.Sprintf("RegisterBool: at least one of longName or shortName must be provided (got longName=%q, shortName=%q)", longName, shortName))
 	}
 
-	if longName != "" {
+	// Phase 1 pflag compatibility: Use pflag's BoolVarP when both are provided
+	// This is a temporary fix for Phase 1 - will be properly refactored in Phase 2
+	if longName != "" && shortName != "" {
+		// BoolVarP is a pflag-specific method that registers both long and short forms
+		// We use reflection to call it if available (when using pflag)
+		if method := reflect.ValueOf(fs).MethodByName("BoolVarP"); method.IsValid() {
+			// Call BoolVarP(p *bool, name, shorthand string, value bool, usage string)
+			method.Call([]reflect.Value{
+				reflect.ValueOf(&bf.Long),
+				reflect.ValueOf(longName),
+				reflect.ValueOf(shortName),
+				reflect.ValueOf(false),
+				reflect.ValueOf(usage),
+			})
+			// Also register short as an alias that sets bf.Short
+			fs.BoolVar(&bf.Short, shortName, false, usage+" (short form)")
+		} else {
+			// Fallback for standard flag package (shouldn't happen in Phase 1)
+			fs.BoolVar(&bf.Long, longName, false, usage)
+			fs.BoolVar(&bf.Short, shortName, false, usage+" (short form)")
+		}
+	} else if longName != "" {
 		fs.BoolVar(&bf.Long, longName, false, usage)
-	}
-	if shortName != "" {
-		fs.BoolVar(&bf.Short, shortName, false, usage+" (short form)")
+	} else {
+		fs.BoolVar(&bf.Short, shortName, false, usage)
+		// Also set Long for compatibility
+		fs.BoolVar(&bf.Long, shortName, false, usage)
 	}
 }
 
