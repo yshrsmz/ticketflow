@@ -25,9 +25,9 @@ This affects commands: `show`, `start`, `close`, `cleanup`, and others that take
 
 ## Solution
 
-Migrate from standard `flag` package to `spf13/pflag` which supports interspersed flags. While pflag is mostly a drop-in replacement, we need to explicitly enable interspersed mode since it defaults to false for compatibility.
+Migrate from standard `flag` package to `spf13/pflag` which supports interspersed flags. pflag is mostly a drop-in replacement and **interspersed mode is enabled by default** (contrary to earlier assumptions).
 
-**CRITICAL**: pflag requires `SetInterspersed(true)` to allow flags after positional arguments!
+**UPDATE**: pflag defaults to `interspersed = true` when creating a new FlagSet, so no explicit `SetInterspersed(true)` calls are needed!
 
 ## Why pflag Over Other Options
 
@@ -39,53 +39,46 @@ After analyzing multiple CLI packages:
 
 ## Implementation Plan
 
-### Phase 1: Add Dependency
+### Phase 1: Basic Migration (Sub-ticket 1)
 ```bash
 go get github.com/spf13/pflag
 ```
 
-### Phase 2: Update Imports
-Replace across all files:
-```go
-// Before
-import "flag"
+Update all imports from `"flag"` to `flag "github.com/spf13/pflag"` across 20 files.
 
-// After
-import flag "github.com/spf13/pflag"
-```
+### Phase 2: Refactor Flag Helpers (Sub-ticket 2)
+Update the custom flag helpers in `internal/cli/commands/flag_types.go` and the 6 commands that use them:
+- Convert `RegisterString` calls to use pflag's `StringVarP` method
+- Convert `RegisterBool` calls to use pflag's `BoolVarP` method
+- Simplify the StringFlag/BoolFlag types since pflag handles short/long forms natively
 
-### Phase 3: Enable Interspersed Mode
-After creating each FlagSet, enable interspersed parsing:
-```go
-fs := pflag.NewFlagSet(cmd.Name(), pflag.ContinueOnError)
-fs.SetInterspersed(true) // CRITICAL: Allow flags after positional args
-```
+### Phase 3: Comprehensive Testing (Sub-ticket 3)
+Add integration tests to verify interspersed flag support:
+- Test all commands with flags after positional arguments
+- Ensure backward compatibility (flags before args still work)
+- Add test cases for edge cases (multiple args, mixed flags)
+- Update existing tests that validate "unexpected arguments" errors
 
-Locations that need this change:
-- `cmd/ticketflow/executor.go:15` - Main executor
-- `internal/cli/commands/worktree.go:86` - Worktree subcommands
-- Any other `NewFlagSet` calls found during migration
+### Key Changes Required
 
-### Phase 4: Refactor Flag Helpers
-The custom flag helpers in `internal/cli/commands/flag_types.go` need refactoring:
-- Current: Registers short/long flags separately with precedence logic
-- pflag: Use `*VarP` methods for built-in shorthand support
-- Example: `fs.StringVarP(&flags.format, "format", "f", "text", "Output format")`
+1. **Import Updates** (20 files):
+   - Simple alias import change
+   - No SetInterspersed needed (defaults to true)
+   - Fix one instance of ExitOnError in worktree.go:86
 
-### Phase 5: Test All Commands
-Verify that flags work in any position:
-```bash
-# All of these should work after migration
-ticketflow show ticket-123 --format json
-ticketflow show --format json ticket-123
-ticketflow start ticket-123 --format json
-ticketflow close ticket-123 --format json
-```
+2. **Flag Helper Refactoring** (7 files):
+   ```go
+   // Before: Custom RegisterString/RegisterBool
+   RegisterString(fs, &flags.format, "format", "o", FormatText, "...")
 
-### Phase 6: Update Tests
-- Update test cases to verify flexible flag positioning
-- Add new test cases for interspersed flags
-- Ensure backward compatibility (old style still works)
+   // After: Use pflag's native *VarP methods
+   fs.StringVarP(&flags.format, "format", "o", FormatText, "...")
+   ```
+
+3. **Testing**:
+   - Verify all commands work with flags in any position
+   - Update tests that expect "unexpected arguments" errors
+   - Add comprehensive integration tests
 
 ## Files to Modify
 
@@ -143,7 +136,7 @@ make test
 2. All existing functionality preserved
 3. No breaking changes for current users
 4. Tests provide coverage for new capability
-5. ~~Migration completed in under 3 hours~~ **Revised: 4-6 hours** (due to flag helper refactoring and comprehensive testing)
+5. Migration completed in 2-3 hours (simpler than originally thought since SetInterspersed not needed)
 
 ## Benefits
 
@@ -162,16 +155,30 @@ If issues arise, reverting is straightforward:
 
 Since pflag is API-compatible with standard flag, the risk is minimal.
 
-## Known Complexities (from Codex review)
+## Implementation Strategy
 
-1. **SetInterspersed Required**: pflag does NOT enable interspersed by default - must explicitly call `SetInterspersed(true)`
-2. **Flag Helper Refactoring**: Custom short/long flag logic in `flag_types.go` needs complete rewrite for pflag's `*VarP` API
-3. **Test Coverage Gap**: No existing integration tests for real CLI parsing path - need to add these
-4. **Estimate Adjustment**: 30+ files to modify, plus testing = likely 4-6 hours, not 2-3
+**Breaking this into 3 sub-tickets for staged delivery:**
+
+1. **Sub-ticket 1**: Basic pflag migration (imports only)
+   - Low risk, mechanical change
+   - Enables interspersed flags immediately
+   - ~1 hour effort
+
+2. **Sub-ticket 2**: Refactor flag helpers
+   - Update RegisterString/RegisterBool functions
+   - Simplify flag precedence logic
+   - ~1 hour effort
+
+3. **Sub-ticket 3**: Comprehensive testing
+   - Add integration tests for interspersed flags
+   - Update existing test expectations
+   - ~1 hour effort
+
+This staged approach reduces risk and makes review easier.
 
 ## References
 
 - pflag documentation: https://github.com/spf13/pflag
 - Issue discussion: Current conversation about CLI flexibility
 - Standard flag limitations: https://github.com/golang/go/issues/36744
-- Codex feasibility review: Identified critical SetInterspersed requirement
+- **Corrected**: pflag defaults to interspersed=true, no explicit SetInterspersed needed
