@@ -5,8 +5,8 @@ package command
 
 import (
 	"context"
-	"flag"
 	"fmt"
+	flag "github.com/spf13/pflag"
 	// Note: This import would be needed for real implementation
 	// "github.com/yshrsmz/ticketflow/internal/cli"
 )

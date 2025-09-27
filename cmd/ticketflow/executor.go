@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"flag"
+	flag "github.com/spf13/pflag"
 
 	"github.com/yshrsmz/ticketflow/internal/cli"
 	"github.com/yshrsmz/ticketflow/internal/command"

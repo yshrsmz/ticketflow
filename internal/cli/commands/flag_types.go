@@ -7,8 +7,9 @@
 package commands
 
 import (
-	"flag"
 	"fmt"
+	flag "github.com/spf13/pflag"
+	"reflect"
 )
 
 // StringFlag represents a string flag with long and short forms.
@@ -36,16 +37,49 @@ func RegisterString(fs *flag.FlagSet, sf *StringFlag, longName, shortName, defau
 
 	sf.Long = defaultValue
 
-	// Register long form with default if provided
-	if longName != "" {
+	// TODO(Phase 2): Remove this reflection-based workaround
+	// This is intentional technical debt from Phase 1 of the pflag migration.
+	// Phase 1 (ticket: 250926-165945-phase1-pflag-basic-import-migration) replaced imports only.
+	// Phase 2 (ticket: 250926-170130-phase2-pflag-proper-registration) will:
+	//   - Remove all reflection-based code
+	//   - Use pflag's StringVarP directly
+	//   - Properly handle flag precedence with pflag's native behavior
+	// See docs/pflag-migration-phases.md for full migration plan
+	//
+	// Phase 1 pflag compatibility: Use pflag's StringVarP when both are provided
+	// This is a temporary fix for Phase 1 - will be properly refactored in Phase 2
+	if longName != "" && shortName != "" {
+		// StringVarP is a pflag-specific method that registers both long and short forms
+		// We use reflection to call it if available (when using pflag)
+		if method := reflect.ValueOf(fs).MethodByName("StringVarP"); method.IsValid() {
+			// Call StringVarP(p *string, name, shorthand string, value string, usage string)
+			method.Call([]reflect.Value{
+				reflect.ValueOf(&sf.Long),
+				reflect.ValueOf(longName),
+				reflect.ValueOf(shortName),
+				reflect.ValueOf(defaultValue),
+				reflect.ValueOf(usage),
+			})
+			// Note: With pflag, both short and long forms write to the same variable (sf.Long)
+			// The "last flag wins" behavior is pflag's default
+		} else {
+			// Fallback for standard flag package (shouldn't happen in Phase 1)
+			fs.StringVar(&sf.Long, longName, defaultValue, usage)
+			// Register short form handler to track if it was set
+			fs.Func(shortName, usage+" (short form)", func(value string) error {
+				sf.Short = value
+				sf.shortSet = true
+				return nil
+			})
+		}
+	} else if longName != "" {
 		fs.StringVar(&sf.Long, longName, defaultValue, usage)
-	}
-
-	// Register short form with custom handler to track if it was set
-	if shortName != "" {
-		fs.Func(shortName, usage+" (short form)", func(value string) error {
+	} else {
+		// Only short form
+		fs.Func(shortName, usage, func(value string) error {
 			sf.Short = value
 			sf.shortSet = true
+			sf.Long = value // Also set Long for compatibility
 			return nil
 		})
 	}
@@ -58,16 +92,52 @@ func RegisterBool(fs *flag.FlagSet, bf *BoolFlag, longName, shortName string, us
 		panic(fmt.Sprintf("RegisterBool: at least one of longName or shortName must be provided (got longName=%q, shortName=%q)", longName, shortName))
 	}
 
-	if longName != "" {
+	// TODO(Phase 2): Remove this reflection-based workaround
+	// This is intentional technical debt from Phase 1 of the pflag migration.
+	// Phase 1 (ticket: 250926-165945-phase1-pflag-basic-import-migration) replaced imports only.
+	// Phase 2 (ticket: 250926-170130-phase2-pflag-proper-registration) will:
+	//   - Remove all reflection-based code
+	//   - Use pflag's BoolVarP directly
+	//   - Properly handle flag precedence with pflag's native behavior
+	// See docs/pflag-migration-phases.md for full migration plan
+	//
+	// Phase 1 pflag compatibility: Use pflag's BoolVarP when both are provided
+	// This is a temporary fix for Phase 1 - will be properly refactored in Phase 2
+	if longName != "" && shortName != "" {
+		// BoolVarP is a pflag-specific method that registers both long and short forms
+		// We use reflection to call it if available (when using pflag)
+		if method := reflect.ValueOf(fs).MethodByName("BoolVarP"); method.IsValid() {
+			// Call BoolVarP(p *bool, name, shorthand string, value bool, usage string)
+			method.Call([]reflect.Value{
+				reflect.ValueOf(&bf.Long),
+				reflect.ValueOf(longName),
+				reflect.ValueOf(shortName),
+				reflect.ValueOf(false),
+				reflect.ValueOf(usage),
+			})
+			// Note: With pflag, we can't track short vs long precedence in Phase 1
+			// pflag's behavior is "last flag wins" which differs from our custom logic
+			// This will be properly addressed in Phase 2
+		} else {
+			// Fallback for standard flag package (shouldn't happen in Phase 1)
+			fs.BoolVar(&bf.Long, longName, false, usage)
+			fs.BoolVar(&bf.Short, shortName, false, usage+" (short form)")
+		}
+	} else if longName != "" {
 		fs.BoolVar(&bf.Long, longName, false, usage)
-	}
-	if shortName != "" {
-		fs.BoolVar(&bf.Short, shortName, false, usage+" (short form)")
+	} else {
+		fs.BoolVar(&bf.Short, shortName, false, usage)
+		// Also set Long for compatibility
+		fs.BoolVar(&bf.Long, shortName, false, usage)
 	}
 }
 
-// Value returns the resolved string value (short takes precedence if set)
+// Value returns the resolved string value
+// Phase 1 note: With pflag, "last flag wins" instead of "short takes precedence"
+// This will be addressed properly in Phase 2
 func (sf *StringFlag) Value() string {
+	// With pflag's StringVarP, both forms write to sf.Long
+	// Original behavior (short takes precedence) only works with standard flag package
 	if sf.shortSet {
 		return sf.Short
 	}

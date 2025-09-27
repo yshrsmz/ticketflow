@@ -2,7 +2,7 @@ package commands
 
 import (
 	"context"
-	"flag"
+	flag "github.com/spf13/pflag"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -55,7 +55,8 @@ func TestCloseCommand_SetupFlags(t *testing.T) {
 	assert.NotNil(t, forceFlag)
 	assert.Equal(t, "false", forceFlag.DefValue)
 
-	forceShortFlag := fs.Lookup("f")
+	// Phase 1: With pflag, use ShorthandLookup for shorthand flags
+	forceShortFlag := fs.ShorthandLookup("f")
 	assert.NotNil(t, forceShortFlag)
 
 	reasonFlag := fs.Lookup("reason")
@@ -66,9 +67,11 @@ func TestCloseCommand_SetupFlags(t *testing.T) {
 	assert.NotNil(t, formatFlag)
 	assert.Equal(t, FormatText, formatFlag.DefValue)
 
-	formatShortFlag := fs.Lookup("o")
+	// Phase 1: With pflag, use ShorthandLookup for shorthand flags
+	formatShortFlag := fs.ShorthandLookup("o")
 	assert.NotNil(t, formatShortFlag)
-	assert.Equal(t, "", formatShortFlag.DefValue)
+	// With pflag's StringVarP, shorthand points to same flag as long form
+	assert.Equal(t, FormatText, formatShortFlag.DefValue)
 }
 
 func TestCloseCommand_Validate(t *testing.T) {

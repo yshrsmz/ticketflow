@@ -1,8 +1,8 @@
 package cli
 
 import (
-	"flag"
 	"fmt"
+	flag "github.com/spf13/pflag"
 
 	"github.com/yshrsmz/ticketflow/internal/log"
 )

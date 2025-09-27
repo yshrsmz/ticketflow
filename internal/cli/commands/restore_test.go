@@ -1,7 +1,7 @@
 package commands
 
 import (
-	"flag"
+	flag "github.com/spf13/pflag"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -52,7 +52,8 @@ func TestRestoreCommand_SetupFlags(t *testing.T) {
 	assert.Equal(t, FormatText, formatFlag.DefValue)
 	assert.Equal(t, "Output format (text|json)", formatFlag.Usage)
 
-	formatShortFlag := fs.Lookup("o")
+	// Phase 1: With pflag, use ShorthandLookup for shorthand flags
+	formatShortFlag := fs.ShorthandLookup("o")
 	assert.NotNil(t, formatShortFlag)
 	// Short form flag doesn't have a default value in the new implementation
 }
