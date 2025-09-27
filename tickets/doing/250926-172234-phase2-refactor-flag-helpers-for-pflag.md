@@ -1,12 +1,12 @@
 ---
 priority: 2
-description: "Phase 2: Refactor custom flag helpers to use pflag's native shorthand support"
+description: 'Phase 2: Refactor custom flag helpers to use pflag''s native shorthand support'
 created_at: "2025-09-26T17:22:34+09:00"
-started_at: null
+started_at: "2025-09-28T00:05:58+09:00"
 closed_at: null
 related:
-  - "parent:250924-143504-migrate-to-pflag-for-flexible-cli-args"
-  - "blocked-by:250926-165945-phase1-pflag-basic-import-migration"
+    - parent:250924-143504-migrate-to-pflag-for-flexible-cli-args
+    - blocked-by:250926-165945-phase1-pflag-basic-import-migration
 ---
 
 # Phase 2: Refactor Flag Helpers for pflag
