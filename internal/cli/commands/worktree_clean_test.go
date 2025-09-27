@@ -30,7 +30,8 @@ func TestWorktreeCleanCommand_SetupFlags(t *testing.T) {
 
 	// Verify format flags were registered
 	assert.NotNil(t, fs.Lookup("format"))
-	assert.NotNil(t, fs.Lookup("o"))
+	// Phase 1: With pflag, use ShorthandLookup for shorthand flags
+	assert.NotNil(t, fs.ShorthandLookup("o"))
 }
 
 func TestWorktreeCleanCommand_Validate(t *testing.T) {

@@ -31,12 +31,12 @@ func TestStringFlag(t *testing.T) {
 			expectedValue: "json",
 		},
 		{
-			name: "both provided - short takes precedence",
+			name: "both provided - last flag wins (Phase 1 pflag behavior)",
 			setupFlags: func(fs *flag.FlagSet, sf *StringFlag) {
 				RegisterString(fs, sf, "format", "o", "text", "Output format")
 			},
 			args:          []string{"--format", "json", "-o", "yaml"},
-			expectedValue: "yaml",
+			expectedValue: "yaml", // With pflag in Phase 1, last flag wins (happens to match old behavior here)
 		},
 		{
 			name: "neither provided - uses default",
@@ -47,12 +47,20 @@ func TestStringFlag(t *testing.T) {
 			expectedValue: "text",
 		},
 		{
-			name: "short form explicitly set to default value",
+			name: "last flag wins even if it's the default value (Phase 1)",
 			setupFlags: func(fs *flag.FlagSet, sf *StringFlag) {
 				RegisterString(fs, sf, "format", "o", "text", "Output format")
 			},
 			args:          []string{"--format", "json", "-o", "text"},
-			expectedValue: "text", // Short form wins even when it's the default value
+			expectedValue: "text", // With pflag: last flag wins (happens to match old behavior here)
+		},
+		{
+			name: "Phase 1 limitation: long after short wins (different from original)",
+			setupFlags: func(fs *flag.FlagSet, sf *StringFlag) {
+				RegisterString(fs, sf, "format", "o", "text", "Output format")
+			},
+			args:          []string{"-o", "yaml", "--format", "json"},
+			expectedValue: "json", // Phase 1: last wins (json). Original: short wins (yaml). Will fix in Phase 2.
 		},
 	}
 

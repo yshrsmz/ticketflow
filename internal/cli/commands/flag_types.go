@@ -51,17 +51,18 @@ func RegisterString(fs *flag.FlagSet, sf *StringFlag, longName, shortName, defau
 				reflect.ValueOf(defaultValue),
 				reflect.ValueOf(usage),
 			})
+			// Note: With pflag, both short and long forms write to the same variable (sf.Long)
+			// The "last flag wins" behavior is pflag's default
 		} else {
 			// Fallback for standard flag package (shouldn't happen in Phase 1)
 			fs.StringVar(&sf.Long, longName, defaultValue, usage)
+			// Register short form handler to track if it was set
+			fs.Func(shortName, usage+" (short form)", func(value string) error {
+				sf.Short = value
+				sf.shortSet = true
+				return nil
+			})
 		}
-
-		// Still register short form handler to track if it was set
-		fs.Func(shortName, usage+" (short form)", func(value string) error {
-			sf.Short = value
-			sf.shortSet = true
-			return nil
-		})
 	} else if longName != "" {
 		fs.StringVar(&sf.Long, longName, defaultValue, usage)
 	} else {
@@ -96,8 +97,9 @@ func RegisterBool(fs *flag.FlagSet, bf *BoolFlag, longName, shortName string, us
 				reflect.ValueOf(false),
 				reflect.ValueOf(usage),
 			})
-			// Also register short as an alias that sets bf.Short
-			fs.BoolVar(&bf.Short, shortName, false, usage+" (short form)")
+			// Note: With pflag, we can't track short vs long precedence in Phase 1
+			// pflag's behavior is "last flag wins" which differs from our custom logic
+			// This will be properly addressed in Phase 2
 		} else {
 			// Fallback for standard flag package (shouldn't happen in Phase 1)
 			fs.BoolVar(&bf.Long, longName, false, usage)
@@ -112,8 +114,12 @@ func RegisterBool(fs *flag.FlagSet, bf *BoolFlag, longName, shortName string, us
 	}
 }
 
-// Value returns the resolved string value (short takes precedence if set)
+// Value returns the resolved string value
+// Phase 1 note: With pflag, "last flag wins" instead of "short takes precedence"
+// This will be addressed properly in Phase 2
 func (sf *StringFlag) Value() string {
+	// With pflag's StringVarP, both forms write to sf.Long
+	// Original behavior (short takes precedence) only works with standard flag package
 	if sf.shortSet {
 		return sf.Short
 	}

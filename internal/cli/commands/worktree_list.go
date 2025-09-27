@@ -39,15 +39,14 @@ func (c *WorktreeListCommand) Usage() string {
 
 // worktreeListFlags holds the flags for the worktree list command
 type worktreeListFlags struct {
-	format      string
-	formatShort string
+	format string
 }
 
 // SetupFlags configures the flag set for this command
 func (c *WorktreeListCommand) SetupFlags(fs *flag.FlagSet) interface{} {
 	flags := &worktreeListFlags{}
-	fs.StringVar(&flags.format, "format", FormatText, "Output format (text, json)")
-	fs.StringVar(&flags.formatShort, "o", FormatText, "Output format (text, json)")
+	// Phase 1: Use StringVarP for proper shorthand support with pflag
+	fs.StringVarP(&flags.format, "format", "o", FormatText, "Output format (text, json)")
 	return flags
 }
 
@@ -64,11 +63,6 @@ func (c *WorktreeListCommand) Validate(flags interface{}, args []string) error {
 	}
 
 	f := flags.(*worktreeListFlags)
-
-	// Handle short form
-	if f.formatShort != "" && f.formatShort != FormatText {
-		f.format = f.formatShort
-	}
 
 	// Validate format (empty string defaults to text which is valid)
 	if f.format != "" {

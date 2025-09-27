@@ -51,13 +51,15 @@ func TestNewCommand_SetupFlags(t *testing.T) {
 	assert.Equal(t, "text", formatFlag.DefValue)
 
 	// Test that short form flags are registered
-	pFlag := fs.Lookup("p")
+	// Phase 1: With pflag, use ShorthandLookup for shorthand flags
+	pFlag := fs.ShorthandLookup("p")
 	assert.NotNil(t, pFlag)
 	assert.Equal(t, "", pFlag.DefValue)
 
-	oFlag := fs.Lookup("o")
+	// Phase 1: With pflag, use ShorthandLookup for shorthand flags
+	oFlag := fs.ShorthandLookup("o")
 	assert.NotNil(t, oFlag)
-	assert.Equal(t, "", oFlag.DefValue)
+	assert.Equal(t, "text", oFlag.DefValue) // Note: Default is from the long form flag
 }
 
 func TestNewCommand_Validate(t *testing.T) {
