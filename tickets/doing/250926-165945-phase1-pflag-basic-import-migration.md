@@ -172,6 +172,32 @@ After making these changes:
 ./ticketflow show 250926-165945-phase1-pflag-basic-import-migration --format json  # ✅ Works!
 ```
 
+### Codex Review Fixes (2025-09-27 22:09)
+After initial implementation, Codex identified and fixed several issues:
+
+1. **Removed Synthetic Flag Aliases**:
+   - Issue: `fs.Func()` calls were creating unintended long flags (--o, --f) from shorthand names
+   - Fix: Removed these calls as pflag's StringVarP/BoolVarP handle both forms internally
+   - Impact: Cleaner flag registration without duplicate entries
+
+2. **Updated Test Expectations**:
+   - Changed tests to use `ShorthandLookup()` for shorthand flags instead of `Lookup()`
+   - Fixed default value expectations (shorthand now points to same flag as long form)
+   - Added test documentation for Phase 1 "last flag wins" behavior
+
+3. **Fixed worktree_list.go Implementation**:
+   - Replaced separate StringVar calls with single StringVarP call
+   - Removed formatShort field and related logic
+   - Simplified implementation using pflag's native dual-form support
+
+### Final Status
+✅ **Phase 1 FULLY COMPLETED** - pflag migration successful with all issues resolved
+- All 39 files migrated to use pflag
+- Tests passing with correct pflag behavior expectations
+- Build successful and interspersed flags working
+- Codex review issues addressed (commit: 6124e29)
+- Ready for Phase 2 refactoring
+
 ### Next Steps
 - Phase 2: Remove reflection workaround and properly refactor flag helpers
 - Phase 3: Add comprehensive interspersed flag testing
