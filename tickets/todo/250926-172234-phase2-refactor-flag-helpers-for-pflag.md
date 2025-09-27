@@ -28,9 +28,20 @@ The current implementation has custom logic for handling short/long flag precede
 - `RegisterString` uses `fs.Func` for custom short flag handling
 - This complexity is unnecessary with pflag
 
+### Issues Discovered in Phase 1
+During Phase 1 migration, we discovered that pflag handles single-character flags differently:
+- pflag requires `StringVarP`/`BoolVarP` for combined long/short registration
+- Using `StringVar` with a single character doesn't create a shorthand flag
+- The reflection-based compatibility layer in Phase 1 is a temporary workaround
+- Tests had to be updated from `-s` to `--s` for single-char flags registered with StringVar
+
 ## Implementation Plan
 
 ### 1. Refactor flag_types.go
+
+**CRITICAL: Remove Phase 1 Reflection Workaround**
+The Phase 1 implementation added reflection to call pflag's StringVarP/BoolVarP methods.
+This MUST be removed and replaced with proper pflag usage.
 
 **Option A: Direct Migration (Recommended)**
 Remove the helper functions entirely and use pflag directly in commands:

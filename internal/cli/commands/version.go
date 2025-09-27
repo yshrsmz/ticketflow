@@ -3,8 +3,8 @@ package commands
 import (
 	"context"
 	"encoding/json"
-	"flag"
 	"fmt"
+	flag "github.com/spf13/pflag"
 	"os"
 
 	"github.com/yshrsmz/ticketflow/internal/cli"

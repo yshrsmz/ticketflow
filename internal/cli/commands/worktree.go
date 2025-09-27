@@ -2,8 +2,8 @@ package commands
 
 import (
 	"context"
-	"flag"
 	"fmt"
+	flag "github.com/spf13/pflag"
 
 	"github.com/yshrsmz/ticketflow/internal/command"
 )
@@ -83,7 +83,7 @@ func (c *WorktreeCommand) Execute(ctx context.Context, flags interface{}, args [
 	}
 
 	// Parse flags for the subcommand
-	fs := flag.NewFlagSet(fmt.Sprintf("worktree %s", subcmdName), flag.ExitOnError)
+	fs := flag.NewFlagSet(fmt.Sprintf("worktree %s", subcmdName), flag.ContinueOnError)
 	subcmdFlags := subcmd.SetupFlags(fs)
 
 	// Parse remaining arguments

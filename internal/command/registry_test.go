@@ -2,7 +2,7 @@ package command
 
 import (
 	"context"
-	"flag"
+	flag "github.com/spf13/pflag"
 	"testing"
 
 	"github.com/stretchr/testify/assert"

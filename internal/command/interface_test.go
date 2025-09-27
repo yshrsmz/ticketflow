@@ -3,7 +3,7 @@ package command
 import (
 	"context"
 	"errors"
-	"flag"
+	flag "github.com/spf13/pflag"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -89,7 +89,7 @@ func TestCommand_Interface(t *testing.T) {
 	require.NotNil(t, flags)
 
 	// Parse some flags
-	err := fs.Parse([]string{"-verbose", "-output", "test.txt"})
+	err := fs.Parse([]string{"--verbose", "--output", "test.txt"})
 	require.NoError(t, err)
 
 	f, ok := flags.(*testFlags)

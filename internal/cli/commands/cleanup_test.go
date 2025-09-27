@@ -2,7 +2,7 @@ package commands
 
 import (
 	"context"
-	"flag"
+	flag "github.com/spf13/pflag"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -31,9 +31,11 @@ func TestCleanupCommand_SetupFlags(t *testing.T) {
 	// Verify flags are registered
 	assert.NotNil(t, fs.Lookup("dry-run"))
 	assert.NotNil(t, fs.Lookup("force"))
-	assert.NotNil(t, fs.Lookup("f"))
+	// Phase 1: With pflag, shorthand is not a separate flag - use ShorthandLookup
+	assert.NotNil(t, fs.ShorthandLookup("f"))
 	assert.NotNil(t, fs.Lookup("format"))
-	assert.NotNil(t, fs.Lookup("o"))
+	// Phase 1: With pflag, shorthand is not a separate flag - use ShorthandLookup
+	assert.NotNil(t, fs.ShorthandLookup("o"))
 }
 
 func TestCleanupCommand_Validate(t *testing.T) {

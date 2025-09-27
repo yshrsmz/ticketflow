@@ -2,7 +2,7 @@ package commands
 
 import (
 	"context"
-	"flag"
+	flag "github.com/spf13/pflag"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -49,7 +49,7 @@ func TestListCommand_SetupFlags(t *testing.T) {
 		},
 		{
 			name:           "status flag short form",
-			args:           []string{"-s", "doing"},
+			args:           []string{"--s", "doing"}, // Phase 1: pflag requires -- for multi-char names
 			expectedStatus: "doing",
 			expectedCount:  20,
 			expectedFormat: FormatText,
@@ -63,7 +63,7 @@ func TestListCommand_SetupFlags(t *testing.T) {
 		},
 		{
 			name:           "count flag short form",
-			args:           []string{"-c", "5"},
+			args:           []string{"--c", "5"}, // Phase 1: pflag requires -- for multi-char names
 			expectedStatus: "",
 			expectedCount:  5,
 			expectedFormat: FormatText,
