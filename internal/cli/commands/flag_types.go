@@ -37,6 +37,15 @@ func RegisterString(fs *flag.FlagSet, sf *StringFlag, longName, shortName, defau
 
 	sf.Long = defaultValue
 
+	// TODO(Phase 2): Remove this reflection-based workaround
+	// This is intentional technical debt from Phase 1 of the pflag migration.
+	// Phase 1 (ticket: 250926-165945-phase1-pflag-basic-import-migration) replaced imports only.
+	// Phase 2 (ticket: 250926-170130-phase2-pflag-proper-registration) will:
+	//   - Remove all reflection-based code
+	//   - Use pflag's StringVarP directly
+	//   - Properly handle flag precedence with pflag's native behavior
+	// See docs/pflag-migration-phases.md for full migration plan
+	//
 	// Phase 1 pflag compatibility: Use pflag's StringVarP when both are provided
 	// This is a temporary fix for Phase 1 - will be properly refactored in Phase 2
 	if longName != "" && shortName != "" {
@@ -83,6 +92,15 @@ func RegisterBool(fs *flag.FlagSet, bf *BoolFlag, longName, shortName string, us
 		panic(fmt.Sprintf("RegisterBool: at least one of longName or shortName must be provided (got longName=%q, shortName=%q)", longName, shortName))
 	}
 
+	// TODO(Phase 2): Remove this reflection-based workaround
+	// This is intentional technical debt from Phase 1 of the pflag migration.
+	// Phase 1 (ticket: 250926-165945-phase1-pflag-basic-import-migration) replaced imports only.
+	// Phase 2 (ticket: 250926-170130-phase2-pflag-proper-registration) will:
+	//   - Remove all reflection-based code
+	//   - Use pflag's BoolVarP directly
+	//   - Properly handle flag precedence with pflag's native behavior
+	// See docs/pflag-migration-phases.md for full migration plan
+	//
 	// Phase 1 pflag compatibility: Use pflag's BoolVarP when both are provided
 	// This is a temporary fix for Phase 1 - will be properly refactored in Phase 2
 	if longName != "" && shortName != "" {
