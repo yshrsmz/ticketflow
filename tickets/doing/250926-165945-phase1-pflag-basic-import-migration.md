@@ -14,20 +14,22 @@ related:
 Replace Go's standard `flag` package with `spf13/pflag` across the codebase. This is a mechanical change that immediately enables interspersed flag support.
 
 ## Scope
-- Add pflag dependency
-- Update 20 Go files that import the flag package
+- Add pflag dependency (verify it's not already present first)
+- Update all 39 Go files that import the flag package (20 production + 19 test files)
 - Fix one instance of ExitOnError behavior
 - No functional changes to flag registration logic (that's Phase 2)
+- Test files are updated for consistency even though they don't directly benefit from interspersed flags
 
 ## Implementation Steps
 
 ### 1. Add Dependency
+First verify pflag is not already in go.mod, then:
 ```bash
 go get github.com/spf13/pflag
 ```
 
 ### 2. Update Imports
-Replace in all 20 files:
+Replace in all 39 files (both production and test files):
 ```go
 // Before
 import "flag"
@@ -37,7 +39,8 @@ import flag "github.com/spf13/pflag"
 ```
 
 ### Files to Update
-Production code (non-test files):
+
+#### Production code (20 files):
 - `cmd/ticketflow/executor.go`
 - `internal/cli/logging.go`
 - `internal/cli/commands/version.go`
@@ -59,6 +62,28 @@ Production code (non-test files):
 - `internal/command/interface.go`
 - `internal/command/migration_example.go`
 
+#### Test files (19 files):
+- `internal/cli/commands/start_test.go`
+- `internal/cli/commands/new_test.go`
+- `internal/cli/commands/worktree_list_test.go`
+- `internal/cli/commands/init_test.go`
+- `internal/cli/commands/status_test.go`
+- `internal/cli/commands/flag_types_test.go`
+- `internal/cli/commands/cleanup_integration_test.go`
+- `internal/cli/commands/restore_test.go`
+- `internal/cli/commands/close_test.go`
+- `internal/cli/commands/version_test.go`
+- `internal/cli/commands/worktree_clean_test.go`
+- `internal/cli/commands/show_test.go`
+- `internal/cli/commands/help_test.go`
+- `internal/cli/commands/worktree_test.go`
+- `internal/cli/commands/cleanup_test.go`
+- `internal/cli/commands/list_test.go`
+- `internal/command/interface_test.go`
+- `internal/command/registry_test.go`
+
+Note: Test files are updated for consistency and to ensure the test suite continues to work correctly with pflag.
+
 ### 3. Fix ExitOnError Instance
 In `internal/cli/commands/worktree.go:86`, change:
 ```go
@@ -71,11 +96,14 @@ fs := flag.NewFlagSet(fmt.Sprintf("worktree %s", subcmdName), flag.ContinueOnErr
 
 ## Testing
 After making these changes:
-1. Run `make test` to ensure all tests pass
-2. Manually verify interspersed flags work:
+1. Run `make test` to ensure all tests pass (no test changes should be needed)
+2. Build the binary: `make build`
+3. Manually verify interspersed flags work:
    ```bash
    ./ticketflow show ticket-123 --format json  # Should now work!
    ./ticketflow show --format json ticket-123  # Should still work
+   ./ticketflow start ticket-123 -f            # Short flags after args
+   ./ticketflow cleanup ticket-123 --force     # Long flags after args
    ```
 
 ## Success Criteria
@@ -88,3 +116,10 @@ After making these changes:
 - This is a pure import change - no logic modifications
 - The RegisterString/RegisterBool helpers will still work but will be optimized in Phase 2
 - Test files are also updated to maintain consistency
+- pflag defaults to interspersed mode (SetInterspersed(true)), so no explicit configuration needed
+- The only behavioral change is fixing ExitOnError to ContinueOnError for proper error handling
+
+## Risks and Mitigation
+- **Risk**: Minimal - pflag is API-compatible with standard flag package
+- **Rollback**: Simple - revert imports and remove dependency
+- **Testing**: Comprehensive test suite ensures no regressions
