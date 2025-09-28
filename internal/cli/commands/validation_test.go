@@ -211,23 +211,23 @@ func TestAssertFlags(t *testing.T) {
 
 	t.Run("successful assertion with complex type", func(t *testing.T) {
 		type complexFlags struct {
-			format StringFlag
-			force  BoolFlag
+			format string
+			force  bool
 			count  int
 		}
 
 		flags := &complexFlags{
-			count: 10,
+			format: "json",
+			force:  true,
+			count:  10,
 		}
-		flags.format.Long = "json"
-		flags.force.Short = true
 
 		result, err := AssertFlags[complexFlags](flags)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, result)
-		assert.Equal(t, "json", result.format.Long)
-		assert.True(t, result.force.Short)
+		assert.Equal(t, "json", result.format)
+		assert.True(t, result.force)
 		assert.Equal(t, 10, result.count)
 	})
 }

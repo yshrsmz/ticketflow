@@ -45,33 +45,33 @@ func TestWorktreeCleanCommand_Validate(t *testing.T) {
 	}{
 		{
 			name:    "valid no arguments with text format",
-			flags:   &worktreeCleanFlags{format: StringFlag{Long: "text"}},
+			flags:   &worktreeCleanFlags{format: "text"},
 			args:    []string{},
 			wantErr: false,
 		},
 		{
 			name:    "valid no arguments with json format",
-			flags:   &worktreeCleanFlags{format: StringFlag{Long: "json"}},
+			flags:   &worktreeCleanFlags{format: "json"},
 			args:    []string{},
 			wantErr: false,
 		},
 		{
 			name:        "invalid format",
-			flags:       &worktreeCleanFlags{format: StringFlag{Long: "yaml"}},
+			flags:       &worktreeCleanFlags{format: "yaml"},
 			args:        []string{},
 			wantErr:     true,
 			errContains: "invalid format",
 		},
 		{
 			name:        "unexpected arguments",
-			flags:       &worktreeCleanFlags{format: StringFlag{Long: "text"}},
+			flags:       &worktreeCleanFlags{format: "text"},
 			args:        []string{"extra"},
 			wantErr:     true,
 			errContains: "takes no arguments",
 		},
 		{
 			name:        "multiple unexpected arguments",
-			flags:       &worktreeCleanFlags{format: StringFlag{Long: "text"}},
+			flags:       &worktreeCleanFlags{format: "text"},
 			args:        []string{"extra", "args"},
 			wantErr:     true,
 			errContains: "takes no arguments",

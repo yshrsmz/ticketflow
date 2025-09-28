@@ -42,18 +42,18 @@ func (c *CloseCommand) Usage() string {
 
 // closeFlags holds the flags for the close command
 type closeFlags struct {
-	force  BoolFlag
+	force  bool
 	reason string
-	format StringFlag
+	format string
 	args   []string // Store validated arguments
 }
 
 // SetupFlags configures flags for the command
 func (c *CloseCommand) SetupFlags(fs *flag.FlagSet) interface{} {
 	flags := &closeFlags{}
-	RegisterBool(fs, &flags.force, "force", "f", "Force close even with uncommitted changes")
+	fs.BoolVarP(&flags.force, "force", "f", false, "Force close even with uncommitted changes")
 	fs.StringVar(&flags.reason, "reason", "", "Reason for closing the ticket")
-	RegisterString(fs, &flags.format, "format", "o", FormatText, "Output format (text|json)")
+	fs.StringVarP(&flags.format, "format", "o", FormatText, "Output format (text|json)")
 	return flags
 }
 
@@ -73,8 +73,8 @@ func (c *CloseCommand) Validate(flags interface{}, args []string) error {
 	// Store arguments for Execute method
 	f.args = args
 
-	// Validate format flag using resolved value
-	if err := ValidateFormat(f.format.Value()); err != nil {
+	// Validate format flag
+	if err := ValidateFormat(f.format); err != nil {
 		return err
 	}
 
@@ -96,9 +96,9 @@ func (c *CloseCommand) Execute(ctx context.Context, flags interface{}, args []st
 		return err
 	}
 
-	// Get resolved values
-	format := f.format.Value()
-	force := f.force.Value()
+	// Get flag values
+	format := f.format
+	force := f.force
 
 	// Parse output format first
 	outputFormat := cli.ParseOutputFormat(format)

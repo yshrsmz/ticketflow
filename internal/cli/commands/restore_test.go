@@ -43,8 +43,7 @@ func TestRestoreCommand_SetupFlags(t *testing.T) {
 	require.True(t, ok, "flags should be *restoreFlags")
 
 	// Test default values
-	assert.Equal(t, FormatText, restoreFlags.format.Long)
-	assert.Equal(t, "", restoreFlags.format.Short)
+	assert.Equal(t, FormatText, restoreFlags.format)
 
 	// Test that flags are registered
 	formatFlag := fs.Lookup("format")
@@ -78,7 +77,7 @@ func TestRestoreCommand_Validate(t *testing.T) {
 		{
 			name: "valid no arguments with text format",
 			flags: &restoreFlags{
-				format: StringFlag{Long: FormatText},
+				format: FormatText,
 			},
 			args:        []string{},
 			expectError: false,
@@ -86,7 +85,7 @@ func TestRestoreCommand_Validate(t *testing.T) {
 		{
 			name: "valid no arguments with json format",
 			flags: &restoreFlags{
-				format: StringFlag{Long: FormatJSON},
+				format: FormatJSON,
 			},
 			args:        []string{},
 			expectError: false,
@@ -94,7 +93,7 @@ func TestRestoreCommand_Validate(t *testing.T) {
 		{
 			name: "error with arguments",
 			flags: &restoreFlags{
-				format: StringFlag{Long: FormatText},
+				format: FormatText,
 			},
 			args:        []string{"some-arg"},
 			expectError: true,
@@ -103,7 +102,7 @@ func TestRestoreCommand_Validate(t *testing.T) {
 		{
 			name: "error with multiple arguments",
 			flags: &restoreFlags{
-				format: StringFlag{Long: FormatText},
+				format: FormatText,
 			},
 			args:        []string{"arg1", "arg2"},
 			expectError: true,
@@ -112,7 +111,7 @@ func TestRestoreCommand_Validate(t *testing.T) {
 		{
 			name: "invalid format",
 			flags: &restoreFlags{
-				format: StringFlag{Long: "invalid"},
+				format: "invalid",
 			},
 			args:        []string{},
 			expectError: true,
@@ -135,7 +134,7 @@ func TestRestoreCommand_Validate(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 
-				// No need to check normalization with new flag utilities
+				// Validation tests focus on the validation logic only
 			}
 		})
 	}

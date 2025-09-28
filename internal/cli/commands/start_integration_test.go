@@ -213,8 +213,8 @@ func TestStartCommand_Execute_Integration(t *testing.T) {
 
 			// Setup flags
 			startFlags := &startFlags{
-				force:  BoolFlag{Long: tt.flags["force"] == "true"},
-				format: StringFlag{Long: tt.flags["format"]},
+				force:  tt.flags["force"] == "true",
+				format: tt.flags["format"],
 			}
 
 			// Execute command with timeout
@@ -266,7 +266,7 @@ func TestStartCommand_Execute_WithInitCommands(t *testing.T) {
 	// Execute start command
 	cmd := NewStartCommand()
 	startFlags := &startFlags{
-		format: StringFlag{Long: "text"},
+		format: "text",
 	}
 
 	err = cmd.Execute(context.Background(), startFlags, []string{"init-test"})
@@ -300,7 +300,7 @@ func TestStartCommand_Execute_ContextCancellation(t *testing.T) {
 	// Execute command with cancelled context
 	cmd := NewStartCommand()
 	startFlags := &startFlags{
-		format: StringFlag{Long: "text"},
+		format: "text",
 	}
 
 	err = cmd.Execute(ctx, startFlags, []string{"some-ticket"})
@@ -333,7 +333,7 @@ func TestStartCommand_Execute_MultipleTicketValidation(t *testing.T) {
 
 	// Setup flags
 	startFlags := &startFlags{
-		format: StringFlag{Long: "text"},
+		format: "text",
 	}
 
 	// Try to start multiple tickets (should fail in Validate)

@@ -41,7 +41,7 @@ func TestStartCommand_FromWithinWorktree_CreatesAtMainBase(t *testing.T) {
 
 	// Start the second ticket from within the worktree
 	cmd := NewStartCommand()
-	flags := &startFlags{format: StringFlag{Long: string(FormatText)}}
+	flags := &startFlags{format: FormatText}
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	err = cmd.Execute(ctx, flags, []string{"second"})

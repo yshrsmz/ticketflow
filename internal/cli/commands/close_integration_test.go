@@ -185,9 +185,9 @@ func TestCloseCommand_Execute_Integration(t *testing.T) {
 
 			// Setup flags
 			closeFlags := &closeFlags{
-				force:  BoolFlag{Long: tt.flags["force"] == "true"},
+				force:  tt.flags["force"] == "true",
 				reason: tt.flags["reason"],
-				format: StringFlag{Long: tt.flags["format"]},
+				format: tt.flags["format"],
 				args:   tt.args,
 			}
 
@@ -237,7 +237,7 @@ func TestCloseCommand_Execute_WithWorktree(t *testing.T) {
 	// Execute close command
 	cmd := NewCloseCommand()
 	closeFlags := &closeFlags{
-		format: StringFlag{Long: "text"},
+		format: "text",
 		args:   []string{},
 	}
 
@@ -269,7 +269,7 @@ func TestCloseCommand_Execute_ContextCancellation(t *testing.T) {
 	// Execute command with cancelled context
 	cmd := NewCloseCommand()
 	closeFlags := &closeFlags{
-		format: StringFlag{Long: "text"},
+		format: "text",
 		args:   []string{},
 	}
 

@@ -39,13 +39,13 @@ func (c *WorktreeCleanCommand) Usage() string {
 
 // worktreeCleanFlags holds the flags for the worktree clean command
 type worktreeCleanFlags struct {
-	format StringFlag
+	format string
 }
 
 // SetupFlags configures the flag set for this command
 func (c *WorktreeCleanCommand) SetupFlags(fs *flag.FlagSet) interface{} {
 	flags := &worktreeCleanFlags{}
-	RegisterString(fs, &flags.format, "format", "o", FormatText, "Output format (text|json)")
+	fs.StringVarP(&flags.format, "format", "o", FormatText, "Output format (text|json)")
 	return flags
 }
 
@@ -62,8 +62,8 @@ func (c *WorktreeCleanCommand) Validate(flags interface{}, args []string) error 
 		return err
 	}
 
-	// Validate format flag using resolved value
-	if err := ValidateFormat(f.format.Value()); err != nil {
+	// Validate format flag
+	if err := ValidateFormat(f.format); err != nil {
 		return err
 	}
 
@@ -85,8 +85,8 @@ func (c *WorktreeCleanCommand) Execute(ctx context.Context, flags interface{}, a
 		return err
 	}
 
-	// Get resolved format value
-	format := f.format.Value()
+	// Get format value
+	format := f.format
 
 	// Parse output format first
 	outputFormat := cli.ParseOutputFormat(format)
