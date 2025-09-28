@@ -44,11 +44,9 @@ func TestCloseCommand_SetupFlags(t *testing.T) {
 	require.True(t, ok, "flags should be *closeFlags")
 
 	// Test default values
-	assert.False(t, closeFlags.force.Long)
-	assert.False(t, closeFlags.force.Short)
+	assert.False(t, closeFlags.force)
 	assert.Equal(t, "", closeFlags.reason)
-	assert.Equal(t, FormatText, closeFlags.format.Long)
-	assert.Equal(t, "", closeFlags.format.Short)
+	assert.Equal(t, FormatText, closeFlags.format)
 
 	// Test that flags are registered
 	forceFlag := fs.Lookup("force")
@@ -87,7 +85,7 @@ func TestCloseCommand_Validate(t *testing.T) {
 		{
 			name: "valid no arguments",
 			flags: &closeFlags{
-				format: StringFlag{Long: FormatText},
+				format: FormatText,
 			},
 			args:        []string{},
 			expectError: false,
@@ -95,7 +93,7 @@ func TestCloseCommand_Validate(t *testing.T) {
 		{
 			name: "valid with ticket ID",
 			flags: &closeFlags{
-				format: StringFlag{Long: FormatText},
+				format: FormatText,
 			},
 			args:        []string{"ticket-123"},
 			expectError: false,
@@ -103,7 +101,7 @@ func TestCloseCommand_Validate(t *testing.T) {
 		{
 			name: "too many arguments",
 			flags: &closeFlags{
-				format: StringFlag{Long: FormatText},
+				format: FormatText,
 			},
 			args:        []string{"ticket-123", "extra"},
 			expectError: true,
@@ -112,7 +110,7 @@ func TestCloseCommand_Validate(t *testing.T) {
 		{
 			name: "invalid format",
 			flags: &closeFlags{
-				format: StringFlag{Long: "invalid"},
+				format: "invalid",
 			},
 			args:        []string{},
 			expectError: true,
@@ -167,7 +165,7 @@ func TestCloseCommand_Execute_Errors(t *testing.T) {
 		{
 			name: "context cancelled",
 			flags: &closeFlags{
-				format: StringFlag{Long: FormatText},
+				format: FormatText,
 				args:   []string{},
 			},
 			args: []string{},

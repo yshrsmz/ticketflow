@@ -153,7 +153,7 @@ func TestWorktreeCleanCommand_Execute_Integration(t *testing.T) {
 			cmd := NewWorktreeCleanCommand()
 
 			// Create default flags for the command
-			flags := &worktreeCleanFlags{format: StringFlag{Long: "text"}}
+			flags := &worktreeCleanFlags{format: "text"}
 
 			// Validate first (if the command has a Validate method)
 			if err := cmd.Validate(flags, tt.args); err != nil {

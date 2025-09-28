@@ -39,15 +39,15 @@ func (c *StartCommand) Usage() string {
 
 // startFlags holds the flags for the start command
 type startFlags struct {
-	force  BoolFlag
-	format StringFlag
+	force  bool
+	format string
 }
 
 // SetupFlags configures flags for the command
 func (c *StartCommand) SetupFlags(fs *flag.FlagSet) interface{} {
 	flags := &startFlags{}
-	RegisterBool(fs, &flags.force, "force", "f", "Force recreate worktree if it already exists")
-	RegisterString(fs, &flags.format, "format", "o", FormatText, "Output format (text|json)")
+	fs.BoolVarP(&flags.force, "force", "f", false, "Force recreate worktree if it already exists")
+	fs.StringVarP(&flags.format, "format", "o", FormatText, "Output format (text|json)")
 	return flags
 }
 
@@ -69,8 +69,8 @@ func (c *StartCommand) Validate(flags interface{}, args []string) error {
 		return err
 	}
 
-	// Validate format flag using resolved value
-	if err := ValidateFormat(f.format.Value()); err != nil {
+	// Validate format flag
+	if err := ValidateFormat(f.format); err != nil {
 		return err
 	}
 
@@ -99,9 +99,9 @@ func (c *StartCommand) Execute(ctx context.Context, flags interface{}, args []st
 		return fmt.Errorf("missing ticket argument")
 	}
 
-	// Get resolved values
-	format := f.format.Value()
-	force := f.force.Value()
+	// Get flag values
+	format := f.format
+	force := f.force
 
 	// Parse output format first
 	outputFormat := cli.ParseOutputFormat(format)

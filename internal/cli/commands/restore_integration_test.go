@@ -250,7 +250,7 @@ Content`)
 
 			// Setup flags
 			restoreFlags := &restoreFlags{
-				format: StringFlag{Long: tt.flags["format"]},
+				format: tt.flags["format"],
 			}
 
 			// Validate flags before execution
@@ -320,7 +320,7 @@ func TestRestoreCommand_Execute_ContextCancellation(t *testing.T) {
 
 	// Execute command with cancelled context
 	cmd := NewRestoreCommand()
-	restoreFlags := &restoreFlags{format: StringFlag{Long: "text"}}
+	restoreFlags := &restoreFlags{format: "text"}
 	err = cmd.Execute(ctx, restoreFlags, []string{})
 	require.Error(t, err)
 	// With early context check, we return context.Canceled immediately

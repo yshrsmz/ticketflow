@@ -40,13 +40,13 @@ func (r *RestoreCommand) Usage() string {
 
 // restoreFlags holds the flags for the restore command
 type restoreFlags struct {
-	format StringFlag
+	format string
 }
 
 // SetupFlags configures the flag set for this command
 func (r *RestoreCommand) SetupFlags(fs *flag.FlagSet) interface{} {
 	flags := &restoreFlags{}
-	RegisterString(fs, &flags.format, "format", "o", FormatText, "Output format (text|json)")
+	fs.StringVarP(&flags.format, "format", "o", FormatText, "Output format (text|json)")
 	return flags
 }
 
@@ -63,8 +63,8 @@ func (r *RestoreCommand) Validate(flags interface{}, args []string) error {
 		return fmt.Errorf("restore command does not accept any arguments")
 	}
 
-	// Validate format value using resolved value
-	if err := ValidateFormat(f.format.Value()); err != nil {
+	// Validate format value
+	if err := ValidateFormat(f.format); err != nil {
 		return err
 	}
 
@@ -85,8 +85,8 @@ func (r *RestoreCommand) Execute(ctx context.Context, flags interface{}, args []
 		return err
 	}
 
-	// Get resolved format value
-	format := f.format.Value()
+	// Get format value
+	format := f.format
 
 	// Parse output format first
 	outputFormat := cli.ParseOutputFormat(format)

@@ -39,18 +39,18 @@ func (c *NewCommand) Usage() string {
 
 // newFlags holds the flags for the new command
 type newFlags struct {
-	parent StringFlag
-	format StringFlag
+	parent string
+	format string
 }
 
-// normalize is no longer needed - flag utilities handle this automatically
+// normalize is no longer needed - pflag handles this automatically
 
 // SetupFlags configures flags for the command
 func (c *NewCommand) SetupFlags(fs *flag.FlagSet) interface{} {
 	flags := &newFlags{}
-	// Use the new registration helpers - they handle both long and short forms
-	RegisterString(fs, &flags.parent, "parent", "p", "", "Parent ticket ID")
-	RegisterString(fs, &flags.format, "format", "o", FormatText, "Output format (text|json)")
+	// Use pflag's StringVarP to register both long and short forms
+	fs.StringVarP(&flags.parent, "parent", "p", "", "Parent ticket ID")
+	fs.StringVarP(&flags.format, "format", "o", FormatText, "Output format (text|json)")
 	return flags
 }
 
@@ -72,8 +72,8 @@ func (c *NewCommand) Validate(flags interface{}, args []string) error {
 		return err
 	}
 
-	// Validate format flag using resolved value
-	if err := ValidateFormat(f.format.Value()); err != nil {
+	// Validate format flag
+	if err := ValidateFormat(f.format); err != nil {
 		return err
 	}
 
@@ -95,9 +95,9 @@ func (c *NewCommand) Execute(ctx context.Context, flags interface{}, args []stri
 		return err
 	}
 
-	// Get resolved flag values
-	format := f.format.Value()
-	parent := f.parent.Value()
+	// Get flag values
+	format := f.format
+	parent := f.parent
 
 	// Parse output format first
 	outputFormat := cli.ParseOutputFormat(format)

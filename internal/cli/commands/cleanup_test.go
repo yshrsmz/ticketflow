@@ -48,51 +48,51 @@ func TestCleanupCommand_Validate(t *testing.T) {
 	}{
 		{
 			name:    "valid auto-cleanup no arguments",
-			flags:   &cleanupFlags{format: StringFlag{Long: "text"}},
+			flags:   &cleanupFlags{format: "text"},
 			args:    []string{},
 			wantErr: false,
 		},
 		{
 			name:    "valid ticket cleanup with ID",
-			flags:   &cleanupFlags{format: StringFlag{Long: "text"}},
+			flags:   &cleanupFlags{format: "text"},
 			args:    []string{"ticket-123"},
 			wantErr: false,
 		},
 		{
 			name:    "valid with dry-run flag",
-			flags:   &cleanupFlags{dryRun: true, format: StringFlag{Long: "text"}},
+			flags:   &cleanupFlags{dryRun: true, format: "text"},
 			args:    []string{},
 			wantErr: false,
 		},
 		{
 			name:    "valid with force flag",
-			flags:   &cleanupFlags{force: BoolFlag{Long: true}, format: StringFlag{Long: "text"}},
+			flags:   &cleanupFlags{force: true, format: "text"},
 			args:    []string{"ticket-123"},
 			wantErr: false,
 		},
 		{
 			name:    "valid with json format",
-			flags:   &cleanupFlags{format: StringFlag{Long: "json"}},
+			flags:   &cleanupFlags{format: "json"},
 			args:    []string{},
 			wantErr: false,
 		},
 		{
 			name:        "invalid format",
-			flags:       &cleanupFlags{format: StringFlag{Long: "yaml"}},
+			flags:       &cleanupFlags{format: "yaml"},
 			args:        []string{},
 			wantErr:     true,
 			errContains: "invalid format",
 		},
 		{
 			name:        "dry-run with ticket ID not allowed",
-			flags:       &cleanupFlags{dryRun: true, format: StringFlag{Long: "text"}},
+			flags:       &cleanupFlags{dryRun: true, format: "text"},
 			args:        []string{"ticket-123"},
 			wantErr:     true,
 			errContains: "--dry-run cannot be used when cleaning up a specific ticket",
 		},
 		{
 			name:        "too many arguments",
-			flags:       &cleanupFlags{format: StringFlag{Long: "text"}},
+			flags:       &cleanupFlags{format: "text"},
 			args:        []string{"ticket-123", "extra"},
 			wantErr:     true,
 			errContains: "unexpected arguments after ticket ID",
@@ -143,7 +143,7 @@ func TestCleanupCommand_Execute_Errors(t *testing.T) {
 				cancel()
 				return ctx
 			},
-			flags:       &cleanupFlags{format: StringFlag{Long: "text"}},
+			flags:       &cleanupFlags{format: "text"},
 			args:        []string{},
 			errContains: "context canceled",
 		},

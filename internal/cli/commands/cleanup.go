@@ -41,8 +41,8 @@ func (c *CleanupCommand) Usage() string {
 // cleanupFlags holds the flags for the cleanup command
 type cleanupFlags struct {
 	dryRun bool
-	force  BoolFlag
-	format StringFlag
+	force  bool
+	format string
 	args   []string // Store validated arguments
 }
 
@@ -50,8 +50,8 @@ type cleanupFlags struct {
 func (c *CleanupCommand) SetupFlags(fs *flag.FlagSet) interface{} {
 	flags := &cleanupFlags{}
 	fs.BoolVar(&flags.dryRun, "dry-run", false, "Show what would be cleaned without making changes")
-	RegisterBool(fs, &flags.force, "force", "f", "Skip confirmation prompts")
-	RegisterString(fs, &flags.format, "format", "o", FormatText, "Output format (text|json)")
+	fs.BoolVarP(&flags.force, "force", "f", false, "Skip confirmation prompts")
+	fs.StringVarP(&flags.format, "format", "o", FormatText, "Output format (text|json)")
 	return flags
 }
 
@@ -71,8 +71,8 @@ func (c *CleanupCommand) Validate(flags interface{}, args []string) error {
 	// Store arguments for Execute method
 	f.args = args
 
-	// Validate format flag using resolved value
-	if err := ValidateFormat(f.format.Value()); err != nil {
+	// Validate format flag
+	if err := ValidateFormat(f.format); err != nil {
 		return err
 	}
 
@@ -99,8 +99,8 @@ func (c *CleanupCommand) Execute(ctx context.Context, flags interface{}, args []
 		return err
 	}
 
-	// Get resolved values
-	format := f.format.Value()
+	// Get flag values
+	format := f.format
 
 	// Get app instance with the correct output format from the start
 	outputFormat := cli.ParseOutputFormat(format)
@@ -122,8 +122,8 @@ func (c *CleanupCommand) Execute(ctx context.Context, flags interface{}, args []
 
 // executeAutoCleanup handles the auto-cleanup mode (no ticket ID provided)
 func (c *CleanupCommand) executeAutoCleanup(ctx context.Context, app *cli.App, flags *cleanupFlags) error {
-	// Get resolved format value
-	format := flags.format.Value()
+	// Get flag value
+	format := flags.format
 
 	// Perform auto-cleanup (or dry-run which only shows what would be cleaned without making changes)
 	result, err := app.AutoCleanup(ctx, flags.dryRun)
@@ -147,9 +147,9 @@ func (c *CleanupCommand) executeAutoCleanup(ctx context.Context, app *cli.App, f
 func (c *CleanupCommand) executeTicketCleanup(ctx context.Context, app *cli.App, flags *cleanupFlags) error {
 	ticketID := flags.args[0]
 
-	// Get resolved values
-	format := flags.format.Value()
-	force := flags.force.Value()
+	// Get flag values
+	format := flags.format
+	force := flags.force
 
 	// Perform ticket cleanup
 	cleanedTicket, err := app.CleanupTicket(ctx, ticketID, force)

@@ -298,8 +298,8 @@ description: "Feature template"
 
 			// Setup flags
 			newFlags := &newFlags{
-				parent: StringFlag{Long: tt.flags["parent"]},
-				format: StringFlag{Long: tt.flags["format"]},
+				parent: tt.flags["parent"],
+				format: tt.flags["format"],
 			}
 
 			// Validate flags before execution
@@ -360,7 +360,7 @@ func TestNewCommand_Execute_ContextCancellation(t *testing.T) {
 
 	// Execute command with cancelled context
 	cmd := NewNewCommand()
-	newFlags := &newFlags{format: StringFlag{Long: "text"}}
+	newFlags := &newFlags{format: "text"}
 	err = cmd.Execute(ctx, newFlags, []string{"test-ticket"})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "context canceled")

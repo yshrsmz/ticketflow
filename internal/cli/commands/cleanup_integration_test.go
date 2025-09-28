@@ -28,7 +28,7 @@ func TestCleanupCommand_Execute_AutoCleanup_Integration(t *testing.T) {
 		cmd := NewCleanupCommand()
 		fs := flag.NewFlagSet("cleanup", flag.ContinueOnError)
 		flags := cmd.SetupFlags(fs).(*cleanupFlags)
-		flags.format.Long = "text"
+		flags.format = "text"
 
 		// Should execute without errors even if nothing to clean
 		err := cmd.Execute(context.Background(), flags, []string{})
@@ -51,7 +51,7 @@ func TestCleanupCommand_Execute_AutoCleanup_DryRun_Integration(t *testing.T) {
 		fs := flag.NewFlagSet("cleanup", flag.ContinueOnError)
 		flags := cmd.SetupFlags(fs).(*cleanupFlags)
 		flags.dryRun = true
-		flags.format.Long = "text"
+		flags.format = "text"
 
 		// Should execute without errors in dry-run mode
 		err := cmd.Execute(context.Background(), flags, []string{})
@@ -74,7 +74,7 @@ func TestCleanupCommand_Execute_AutoCleanup_JSON_Integration(t *testing.T) {
 			cmd := NewCleanupCommand()
 			fs := flag.NewFlagSet("cleanup", flag.ContinueOnError)
 			flags := cmd.SetupFlags(fs).(*cleanupFlags)
-			flags.format.Long = "json"
+			flags.format = "json"
 
 			err := cmd.Execute(context.Background(), flags, []string{})
 			require.NoError(t, err)
@@ -116,8 +116,8 @@ func TestCleanupCommand_Execute_TicketCleanup_Integration(t *testing.T) {
 		cmd := NewCleanupCommand()
 		fs := flag.NewFlagSet("cleanup", flag.ContinueOnError)
 		flags := cmd.SetupFlags(fs).(*cleanupFlags)
-		flags.format.Long = "text"
-		flags.force.Long = true // Skip confirmation
+		flags.format = "text"
+		flags.force = true // Skip confirmation
 		flags.args = []string{"done-ticket"}
 
 		err := cmd.Execute(context.Background(), flags, []string{"done-ticket"})
@@ -155,8 +155,8 @@ func TestCleanupCommand_Execute_TicketCleanup_Force_Integration(t *testing.T) {
 		cmd := NewCleanupCommand()
 		fs := flag.NewFlagSet("cleanup", flag.ContinueOnError)
 		flags := cmd.SetupFlags(fs).(*cleanupFlags)
-		flags.force.Long = true
-		flags.format.Long = "text"
+		flags.force = true
+		flags.format = "text"
 		flags.args = []string{"done-ticket-force"}
 
 		err := cmd.Execute(context.Background(), flags, []string{"done-ticket-force"})
@@ -188,8 +188,8 @@ func TestCleanupCommand_Execute_TicketCleanup_JSON_Integration(t *testing.T) {
 			cmd := NewCleanupCommand()
 			fs := flag.NewFlagSet("cleanup", flag.ContinueOnError)
 			flags := cmd.SetupFlags(fs).(*cleanupFlags)
-			flags.format.Long = "json"
-			flags.force.Long = true // Skip confirmation
+			flags.format = "json"
+			flags.force = true // Skip confirmation
 			flags.args = []string{"done-ticket"}
 
 			err := cmd.Execute(context.Background(), flags, []string{"done-ticket"})
@@ -220,7 +220,7 @@ func TestCleanupCommand_Execute_TicketCleanup_NotFound_Integration(t *testing.T)
 		cmd := NewCleanupCommand()
 		fs := flag.NewFlagSet("cleanup", flag.ContinueOnError)
 		flags := cmd.SetupFlags(fs).(*cleanupFlags)
-		flags.format.Long = "text"
+		flags.format = "text"
 		flags.args = []string{"non-existent-ticket"}
 
 		err := cmd.Execute(context.Background(), flags, []string{"non-existent-ticket"})
@@ -240,7 +240,7 @@ func TestCleanupCommand_Execute_TicketCleanup_ErrorJSON_Integration(t *testing.T
 			cmd := NewCleanupCommand()
 			fs := flag.NewFlagSet("cleanup", flag.ContinueOnError)
 			flags := cmd.SetupFlags(fs).(*cleanupFlags)
-			flags.format.Long = "json"
+			flags.format = "json"
 			flags.args = []string{"non-existent-ticket"}
 
 			// This will error since ticket doesn't exist
@@ -271,7 +271,7 @@ func TestCleanupCommand_Execute_AutoCleanup_NoConfig_Integration(t *testing.T) {
 	cmd := NewCleanupCommand()
 	fs := flag.NewFlagSet("cleanup", flag.ContinueOnError)
 	flags := cmd.SetupFlags(fs).(*cleanupFlags)
-	flags.format.Long = "text"
+	flags.format = "text"
 
 	err = cmd.Execute(context.Background(), flags, []string{})
 	require.Error(t, err)
