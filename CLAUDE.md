@@ -241,6 +241,7 @@ ticketflow close           # This creates commit on wrong branch!
 ## AI Integration Guidelines
 - **ALWAYS use `--format json` when running ticketflow commands** to get structured output for better parsing and analysis
 - JSON output provides comprehensive ticket information including metadata, relationships, and timestamps
+- **Interspersed flag support**: Flags can be placed after positional arguments (e.g., `ticketflow show ticket-123 --format json`), making commands more natural to type and generate
 
 ## Testing Guidelines
 
