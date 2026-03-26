@@ -3,7 +3,7 @@ module github.com/yshrsmz/ticketflow
 go 1.25.1
 
 require (
-	github.com/charmbracelet/bubbles v0.21.0
+	github.com/charmbracelet/bubbles/v2 v2.1.0
 	github.com/charmbracelet/bubbletea v1.3.10
 	github.com/charmbracelet/lipgloss v1.1.0
 	github.com/mattn/go-shellwords v1.0.12
